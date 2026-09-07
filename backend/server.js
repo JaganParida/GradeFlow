@@ -130,6 +130,7 @@ app.use("/api/timetable", publicLimiter, require("./routes/timetable"));
 app.use("/api/notifications", require("./routes/notifications"));
 app.use("/api/traffic", publicLimiter, require("./routes/traffic"));
 app.use("/api/admin/traffic", adminLimiter, csrfProtect, require("./routes/adminTraffic"));
+app.use("/api/admin/vercel-quota", adminLimiter, csrfProtect, require("./routes/adminVercelQuota"));
 
 // ─── Attendance OCR Endpoint ───────────────────────────────────
 app.post("/api/attendance/ocr", publicLimiter, async (req, res) => {

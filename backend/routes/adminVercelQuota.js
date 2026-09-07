@@ -1,0 +1,360 @@
+const express = require("express");
+const router = express.Router();
+const { protect } = require("../middleware/auth");
+const VercelQuotaMetric = require("../models/VercelQuotaMetric");
+const StudentRouteActivity = require("../models/StudentRouteActivity");
+const PageAnalytics = require("../models/PageAnalytics");
+const TrafficQueueConfig = require("../models/TrafficQueueConfig");
+const liveTrafficManager = require("../utils/liveTrafficManager");
+
+// Vercel Free Hobby Tier Quota Limits
+const HOBBY_LIMITS = {
+  MONTHLY_REQUESTS_LIMIT: 100000, // 100,000 Serverless Invocations
+  DAILY_REQUESTS_BUDGET: 3333,    // ~100,000 / 30 days
+  BANDWIDTH_LIMIT_GB: 100,        // 100 GB Fast Data Transfer
+  TIMEOUT_SECONDS: 10,            // 10s Serverless Execution Timeout
+  CONCURRENCY_LIMIT: 100,         // 100 Concurrent Executions
+  BYTES_PER_INVOCATION_EST: 28672 // ~28 KB avg payload + headers
+};
+
+const EXCLUDED_STUDENT_REG = "230301120327";
+
+const DAYS_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+function getIstDateDetails() {
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(now.getTime() + istOffset);
+
+  const year = istDate.getUTCFullYear();
+  const month = istDate.getUTCMonth(); // 0-indexed
+  const date = istDate.getUTCDate();
+  const hour = istDate.getUTCHours();
+  const day = istDate.getUTCDay();
+
+  const dateStr = istDate.toISOString().split("T")[0]; // YYYY-MM-DD
+  const monthStr = dateStr.slice(0, 7); // YYYY-MM
+
+  // Total days in current month
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  return {
+    dateStr,
+    monthStr,
+    dayOfWeek: day,
+    hour,
+    dayOfMonth: date,
+    daysInMonth,
+  };
+}
+
+function formatHourSlot(hour) {
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayH = hour % 12 === 0 ? 12 : hour % 12;
+  const nextH = (hour + 1) % 24;
+  const nextPeriod = nextH >= 12 ? "PM" : "AM";
+  const nextDisplayH = nextH % 12 === 0 ? 12 : nextH % 12;
+
+  let tag = "Day";
+  if (hour >= 0 && hour < 6) tag = "Late Night";
+  else if (hour >= 6 && hour < 12) tag = "Morning";
+  else if (hour >= 12 && hour < 17) tag = "Afternoon";
+  else if (hour >= 17 && hour < 21) tag = "Evening";
+  else tag = "Night";
+
+  return `${displayH}:00 ${period} – ${nextDisplayH}:00 ${nextPeriod} (${tag})`;
+}
+
+// All endpoints require administrative authentication
+router.use(protect);
+
+// ─── GET /api/admin/vercel-quota ──────────────────────────────────────────────
+// On-demand calculated Vercel Hobby Quota & Traffic Intelligence Monitor
+// ZERO POLLING / ZERO QUOTA DRAIN: Only executes when the admin requests it.
+router.get("/", async (req, res) => {
+  try {
+    const { dateStr, monthStr, dayOfWeek, hour, dayOfMonth, daysInMonth } = getIstDateDetails();
+
+    // 1. Fetch Today's Metric Record
+    const todayMetric = await VercelQuotaMetric.findOne({ dateStr }).lean();
+
+    // 2. Fetch All Records for the Current Month
+    const monthlyMetrics = await VercelQuotaMetric.find({ monthStr }).lean();
+
+    // 3. Fetch Student Activity baseline (excluding special student and admin)
+    const studentActivities = await StudentRouteActivity.find({
+      regNo: { $ne: EXCLUDED_STUDENT_REG },
+    }).lean();
+
+    // 4. Fetch PageAnalytics
+    const pages = await PageAnalytics.find({}).sort({ totalViews: -1 }).lean();
+
+    // 5. Fetch Traffic Queue Configuration
+    const queueConfig = (await TrafficQueueConfig.findOne({ key: "global_traffic_config" }).lean()) || {
+      queueEnabled: false,
+      autoTriggerEnabled: true,
+      maxActiveCapacity: 200,
+      queueMessage: "Server capacity optimization active. You are in queue.",
+      estimatedWaitPerStudentSeconds: 15,
+    };
+
+    // Synthesize realistic baseline if VercelQuotaMetric is freshly initialized
+    // Each student page visit generates ~3.4 serverless invocations (auth verify, timetable/attendance, traffic ping)
+    const API_AMPLIFICATION_FACTOR = 3.4;
+
+    let baselineTodayRequests = 0;
+    let baselineMonthRequests = 0;
+    const aggregateHourly = new Array(24).fill(0);
+    const aggregateDays = new Array(7).fill(0);
+
+    studentActivities.forEach((st) => {
+      baselineTodayRequests += Math.round((st.visitsToday || 1) * API_AMPLIFICATION_FACTOR);
+      baselineMonthRequests += Math.round((st.totalPageViews || 1) * API_AMPLIFICATION_FACTOR);
+
+      if (Array.isArray(st.hourlyActivity)) {
+        st.hourlyActivity.forEach((cnt, h) => {
+          aggregateHourly[h] = (aggregateHourly[h] || 0) + Math.round(cnt * API_AMPLIFICATION_FACTOR);
+        });
+      }
+      if (Array.isArray(st.dayOfWeekActivity)) {
+        st.dayOfWeekActivity.forEach((cnt, d) => {
+          aggregateDays[d] = (aggregateDays[d] || 0) + Math.round(cnt * API_AMPLIFICATION_FACTOR);
+        });
+      }
+    });
+
+    // Merge stored metrics with baseline
+    const storedTodayRequests = todayMetric ? todayMetric.totalRequests : 0;
+    const effectiveTodayRequests = Math.max(storedTodayRequests, baselineTodayRequests);
+
+    let storedMonthRequests = monthlyMetrics.reduce((sum, m) => sum + (m.totalRequests || 0), 0);
+    const effectiveMonthRequests = Math.max(storedMonthRequests, baselineMonthRequests);
+
+    // Merge 24-hour histogram
+    const finalHourlyRequests = new Array(24).fill(0);
+    for (let h = 0; h < 24; h++) {
+      const fromMetric = todayMetric?.hourlyRequests?.[h] || 0;
+      finalHourlyRequests[h] = Math.max(fromMetric, aggregateHourly[h] || 0);
+    }
+
+    // Determine Peak Hour
+    let maxHourCount = 0;
+    let peakHourIndex = 20; // fallback 8 PM
+    finalHourlyRequests.forEach((count, h) => {
+      if (count > maxHourCount) {
+        maxHourCount = count;
+        peakHourIndex = h;
+      }
+    });
+    const peakHourText = formatHourSlot(peakHourIndex);
+
+    // Determine Peak Day
+    let maxDayCount = 0;
+    let peakDayIndex = 2; // fallback Tuesday
+    aggregateDays.forEach((count, d) => {
+      if (count > maxDayCount) {
+        maxDayCount = count;
+        peakDayIndex = d;
+      }
+    });
+    const peakDayText = DAYS_NAMES[peakDayIndex] || "Tuesday";
+
+    // ─── Calculate Quotas & Percentages ─────────────────────────────
+    const todayBudget = HOBBY_LIMITS.DAILY_REQUESTS_BUDGET;
+    const todayUsed = effectiveTodayRequests;
+    const todayRemaining = Math.max(0, todayBudget - todayUsed);
+    const todayPercent = parseFloat(((todayUsed / todayBudget) * 100).toFixed(1));
+
+    const monthLimit = HOBBY_LIMITS.MONTHLY_REQUESTS_LIMIT;
+    const monthUsed = effectiveMonthRequests;
+    const monthRemaining = Math.max(0, monthLimit - monthUsed);
+    const monthPercent = parseFloat(((monthUsed / monthLimit) * 100).toFixed(1));
+
+    // Burn Rate & Month-End Projection
+    const dailyBurnRate = Math.round(monthUsed / Math.max(1, dayOfMonth));
+    const projectedMonthEndRequests = Math.round(dailyBurnRate * daysInMonth);
+    const projectedMonthPercent = parseFloat(((projectedMonthEndRequests / monthLimit) * 100).toFixed(1));
+
+    let projectionStatus = "HEALTHY";
+    if (projectedMonthPercent > 100) projectionStatus = "OVER_BUDGET";
+    else if (projectedMonthPercent > 80) projectionStatus = "AT_RISK";
+
+    // Bandwidth Estimation
+    const totalBandwidthBytes = effectiveMonthRequests * HOBBY_LIMITS.BYTES_PER_INVOCATION_EST;
+    const bandwidthGB = parseFloat((totalBandwidthBytes / (1024 * 1024 * 1024)).toFixed(2));
+    const bandwidthLimitGB = HOBBY_LIMITS.BANDWIDTH_LIMIT_GB;
+    const bandwidthPercent = parseFloat(((bandwidthGB / bandwidthLimitGB) * 100).toFixed(1));
+
+    // ─── Route Breakdown Ranking ────────────────────────────────────
+    const routeBreakdown = pages.map((page) => {
+      const estimatedInvocations = Math.round((page.totalViews || 1) * API_AMPLIFICATION_FACTOR);
+      const percentOfTotal = effectiveMonthRequests > 0
+        ? parseFloat(((estimatedInvocations / effectiveMonthRequests) * 100).toFixed(1))
+        : 0;
+      const routeBytes = estimatedInvocations * HOBBY_LIMITS.BYTES_PER_INVOCATION_EST;
+      const bandwidthMB = parseFloat((routeBytes / (1024 * 1024)).toFixed(1));
+
+      let priorityTier = "LIGHTWEIGHT";
+      let cacheRecommendation = "Edge SWR (300s)";
+      if (percentOfTotal >= 25) {
+        priorityTier = "HIGH_CONSUMPTION";
+        cacheRecommendation = "Aggressive Stale-While-Revalidate + Cache-Control: max-age=120";
+      } else if (percentOfTotal >= 10) {
+        priorityTier = "MEDIUM_CONSUMPTION";
+        cacheRecommendation = "Browser Memory Cache + 60s Revalidation";
+      }
+
+      return {
+        route: page.route,
+        pageTitle: page.pageTitle || page.route,
+        totalViews: page.totalViews || 0,
+        estimatedInvocations,
+        percentOfTotal,
+        bandwidthMB,
+        priorityTier,
+        cacheRecommendation,
+        lastVisitedAt: page.lastVisitedAt,
+      };
+    });
+
+    // Sort routes by estimated invocations descending
+    routeBreakdown.sort((a, b) => b.estimatedInvocations - a.estimatedInvocations);
+
+    // ─── Auto-Defense Traffic Policies ──────────────────────────────
+    // Recommend Enterprise Auto-Handling Policy based on current burn rate & today usage
+    let recommendedDefensePolicy = "OPTIMAL";
+    let defenseBadge = "Optimal Mode";
+    let defenseDescription = "Direct serverless execution. Caching active. Normal operation.";
+
+    if (todayPercent >= 90 || projectedMonthPercent >= 100) {
+      recommendedDefensePolicy = "CRITICAL_SHIELD";
+      defenseBadge = "Critical Emergency Shield";
+      defenseDescription = "High quota exhaustion risk. Strict queueing recommended to prevent Vercel 429 Hobby lockout.";
+    } else if (todayPercent >= 70 || projectedMonthPercent >= 80) {
+      recommendedDefensePolicy = "SURGE_PROTECTION";
+      defenseBadge = "Surge Protection Alert";
+      defenseDescription = "Elevated traffic detected. Enabling queue for heavy routes preserves free tier allocation.";
+    }
+
+    // Peak Users Count
+    const totalActiveStudents = studentActivities.length;
+
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      dateStr,
+      monthStr,
+      quotaLimits: HOBBY_LIMITS,
+      today: {
+        used: todayUsed,
+        budget: todayBudget,
+        remaining: todayRemaining,
+        percent: todayPercent,
+        status: todayPercent >= 90 ? "CRITICAL" : todayPercent >= 70 ? "WARNING" : "NORMAL",
+      },
+      month: {
+        used: monthUsed,
+        limit: monthLimit,
+        remaining: monthRemaining,
+        percent: monthPercent,
+        dayOfMonth,
+        daysInMonth,
+        dailyBurnRate,
+        projectedMonthEndRequests,
+        projectedMonthPercent,
+        projectionStatus,
+      },
+      bandwidth: {
+        usedGB: bandwidthGB,
+        limitGB: bandwidthLimitGB,
+        remainingGB: parseFloat(Math.max(0, bandwidthLimitGB - bandwidthGB).toFixed(2)),
+        percent: bandwidthPercent,
+      },
+      peakTiming: {
+        peakHourIndex,
+        peakHourText,
+        peakHourCount: maxHourCount,
+        peakDayText,
+        peakDayIndex,
+        totalActiveStudents,
+        hourlyDistribution: finalHourlyRequests.map((count, h) => ({
+          hour: h,
+          label: `${h % 12 === 0 ? 12 : h % 12} ${h >= 12 ? "PM" : "AM"}`,
+          requests: count,
+          percentage: effectiveTodayRequests > 0 ? parseFloat(((count / effectiveTodayRequests) * 100).toFixed(1)) : 0,
+        })),
+      },
+      routeBreakdown,
+      defenseSystem: {
+        currentQueueEnabled: Boolean(queueConfig.queueEnabled),
+        autoTriggerEnabled: Boolean(queueConfig.autoTriggerEnabled),
+        maxActiveCapacity: queueConfig.maxActiveCapacity || 200,
+        recommendedDefensePolicy,
+        defenseBadge,
+        defenseDescription,
+      },
+    });
+  } catch (err) {
+    console.error("Error generating Vercel Quota metrics:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── POST /api/admin/vercel-quota/apply-policy ────────────────────────────────
+// Apply 1-Click Auto-Defense Policy to protect Vercel Hobby limits
+router.post("/apply-policy", async (req, res) => {
+  try {
+    const { policy } = req.body;
+    let updateFields = {
+      updatedBy: req.admin?.email || "admin",
+      updatedAt: new Date(),
+    };
+
+    if (policy === "CRITICAL_SHIELD") {
+      updateFields.queueEnabled = true;
+      updateFields.autoTriggerEnabled = true;
+      updateFields.maxActiveCapacity = 50; // tight shield
+      updateFields.queueMessage = "Vercel Hobby Safety Shield Active: Traffic queue enabled to ensure zero 429 quota exhaustion. Your turn will arrive shortly.";
+    } else if (policy === "SURGE_PROTECTION") {
+      updateFields.queueEnabled = true;
+      updateFields.autoTriggerEnabled = true;
+      updateFields.maxActiveCapacity = 150;
+      updateFields.queueMessage = "High student volume detected. Fast virtual queue is pacing requests to protect platform speed.";
+    } else if (policy === "OPTIMAL") {
+      updateFields.queueEnabled = false;
+      updateFields.autoTriggerEnabled = true;
+      updateFields.maxActiveCapacity = 250;
+      updateFields.queueMessage = "Server capacity optimization active. You are in queue.";
+    } else {
+      return res.status(400).json({ success: false, message: "Invalid policy mode specified." });
+    }
+
+    const updated = await TrafficQueueConfig.findOneAndUpdate(
+      { key: "global_traffic_config" },
+      { $set: updateFields },
+      { new: true, upsert: true }
+    );
+
+    // Sync in-memory engine config if running in server environment
+    if (liveTrafficManager && liveTrafficManager.currentConfig) {
+      liveTrafficManager.currentConfig = {
+        ...liveTrafficManager.currentConfig,
+        queueEnabled: Boolean(updated.queueEnabled),
+        autoTriggerEnabled: Boolean(updated.autoTriggerEnabled),
+        maxActiveCapacity: Number(updated.maxActiveCapacity),
+        queueMessage: updated.queueMessage,
+      };
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully applied ${policy} defense policy.`,
+      config: updated,
+    });
+  } catch (err) {
+    console.error("Error applying quota defense policy:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+module.exports = router;
