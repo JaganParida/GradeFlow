@@ -3619,6 +3619,7 @@ router.get("/attendance-tracker/monitor", protect, async (req, res) => {
     const filter = String(req.query.filter || "all").toLowerCase();
     const branchFilter = String(req.query.branch || "").trim().toUpperCase();
     const sectionFilter = String(req.query.section || "").trim().toUpperCase();
+    const sortBy = String(req.query.sortBy || "last-synced").toLowerCase();
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 10));
 
@@ -3723,15 +3724,20 @@ router.get("/attendance-tracker/monitor", protect, async (req, res) => {
       };
     });
 
+    // Strictly track ONLY students who have actual subject attendance data input (>0% attendance)
+    processedStudents = processedStudents.filter(
+      (s) => s.totalSubjects > 0 && s.totalDelivered > 0 && s.overallPercentage > 0
+    );
+
     // Compute global summary metrics before pagination & filters
     const totalTracked = processedStudents.length;
-    const activeStudents = processedStudents.filter((s) => s.isTrackerActive);
-    const resetStudents = processedStudents.filter((s) => s.isReset);
-    const safeStudents = activeStudents.filter((s) => s.overallPercentage >= s.targetGoal);
-    const criticalStudents = activeStudents.filter((s) => s.overallPercentage < s.targetGoal);
+    const activeStudents = processedStudents;
+    const safeStudents = processedStudents.filter((s) => s.overallPercentage >= s.targetGoal);
+    const criticalStudents = processedStudents.filter((s) => s.overallPercentage < s.targetGoal);
+    const totalClassesTracked = processedStudents.reduce((acc, s) => acc + (s.totalDelivered || 0), 0);
 
-    const sumActivePct = activeStudents.reduce((acc, s) => acc + s.overallPercentage, 0);
-    const avgActivePercentage = activeStudents.length > 0 ? Number((sumActivePct / activeStudents.length).toFixed(1)) : 0;
+    const sumActivePct = processedStudents.reduce((acc, s) => acc + s.overallPercentage, 0);
+    const avgActivePercentage = totalTracked > 0 ? Number((sumActivePct / totalTracked).toFixed(1)) : 0;
 
     // Apply search filter
     if (search) {
@@ -3759,21 +3765,37 @@ router.get("/attendance-tracker/monitor", protect, async (req, res) => {
     if (filter === "active") {
       processedStudents = processedStudents.filter((s) => s.isTrackerActive);
     } else if (filter === "reset") {
-      processedStudents = processedStudents.filter((s) => s.isReset);
+      processedStudents = [];
     } else if (filter === "safe") {
       processedStudents = processedStudents.filter((s) => s.isTrackerActive && s.overallPercentage >= s.targetGoal);
     } else if (filter === "critical") {
       processedStudents = processedStudents.filter((s) => s.isTrackerActive && s.overallPercentage < s.targetGoal);
     }
 
-    // Sort: Active users first (highest attendance first), then Reset users
+    // Sort by requested parameter
     processedStudents.sort((a, b) => {
-      if (a.isTrackerActive && !b.isTrackerActive) return -1;
-      if (!a.isTrackerActive && b.isTrackerActive) return 1;
-      if (b.overallPercentage !== a.overallPercentage) {
-        return b.overallPercentage - a.overallPercentage;
+      if (sortBy === "attendance-high") {
+        if (b.overallPercentage !== a.overallPercentage) {
+          return b.overallPercentage - a.overallPercentage;
+        }
+        return new Date(b.lastSyncedAt || 0) - new Date(a.lastSyncedAt || 0);
       }
-      return new Date(b.lastSyncedAt || 0) - new Date(a.lastSyncedAt || 0);
+      if (sortBy === "attendance-low") {
+        if (a.overallPercentage !== b.overallPercentage) {
+          return a.overallPercentage - b.overallPercentage;
+        }
+        return new Date(b.lastSyncedAt || 0) - new Date(a.lastSyncedAt || 0);
+      }
+      if (sortBy === "regno") {
+        return String(a.regNo).localeCompare(String(b.regNo));
+      }
+      if (sortBy === "name") {
+        return String(a.studentName || "").localeCompare(String(b.studentName || ""));
+      }
+      // Default: "last-synced" (Most recent sync timestamp first)
+      const timeDiff = new Date(b.lastSyncedAt || 0) - new Date(a.lastSyncedAt || 0);
+      if (timeDiff !== 0) return timeDiff;
+      return b.overallPercentage - a.overallPercentage;
     });
 
     const totalRecords = processedStudents.length;
@@ -3786,11 +3808,12 @@ router.get("/attendance-tracker/monitor", protect, async (req, res) => {
       success: true,
       summary: {
         totalTracked,
-        activeCount: activeStudents.length,
-        resetCount: resetStudents.length,
+        activeCount: totalTracked,
+        resetCount: 0,
         safeCount: safeStudents.length,
         criticalCount: criticalStudents.length,
         avgActivePercentage,
+        totalClassesTracked,
       },
       pagination: {
         currentPage,

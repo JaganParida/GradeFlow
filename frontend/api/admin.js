@@ -647,14 +647,19 @@ module.exports = async function handler(req, res) {
         };
       });
 
-      const totalTracked = processedStudents.length;
-      const activeStudents = processedStudents.filter((s) => s.isTrackerActive);
-      const resetStudents = processedStudents.filter((s) => s.isReset);
-      const safeStudents = activeStudents.filter((s) => s.overallPercentage >= s.targetGoal);
-      const criticalStudents = activeStudents.filter((s) => s.overallPercentage < s.targetGoal);
+      // Strictly track ONLY students who have actual subject attendance data input (>0% attendance)
+      processedStudents = processedStudents.filter(
+        (s) => s.totalSubjects > 0 && s.totalDelivered > 0 && s.overallPercentage > 0
+      );
 
-      const sumActivePct = activeStudents.reduce((acc, s) => acc + s.overallPercentage, 0);
-      const avgActivePercentage = activeStudents.length > 0 ? Number((sumActivePct / activeStudents.length).toFixed(1)) : 0;
+      const totalTracked = processedStudents.length;
+      const activeStudents = processedStudents;
+      const safeStudents = processedStudents.filter((s) => s.overallPercentage >= s.targetGoal);
+      const criticalStudents = processedStudents.filter((s) => s.overallPercentage < s.targetGoal);
+      const totalClassesTracked = processedStudents.reduce((acc, s) => acc + (s.totalDelivered || 0), 0);
+
+      const sumActivePct = processedStudents.reduce((acc, s) => acc + s.overallPercentage, 0);
+      const avgActivePercentage = totalTracked > 0 ? Number((sumActivePct / totalTracked).toFixed(1)) : 0;
 
       if (search) {
         processedStudents = processedStudents.filter(
@@ -678,7 +683,7 @@ module.exports = async function handler(req, res) {
       if (filter === "active") {
         processedStudents = processedStudents.filter((s) => s.isTrackerActive);
       } else if (filter === "reset") {
-        processedStudents = processedStudents.filter((s) => s.isReset);
+        processedStudents = [];
       } else if (filter === "safe") {
         processedStudents = processedStudents.filter((s) => s.isTrackerActive && s.overallPercentage >= s.targetGoal);
       } else if (filter === "critical") {
@@ -720,11 +725,12 @@ module.exports = async function handler(req, res) {
         success: true,
         summary: {
           totalTracked,
-          activeCount: activeStudents.length,
-          resetCount: resetStudents.length,
+          activeCount: totalTracked,
+          resetCount: 0,
           safeCount: safeStudents.length,
           criticalCount: criticalStudents.length,
           avgActivePercentage,
+          totalClassesTracked,
         },
         pagination: {
           currentPage,

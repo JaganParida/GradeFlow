@@ -36,6 +36,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
     safeCount: 0,
     criticalCount: 0,
     avgActivePercentage: 0,
+    totalClassesTracked: 0,
   });
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -238,7 +239,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
               </span>
             </div>
             <p style={{ fontSize: 12.5, color: "#64748b", margin: "3px 0 0 0" }}>
-              Real-time administrative visibility into student attendance tracker usage, overall percentage, and active/reset statuses.
+              Real-time administrative visibility into student attendance tracker usage. Strictly tracks students with saved subject data and &gt;0% attendance.
             </p>
           </div>
         </div>
@@ -277,7 +278,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
           gap: 12,
         }}
       >
-        {/* Total Tracked */}
+        {/* Total Tracked (>0%) */}
         <div
           style={{
             background: "#ffffff",
@@ -291,16 +292,16 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Total Tracked</span>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", color: "#475569" }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Total Tracked (&gt;0%)</span>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb" }}>
               <Users size={15} />
             </div>
           </div>
           <div style={{ fontSize: 24, fontWeight: 900, color: "#0f172a" }}>{summary.totalTracked}</div>
-          <div style={{ fontSize: 11, color: "#64748b" }}>Synced student accounts</div>
+          <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 600 }}>Active accounts with data</div>
         </div>
 
-        {/* Active Users (> 0%) */}
+        {/* Safe on Track (≥ 75%) */}
         <div
           style={{
             background: "#ffffff",
@@ -314,18 +315,18 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#065f46", textTransform: "uppercase" }}>Active Users (&gt;0%)</span>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#065f46", textTransform: "uppercase" }}>Safe (≥75%)</span>
             <div style={{ width: 28, height: 28, borderRadius: 8, background: "#ecfdf5", display: "flex", alignItems: "center", justifyContent: "center", color: "#10b981" }}>
               <CheckCircle2 size={15} />
             </div>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: "#047857" }}>{summary.activeCount}</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: "#047857" }}>{summary.safeCount}</div>
           <div style={{ fontSize: 11, color: "#059669" }}>
-            {summary.totalTracked > 0 ? `${Math.round((summary.activeCount / summary.totalTracked) * 100)}% active tracking` : "0%"}
+            {summary.totalTracked > 0 ? `${Math.round((summary.safeCount / summary.totalTracked) * 100)}% on track` : "0%"}
           </div>
         </div>
 
-        {/* Average Active Attendance */}
+        {/* Average Attendance */}
         <div
           style={{
             background: "#ffffff",
@@ -348,7 +349,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
           <div style={{ fontSize: 11, color: "#3b82f6" }}>Across active students</div>
         </div>
 
-        {/* Reset / Cleared */}
+        {/* Classes Recorded */}
         <div
           style={{
             background: "#ffffff",
@@ -362,13 +363,15 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#92400e", textTransform: "uppercase" }}>Reset / Cleared</span>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: "#fffbeb", display: "flex", alignItems: "center", justifyContent: "center", color: "#d97706" }}>
-              <RotateCcw size={15} />
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#6d28d9", textTransform: "uppercase" }}>Classes Recorded</span>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: "#f5f3ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#7c3aed" }}>
+              <BookOpen size={15} />
             </div>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: "#b45309" }}>{summary.resetCount}</div>
-          <div style={{ fontSize: 11, color: "#d97706" }}>Cleared routine to 0%</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: "#6d28d9" }}>
+            {summary.totalClassesTracked ? summary.totalClassesTracked.toLocaleString() : "Active"}
+          </div>
+          <div style={{ fontSize: 11, color: "#7c3aed" }}>Total classes logged</div>
         </div>
 
         {/* Attendance Shortage (< 75%) */}
@@ -570,11 +573,9 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
       {/* ── 4. Segmented Status Category Tabs ── */}
       <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
         {[
-          { id: "all", label: "All Students", count: summary.totalTracked },
-          { id: "active", label: "Active (> 0%)", count: summary.activeCount },
-          { id: "reset", label: "Reset / Cleared", count: summary.resetCount },
-          { id: "critical", label: "Shortage (< 75%)", count: summary.criticalCount },
+          { id: "all", label: "All Tracked (> 0%)", count: summary.totalTracked },
           { id: "safe", label: "Safe (≥ 75%)", count: summary.safeCount },
+          { id: "critical", label: "Shortage (< 75%)", count: summary.criticalCount },
         ].map((t) => {
           const isActive = filter === t.id;
           return (
