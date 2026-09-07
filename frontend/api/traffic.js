@@ -3,7 +3,7 @@ const PageAnalytics = require("./_lib/models/PageAnalytics");
 const TrafficQueueConfig = require("./_lib/models/TrafficQueueConfig");
 const StudentSession = require("./_lib/models/StudentSession");
 const Ranking = require("./_lib/models/Ranking");
-const LiveVisitor = require("./_lib/models/LiveVisitor");
+const StudentRouteActivity = require("./_lib/models/StudentRouteActivity");
 const { applyCors } = require("./_lib/cors");
 const jwt = require("jsonwebtoken");
 
@@ -60,6 +60,14 @@ const ROUTE_LABELS = {
   "/admin/dashboard": "Admin Control Console",
 };
 
+function getFriendlyPageTitle(route) {
+  const norm = normalizeRoute(route);
+  return ROUTE_LABELS[norm] || norm;
+}
+
+// Special student regNo to NEVER track
+const EXCLUDED_STUDENT_REG = "230301120327";
+
 module.exports = async function handler(req, res) {
   if (applyCors(req, res, "GET,POST,OPTIONS")) return;
 
@@ -70,7 +78,7 @@ module.exports = async function handler(req, res) {
     const pathname = urlObj.pathname.toLowerCase();
     const isAdminRequest = pathname.includes("/admin/traffic") || req.query.admin === "true";
 
-    // ─── Administrative Traffic Endpoints ────────────────────────────────────
+    // ─── 1. Administrative Traffic Overview (On-Demand Fetch, Zero Socket/Polling) ───
     if (isAdminRequest) {
       const admin = verifyAdmin(req);
       if (!admin) {
@@ -91,179 +99,62 @@ module.exports = async function handler(req, res) {
         const totalPages = pages.length;
         const tierSize = Math.max(1, Math.ceil(totalPages / 3));
 
-        const mostVisited = pages.slice(0, tierSize).map((p) => ({ ...p, tier: "MOST_VISITED", liveViewers: 0 }));
-        const mediumVisited = pages.slice(tierSize, tierSize * 2).map((p) => ({ ...p, tier: "MEDIUM_VISITED", liveViewers: 0 }));
-        const leastVisited = pages.slice(tierSize * 2).map((p) => ({ ...p, tier: "LEAST_VISITED", liveViewers: 0 }));
+        const mostVisited = pages.slice(0, tierSize).map((p) => ({ ...p, tier: "MOST_VISITED" }));
+        const mediumVisited = pages.slice(tierSize, tierSize * 2).map((p) => ({ ...p, tier: "MEDIUM_VISITED" }));
+        const leastVisited = pages.slice(tierSize * 2).map((p) => ({ ...p, tier: "LEAST_VISITED" }));
 
-        // ─── Real-Time Live Detection Window (Vercel / Google Analytics Style) ───
-        // Active Right Now = Ping/Interaction received within the last 90 seconds
-        const LIVE_WINDOW_MS = 60 * 1000;
-        const liveCutoff = new Date(Date.now() - LIVE_WINDOW_MS);
-
-        // 1. Query users who have pinged within the live window
-        const liveNowVisitors = await LiveVisitor.find({ lastSeenAt: { $gte: liveCutoff } })
-          .sort({ lastSeenAt: -1 })
-          .lean();
-
-        // 2. Query all registered student accounts who have logged-in active sessions in DB
-        const activeSessions = await StudentSession.find({ isActive: true })
+        // Fetch Student Activity Logs (Strictly EXCLUDING 230301120327)
+        const studentActivities = await StudentRouteActivity.find({
+          regNo: { $ne: EXCLUDED_STUDENT_REG },
+        })
           .sort({ lastActiveAt: -1 })
-          .limit(100)
+          .limit(200)
           .lean();
 
-        const uniqueStudentMap = new Map();
-        for (const sess of activeSessions) {
-          const isMultiDevice = sess.regNo === "230301120327";
-          const devType = String(sess.deviceInfo?.deviceType || "Desktop").toLowerCase().includes("mobile") ? "Mobile" : "Desktop";
-          const sessKey = isMultiDevice ? `${sess.regNo}_${devType}` : sess.regNo;
-          if (!uniqueStudentMap.has(sessKey)) {
-            uniqueStudentMap.set(sessKey, sess);
-          }
-        }
-
-        const regNos = Array.from(new Set(Array.from(uniqueStudentMap.values()).map((s) => s.regNo)));
-        const rankings = await Ranking.find({ regNo: { $in: regNos } }).select("regNo studentName branch batch").lean();
-        const rankingMap = new Map(rankings.map((r) => [r.regNo, r]));
-
-        const now = Date.now();
-        const allLoggedInStudents = Array.from(uniqueStudentMap.values()).map((sess) => {
-          const rank = rankingMap.get(sess.regNo);
-          const lastActiveTime = new Date(sess.lastActiveAt || sess.updatedAt || sess.loggedInAt).getTime();
-          const isLiveRightNow = (now - lastActiveTime) <= LIVE_WINDOW_MS;
-          const isRecentlyActive = (now - lastActiveTime) <= 15 * 60 * 1000;
-
-          const currRoute = sess.currentRoute || sess.deviceInfo?.currentRoute || "/dashboard";
-          const pageTitle = sess.pageTitle || sess.deviceInfo?.pageTitle || (ROUTE_LABELS[currRoute] || "Student Dashboard");
-
-          return {
-            token: sess.sessionId || sess._id.toString(),
-            regNo: sess.regNo,
-            studentName: rank?.studentName || `Student (${sess.regNo})`,
-            branch: rank?.branch || "CSE",
-            batch: rank?.batch || (sess.regNo.startsWith("23") ? "2023" : "2024"),
-            currentRoute: currRoute,
-            pageTitle,
-            deviceType: sess.deviceInfo?.deviceType || "Desktop",
-            os: sess.deviceInfo?.os || "Windows",
-            browser: sess.deviceInfo?.browser || "Chrome",
-            ip: sess.deviceInfo?.ip || "",
-            connectedAt: sess.loggedInAt,
-            lastActiveAt: sess.lastActiveAt,
-            isGuest: false,
-            isLiveRightNow,
-            status: isLiveRightNow ? "LIVE_NOW" : isRecentlyActive ? "RECENT" : "OFFLINE",
-          };
-        });
-
-        // Combine liveNowVisitors with any logged in student whose session was active within LIVE_WINDOW_MS
-        const liveNowList = liveNowVisitors.map((v) => ({
-          token: v.token,
-          regNo: v.regNo,
-          studentName: v.studentName,
-          branch: v.branch,
-          batch: v.batch,
-          currentRoute: v.currentRoute || "/",
-          pageTitle: v.pageTitle || (ROUTE_LABELS[v.currentRoute] || "GradeFlow"),
-          deviceType: v.deviceType || "Desktop",
-          os: v.os || "Unknown",
-          browser: v.browser || "Unknown",
-          ip: v.ip || "",
-          connectedAt: v.createdAt || v.lastSeenAt,
-          lastActiveAt: v.lastSeenAt,
-          isGuest: v.isGuest,
-          isLiveRightNow: true,
-          status: "LIVE_NOW",
-        }));
-
-        allLoggedInStudents.forEach((s) => {
-          if (s.isLiveRightNow) {
-            liveNowList.push(s);
-          }
-        });
-
-        // Sort live items strictly by lastActiveAt descending so the latest real-time route is always selected first!
-        liveNowList.sort((a, b) => {
-          const timeA = new Date(a.lastActiveAt || a.connectedAt || 0).getTime();
-          const timeB = new Date(b.lastActiveAt || b.connectedAt || 0).getTime();
-          return timeB - timeA;
-        });
-
-        // Deduplicate live list:
-        // 1. Guest visitor (regNo is null): keyed by unique token
-        // 2. 230301120327: keyed strictly by regNo + clean deviceType (Desktop vs Mobile) -> AT MOST 2 ROWS (1 Laptop + 1 Mobile)
-        // 3. Regular student: keyed strictly by regNo -> STRICTLY 1 ROW
-        const uniqueLiveMap = new Map();
-        liveNowList.forEach((item) => {
-          let key;
-          if (!item.regNo) {
-            key = item.token;
-          } else if (item.regNo === "230301120327") {
-            const dev = String(item.deviceType || "Desktop").toLowerCase().includes("mobile") ? "Mobile" : "Desktop";
-            key = `${item.regNo}_${dev}`;
-          } else {
-            key = item.regNo;
-          }
-
-          if (!uniqueLiveMap.has(key)) {
-            uniqueLiveMap.set(key, item);
-          } else {
-            const existing = uniqueLiveMap.get(key);
-            if (existing.isGuest && !item.isGuest) {
-              existing.isGuest = false;
-              existing.regNo = item.regNo;
-              existing.studentName = item.studentName;
-              existing.branch = item.branch;
-              existing.batch = item.batch;
-            }
-            const timeExisting = new Date(existing.lastActiveAt || existing.connectedAt || 0).getTime();
-            const timeItem = new Date(item.lastActiveAt || item.connectedAt || 0).getTime();
-            if (timeItem >= timeExisting && item.currentRoute && item.currentRoute !== "/") {
-              existing.currentRoute = item.currentRoute;
-              existing.pageTitle = item.pageTitle;
-              existing.lastActiveAt = item.lastActiveAt;
-            }
-          }
-        });
-        const finalLiveList = Array.from(uniqueLiveMap.values());
-
-        // Sync real-time currentRoute into allLoggedInStudents as well
-        allLoggedInStudents.forEach((s) => {
-          const isMultiDevice = s.regNo === "230301120327";
-          const dev = String(s.deviceType || "Desktop").toLowerCase().includes("mobile") ? "Mobile" : "Desktop";
-          const liveKey = isMultiDevice ? `${s.regNo}_${dev}` : s.regNo;
-          const liveMatch = uniqueLiveMap.get(liveKey);
-          if (liveMatch) {
-            s.currentRoute = liveMatch.currentRoute;
-            s.pageTitle = liveMatch.pageTitle;
-            s.lastActiveAt = liveMatch.lastActiveAt;
-            s.isLiveRightNow = true;
-            s.status = "LIVE_NOW";
-          }
-        });
-
-        // Calculate route distribution of users currently LIVE right now
+        // Calculate Overall Route Distribution from student activities
         const routeDistribution = {};
-        const sourceForDist = finalLiveList.length > 0 ? finalLiveList : allLoggedInStudents;
-        for (const s of sourceForDist) {
-          const r = s.currentRoute || "/dashboard";
-          routeDistribution[r] = (routeDistribution[r] || 0) + 1;
-        }
+        let totalTimeSpentAllStudents = 0;
+        let totalViewsAllStudents = 0;
 
-        const liveCount = finalLiveList.length;
-        const loggedInCount = allLoggedInStudents.length;
+        studentActivities.forEach((st) => {
+          totalTimeSpentAllStudents += st.totalTimeSpentSeconds || 0;
+          totalViewsAllStudents += st.totalPageViews || 1;
+          const curr = normalizeRoute(st.currentRoute || "/");
+          routeDistribution[curr] = (routeDistribution[curr] || 0) + 1;
+        });
 
         return res.json({
           success: true,
-          totalActiveUsers: liveCount, // REAL-TIME LIVE USERS BROWSING RIGHT NOW (like Vercel Analytics)
-          totalLoggedInSessions: loggedInCount, // Total registered accounts with active sessions (e.g. 65)
+          totalTrackedUsers: studentActivities.length,
+          totalActiveUsers: studentActivities.length,
+          totalLoggedInSessions: studentActivities.length,
           totalQueuedUsers: 0,
           maxActiveCapacity: config.maxActiveCapacity || 200,
           queueEnabled: Boolean(config.queueEnabled),
           autoTriggerEnabled: Boolean(config.autoTriggerEnabled),
-          isQueueActive: Boolean(config.queueEnabled),
-          activeStudents: finalLiveList, // Users on site right now
-          allLoggedInStudents: allLoggedInStudents, // Full list of 65 sessions
-          queuedStudents: [],
+          isQueueActive: false,
+          activeStudents: studentActivities.map((s) => ({
+            token: s.regNo,
+            regNo: s.regNo,
+            studentName: s.studentName,
+            branch: s.branch,
+            batch: s.batch,
+            deviceType: s.deviceType || "Desktop",
+            os: s.os || "Unknown",
+            browser: s.browser || "Unknown",
+            currentRoute: s.currentRoute || "/",
+            pageTitle: s.currentPageTitle || getFriendlyPageTitle(s.currentRoute || "/"),
+            timeSpentCurrentRoute: s.timeSpentCurrentRoute || 0,
+            totalTimeSpentSeconds: s.totalTimeSpentSeconds || 0,
+            mostVisitedRoute: s.mostVisitedRoute || s.currentRoute || "/",
+            mostVisitedPageTitle: s.mostVisitedPageTitle || getFriendlyPageTitle(s.mostVisitedRoute || "/"),
+            visitedRoutes: s.visitedRoutes || [],
+            totalPageViews: s.totalPageViews || 1,
+            lastActiveAt: s.lastActiveAt,
+            connectedAt: s.firstSeenAt,
+            isGuest: false,
+            status: "ACTIVE",
+          })),
           routeDistribution,
           analytics: {
             allPages: pages,
@@ -271,238 +162,229 @@ module.exports = async function handler(req, res) {
             mediumVisited,
             leastVisited,
             totalTrackedViews: pages.reduce((sum, p) => sum + (p.totalViews || 0), 0),
+            totalTimeSpentAllStudents,
+            totalViewsAllStudents,
           },
         });
       }
-
-      if (action === "queue/config" || action === "queue-config" || (req.method === "POST" && req.body?.maxActiveCapacity !== undefined)) {
-        const { queueEnabled, autoTriggerEnabled, maxActiveCapacity, queueMessage } = req.body || {};
-        const updated = await TrafficQueueConfig.findOneAndUpdate(
-          { key: "global_traffic_config" },
-          {
-            $set: {
-              ...(queueEnabled !== undefined ? { queueEnabled: Boolean(queueEnabled) } : {}),
-              ...(autoTriggerEnabled !== undefined ? { autoTriggerEnabled: Boolean(autoTriggerEnabled) } : {}),
-              ...(maxActiveCapacity !== undefined ? { maxActiveCapacity: Number(maxActiveCapacity) } : {}),
-              ...(queueMessage !== undefined ? { queueMessage: String(queueMessage) } : {}),
-              updatedAt: new Date(),
-            },
-          },
-          { new: true, upsert: true }
-        );
-
-        return res.json({
-          success: true,
-          message: "Queue config updated.",
-          config: updated,
-        });
-      }
-
-      if (action === "queue/admit-next" || action === "admit-next") {
-        const count = Math.max(1, parseInt(req.body?.count, 10) || 10);
-        return res.json({
-          success: true,
-          admittedCount: count,
-          message: `Admitted next ${count} student(s) from the virtual queue.`,
-        });
-      }
-
-      if (action === "queue/admit-student" || action === "admit-student") {
-        return res.json({
-          success: true,
-          message: "Student admitted successfully.",
-        });
-      }
-
-      if (action === "queue/flush" || action === "flush") {
-        const admitAll = req.body?.admitAll !== false;
-        return res.json({
-          success: true,
-          flushedCount: 0,
-          message: admitAll ? "Successfully admitted all students from the queue." : "Queue cleared successfully.",
-        });
-      }
-
-      if (action === "analytics/reset" || action === "analytics-reset") {
-        await PageAnalytics.deleteMany({});
-        return res.json({ success: true, message: "Page analytics reset." });
-      }
-
-      return res.json({ success: true });
     }
 
-    // ─── Public Student Traffic Endpoints ───────────────────────────────────
-    const pathAction = pathname.replace(/^\/api\/traffic\/?/, "").replace(/\/$/, "");
-    const action = (req.query.action || pathAction || "").toLowerCase();
+    // ─── 2. Student Route & Device Activity Logging (Zero Live Heartbeat, 100% Vercel Safe) ───
+    const action = (req.query.action || "").toLowerCase();
 
-    if (action === "queue-status" || req.method === "GET" || !action) {
-      const config = (await TrafficQueueConfig.findOne({ key: "global_traffic_config" })) || {
-        queueEnabled: false,
-        maxActiveCapacity: 200,
-      };
+    if (action === "log-activity" || action === "page-view" || (req.method === "POST" && req.body?.route)) {
+      const {
+        regNo,
+        studentName,
+        branch,
+        batch,
+        route = "/",
+        previousRoute = null,
+        timeSpentSeconds = 0,
+        deviceType = "Desktop",
+        os = "Unknown",
+        browser = "Unknown",
+        isAdmin = false,
+      } = req.body || {};
 
-      return res.json({
-        success: true,
-        queued: Boolean(config.queueEnabled),
-        admitted: !Boolean(config.queueEnabled),
-        maxCapacity: config.maxActiveCapacity || 200,
-      });
-    }
+      // ─── FILTER 1: Skip if Admin ───
+      if (isAdmin || verifyAdmin(req)) {
+        return res.json({ success: true, skipped: "admin" });
+      }
 
-    if (action === "page-view" || (req.method === "POST" && req.body?.route)) {
-      const { token, sessionId, route = "/", regNo, studentName, branch, batch, deviceType, os, browser, isAdmin = false } = req.body || {};
+      // ─── Resolve student registration number ───
+      let cleanReg = regNo ? String(regNo).toUpperCase().trim() : null;
+      if (!cleanReg) {
+        const cookies = parseCookies(req.headers.cookie);
+        if (cookies.student_jwt && cookies.student_jwt !== "none") {
+          try {
+            const decoded = jwt.verify(cookies.student_jwt, process.env.JWT_SECRET);
+            if (decoded && decoded.regNo) cleanReg = String(decoded.regNo).toUpperCase().trim();
+          } catch {}
+        }
+      }
+
+      // ─── FILTER 2: Skip Special Student 230301120327 (NEVER track) ───
+      if (!cleanReg || cleanReg === EXCLUDED_STUDENT_REG) {
+        return res.json({ success: true, skipped: cleanReg === EXCLUDED_STUDENT_REG ? "special_student" : "no_reg" });
+      }
+
       const normRoute = normalizeRoute(route);
-      const pageTitle = ROUTE_LABELS[normRoute] || normRoute;
+      const pageTitle = getFriendlyPageTitle(normRoute);
+      const validTimeSpent = Math.max(0, parseInt(timeSpentSeconds, 10) || 0);
 
-      // Extract student registration number and session ID from cookies if not provided in payload (essential for mobile browser hydration)
-      const cookies = parseCookies(req.headers.cookie);
-      let resolvedRegNo = regNo;
-      let resolvedSessionId = sessionId;
-      if (cookies.student_jwt && cookies.student_jwt !== "none") {
+      // Resolve student details from Ranking if missing
+      let resolvedName = studentName;
+      let resolvedBranch = branch;
+      let resolvedBatch = batch;
+
+      if (!resolvedName || !resolvedBranch) {
         try {
-          const decoded = jwt.verify(cookies.student_jwt, process.env.JWT_SECRET);
-          if (decoded && decoded.regNo && !resolvedRegNo) {
-            resolvedRegNo = decoded.regNo;
-          }
-          if (decoded && decoded.sessionId && !resolvedSessionId) {
-            resolvedSessionId = decoded.sessionId;
+          const rank = await Ranking.findOne({ regNo: cleanReg }).select("studentName branch batch").lean();
+          if (rank) {
+            resolvedName = resolvedName || rank.studentName;
+            resolvedBranch = resolvedBranch || rank.branch;
+            resolvedBatch = resolvedBatch || rank.batch;
           }
         } catch {}
       }
 
+      // Find existing activity record for this student
+      let studentActivity = await StudentRouteActivity.findOne({ regNo: cleanReg });
+
+      if (!studentActivity) {
+        studentActivity = new StudentRouteActivity({
+          regNo: cleanReg,
+          studentName: resolvedName || `Student (${cleanReg})`,
+          branch: resolvedBranch || "CSE",
+          batch: resolvedBatch || (cleanReg.startsWith("23") ? "2023" : "2024"),
+          deviceType: deviceType || "Desktop",
+          os: os || "Unknown",
+          browser: browser || "Unknown",
+          currentRoute: normRoute,
+          currentPageTitle: pageTitle,
+          timeSpentCurrentRoute: 0,
+          totalTimeSpentSeconds: 0,
+          totalPageViews: 1,
+          mostVisitedRoute: normRoute,
+          mostVisitedPageTitle: pageTitle,
+          visitedRoutes: [{
+            route: normRoute,
+            pageTitle,
+            durationSeconds: 0,
+            visitCount: 1,
+            lastVisitedAt: new Date(),
+          }],
+          firstSeenAt: new Date(),
+          lastActiveAt: new Date(),
+        });
+      } else {
+        studentActivity.studentName = resolvedName || studentActivity.studentName;
+        studentActivity.branch = resolvedBranch || studentActivity.branch;
+        studentActivity.batch = resolvedBatch || studentActivity.batch;
+        studentActivity.deviceType = deviceType || studentActivity.deviceType;
+        studentActivity.os = os || studentActivity.os;
+        studentActivity.browser = browser || studentActivity.browser;
+        studentActivity.lastActiveAt = new Date();
+        studentActivity.totalPageViews = (studentActivity.totalPageViews || 0) + 1;
+
+        // If user stayed on previousRoute for >= 5 seconds, log duration
+        if (previousRoute && validTimeSpent >= 5) {
+          const normPrev = normalizeRoute(previousRoute);
+          const prevTitle = getFriendlyPageTitle(normPrev);
+
+          studentActivity.totalTimeSpentSeconds = (studentActivity.totalTimeSpentSeconds || 0) + validTimeSpent;
+
+          const existingRouteItem = studentActivity.visitedRoutes.find((r) => r.route === normPrev);
+          if (existingRouteItem) {
+            existingRouteItem.durationSeconds = (existingRouteItem.durationSeconds || 0) + validTimeSpent;
+            existingRouteItem.visitCount = (existingRouteItem.visitCount || 0) + 1;
+            existingRouteItem.lastVisitedAt = new Date();
+          } else {
+            studentActivity.visitedRoutes.push({
+              route: normPrev,
+              pageTitle: prevTitle,
+              durationSeconds: validTimeSpent,
+              visitCount: 1,
+              lastVisitedAt: new Date(),
+            });
+          }
+        }
+
+        // Update current route
+        studentActivity.currentRoute = normRoute;
+        studentActivity.currentPageTitle = pageTitle;
+
+        // Calculate most visited route for this student
+        if (studentActivity.visitedRoutes && studentActivity.visitedRoutes.length > 0) {
+          const sortedRoutes = [...studentActivity.visitedRoutes].sort((a, b) => {
+            return (b.visitCount || 0) - (a.visitCount || 0) || (b.durationSeconds || 0) - (a.durationSeconds || 0);
+          });
+          studentActivity.mostVisitedRoute = sortedRoutes[0].route;
+          studentActivity.mostVisitedPageTitle = sortedRoutes[0].pageTitle || getFriendlyPageTitle(sortedRoutes[0].route);
+        }
+      }
+
+      await studentActivity.save().catch((err) => console.warn("Save activity warning:", err.message));
+
+      // Increment PageAnalytics
       await PageAnalytics.findOneAndUpdate(
         { route: normRoute },
         {
           $setOnInsert: { pageTitle },
           $inc: { totalViews: 1 },
           $set: { lastVisitedAt: new Date() },
-          ...(token ? { $addToSet: { visitorTokens: String(token).slice(0, 32) } } : {}),
         },
-        { upsert: true, new: true }
+        { upsert: true }
       ).catch(() => {});
-
-      // Record in LiveVisitor for real-time live presence detection (like Vercel Analytics)
-      if (token && !isAdmin) {
-        const isStudent = Boolean(resolvedRegNo && /^[a-zA-Z0-9]{5,20}$/.test(String(resolvedRegNo).trim()));
-        let resolvedName = studentName;
-        let resolvedBranch = branch;
-        let resolvedBatch = batch;
-
-        if (isStudent) {
-          const rank = await Ranking.findOne({ regNo: String(resolvedRegNo).toUpperCase().trim() }).select("studentName branch batch").lean();
-          if (rank) {
-            if (!resolvedName || resolvedName === "Guest Visitor") resolvedName = rank.studentName;
-            if (!resolvedBranch || resolvedBranch === "Guest") resolvedBranch = rank.branch;
-            if (!resolvedBatch) resolvedBatch = rank.batch;
-          }
-        }
-
-        await LiveVisitor.findOneAndUpdate(
-          { token: String(token) },
-          {
-            $set: {
-              regNo: isStudent ? String(resolvedRegNo).toUpperCase().trim() : null,
-              studentName: resolvedName || (isStudent ? `Student (${resolvedRegNo})` : "Guest Visitor"),
-              branch: resolvedBranch || (isStudent ? "CSE" : "Guest"),
-              batch: resolvedBatch || "2023",
-              currentRoute: normRoute,
-              pageTitle,
-              deviceType: deviceType || "Desktop",
-              os: os || "Unknown",
-              browser: browser || "Unknown",
-              isGuest: !isStudent,
-              lastSeenAt: new Date(),
-            },
-          },
-          { upsert: true, new: true }
-        ).catch(() => {});
-      }
-
-      // Update StudentSession for registered student
-      if (resolvedSessionId) {
-        await StudentSession.updateOne(
-          { sessionId: resolvedSessionId, isActive: true },
-          {
-            $set: {
-              lastActiveAt: new Date(),
-              currentRoute: normRoute,
-              pageTitle,
-              "deviceInfo.currentRoute": normRoute,
-              "deviceInfo.pageTitle": pageTitle,
-            },
-          }
-        ).catch(() => {});
-      } else if (resolvedRegNo) {
-        const cleanDev = String(deviceType || "Desktop").toLowerCase().includes("mobile") ? "Mobile" : "Desktop";
-        await StudentSession.updateMany(
-          {
-            regNo: String(resolvedRegNo).toUpperCase().trim(),
-            isActive: true,
-            ...(resolvedRegNo === "230301120327" ? { "deviceInfo.deviceType": cleanDev } : {}),
-          },
-          {
-            $set: {
-              lastActiveAt: new Date(),
-              currentRoute: normRoute,
-              pageTitle,
-              "deviceInfo.currentRoute": normRoute,
-              "deviceInfo.pageTitle": pageTitle,
-            },
-          }
-        ).catch(() => {});
-      }
-
-      const config = (await TrafficQueueConfig.findOne({ key: "global_traffic_config" })) || {
-        queueEnabled: false,
-      };
 
       return res.json({
         success: true,
-        queued: !isAdmin && Boolean(config.queueEnabled),
-        admitted: isAdmin || !Boolean(config.queueEnabled),
+        logged: true,
+        regNo: cleanReg,
+        route: normRoute,
       });
     }
 
-    if (action === "queue-leave") {
-      return res.json({ success: true, message: "Queue left." });
-    }
-
+    // ─── 3. Final Session Duration on Tab Close / Leave (navigator.sendBeacon) ───
     if (action === "leave" || action === "offline") {
-      let token = null;
       let regNo = null;
-      let deviceType = null;
+      let currentRoute = "/";
+      let durationSeconds = 0;
+
       if (req.body && typeof req.body === "object") {
-        token = req.body.token;
         regNo = req.body.regNo;
-        deviceType = req.body.deviceType;
+        currentRoute = req.body.currentRoute || req.body.route || "/";
+        durationSeconds = req.body.durationSeconds || req.body.timeSpentSeconds || 0;
       } else if (typeof req.body === "string") {
         try {
           const parsed = JSON.parse(req.body);
-          token = parsed.token;
           regNo = parsed.regNo;
-          deviceType = parsed.deviceType;
-        } catch {
-          token = req.body;
+          currentRoute = parsed.currentRoute || parsed.route || "/";
+          durationSeconds = parsed.durationSeconds || parsed.timeSpentSeconds || 0;
+        } catch {}
+      }
+
+      const cleanReg = regNo ? String(regNo).toUpperCase().trim() : null;
+      const validDuration = Math.max(0, parseInt(durationSeconds, 10) || 0);
+
+      // Skip admin and 230301120327
+      if (!cleanReg || cleanReg === EXCLUDED_STUDENT_REG || validDuration < 5) {
+        return res.json({ success: true, skipped: true });
+      }
+
+      const normRoute = normalizeRoute(currentRoute);
+      const pageTitle = getFriendlyPageTitle(normRoute);
+
+      try {
+        const studentActivity = await StudentRouteActivity.findOne({ regNo: cleanReg });
+        if (studentActivity) {
+          studentActivity.totalTimeSpentSeconds = (studentActivity.totalTimeSpentSeconds || 0) + validDuration;
+          studentActivity.lastActiveAt = new Date();
+
+          const existingRouteItem = studentActivity.visitedRoutes.find((r) => r.route === normRoute);
+          if (existingRouteItem) {
+            existingRouteItem.durationSeconds = (existingRouteItem.durationSeconds || 0) + validDuration;
+            existingRouteItem.lastVisitedAt = new Date();
+          } else {
+            studentActivity.visitedRoutes.push({
+              route: normRoute,
+              pageTitle,
+              durationSeconds: validDuration,
+              visitCount: 1,
+              lastVisitedAt: new Date(),
+            });
+          }
+          await studentActivity.save();
         }
-      }
+      } catch {}
 
-      if (token) {
-        await LiveVisitor.deleteMany({ token: String(token).trim() }).catch(() => {});
-      }
-      if (regNo && regNo === "230301120327") {
-        const cleanDev = String(deviceType || "Mobile").toLowerCase().includes("mobile") ? "Mobile" : "Desktop";
-        await LiveVisitor.deleteMany({ regNo, deviceType: cleanDev }).catch(() => {});
-      }
-      return res.json({ success: true, message: "Visitor marked offline." });
-    }
-
-    if (action === "heartbeat") {
-      return res.json({ success: true });
+      return res.json({ success: true, saved: true });
     }
 
     return res.json({ success: true });
   } catch (err) {
-    console.error("Serverless traffic error:", err);
+    console.error("Serverless traffic handler error:", err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import axios from "axios";
-import { io } from "socket.io-client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity,
@@ -88,9 +87,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const socketRef = useRef(null);
-
-  // ─── Fetch Full Overview via REST ──────────────────────────────────────────
+  // ─── Fetch Overview via REST (On-Demand, Zero Polling) ─────────────────────
   const fetchOverview = async (isManual = false) => {
     if (isManual) setRefreshing(true);
     try {
@@ -105,95 +102,15 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
       }
     } catch (err) {
       console.warn("Failed to fetch traffic overview:", err.message);
-      if (isManual) setErrorMsg("Failed to refresh live traffic data.");
+      if (isManual) setErrorMsg("Failed to refresh traffic analytics.");
     } finally {
       setLoading(false);
       if (isManual) setRefreshing(false);
     }
   };
 
-  // ─── Connect to Live Socket.IO Stream (Guarded for serverless) ─────────────
   useEffect(() => {
     fetchOverview();
-
-    const wsTarget =
-      import.meta.env.VITE_WS_URL ||
-      (import.meta.env.VITE_API_URL?.startsWith("http")
-        ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, "")
-        : null);
-
-    const isVercelServerless =
-      typeof window !== "undefined" &&
-      window.location.hostname.includes("vercel.app") &&
-      !wsTarget;
-
-    let socket = null;
-    if (!isVercelServerless) {
-      try {
-        socket = io(wsTarget || undefined, {
-          transports: ["websocket", "polling"],
-          reconnectionAttempts: 2,
-          timeout: 4000,
-          autoConnect: true,
-        });
-        socketRef.current = socket;
-
-        socket.on("connect", () => {
-          socket.emit("admin:join_traffic_monitor");
-        });
-
-        socket.on("traffic:live_stats", (data) => {
-          if (data) {
-            setLiveData((prev) => ({
-              ...prev,
-              totalActiveUsers: data.totalActiveUsers ?? prev.totalActiveUsers,
-              totalQueuedUsers: data.totalQueuedUsers ?? prev.totalQueuedUsers,
-              maxActiveCapacity: data.maxActiveCapacity ?? prev.maxActiveCapacity,
-              queueEnabled: data.queueEnabled ?? prev.queueEnabled,
-              autoTriggerEnabled: data.autoTriggerEnabled ?? prev.autoTriggerEnabled,
-              isQueueActive: data.isQueueActive ?? prev.isQueueActive,
-              activeStudents: data.activeStudents || prev.activeStudents,
-              allLoggedInStudents: data.allLoggedInStudents || prev.allLoggedInStudents,
-              totalLoggedInSessions: data.totalLoggedInSessions ?? prev.totalLoggedInSessions,
-              queuedStudents: data.queuedStudents || prev.queuedStudents,
-              routeDistribution: data.routeDistribution || prev.routeDistribution,
-            }));
-          }
-        });
-
-        socket.on("connect_error", () => {
-          // Gracefully disconnect on error so it never spams console
-          if (socket) socket.disconnect();
-        });
-      } catch {}
-    }
-
-    // Poll periodically every 3.5s ONLY when tab is actively visible for near-instant real-time updates
-    const pollInterval = setInterval(() => {
-      if (typeof document !== "undefined" && document.hidden) {
-        return; // Zero requests when admin minimizes or switches tab!
-      }
-      fetchOverview();
-    }, 3500);
-
-    // Refresh immediately when admin switches back to tab
-    const handleVisibilityChange = () => {
-      if (typeof document !== "undefined" && !document.hidden) {
-        fetchOverview();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      clearInterval(pollInterval);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      if (socket) {
-        try {
-          socket.emit("admin:leave_traffic_monitor");
-          socket.disconnect();
-        } catch {}
-      }
-    };
   }, []);
 
   // Show temporary notifications
@@ -328,38 +245,53 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
     }
   };
 
-  // ─── Filtered Active Students List ─────────────────────────────────────────
+  // Helper: Format seconds to clean human-readable duration (e.g. "3m 20s" or "1h 15m")
+  const formatDuration = (secs = 0) => {
+    if (!secs || secs < 5) return "< 10s";
+    if (secs < 60) return `${secs}s`;
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    if (m < 60) return `${m}m ${s > 0 ? `${s}s` : ""}`.trim();
+    const h = Math.floor(m / 60);
+    const remM = m % 60;
+    return `${h}h ${remM > 0 ? `${remM}m` : ""}`.trim();
+  };
+
+  // ─── Filtered Active Students List (Strictly Excludes Admin & 230301120327) ──
   const filteredActiveStudents = useMemo(() => {
-    const list =
-      studentListTab === "LIVE_NOW"
-        ? liveData.activeStudents || []
-        : liveData.allLoggedInStudents || liveData.activeStudents || [];
+    const list = liveData.activeStudents || [];
     const query = searchTerm.toLowerCase().trim();
 
     return list.filter((st) => {
-      // User type filter
+      // 1. Strictly exclude developer/owner special student 230301120327
+      if (st.regNo === "230301120327") return false;
+
+      // 2. User type filter
       if (filterUserType === "STUDENTS" && st.isGuest) return false;
       if (filterUserType === "GUESTS" && !st.isGuest) return false;
 
-      // Device filter
+      // 3. Device filter
       if (filterDevice !== "ALL") {
-        if (filterDevice === "Mobile" && st.deviceType !== "Mobile") return false;
-        if (filterDevice === "Desktop" && st.deviceType !== "Desktop" && st.deviceType !== "Laptop") return false;
-        if (filterDevice === "Tablet" && st.deviceType !== "Tablet") return false;
+        const d = String(st.deviceType || "").toLowerCase();
+        if (filterDevice === "Mobile" && !d.includes("mobile") && !d.includes("phone")) return false;
+        if (filterDevice === "Desktop" && !d.includes("desktop") && !d.includes("laptop")) return false;
+        if (filterDevice === "Tablet" && !d.includes("tablet") && !d.includes("ipad")) return false;
       }
 
-      // Search term
+      // 4. Search term (RegNo, Name, Route, Most Visited Route, Branch)
       if (query) {
         const nameMatch = (st.studentName || "").toLowerCase().includes(query);
         const regMatch = (st.regNo || "").toLowerCase().includes(query);
         const routeMatch = (st.currentRoute || "").toLowerCase().includes(query);
+        const titleMatch = (st.pageTitle || "").toLowerCase().includes(query);
+        const mostMatch = (st.mostVisitedPageTitle || st.mostVisitedRoute || "").toLowerCase().includes(query);
         const branchMatch = (st.branch || "").toLowerCase().includes(query);
-        if (!nameMatch && !regMatch && !routeMatch && !branchMatch) return false;
+        if (!nameMatch && !regMatch && !routeMatch && !titleMatch && !mostMatch && !branchMatch) return false;
       }
 
       return true;
     });
-  }, [liveData.activeStudents, liveData.allLoggedInStudents, studentListTab, searchTerm, filterUserType, filterDevice]);
+  }, [liveData.activeStudents, searchTerm, filterUserType, filterDevice]);
 
   // ─── Paginated Active Students (10 items per page by default) ─────────────
   const totalPages = Math.max(1, Math.ceil(filteredActiveStudents.length / PAGE_SIZE));
@@ -461,21 +393,21 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
               marginTop: isMobile ? 1 : 0,
             }}
           >
-            <Activity size={isMobile ? 20 : 24} />
+            <Route size={isMobile ? 20 : 24} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <h2 style={{ fontSize: isMobile ? 16.5 : 20, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.3px", lineHeight: 1.25 }}>
-                Live Active Students & Traffic Intelligence
+                Student Route & Device Intelligence
               </h2>
               <span
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 5,
-                  background: "#ecfdf5",
-                  border: "1px solid #a7f3d0",
-                  color: "#065f46",
+                  background: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  color: "#1d4ed8",
                   fontSize: 10,
                   fontWeight: 800,
                   padding: "2px 8px",
@@ -490,16 +422,15 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                     width: 6,
                     height: 6,
                     borderRadius: "50%",
-                    background: "#059669",
-                    boxShadow: "0 0 0 2px rgba(5, 150, 105, 0.25)",
-                    animation: "pulseDot 1.6s infinite",
+                    background: "#2563eb",
+                    display: "inline-block",
                   }}
                 />
-                Live Connected
+                Activity Logged (On-Demand)
               </span>
             </div>
             <p style={{ fontSize: isMobile ? 11.5 : 12.5, color: "#64748b", margin: "4px 0 0 0", lineHeight: 1.4 }}>
-              Real-time student monitoring, DB-backed route analytics, and virtual waiting queue control.
+              Student device identification, route duration analytics, and top visited pages. Excludes Admin and 230301120327.
             </p>
           </div>
         </div>
@@ -526,7 +457,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
           }}
         >
           <RefreshCw size={13} className={refreshing ? "spin" : ""} />
-          {refreshing ? "Syncing..." : "Refresh Live"}
+          {refreshing ? "Syncing..." : "Refresh Activity"}
         </button>
       </div>
 
@@ -540,7 +471,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
           boxSizing: "border-box",
         }}
       >
-        {/* 1. Active Students Right Now */}
+        {/* 1. Tracked Students */}
         <div
           style={{
             background: "#ffffff",
@@ -571,23 +502,23 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                 minWidth: 0,
                 lineHeight: 1.2,
               }}
-              title="Active Now (Live on Site)"
+              title="Tracked Students"
             >
-              {isMobile ? "Active Live" : "Active Now (Live on Site)"}
+              Tracked Students
             </span>
             <div
               style={{
                 width: isMobile ? 24 : 28,
                 height: isMobile ? 24 : 28,
                 borderRadius: 7,
-                background: "#ecfdf5",
+                background: "#eff6ff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
               }}
             >
-              <Users size={isMobile ? 13 : 15} color="#059669" />
+              <Users size={isMobile ? 13 : 15} color="#2563eb" />
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: isMobile ? 5 : 8, flexWrap: "wrap" }}>
@@ -598,20 +529,10 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
             ) : (
               <>
                 <span style={{ fontSize: isMobile ? 22 : 32, fontWeight: 900, color: "#0f172a", letterSpacing: "-0.5px", lineHeight: 1 }}>
-                  {liveData.totalActiveUsers}
+                  {filteredActiveStudents.length}
                 </span>
-                <span style={{ fontSize: isMobile ? 10 : 12, fontWeight: 700, color: "#059669", display: "inline-flex", alignItems: "center", gap: 3.5, whiteSpace: "nowrap" }}>
-                  <span
-                    style={{
-                      width: 5.5,
-                      height: 5.5,
-                      borderRadius: "50%",
-                      background: "#10b981",
-                      display: "inline-block",
-                      boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.3)",
-                    }}
-                  />
-                  Live
+                <span style={{ fontSize: isMobile ? 10 : 12, fontWeight: 700, color: "#2563eb", whiteSpace: "nowrap" }}>
+                  Students Logged
                 </span>
               </>
             )}
@@ -621,90 +542,13 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
               <span className="skeleton" style={{ width: "75%", maxWidth: "100%", height: 12, borderRadius: 4, display: "inline-block" }} />
             ) : (
               <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                <span>{liveData.activeStudents.filter((s) => !s.isGuest).length} Students · {liveData.activeStudents.filter((s) => s.isGuest).length} Guests</span>
+                <span>Excludes Admin & 230301120327</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* 2. Virtual Waiting Queue */}
-        <div
-          style={{
-            background: "#ffffff",
-            border: liveData.totalQueuedUsers > 0 ? "1.5px solid #fed7aa" : "1px solid #e2e8f0",
-            borderRadius: isMobile ? 14 : 18,
-            padding: isMobile ? "12px 11px" : "16px 18px",
-            boxShadow: "0 2px 8px rgba(15, 23, 42, 0.02)",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            minWidth: 0,
-            overflow: "hidden",
-            boxSizing: "border-box",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginBottom: isMobile ? 6 : 8, minWidth: 0 }}>
-            <span
-              style={{
-                fontSize: isMobile ? 10.5 : 12,
-                fontWeight: 800,
-                color: "#64748b",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                flex: 1,
-                minWidth: 0,
-                lineHeight: 1.2,
-              }}
-              title="In Waiting Queue"
-            >
-              {isMobile ? "Waiting Queue" : "In Waiting Queue"}
-            </span>
-            <div
-              style={{
-                width: isMobile ? 24 : 28,
-                height: isMobile ? 24 : 28,
-                borderRadius: 7,
-                background: liveData.totalQueuedUsers > 0 ? "#fff7ed" : "#f1f5f9",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <Clock size={isMobile ? 13 : 15} color={liveData.totalQueuedUsers > 0 ? "#ea580c" : "#64748b"} />
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: isMobile ? 5 : 8, flexWrap: "wrap" }}>
-            {loading ? (
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, height: isMobile ? 28 : 38 }}>
-                <span className="skeleton" style={{ width: 44, maxWidth: "100%", height: isMobile ? 24 : 28, borderRadius: 6, display: "inline-block" }} />
-              </div>
-            ) : (
-              <>
-                <span style={{ fontSize: isMobile ? 22 : 32, fontWeight: 900, color: liveData.totalQueuedUsers > 0 ? "#ea580c" : "#0f172a", letterSpacing: "-0.5px", lineHeight: 1 }}>
-                  {liveData.totalQueuedUsers}
-                </span>
-                <span style={{ fontSize: isMobile ? 10 : 11.5, fontWeight: 700, color: liveData.isQueueActive ? "#dc2626" : "#059669", whiteSpace: "nowrap" }}>
-                  {liveData.isQueueActive ? "Queue Active" : "No Wait"}
-                </span>
-              </>
-            )}
-          </div>
-          <div style={{ fontSize: isMobile ? 10 : 11.5, color: "#64748b", marginTop: isMobile ? 4 : 6, minWidth: 0, overflow: "hidden" }}>
-            {loading ? (
-              <span className="skeleton" style={{ width: "75%", maxWidth: "100%", height: 12, borderRadius: 4, display: "inline-block" }} />
-            ) : (
-              <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                <span>{liveData.totalQueuedUsers > 0 ? "Traffic waiting" : "Traffic direct"}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 3. Max Capacity Threshold */}
+        {/* 2. Total Page Views */}
         <div
           style={{
             background: "#ffffff",
@@ -735,89 +579,9 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                 minWidth: 0,
                 lineHeight: 1.2,
               }}
-              title="Capacity Limit"
+              title="Total Page Views"
             >
-              Capacity Limit
-            </span>
-            <div
-              style={{
-                width: isMobile ? 24 : 28,
-                height: isMobile ? 24 : 28,
-                borderRadius: 7,
-                background: "#f5f3ff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <Sliders size={isMobile ? 13 : 15} color="#7c3aed" />
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: isMobile ? 5 : 8, flexWrap: "wrap" }}>
-            {loading ? (
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, height: isMobile ? 28 : 38 }}>
-                <span className="skeleton" style={{ width: 50, maxWidth: "100%", height: isMobile ? 24 : 28, borderRadius: 6, display: "inline-block" }} />
-              </div>
-            ) : (
-              <>
-                <span style={{ fontSize: isMobile ? 22 : 32, fontWeight: 900, color: "#0f172a", letterSpacing: "-0.5px", lineHeight: 1 }}>
-                  {liveData.maxActiveCapacity}
-                </span>
-                <span style={{ fontSize: isMobile ? 10 : 11.5, fontWeight: 700, color: capacityPct >= 90 ? "#dc2626" : "#2563eb", whiteSpace: "nowrap" }}>
-                  {capacityPct}% Load
-                </span>
-              </>
-            )}
-          </div>
-          {/* Load Progress bar */}
-          <div style={{ width: "100%", height: 5, background: "#f1f5f9", borderRadius: 99, marginTop: isMobile ? 6 : 8, overflow: "hidden" }}>
-            <div
-              style={{
-                width: `${capacityPct}%`,
-                height: "100%",
-                background: capacityPct >= 90 ? "#dc2626" : capacityPct >= 70 ? "#f59e0b" : "#2563eb",
-                borderRadius: 99,
-                transition: "width 0.4s ease",
-              }}
-            />
-          </div>
-        </div>
-
-        {/* 4. Total Page Views from DB */}
-        <div
-          style={{
-            background: "#ffffff",
-            border: "1px solid #e2e8f0",
-            borderRadius: isMobile ? 14 : 18,
-            padding: isMobile ? "12px 11px" : "16px 18px",
-            boxShadow: "0 2px 8px rgba(15, 23, 42, 0.02)",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            minWidth: 0,
-            overflow: "hidden",
-            boxSizing: "border-box",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginBottom: isMobile ? 6 : 8, minWidth: 0 }}>
-            <span
-              style={{
-                fontSize: isMobile ? 10.5 : 12,
-                fontWeight: 800,
-                color: "#64748b",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                flex: 1,
-                minWidth: 0,
-                lineHeight: 1.2,
-              }}
-              title="Total DB Views"
-            >
-              Total DB Views
+              Total Page Views
             </span>
             <div
               style={{
@@ -837,7 +601,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
           <div style={{ display: "flex", alignItems: "baseline", gap: isMobile ? 5 : 8, flexWrap: "wrap" }}>
             {loading ? (
               <div style={{ display: "inline-flex", alignItems: "center", gap: 6, height: isMobile ? 28 : 38 }}>
-                <span className="skeleton" style={{ width: 56, maxWidth: "100%", height: isMobile ? 24 : 28, borderRadius: 6, display: "inline-block" }} />
+                <span className="skeleton" style={{ width: 44, maxWidth: "100%", height: isMobile ? 24 : 28, borderRadius: 6, display: "inline-block" }} />
               </div>
             ) : (
               <>
@@ -860,9 +624,160 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
             )}
           </div>
         </div>
+
+        {/* 3. Total Time Spent */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: isMobile ? 14 : 18,
+            padding: isMobile ? "12px 11px" : "16px 18px",
+            boxShadow: "0 2px 8px rgba(15, 23, 42, 0.02)",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            minWidth: 0,
+            overflow: "hidden",
+            boxSizing: "border-box",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginBottom: isMobile ? 6 : 8, minWidth: 0 }}>
+            <span
+              style={{
+                fontSize: isMobile ? 10.5 : 12,
+                fontWeight: 800,
+                color: "#64748b",
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                flex: 1,
+                minWidth: 0,
+                lineHeight: 1.2,
+              }}
+              title="Total Time Spent"
+            >
+              Total Time Spent
+            </span>
+            <div
+              style={{
+                width: isMobile ? 24 : 28,
+                height: isMobile ? 24 : 28,
+                borderRadius: 7,
+                background: "#fdf4ff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Clock size={isMobile ? 13 : 15} color="#c026d3" />
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: isMobile ? 5 : 8, flexWrap: "wrap" }}>
+            {loading ? (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, height: isMobile ? 28 : 38 }}>
+                <span className="skeleton" style={{ width: 50, maxWidth: "100%", height: isMobile ? 24 : 28, borderRadius: 6, display: "inline-block" }} />
+              </div>
+            ) : (
+              <>
+                <span style={{ fontSize: isMobile ? 20 : 28, fontWeight: 900, color: "#0f172a", letterSpacing: "-0.5px", lineHeight: 1 }}>
+                  {formatDuration(liveData.analytics?.totalTimeSpentAllStudents || 0)}
+                </span>
+                <span style={{ fontSize: isMobile ? 10 : 11.5, fontWeight: 700, color: "#c026d3", whiteSpace: "nowrap" }}>
+                  Cumulative
+                </span>
+              </>
+            )}
+          </div>
+          <div style={{ fontSize: isMobile ? 10 : 11.5, color: "#64748b", marginTop: isMobile ? 4 : 6, minWidth: 0, overflow: "hidden" }}>
+            {loading ? (
+              <span className="skeleton" style={{ width: "75%", maxWidth: "100%", height: 12, borderRadius: 4, display: "inline-block" }} />
+            ) : (
+              <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <span>Student learning time</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 4. Most Popular Page */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: isMobile ? 14 : 18,
+            padding: isMobile ? "12px 11px" : "16px 18px",
+            boxShadow: "0 2px 8px rgba(15, 23, 42, 0.02)",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            minWidth: 0,
+            overflow: "hidden",
+            boxSizing: "border-box",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginBottom: isMobile ? 6 : 8, minWidth: 0 }}>
+            <span
+              style={{
+                fontSize: isMobile ? 10.5 : 12,
+                fontWeight: 800,
+                color: "#64748b",
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                flex: 1,
+                minWidth: 0,
+                lineHeight: 1.2,
+              }}
+              title="Most Popular Page"
+            >
+              Most Popular Page
+            </span>
+            <div
+              style={{
+                width: isMobile ? 24 : 28,
+                height: isMobile ? 24 : 28,
+                borderRadius: 7,
+                background: "#fff7ed",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Flame size={isMobile ? 13 : 15} color="#ea580c" />
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: isMobile ? 5 : 8, flexWrap: "wrap" }}>
+            {loading ? (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, height: isMobile ? 28 : 38 }}>
+                <span className="skeleton" style={{ width: 56, maxWidth: "100%", height: isMobile ? 24 : 28, borderRadius: 6, display: "inline-block" }} />
+              </div>
+            ) : (
+              <>
+                <span style={{ fontSize: isMobile ? 15 : 18, fontWeight: 900, color: "#0f172a", letterSpacing: "-0.3px", lineHeight: 1.2, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {liveData.analytics?.mostVisited?.[0]?.pageTitle || "Student Dashboard"}
+                </span>
+              </>
+            )}
+          </div>
+          <div style={{ fontSize: isMobile ? 10 : 11.5, color: "#64748b", marginTop: isMobile ? 4 : 6, minWidth: 0, overflow: "hidden" }}>
+            {loading ? (
+              <span className="skeleton" style={{ width: "75%", maxWidth: "100%", height: 12, borderRadius: 4, display: "inline-block" }} />
+            ) : (
+              <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <span>{liveData.analytics?.mostVisited?.[0]?.totalViews || 0} Total Page Views</span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* ── Active Students Table & Filter (Live on Site & DB Logged-in with 10-Item Pagination) ── */}
+      {/* ── Student Activity & Route Intelligence Table ── */}
       <div
         style={{
           background: "#ffffff",
@@ -874,96 +789,27 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
           <div style={{ width: isMobile ? "100%" : "auto" }}>
-            <div
-              style={{
-                display: "inline-flex",
-                background: "#f1f5f9",
-                padding: 3,
-                borderRadius: 9,
-                gap: 4,
-                width: isMobile ? "100%" : "auto",
-                boxSizing: "border-box",
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => setStudentListTab("LIVE_NOW")}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div
                 style={{
-                  flex: isMobile ? 1 : "initial",
-                  padding: isMobile ? "7px 8px" : "7px 14px",
-                  borderRadius: 7,
-                  border: studentListTab === "LIVE_NOW" ? "1px solid #e2e8f0" : "1px solid transparent",
-                  background: studentListTab === "LIVE_NOW" ? "#ffffff" : "transparent",
-                  color: studentListTab === "LIVE_NOW" ? "#0f172a" : "#64748b",
-                  fontSize: isMobile ? 11.5 : 12.5,
-                  fontWeight: studentListTab === "LIVE_NOW" ? 800 : 600,
-                  cursor: "pointer",
                   display: "inline-flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  gap: isMobile ? 4 : 6,
-                  boxShadow: studentListTab === "LIVE_NOW" ? "0 1px 3px rgba(15,23,42,0.06)" : "none",
-                  transition: "all 0.15s ease",
-                  whiteSpace: "nowrap",
+                  gap: 6,
+                  background: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  padding: "6px 14px",
+                  borderRadius: 9,
+                  color: "#1e40af",
+                  fontWeight: 800,
+                  fontSize: 13,
                 }}
               >
-                <span
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    background: "#10b981",
-                    display: "inline-block",
-                    boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.3)",
-                  }}
-                />
-                <span>Live On Site</span>{" "}
-                <span style={{ fontSize: isMobile ? 10.5 : 11.5, opacity: 0.85 }}>
-                  {loading ? (
-                    <Loader2 size={11} className="spin" style={{ display: "inline-block", marginLeft: 2 }} />
-                  ) : (
-                    `(${liveData.activeStudents?.length || 0})`
-                  )}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStudentListTab("ALL_LOGGED_IN")}
-                style={{
-                  flex: isMobile ? 1 : "initial",
-                  padding: isMobile ? "7px 8px" : "7px 14px",
-                  borderRadius: 7,
-                  border: studentListTab === "ALL_LOGGED_IN" ? "1px solid #e2e8f0" : "1px solid transparent",
-                  background: studentListTab === "ALL_LOGGED_IN" ? "#ffffff" : "transparent",
-                  color: studentListTab === "ALL_LOGGED_IN" ? "#2563eb" : "#64748b",
-                  fontSize: isMobile ? 11.5 : 12.5,
-                  fontWeight: studentListTab === "ALL_LOGGED_IN" ? 800 : 600,
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: isMobile ? 4 : 6,
-                  boxShadow: studentListTab === "ALL_LOGGED_IN" ? "0 1px 3px rgba(15,23,42,0.06)" : "none",
-                  transition: "all 0.15s ease",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                <Users size={13} color={studentListTab === "ALL_LOGGED_IN" ? "#2563eb" : "#64748b"} />
-                <span>All Logged-In</span>{" "}
-                <span style={{ fontSize: isMobile ? 10.5 : 11.5, opacity: 0.85 }}>
-                  {loading ? (
-                    <Loader2 size={11} className="spin" style={{ display: "inline-block", marginLeft: 2 }} />
-                  ) : (
-                    `(${liveData.allLoggedInStudents?.length || liveData.totalLoggedInSessions || 0})`
-                  )}
-                </span>
-              </button>
+                <Users size={15} color="#2563eb" />
+                <span>Tracked Students ({filteredActiveStudents.length})</span>
+              </div>
             </div>
             <p style={{ fontSize: 12, color: "#64748b", margin: "6px 0 0 0" }}>
-              {studentListTab === "LIVE_NOW"
-                ? "Showing visitors with active tabs right now (pings received in last 2.5 minutes)."
-                : "Showing all registered student accounts with active sessions stored in MongoDB."}
+              Showing real students with device details, visited routes, time spent, and top pages. Strictly excludes Admin and 230301120327.
             </p>
           </div>
 
@@ -1001,27 +847,6 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                 }}
               />
             </div>
-
-            {/* Type Filter */}
-            <select
-              value={filterUserType}
-              onChange={(e) => setFilterUserType(e.target.value)}
-              style={{
-                flex: isMobile ? 1 : "initial",
-                padding: "8px 10px",
-                borderRadius: 8,
-                border: "1.5px solid #cbd5e1",
-                background: "#ffffff",
-                fontSize: 12.5,
-                fontWeight: 600,
-                color: "#0f172a",
-                cursor: "pointer",
-              }}
-            >
-              <option value="ALL">All Users</option>
-              <option value="STUDENTS">Students Only</option>
-              <option value="GUESTS">Guests Only</option>
-            </select>
 
             {/* Device Filter */}
             <select
@@ -1081,11 +906,12 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, textAlign: "left" }}>
                 <thead>
                   <tr style={{ borderBottom: "1.5px solid #e2e8f0", color: "#64748b", fontSize: 11.5, textTransform: "uppercase" }}>
-                    <th style={{ padding: "10px 12px" }}>Student / Visitor</th>
-                    <th style={{ padding: "10px 12px" }}>Academic Info</th>
-                    <th style={{ padding: "10px 12px" }}>Active Route / Page</th>
-                    <th style={{ padding: "10px 12px" }}>Device & Browser</th>
-                    <th style={{ padding: "10px 12px" }}>Status</th>
+                    <th style={{ padding: "10px 12px" }}>Student</th>
+                    <th style={{ padding: "10px 12px" }}>Device & OS</th>
+                    <th style={{ padding: "10px 12px" }}>Current / Last Route</th>
+                    <th style={{ padding: "10px 12px" }}>Time Spent</th>
+                    <th style={{ padding: "10px 12px" }}>Most Visited</th>
+                    <th style={{ padding: "10px 12px" }}>Last Active</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1110,6 +936,9 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                         <span className="skeleton" style={{ width: 110, height: 14, borderRadius: 4, display: "inline-block" }} />
                       </td>
                       <td style={{ padding: "12px" }}>
+                        <span className="skeleton" style={{ width: 80, height: 14, borderRadius: 4, display: "inline-block" }} />
+                      </td>
+                      <td style={{ padding: "12px" }}>
                         <span className="skeleton" style={{ width: 60, height: 22, borderRadius: 12, display: "inline-block" }} />
                       </td>
                     </tr>
@@ -1124,22 +953,20 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
               <Users size={20} color="#94a3b8" />
             </div>
             <div style={{ fontSize: 14, fontWeight: 700, color: "#334155" }}>
-              {studentListTab === "LIVE_NOW" ? "No Active Visitors Online Right Now" : "No Registered Student Sessions Found"}
+              No Student Activity Logged Yet
             </div>
             <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>
-              {searchTerm || filterUserType !== "ALL" || filterDevice !== "ALL"
-                ? "No users match your active filters. Try clearing the search."
-                : studentListTab === "LIVE_NOW"
-                ? "Students browsing GradeFlow will appear here in real time as they open tabs."
-                : "Active student login sessions in MongoDB will appear here."}
+              {searchTerm || filterDevice !== "ALL"
+                ? "No students match your active search filters. Try clearing the search."
+                : "When students browse GradeFlow, their device, visited routes, and time spent will appear here."}
             </div>
           </div>
         ) : isMobile ? (
-          /* Mobile Card View (Zero Horizontal Scroll) with Pagination */
+          /* Mobile Card View (Zero Horizontal Scroll) with Rich Activity Details */
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {paginatedStudents.map((st) => (
               <div
-                key={st.token}
+                key={st.token || st.regNo}
                 style={{
                   background: "#f8fafc",
                   border: "1px solid #e2e8f0",
@@ -1160,7 +987,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                         {st.regNo} · {st.branch} ({st.batch})
                       </div>
                     ) : (
-                      <div style={{ fontSize: 11.5, color: "#64748b" }}>Guest Visitor</div>
+                      <div style={{ fontSize: 11.5, color: "#64748b" }}>Student</div>
                     )}
                   </div>
 
@@ -1182,6 +1009,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                   </span>
                 </div>
 
+                {/* Visited Route & Time Spent */}
                 <div
                   style={{
                     background: "#ffffff",
@@ -1190,64 +1018,85 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                     padding: "8px 10px",
                     fontSize: 12,
                     display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
+                    flexDirection: "column",
+                    gap: 4,
                   }}
                 >
-                  <span style={{ color: "#64748b", fontWeight: 600, flexShrink: 0 }}>Active Route:</span>
-                  <span
-                    style={{
-                      color: "#0f172a",
-                      fontWeight: 700,
-                      fontFamily: "monospace",
-                      maxWidth: "65%",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                    title={st.currentRoute}
-                  >
-                    {st.currentRoute}
-                  </span>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ color: "#64748b", fontWeight: 600 }}>Active Route:</span>
+                    <span
+                      style={{
+                        color: "#0f172a",
+                        fontWeight: 700,
+                        fontFamily: "monospace",
+                        maxWidth: "65%",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                      title={st.currentRoute}
+                    >
+                      {st.currentRoute}
+                    </span>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11.5 }}>
+                    <span style={{ color: "#64748b" }}>Time Spent:</span>
+                    <span style={{ color: "#059669", fontWeight: 700 }}>
+                      {formatDuration(st.timeSpentCurrentRoute || 0)}{" "}
+                      <span style={{ color: "#64748b", fontWeight: 500 }}>
+                        (Total: {formatDuration(st.totalTimeSpentSeconds || 0)})
+                      </span>
+                    </span>
+                  </div>
+
+                  {st.mostVisitedRoute && (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11.5 }}>
+                      <span style={{ color: "#64748b" }}>Most Visited:</span>
+                      <span style={{ color: "#c026d3", fontWeight: 700 }}>
+                        {st.mostVisitedPageTitle || st.mostVisitedRoute}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "#64748b", gap: 6 }}>
-                  <span style={{ maxWidth: "70%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span style={{ maxWidth: "60%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {st.browser} on {st.os}
                   </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 4, color: "#059669", fontWeight: 700 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#059669" }} />
-                    Active
+                  <span style={{ color: "#64748b", fontWeight: 600 }}>
+                    {st.lastActiveAt ? new Date(st.lastActiveAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Recently"}
                   </span>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          /* Desktop Table View with Pagination */
+          /* Desktop Table View with Rich Activity Columns */
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "1.5px solid #e2e8f0", color: "#64748b", fontSize: 11.5, textTransform: "uppercase" }}>
-                  <th style={{ padding: "10px 12px" }}>Student / Visitor</th>
-                  <th style={{ padding: "10px 12px" }}>Academic Info</th>
-                  <th style={{ padding: "10px 12px" }}>Active Route / Page</th>
+                  <th style={{ padding: "10px 12px" }}>Student</th>
                   <th style={{ padding: "10px 12px" }}>Device & Browser</th>
-                  <th style={{ padding: "10px 12px" }}>Status</th>
+                  <th style={{ padding: "10px 12px" }}>Current / Last Route</th>
+                  <th style={{ padding: "10px 12px" }}>Time Spent</th>
+                  <th style={{ padding: "10px 12px" }}>Most Visited Route</th>
+                  <th style={{ padding: "10px 12px" }}>Last Active</th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedStudents.map((st) => (
-                  <tr key={st.token} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                  <tr key={st.token || st.regNo} style={{ borderBottom: "1px solid #f1f5f9" }}>
                     <td style={{ padding: "12px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div
                           style={{
-                            width: 32,
-                            height: 32,
+                            width: 34,
+                            height: 34,
                             borderRadius: "50%",
-                            background: st.isGuest ? "#f1f5f9" : "#eff6ff",
-                            color: st.isGuest ? "#64748b" : "#2563eb",
+                            background: "#eff6ff",
+                            color: "#2563eb",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -1255,33 +1104,16 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                             fontSize: 12,
                           }}
                         >
-                          {st.studentName ? st.studentName.slice(0, 2).toUpperCase() : "GV"}
+                          {st.studentName ? st.studentName.slice(0, 2).toUpperCase() : "ST"}
                         </div>
                         <div>
                           <div style={{ fontWeight: 800, color: "#0f172a" }}>{st.studentName}</div>
-                          {st.regNo && <div style={{ fontSize: 11.5, color: "#2563eb", fontWeight: 700 }}>{st.regNo}</div>}
+                          {st.regNo && (
+                            <div style={{ fontSize: 11.5, color: "#2563eb", fontWeight: 700 }}>
+                              {st.regNo} · <span style={{ color: "#64748b", fontWeight: 500 }}>{st.branch} ({st.batch})</span>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    </td>
-
-                    <td style={{ padding: "12px", color: "#475569" }}>
-                      {st.regNo ? (
-                        <div>
-                          <span style={{ fontWeight: 700 }}>{st.branch}</span> ({st.batch})
-                        </div>
-                      ) : (
-                        <span style={{ color: "#94a3b8" }}>—</span>
-                      )}
-                    </td>
-
-                    <td style={{ padding: "12px" }}>
-                      <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#f8fafc", border: "1px solid #e2e8f0", padding: "4px 8px", borderRadius: 8 }}>
-                        <span style={{ color: "#2563eb", fontWeight: 700, fontFamily: "monospace", fontSize: 12 }}>
-                          {st.currentRoute}
-                        </span>
-                        <span style={{ fontSize: 11, color: "#64748b" }}>
-                          ({st.pageTitle || "Page"})
-                        </span>
                       </div>
                     </td>
 
@@ -1296,23 +1128,49 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                     </td>
 
                     <td style={{ padding: "12px" }}>
+                      <div style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
+                        <span style={{ color: "#0f172a", fontWeight: 700, fontSize: 12.5 }}>
+                          {st.pageTitle || "Dashboard"}
+                        </span>
+                        <span style={{ color: "#2563eb", fontWeight: 600, fontFamily: "monospace", fontSize: 11 }}>
+                          {st.currentRoute}
+                        </span>
+                      </div>
+                    </td>
+
+                    <td style={{ padding: "12px" }}>
+                      <div style={{ display: "flex", flexDirection: "column" }}>
+                        <span style={{ color: "#059669", fontWeight: 800, fontSize: 13 }}>
+                          {formatDuration(st.timeSpentCurrentRoute || 0)}
+                        </span>
+                        <span style={{ fontSize: 11, color: "#64748b" }}>
+                          Total: {formatDuration(st.totalTimeSpentSeconds || 0)}
+                        </span>
+                      </div>
+                    </td>
+
+                    <td style={{ padding: "12px" }}>
                       <span
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
                           gap: 5,
-                          background: "#ecfdf5",
-                          border: "1px solid #a7f3d0",
-                          color: "#065f46",
+                          background: "#faf5ff",
+                          border: "1px solid #f3e8ff",
+                          color: "#7e22ce",
                           fontSize: 11.5,
-                          fontWeight: 800,
+                          fontWeight: 700,
                           padding: "3px 9px",
-                          borderRadius: 99,
+                          borderRadius: 6,
                         }}
                       >
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#059669" }} />
-                        Active
+                        <Flame size={12} color="#a855f7" />
+                        {st.mostVisitedPageTitle || st.mostVisitedRoute || "/"}
                       </span>
+                    </td>
+
+                    <td style={{ padding: "12px", color: "#64748b", fontSize: 12 }}>
+                      {st.lastActiveAt ? new Date(st.lastActiveAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "Recently"}
                     </td>
                   </tr>
                 ))}
