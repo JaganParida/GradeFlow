@@ -246,6 +246,14 @@
       "destination": "/api/traffic.js"
     },
     {
+      "source": "/api/admin/vercel-quota/:path*",
+      "destination": "/api/vercel-quota.js"
+    },
+    {
+      "source": "/api/admin/vercel-quota",
+      "destination": "/api/vercel-quota.js"
+    },
+    {
       "source": "/api/admin/notifications/:path*",
       "destination": "/api/notifications.js"
     },

@@ -15,6 +15,7 @@ import AdminManagement from "../components/AdminManagement";
 import StudentOtpManagement from "../components/StudentOtpManagement";
 import AdminAttendanceMonitor from "../components/AdminAttendanceMonitor";
 import AdminLiveTrafficManager from "../components/AdminLiveTrafficManager";
+import AdminVercelQuotaMonitor from "../components/AdminVercelQuotaMonitor";
 import ModernMobileSubNav from "../components/ModernMobileSubNav";
 import AdminNotificationBroadcast from "../components/AdminNotificationBroadcast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -69,6 +70,7 @@ import {
   KeyRound,
   Activity,
   Route,
+  Zap,
 } from "lucide-react";
 
 function getDynamicSessionOptions(bStr, semVal, yStr) {
@@ -3771,6 +3773,7 @@ export default function AdminDashboard({ defaultTab = null }) {
   // Build granular tab list based on authenticated identity
   const ALL_ADMIN_TABS = [
     { id: "overview", label: "Upload Results", icon: <CloudUpload size={15} />, desc: "Upload and process semester results & scorecards" },
+    { id: "vercel-quota", label: "Vercel Quota & Traffic Engine", icon: <Zap size={15} />, desc: "Zero-drain Vercel free hobby request limits, bandwidth, peak hours, and auto-handling defense" },
     { id: "live-traffic", label: "Student Route Intelligence", icon: <Route size={15} />, desc: "Student device identification, route duration analytics, and top visited pages" },
     { id: "timetable", label: "Timetable & Calendar", icon: <Clock size={15} />, desc: "Manage class schedules, routines and academic calendar" },
     { id: "report-card", label: "Report Card Editor", icon: <FileText size={15} />, desc: "Official student grade sheets and report cards" },
@@ -3800,6 +3803,7 @@ export default function AdminDashboard({ defaultTab = null }) {
     ? ALL_ADMIN_TABS
     : ALL_ADMIN_TABS.filter(
         (t) =>
+          t.id === "vercel-quota" ||
           t.id === "live-traffic" ||
           (adminProfile?.permissions?.routes || []).includes(t.id) ||
           (adminProfile?.permissions?.routes || []).includes("*")
@@ -3813,6 +3817,7 @@ export default function AdminDashboard({ defaultTab = null }) {
         tab === "admin-management" ||
         tab === "otp-management" ||
         (tab !== "live-traffic" &&
+          tab !== "vercel-quota" &&
           !permittedRoutes.includes(tab) &&
           !permittedRoutes.includes("*") &&
           permittedRoutes.length > 0)
@@ -4131,6 +4136,19 @@ export default function AdminDashboard({ defaultTab = null }) {
                 badge: "Published",
                 badgeColor: "#b45309",
                 badgeBg: "#fef3c7",
+              },
+              {
+                label: "Vercel Quota",
+                sublabel: "Free Hobby 100k Limit",
+                mobileSublabel: "Vercel Quota",
+                value: "Hobby Safe",
+                icon: <Zap size={isMobile ? 15 : 18} color="#7c3aed" />,
+                bg: "#f5f3ff",
+                border: "#ddd6fe",
+                badge: "Zero-Drain",
+                badgeColor: "#7c3aed",
+                badgeBg: "#ede9fe",
+                targetTab: "vercel-quota",
               },
             ].map((stat, i) => (
               <motion.div
@@ -5075,6 +5093,13 @@ export default function AdminDashboard({ defaultTab = null }) {
         {/* ── TAB: ATTENDANCE TRACKER USAGE MONITOR ── */}
         {tab === "attendance-monitor" && (
           <AdminAttendanceMonitor API={API} authHeaders={authHeaders} isMobile={isMobile} />
+        )}
+
+        {/* ── TAB: VERCEL FREE HOBBY QUOTA & TRAFFIC ENGINE ── */}
+        {tab === "vercel-quota" && (
+          <div id="admin-vercel-quota-monitor" data-tab-content="vercel-quota">
+            <AdminVercelQuotaMonitor API={API} authHeaders={authHeaders} isMobile={isMobile} />
+          </div>
         )}
 
         {/* ── TAB: STUDENT ROUTE INTELLIGENCE ── */}

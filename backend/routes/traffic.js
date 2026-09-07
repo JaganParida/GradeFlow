@@ -12,6 +12,7 @@ const {
 } = require("../utils/liveTrafficManager");
 
 const StudentRouteActivity = require("../models/StudentRouteActivity");
+const VercelQuotaMetric = require("../models/VercelQuotaMetric");
 
 function getIstHour() {
   const now = new Date();
@@ -190,6 +191,32 @@ router.post("/page-view", async (req, res) => {
           }
         }
         await studentActivity.save();
+
+        // Atomically increment today's VercelQuotaMetric
+        try {
+          const istOffset = 5.5 * 60 * 60 * 1000;
+          const istDate = new Date(Date.now() + istOffset);
+          const todayStr = istDate.toISOString().split("T")[0];
+          const todayMonthStr = todayStr.slice(0, 7);
+          const istDay = istDate.getUTCDay();
+          const istH = istDate.getUTCHours();
+
+          const incObj = {
+            totalRequests: 1,
+            estimatedBandwidthBytes: 28672,
+          };
+          incObj[`hourlyRequests.${istH}`] = 1;
+
+          await VercelQuotaMetric.findOneAndUpdate(
+            { dateStr: todayStr },
+            {
+              $setOnInsert: { monthStr: todayMonthStr, dayOfWeek: istDay },
+              $inc: incObj,
+              $set: { lastUpdated: new Date() },
+            },
+            { upsert: true }
+          );
+        } catch (quotaErr) {}
       } catch (err) {
         console.warn("StudentRouteActivity backend save warning:", err.message);
       }

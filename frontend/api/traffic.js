@@ -4,6 +4,7 @@ const TrafficQueueConfig = require("./_lib/models/TrafficQueueConfig");
 const StudentSession = require("./_lib/models/StudentSession");
 const Ranking = require("./_lib/models/Ranking");
 const StudentRouteActivity = require("./_lib/models/StudentRouteActivity");
+const VercelQuotaMetric = require("./_lib/models/VercelQuotaMetric");
 const { applyCors } = require("./_lib/cors");
 const jwt = require("jsonwebtoken");
 
@@ -487,6 +488,25 @@ module.exports = async function handler(req, res) {
         },
         { upsert: true }
       ).catch(() => {});
+
+      // Atomically increment today's VercelQuotaMetric
+      try {
+        const todayMonthStr = todayStr.slice(0, 7);
+        const incObj = {
+          totalRequests: 1,
+          estimatedBandwidthBytes: 28672,
+        };
+        incObj[`hourlyRequests.${istHour}`] = 1;
+        await VercelQuotaMetric.findOneAndUpdate(
+          { dateStr: todayStr },
+          {
+            $setOnInsert: { monthStr: todayMonthStr, dayOfWeek: istDay },
+            $inc: incObj,
+            $set: { lastUpdated: new Date() },
+          },
+          { upsert: true }
+        );
+      } catch (quotaIncErr) {}
 
       return res.json({
         success: true,
