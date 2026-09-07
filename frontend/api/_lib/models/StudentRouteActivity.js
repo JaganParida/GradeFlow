@@ -6,6 +6,15 @@ const routeVisitSchema = new mongoose.Schema(
     pageTitle: { type: String, default: "" },
     durationSeconds: { type: Number, default: 0 },
     visitCount: { type: Number, default: 1 },
+    weeklyVisitCount: { type: Number, default: 1 },
+    hourlyActivity: {
+      type: [Number],
+      default: () => new Array(24).fill(0),
+    },
+    mostActiveTimeSlot: {
+      type: String,
+      default: "General",
+    },
     lastVisitedAt: { type: Date, default: Date.now },
   },
   { _id: false }
@@ -107,6 +116,30 @@ const studentRouteActivitySchema = new mongoose.Schema(
     mostActiveTimeSlot: {
       type: String,
       default: "General",
+    },
+    dayOfWeekActivity: {
+      type: [Number],
+      default: () => new Array(7).fill(0),
+    },
+    mostActiveDay: {
+      type: String,
+      default: "General",
+    },
+    visitsToday: {
+      type: Number,
+      default: 1,
+    },
+    visitsThisWeek: {
+      type: Number,
+      default: 1,
+    },
+    lastVisitDateStr: {
+      type: String,
+      default: "",
+    },
+    lastVisitWeekStr: {
+      type: String,
+      default: "",
     },
     visitedRoutes: [routeVisitSchema],
     firstSeenAt: {
