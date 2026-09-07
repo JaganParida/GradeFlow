@@ -68,6 +68,45 @@ function getFriendlyPageTitle(route) {
 // Special student regNo to NEVER track
 const EXCLUDED_STUDENT_REG = "230301120327";
 
+function getIstHour() {
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(now.getTime() + istOffset);
+  return istDate.getUTCHours(); // 0 to 23
+}
+
+function calculatePeakTimeSlot(hourlyActivity) {
+  if (!Array.isArray(hourlyActivity) || hourlyActivity.length !== 24) return "General";
+  let maxCount = 0;
+  let peakHour = -1;
+  for (let h = 0; h < 24; h++) {
+    const count = hourlyActivity[h] || 0;
+    if (count > maxCount) {
+      maxCount = count;
+      peakHour = h;
+    }
+  }
+  if (peakHour === -1 || maxCount === 0) return "General";
+
+  const formatH = (h) => {
+    const period = h >= 12 ? "PM" : "AM";
+    const displayH = h % 12 === 0 ? 12 : h % 12;
+    return `${displayH} ${period}`;
+  };
+
+  const start = formatH(peakHour);
+  const end = formatH((peakHour + 1) % 24);
+
+  let tag = "Day";
+  if (peakHour >= 0 && peakHour < 6) tag = "Late Night";
+  else if (peakHour >= 6 && peakHour < 12) tag = "Morning";
+  else if (peakHour >= 12 && peakHour < 17) tag = "Afternoon";
+  else if (peakHour >= 17 && peakHour < 21) tag = "Evening";
+  else tag = "Night";
+
+  return `${start} - ${end} (${tag})`;
+}
+
 module.exports = async function handler(req, res) {
   if (applyCors(req, res, "GET,POST,OPTIONS")) return;
 
@@ -78,15 +117,13 @@ module.exports = async function handler(req, res) {
     const pathname = urlObj.pathname.toLowerCase();
     const isAdminRequest = pathname.includes("/admin/traffic") || req.query.admin === "true";
 
-    // ─── 1. Administrative Traffic Overview (On-Demand Fetch, Zero Socket/Polling) ───
+    // ─── 1. Admin Live Traffic Overview (On-Demand Fetch, No Interval) ─────────
     if (isAdminRequest) {
-      const admin = verifyAdmin(req);
-      if (!admin) {
-        return res.status(401).json({ success: false, message: "Unauthorized administrative access." });
+      if (!verifyAdmin(req)) {
+        return res.status(401).json({ success: false, message: "Unauthorized admin access." });
       }
 
-      const pathAction = pathname.replace(/^\/api\/admin\/traffic\/?/, "").replace(/\/$/, "");
-      const action = (req.query.action || pathAction || "").toLowerCase();
+      const action = (req.query.action || "").toLowerCase();
 
       if (req.method === "GET" || action === "live-overview" || !action) {
         const config = (await TrafficQueueConfig.findOne({ key: "global_traffic_config" })) || {
@@ -144,10 +181,17 @@ module.exports = async function handler(req, res) {
             browser: s.browser || "Unknown",
             currentRoute: s.currentRoute || "/",
             pageTitle: s.currentPageTitle || getFriendlyPageTitle(s.currentRoute || "/"),
+            lastActiveRoute: s.lastActiveRoute || s.currentRoute || "/",
+            lastActivePageTitle: s.lastActivePageTitle || s.currentPageTitle || getFriendlyPageTitle(s.currentRoute || "/"),
             timeSpentCurrentRoute: s.timeSpentCurrentRoute || 0,
             totalTimeSpentSeconds: s.totalTimeSpentSeconds || 0,
             mostVisitedRoute: s.mostVisitedRoute || s.currentRoute || "/",
             mostVisitedPageTitle: s.mostVisitedPageTitle || getFriendlyPageTitle(s.mostVisitedRoute || "/"),
+            mostVisitedCount: s.mostVisitedCount || 1,
+            mostTimeSpentRoute: s.mostTimeSpentRoute || s.mostVisitedRoute || s.currentRoute || "/",
+            mostTimeSpentPageTitle: s.mostTimeSpentPageTitle || s.mostVisitedPageTitle || getFriendlyPageTitle(s.mostVisitedRoute || "/"),
+            mostTimeSpentSeconds: s.mostTimeSpentSeconds || 0,
+            mostActiveTimeSlot: s.mostActiveTimeSlot || "General",
             visitedRoutes: s.visitedRoutes || [],
             totalPageViews: s.totalPageViews || 1,
             lastActiveAt: s.lastActiveAt,
@@ -231,8 +275,13 @@ module.exports = async function handler(req, res) {
 
       // Find existing activity record for this student
       let studentActivity = await StudentRouteActivity.findOne({ regNo: cleanReg });
+      const istHour = getIstHour();
 
       if (!studentActivity) {
+        const initialHourly = new Array(24).fill(0);
+        initialHourly[istHour] = 1;
+        const peakSlot = calculatePeakTimeSlot(initialHourly);
+
         studentActivity = new StudentRouteActivity({
           regNo: cleanReg,
           studentName: resolvedName || `Student (${cleanReg})`,
@@ -243,11 +292,19 @@ module.exports = async function handler(req, res) {
           browser: browser || "Unknown",
           currentRoute: normRoute,
           currentPageTitle: pageTitle,
+          lastActiveRoute: normRoute,
+          lastActivePageTitle: pageTitle,
           timeSpentCurrentRoute: 0,
           totalTimeSpentSeconds: 0,
           totalPageViews: 1,
           mostVisitedRoute: normRoute,
           mostVisitedPageTitle: pageTitle,
+          mostVisitedCount: 1,
+          mostTimeSpentRoute: normRoute,
+          mostTimeSpentPageTitle: pageTitle,
+          mostTimeSpentSeconds: 0,
+          hourlyActivity: initialHourly,
+          mostActiveTimeSlot: peakSlot,
           visitedRoutes: [{
             route: normRoute,
             pageTitle,
@@ -266,7 +323,18 @@ module.exports = async function handler(req, res) {
         studentActivity.os = os || studentActivity.os;
         studentActivity.browser = browser || studentActivity.browser;
         studentActivity.lastActiveAt = new Date();
+        studentActivity.lastActiveRoute = normRoute;
+        studentActivity.lastActivePageTitle = pageTitle;
+        studentActivity.currentRoute = normRoute;
+        studentActivity.currentPageTitle = pageTitle;
         studentActivity.totalPageViews = (studentActivity.totalPageViews || 0) + 1;
+
+        // Update hourly activity & peak slot
+        if (!studentActivity.hourlyActivity || studentActivity.hourlyActivity.length !== 24) {
+          studentActivity.hourlyActivity = new Array(24).fill(0);
+        }
+        studentActivity.hourlyActivity[istHour] = (studentActivity.hourlyActivity[istHour] || 0) + 1;
+        studentActivity.mostActiveTimeSlot = calculatePeakTimeSlot(studentActivity.hourlyActivity);
 
         // If user stayed on previousRoute for >= 5 seconds, log duration
         if (previousRoute && validTimeSpent >= 5) {
@@ -291,17 +359,17 @@ module.exports = async function handler(req, res) {
           }
         }
 
-        // Update current route
-        studentActivity.currentRoute = normRoute;
-        studentActivity.currentPageTitle = pageTitle;
-
-        // Calculate most visited route for this student
+        // Calculate most visited route (by count) and most time spent route (by duration)
         if (studentActivity.visitedRoutes && studentActivity.visitedRoutes.length > 0) {
-          const sortedRoutes = [...studentActivity.visitedRoutes].sort((a, b) => {
-            return (b.visitCount || 0) - (a.visitCount || 0) || (b.durationSeconds || 0) - (a.durationSeconds || 0);
-          });
-          studentActivity.mostVisitedRoute = sortedRoutes[0].route;
-          studentActivity.mostVisitedPageTitle = sortedRoutes[0].pageTitle || getFriendlyPageTitle(sortedRoutes[0].route);
+          const byVisits = [...studentActivity.visitedRoutes].sort((a, b) => (b.visitCount || 0) - (a.visitCount || 0));
+          studentActivity.mostVisitedRoute = byVisits[0].route;
+          studentActivity.mostVisitedPageTitle = byVisits[0].pageTitle || getFriendlyPageTitle(byVisits[0].route);
+          studentActivity.mostVisitedCount = byVisits[0].visitCount || 1;
+
+          const byDuration = [...studentActivity.visitedRoutes].sort((a, b) => (b.durationSeconds || 0) - (a.durationSeconds || 0));
+          studentActivity.mostTimeSpentRoute = byDuration[0].route;
+          studentActivity.mostTimeSpentPageTitle = byDuration[0].pageTitle || getFriendlyPageTitle(byDuration[0].route);
+          studentActivity.mostTimeSpentSeconds = byDuration[0].durationSeconds || 0;
         }
       }
 
@@ -361,6 +429,15 @@ module.exports = async function handler(req, res) {
         if (studentActivity) {
           studentActivity.totalTimeSpentSeconds = (studentActivity.totalTimeSpentSeconds || 0) + validDuration;
           studentActivity.lastActiveAt = new Date();
+          studentActivity.lastActiveRoute = normRoute;
+          studentActivity.lastActivePageTitle = pageTitle;
+
+          const istH = getIstHour();
+          if (!studentActivity.hourlyActivity || studentActivity.hourlyActivity.length !== 24) {
+            studentActivity.hourlyActivity = new Array(24).fill(0);
+          }
+          studentActivity.hourlyActivity[istH] = (studentActivity.hourlyActivity[istH] || 0) + 1;
+          studentActivity.mostActiveTimeSlot = calculatePeakTimeSlot(studentActivity.hourlyActivity);
 
           const existingRouteItem = studentActivity.visitedRoutes.find((r) => r.route === normRoute);
           if (existingRouteItem) {
@@ -375,6 +452,19 @@ module.exports = async function handler(req, res) {
               lastVisitedAt: new Date(),
             });
           }
+
+          if (studentActivity.visitedRoutes && studentActivity.visitedRoutes.length > 0) {
+            const byDuration = [...studentActivity.visitedRoutes].sort((a, b) => (b.durationSeconds || 0) - (a.durationSeconds || 0));
+            studentActivity.mostTimeSpentRoute = byDuration[0].route;
+            studentActivity.mostTimeSpentPageTitle = byDuration[0].pageTitle || getFriendlyPageTitle(byDuration[0].route);
+            studentActivity.mostTimeSpentSeconds = byDuration[0].durationSeconds || 0;
+
+            const byVisits = [...studentActivity.visitedRoutes].sort((a, b) => (b.visitCount || 0) - (a.visitCount || 0));
+            studentActivity.mostVisitedRoute = byVisits[0].route;
+            studentActivity.mostVisitedPageTitle = byVisits[0].pageTitle || getFriendlyPageTitle(byVisits[0].route);
+            studentActivity.mostVisitedCount = byVisits[0].visitCount || 1;
+          }
+
           await studentActivity.save();
         }
       } catch {}

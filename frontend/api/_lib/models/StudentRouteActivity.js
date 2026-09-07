@@ -76,9 +76,37 @@ const studentRouteActivitySchema = new mongoose.Schema(
       type: String,
       default: "/",
     },
-    mostVisitedPageTitle: {
+    lastActiveRoute: {
+      type: String,
+      default: "/",
+    },
+    lastActivePageTitle: {
       type: String,
       default: "Home / Landing",
+    },
+    mostTimeSpentRoute: {
+      type: String,
+      default: "/",
+    },
+    mostTimeSpentPageTitle: {
+      type: String,
+      default: "Home / Landing",
+    },
+    mostTimeSpentSeconds: {
+      type: Number,
+      default: 0,
+    },
+    mostVisitedCount: {
+      type: Number,
+      default: 1,
+    },
+    hourlyActivity: {
+      type: [Number],
+      default: () => new Array(24).fill(0),
+    },
+    mostActiveTimeSlot: {
+      type: String,
+      default: "General",
     },
     visitedRoutes: [routeVisitSchema],
     firstSeenAt: {

@@ -13,6 +13,45 @@ const {
 
 const StudentRouteActivity = require("../models/StudentRouteActivity");
 
+function getIstHour() {
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(now.getTime() + istOffset);
+  return istDate.getUTCHours(); // 0 to 23
+}
+
+function calculatePeakTimeSlot(hourlyActivity) {
+  if (!Array.isArray(hourlyActivity) || hourlyActivity.length !== 24) return "General";
+  let maxCount = 0;
+  let peakHour = -1;
+  for (let h = 0; h < 24; h++) {
+    const count = hourlyActivity[h] || 0;
+    if (count > maxCount) {
+      maxCount = count;
+      peakHour = h;
+    }
+  }
+  if (peakHour === -1 || maxCount === 0) return "General";
+
+  const formatH = (h) => {
+    const period = h >= 12 ? "PM" : "AM";
+    const displayH = h % 12 === 0 ? 12 : h % 12;
+    return `${displayH} ${period}`;
+  };
+
+  const start = formatH(peakHour);
+  const end = formatH((peakHour + 1) % 24);
+
+  let tag = "Day";
+  if (peakHour >= 0 && peakHour < 6) tag = "Late Night";
+  else if (peakHour >= 6 && peakHour < 12) tag = "Morning";
+  else if (peakHour >= 12 && peakHour < 17) tag = "Afternoon";
+  else if (peakHour >= 17 && peakHour < 21) tag = "Evening";
+  else tag = "Night";
+
+  return `${start} - ${end} (${tag})`;
+}
+
 // ─── POST /api/traffic/page-view ─────────────────────────────────────────────
 // Called on route navigation. Logs student route & device activity and duration
 router.post("/page-view", async (req, res) => {
@@ -58,8 +97,13 @@ router.post("/page-view", async (req, res) => {
       try {
         const validDuration = Math.max(0, parseInt(timeSpentSeconds, 10) || 0);
         let studentActivity = await StudentRouteActivity.findOne({ regNo: cleanReg });
+        const istHour = getIstHour();
 
         if (!studentActivity) {
+          const initialHourly = new Array(24).fill(0);
+          initialHourly[istHour] = 1;
+          const peakSlot = calculatePeakTimeSlot(initialHourly);
+
           studentActivity = new StudentRouteActivity({
             regNo: cleanReg,
             studentName: studentName || `Student (${cleanReg})`,
@@ -70,10 +114,19 @@ router.post("/page-view", async (req, res) => {
             browser: browser || "Unknown",
             currentRoute: route,
             currentPageTitle: route,
+            lastActiveRoute: route,
+            lastActivePageTitle: route,
+            timeSpentCurrentRoute: 0,
             totalTimeSpentSeconds: 0,
             totalPageViews: 1,
             mostVisitedRoute: route,
             mostVisitedPageTitle: route,
+            mostVisitedCount: 1,
+            mostTimeSpentRoute: route,
+            mostTimeSpentPageTitle: route,
+            mostTimeSpentSeconds: 0,
+            hourlyActivity: initialHourly,
+            mostActiveTimeSlot: peakSlot,
             visitedRoutes: [{
               route,
               pageTitle: route,
@@ -92,8 +145,18 @@ router.post("/page-view", async (req, res) => {
           studentActivity.os = os || studentActivity.os;
           studentActivity.browser = browser || studentActivity.browser;
           studentActivity.lastActiveAt = new Date();
-          studentActivity.totalPageViews = (studentActivity.totalPageViews || 0) + 1;
+          studentActivity.lastActiveRoute = route;
+          studentActivity.lastActivePageTitle = route;
           studentActivity.currentRoute = route;
+          studentActivity.currentPageTitle = route;
+          studentActivity.totalPageViews = (studentActivity.totalPageViews || 0) + 1;
+
+          // Update hourly activity & peak slot
+          if (!studentActivity.hourlyActivity || studentActivity.hourlyActivity.length !== 24) {
+            studentActivity.hourlyActivity = new Array(24).fill(0);
+          }
+          studentActivity.hourlyActivity[istHour] = (studentActivity.hourlyActivity[istHour] || 0) + 1;
+          studentActivity.mostActiveTimeSlot = calculatePeakTimeSlot(studentActivity.hourlyActivity);
 
           if (previousRoute && validDuration >= 5) {
             studentActivity.totalTimeSpentSeconds = (studentActivity.totalTimeSpentSeconds || 0) + validDuration;
@@ -111,6 +174,19 @@ router.post("/page-view", async (req, res) => {
                 lastVisitedAt: new Date(),
               });
             }
+          }
+
+          // Calculate most visited route (by count) and most time spent route (by duration)
+          if (studentActivity.visitedRoutes && studentActivity.visitedRoutes.length > 0) {
+            const byVisits = [...studentActivity.visitedRoutes].sort((a, b) => (b.visitCount || 0) - (a.visitCount || 0));
+            studentActivity.mostVisitedRoute = byVisits[0].route;
+            studentActivity.mostVisitedPageTitle = byVisits[0].pageTitle || byVisits[0].route;
+            studentActivity.mostVisitedCount = byVisits[0].visitCount || 1;
+
+            const byDuration = [...studentActivity.visitedRoutes].sort((a, b) => (b.durationSeconds || 0) - (a.durationSeconds || 0));
+            studentActivity.mostTimeSpentRoute = byDuration[0].route;
+            studentActivity.mostTimeSpentPageTitle = byDuration[0].pageTitle || byDuration[0].route;
+            studentActivity.mostTimeSpentSeconds = byDuration[0].durationSeconds || 0;
           }
         }
         await studentActivity.save();
