@@ -286,9 +286,45 @@ module.exports = async function handler(req, res) {
         isAdmin = false,
       } = req.body || {};
 
-      // ─── FILTER 1: Skip if Admin ───
+      const normRoute = normalizeRoute(route);
+      const pageTitle = getFriendlyPageTitle(normRoute);
+      const todayStr = getIstDateStr();
+      const todayMonthStr = todayStr.slice(0, 7);
+      const istDay = getIstDayOfWeek();
+      const istHour = getIstHour();
+
+      // ─── 1. Always update PageAnalytics for ALL routes (Admin, Student, Guest) ───
+      await PageAnalytics.findOneAndUpdate(
+        { route: normRoute },
+        {
+          $setOnInsert: { pageTitle },
+          $inc: { totalViews: 1 },
+          $set: { lastVisitedAt: new Date() },
+        },
+        { upsert: true }
+      ).catch(() => {});
+
+      // ─── 2. Always update VercelQuotaMetric for ALL requests (Vercel counts all serverless hits) ───
+      try {
+        const incObj = {
+          totalRequests: 1,
+          estimatedBandwidthBytes: 28672,
+        };
+        incObj[`hourlyRequests.${istHour}`] = 1;
+        await VercelQuotaMetric.findOneAndUpdate(
+          { dateStr: todayStr },
+          {
+            $setOnInsert: { monthStr: todayMonthStr, dayOfWeek: istDay },
+            $inc: incObj,
+            $set: { lastUpdated: new Date() },
+          },
+          { upsert: true }
+        );
+      } catch (quotaIncErr) {}
+
+      // ─── 3. FILTER FOR STUDENT ROUTE INTELLIGENCE TABLE (Exclude Admin) ───
       if (isAdmin || verifyAdmin(req)) {
-        return res.json({ success: true, skipped: "admin" });
+        return res.json({ success: true, loggedQuota: true, skippedStudentActivity: "admin" });
       }
 
       // ─── Resolve student registration number ───
@@ -303,13 +339,15 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      // ─── FILTER 2: Skip Special Student 230301120327 (NEVER track) ───
+      // ─── FILTER FOR STUDENT ROUTE INTELLIGENCE TABLE (Exclude Special Student 230301120327) ───
       if (!cleanReg || cleanReg === EXCLUDED_STUDENT_REG) {
-        return res.json({ success: true, skipped: cleanReg === EXCLUDED_STUDENT_REG ? "special_student" : "no_reg" });
+        return res.json({
+          success: true,
+          loggedQuota: true,
+          skippedStudentActivity: cleanReg === EXCLUDED_STUDENT_REG ? "special_student" : "no_reg",
+        });
       }
 
-      const normRoute = normalizeRoute(route);
-      const pageTitle = getFriendlyPageTitle(normRoute);
       const validTimeSpent = Math.max(0, parseInt(timeSpentSeconds, 10) || 0);
 
       // Resolve student details from Ranking if missing
@@ -477,36 +515,6 @@ module.exports = async function handler(req, res) {
       }
 
       await studentActivity.save().catch((err) => console.warn("Save activity warning:", err.message));
-
-      // Increment PageAnalytics
-      await PageAnalytics.findOneAndUpdate(
-        { route: normRoute },
-        {
-          $setOnInsert: { pageTitle },
-          $inc: { totalViews: 1 },
-          $set: { lastVisitedAt: new Date() },
-        },
-        { upsert: true }
-      ).catch(() => {});
-
-      // Atomically increment today's VercelQuotaMetric
-      try {
-        const todayMonthStr = todayStr.slice(0, 7);
-        const incObj = {
-          totalRequests: 1,
-          estimatedBandwidthBytes: 28672,
-        };
-        incObj[`hourlyRequests.${istHour}`] = 1;
-        await VercelQuotaMetric.findOneAndUpdate(
-          { dateStr: todayStr },
-          {
-            $setOnInsert: { monthStr: todayMonthStr, dayOfWeek: istDay },
-            $inc: incObj,
-            $set: { lastUpdated: new Date() },
-          },
-          { upsert: true }
-        );
-      } catch (quotaIncErr) {}
 
       return res.json({
         success: true,
