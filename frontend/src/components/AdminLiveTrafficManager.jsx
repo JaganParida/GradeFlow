@@ -27,9 +27,14 @@ import {
   Check,
   X,
   Lock,
-  Unlock,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+  TrendingUp,
+  BarChart2,
+  Compass,
   Loader2,
 } from "lucide-react";
 
@@ -58,6 +63,11 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
   const [actionLoading, setActionLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [expandedStudent, setExpandedStudent] = useState(null);
+
+  const toggleExpandStudent = (regNo) => {
+    setExpandedStudent((prev) => (prev === regNo ? null : regNo));
+  };
 
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState("");
@@ -850,294 +860,704 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                 : "When students browse GradeFlow, their device, visited routes, and time spent will appear here."}
             </div>
           </div>
-        ) : isMobile ? (
-          /* Mobile Card View (Zero Horizontal Scroll) with Rich Activity Details */
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {paginatedStudents.map((st) => (
-              <div
-                key={st.token || st.regNo}
-                style={{
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 12,
-                  padding: "12px 14px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <div>
-                    <div style={{ fontWeight: 800, color: "#0f172a", fontSize: 14 }}>
-                      {st.studentName}
-                    </div>
-                    {st.regNo ? (
-                      <div style={{ fontSize: 12, color: "#2563eb", fontWeight: 700 }}>
-                        {st.regNo} · {st.branch} ({st.batch})
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 11.5, color: "#64748b" }}>Student</div>
-                    )}
-                  </div>
+        ) : (
+          /* Route Intelligence Details Renderer & Table/Cards */
+          (() => {
+            const renderRouteIntelligenceDetails = (st) => {
+              const totalSiteSecs = st.totalTimeSpentSeconds || 0;
+              const routesList = [...(st.visitedRoutes || [])].sort(
+                (a, b) => (b.durationSeconds || 0) - (a.durationSeconds || 0) || (b.visitCount || 0) - (a.visitCount || 0)
+              );
 
-                  <span
-                    style={{
-                      background: "#eff6ff",
-                      color: "#2563eb",
-                      border: "1px solid #dbeafe",
-                      padding: "2px 8px",
-                      borderRadius: 6,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                  >
-                    {renderDeviceIcon(st.deviceType)} {st.deviceType}
-                  </span>
-                </div>
-
-                {/* Visited Route & Time Spent Analytics */}
+              return (
                 <div
                   style={{
                     background: "#ffffff",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 10,
-                    padding: "10px 12px",
-                    fontSize: 12,
+                    border: "1.5px solid #cbd5e1",
+                    borderRadius: 14,
+                    padding: isMobile ? "12px 10px" : "16px 18px",
+                    boxShadow: "0 4px 14px rgba(15, 23, 42, 0.05)",
                     display: "flex",
                     flexDirection: "column",
-                    gap: 6,
+                    gap: 14,
+                    marginTop: 6,
                   }}
                 >
-                  {/* 1. Last Active Page & Time */}
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6 }}>
-                      <span style={{ color: "#64748b", fontWeight: 700, fontSize: 11, textTransform: "uppercase" }}>
-                        Last Active Page:
-                      </span>
-                      <span style={{ color: "#2563eb", fontWeight: 700, fontSize: 11 }}>
-                        {formatLastActive(st.lastActiveAt)}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                      <span style={{ color: "#0f172a", fontWeight: 800, fontSize: 12.5 }}>
-                        {st.lastActivePageTitle || st.pageTitle || "Dashboard"}
-                      </span>
-                      <span style={{ color: "#64748b", fontFamily: "monospace", fontSize: 10.5 }}>
-                        ({st.lastActiveRoute || st.currentRoute})
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 2. Most Active Time Slot (Peak Hours) */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 4, borderTop: "1px dashed #f1f5f9" }}>
-                    <span style={{ color: "#64748b", fontWeight: 600, fontSize: 11.5 }}>Most Active Time:</span>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 4,
-                        background: "#f0f9ff",
-                        border: "1px solid #bae6fd",
-                        color: "#0369a1",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: "2px 7px",
-                        borderRadius: 6,
-                      }}
-                    >
-                      <Clock size={11} color="#0284c7" />
-                      {st.mostActiveTimeSlot || "General"}
-                    </span>
-                  </div>
-
-                  {/* 3. Most Time-Spent Page */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11.5 }}>
-                    <span style={{ color: "#64748b", fontWeight: 600 }}>Most Time-Spent:</span>
-                    <span style={{ color: "#059669", fontWeight: 800 }}>
-                      {st.mostTimeSpentPageTitle || st.mostVisitedPageTitle || "Dashboard"}{" "}
-                      <span style={{ color: "#047857", fontWeight: 700 }}>
-                        ({formatDuration(st.mostTimeSpentSeconds || st.totalTimeSpentSeconds || 0)})
-                      </span>
-                    </span>
-                  </div>
-
-                  {/* 4. Top Visited Page & Total Learning Time */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11.5 }}>
-                    <span style={{ color: "#64748b", fontWeight: 600 }}>Top Visited Page:</span>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 4,
-                        color: "#7e22ce",
-                        fontWeight: 700,
-                      }}
-                    >
-                      <Flame size={11} color="#a855f7" />
-                      {st.mostVisitedPageTitle || st.mostVisitedRoute || "/"} ({st.mostVisitedCount || 1}v)
-                    </span>
-                  </div>
-
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "#64748b", paddingTop: 4, borderTop: "1px dashed #f1f5f9" }}>
-                    <span>Total Time on Site:</span>
-                    <span style={{ fontWeight: 800, color: "#0f172a" }}>
-                      {formatDuration(st.totalTimeSpentSeconds || 0)}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "#64748b", gap: 6 }}>
-                  <span style={{ maxWidth: "60%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {st.browser} on {st.os}
-                  </span>
-                  <span style={{ color: "#64748b", fontWeight: 600 }}>
-                    {st.lastActiveAt ? new Date(st.lastActiveAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Recently"}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          /* Desktop Table View with Rich Activity Columns */
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, textAlign: "left" }}>
-              <thead>
-                <tr style={{ borderBottom: "1.5px solid #e2e8f0", color: "#64748b", fontSize: 11.5, textTransform: "uppercase" }}>
-                  <th style={{ padding: "10px 12px" }}>Student</th>
-                  <th style={{ padding: "10px 12px" }}>Device & System</th>
-                  <th style={{ padding: "10px 12px" }}>Last Active Page & Time</th>
-                  <th style={{ padding: "10px 12px" }}>Most Active Time</th>
-                  <th style={{ padding: "10px 12px" }}>Most Time-Spent Page</th>
-                  <th style={{ padding: "10px 12px" }}>Top Visited Page & Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedStudents.map((st) => (
-                  <tr key={st.token || st.regNo} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                    <td style={{ padding: "12px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div
-                          style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: "50%",
-                            background: "#eff6ff",
-                            color: "#2563eb",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontWeight: 800,
-                            fontSize: 12,
-                          }}
-                        >
-                          {st.studentName ? st.studentName.slice(0, 2).toUpperCase() : "ST"}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 800, color: "#0f172a" }}>{st.studentName}</div>
-                          {st.regNo && (
-                            <div style={{ fontSize: 11.5, color: "#2563eb", fontWeight: 700 }}>
-                              {st.regNo} · <span style={{ color: "#64748b", fontWeight: 500 }}>{st.branch} ({st.batch})</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-
-                    <td style={{ padding: "12px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        {renderDeviceIcon(st.deviceType)}
-                        <span style={{ fontSize: 12, color: "#334155", fontWeight: 600 }}>
-                          {st.deviceType} · {st.browser}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 11, color: "#94a3b8" }}>{st.os}</div>
-                    </td>
-
-                    {/* Last Active Page & Time */}
-                    <td style={{ padding: "12px" }}>
-                      <div style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
-                        <span style={{ color: "#0f172a", fontWeight: 700, fontSize: 12.5 }}>
-                          {st.lastActivePageTitle || st.pageTitle || "Dashboard"}
-                        </span>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ color: "#2563eb", fontWeight: 600, fontFamily: "monospace", fontSize: 11 }}>
-                            {st.lastActiveRoute || st.currentRoute}
-                          </span>
-                          <span style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600 }}>
-                            • {formatLastActive(st.lastActiveAt)}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Most Active Time (Peak Time Slot) */}
-                    <td style={{ padding: "12px" }}>
-                      <span
+                  {/* Header Ribbon */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: 8,
+                      borderBottom: "1px solid #f1f5f9",
+                      paddingBottom: 10,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div
                         style={{
-                          display: "inline-flex",
+                          width: 28,
+                          height: 28,
+                          borderRadius: 8,
+                          background: "#eff6ff",
+                          color: "#2563eb",
+                          display: "flex",
                           alignItems: "center",
-                          gap: 5,
-                          background: "#f0f9ff",
-                          border: "1px solid #bae6fd",
-                          color: "#0369a1",
-                          fontSize: 11.5,
-                          fontWeight: 700,
-                          padding: "3px 9px",
-                          borderRadius: 6,
-                          whiteSpace: "nowrap",
+                          justifyContent: "center",
+                          flexShrink: 0,
                         }}
                       >
-                        <Clock size={12} color="#0284c7" />
-                        {st.mostActiveTimeSlot || "General"}
-                      </span>
-                    </td>
-
-                    {/* Most Time-Spent Page */}
-                    <td style={{ padding: "12px" }}>
-                      <div style={{ display: "flex", flexDirection: "column" }}>
-                        <span style={{ color: "#059669", fontWeight: 800, fontSize: 12.5 }}>
-                          {st.mostTimeSpentPageTitle || st.mostVisitedPageTitle || "Dashboard"}
+                        <Route size={16} />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a" }}>
+                          Deep Route & Page Intelligence for {st.studentName}
                         </span>
-                        <span style={{ fontSize: 11, color: "#047857", fontWeight: 700 }}>
-                          Spent: {formatDuration(st.mostTimeSpentSeconds || st.totalTimeSpentSeconds || 0)}
+                        <span style={{ fontSize: 11.5, color: "#2563eb", fontWeight: 700, marginLeft: 8 }}>
+                          ({st.regNo})
                         </span>
                       </div>
-                    </td>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+                      <span style={{ color: "#64748b" }}>Overall Time on Site:</span>
+                      <span
+                        style={{
+                          fontWeight: 900,
+                          color: "#059669",
+                          background: "#ecfdf5",
+                          border: "1px solid #a7f3d0",
+                          padding: "2px 8px",
+                          borderRadius: 6,
+                        }}
+                      >
+                        {formatDuration(totalSiteSecs)}
+                      </span>
+                    </div>
+                  </div>
 
-                    {/* Top Visited Page & Total Time */}
-                    <td style={{ padding: "12px" }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {/* 4 Quick Habit KPI Cards */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(180px, 1fr))",
+                      gap: 10,
+                    }}
+                  >
+                    <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: "10px 12px" }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 750, color: "#0284c7", display: "flex", alignItems: "center", gap: 5 }}>
+                        <Clock size={12} /> MOST ACTIVE TIME (WEBSITE)
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: "#0369a1", marginTop: 4 }}>
+                        {st.mostActiveTimeSlot || "General"}
+                      </div>
+                      <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>Peak engagement slot</div>
+                    </div>
+
+                    <div style={{ background: "#fdf4ff", border: "1px solid #f5d0fe", borderRadius: 10, padding: "10px 12px" }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 750, color: "#a21caf", display: "flex", alignItems: "center", gap: 5 }}>
+                        <Calendar size={12} /> MOST ACTIVE DAY (WEBSITE)
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: "#86198f", marginTop: 4 }}>
+                        {st.mostActiveDay || "Weekdays"}
+                      </div>
+                      <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>Peak day of week</div>
+                    </div>
+
+                    <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 10, padding: "10px 12px" }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 750, color: "#047857", display: "flex", alignItems: "center", gap: 5 }}>
+                        <TrendingUp size={12} /> VISITS PER DAY & WEEK
+                      </div>
+                      <div style={{ fontSize: 12.5, fontWeight: 800, color: "#065f46", marginTop: 4 }}>
+                        {st.visitsToday || 1} today · {st.visitsThisWeek || st.totalPageViews || 1} this week
+                      </div>
+                      <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>Platform visit velocity</div>
+                    </div>
+
+                    <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: "10px 12px" }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 750, color: "#b45309", display: "flex", alignItems: "center", gap: 5 }}>
+                        <Compass size={12} /> EXPLORED ROUTES
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: "#92400e", marginTop: 4 }}>
+                        {routesList.length} Unique Pages
+                      </div>
+                      <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>Tracked user navigation</div>
+                    </div>
+                  </div>
+
+                  {/* Route-Wise Detailed Table */}
+                  <div style={{ border: "1px solid #e2e8f0", borderRadius: 10, overflow: "hidden" }}>
+                    <div
+                      style={{
+                        background: "#f8fafc",
+                        padding: "9px 12px",
+                        borderBottom: "1px solid #e2e8f0",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        color: "#334155",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: 6,
+                      }}
+                    >
+                      <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                        <BarChart2 size={13} color="#2563eb" /> ROUTE-BY-ROUTE DETAILED USAGE BREAKDOWN
+                      </span>
+                      <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>
+                        Ranked by total time spent & visits
+                      </span>
+                    </div>
+
+                    {routesList.length === 0 ? (
+                      <div style={{ padding: "20px", textAlign: "center", color: "#94a3b8", fontSize: 12.5 }}>
+                        No individual route visit history recorded for this student yet.
+                      </div>
+                    ) : (
+                      <div style={{ overflowX: "auto" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                          <thead>
+                            <tr
+                              style={{
+                                background: "#ffffff",
+                                borderBottom: "1px solid #e2e8f0",
+                                color: "#64748b",
+                                fontSize: 10.5,
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              <th style={{ padding: "8px 12px" }}>Route / Page Name</th>
+                              <th style={{ padding: "8px 12px" }}>Total Visits</th>
+                              <th style={{ padding: "8px 12px" }}>Visits / Week</th>
+                              <th style={{ padding: "8px 12px" }}>Time Spent On Route</th>
+                              <th style={{ padding: "8px 12px" }}>Last Active On Route</th>
+                              <th style={{ padding: "8px 12px" }}>Peak Active Time</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {routesList.map((vr, rIdx) => {
+                              const sharePercent =
+                                totalSiteSecs > 0
+                                  ? Math.min(100, Math.round(((vr.durationSeconds || 0) / totalSiteSecs) * 100))
+                                  : 0;
+
+                              return (
+                                <tr
+                                  key={vr.route || rIdx}
+                                  style={{
+                                    borderBottom: "1px solid #f1f5f9",
+                                    background: rIdx % 2 === 0 ? "#ffffff" : "#fcfcfd",
+                                  }}
+                                >
+                                  <td style={{ padding: "10px 12px" }}>
+                                    <div style={{ fontWeight: 800, color: "#0f172a", fontSize: 12 }}>
+                                      {vr.pageTitle || vr.route}
+                                    </div>
+                                    <span style={{ fontFamily: "monospace", fontSize: 10.5, color: "#2563eb" }}>
+                                      {vr.route}
+                                    </span>
+                                  </td>
+
+                                  <td style={{ padding: "10px 12px" }}>
+                                    <span style={{ fontWeight: 800, color: "#0f172a", fontSize: 12.5 }}>
+                                      {vr.visitCount || 1}
+                                    </span>
+                                    <span style={{ fontSize: 10.5, color: "#64748b", marginLeft: 3 }}>visits</span>
+                                  </td>
+
+                                  <td style={{ padding: "10px 12px" }}>
+                                    <span
+                                      style={{
+                                        background: "#eff6ff",
+                                        color: "#2563eb",
+                                        border: "1px solid #dbeafe",
+                                        padding: "2px 7px",
+                                        borderRadius: 6,
+                                        fontWeight: 700,
+                                        fontSize: 11,
+                                        whiteSpace: "nowrap",
+                                      }}
+                                    >
+                                      {vr.weeklyVisitCount || Math.min(vr.visitCount || 1, st.visitsThisWeek || 1)} / wk
+                                    </span>
+                                  </td>
+
+                                  <td style={{ padding: "10px 12px" }}>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                                      <span style={{ fontWeight: 800, color: "#059669", fontSize: 12 }}>
+                                        {formatDuration(vr.durationSeconds || 0)}
+                                      </span>
+                                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                        <div
+                                          style={{
+                                            width: 65,
+                                            height: 5,
+                                            borderRadius: 3,
+                                            background: "#e2e8f0",
+                                            overflow: "hidden",
+                                          }}
+                                        >
+                                          <div
+                                            style={{
+                                              width: `${sharePercent}%`,
+                                              height: "100%",
+                                              background: "#10b981",
+                                              borderRadius: 3,
+                                            }}
+                                          />
+                                        </div>
+                                        <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>
+                                          {sharePercent}%
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </td>
+
+                                  <td style={{ padding: "10px 12px" }}>
+                                    <div style={{ color: "#334155", fontWeight: 600, fontSize: 11.5 }}>
+                                      {formatLastActive(vr.lastVisitedAt || st.lastActiveAt)}
+                                    </div>
+                                    <div style={{ color: "#94a3b8", fontSize: 10 }}>
+                                      {vr.lastVisitedAt
+                                        ? new Date(vr.lastVisitedAt).toLocaleTimeString([], {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                          })
+                                        : "Recently"}
+                                    </div>
+                                  </td>
+
+                                  <td style={{ padding: "10px 12px" }}>
+                                    <span
+                                      style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 4,
+                                        background: "#f0fdf4",
+                                        border: "1px solid #bbf7d0",
+                                        color: "#15803d",
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        padding: "2px 7px",
+                                        borderRadius: 6,
+                                        whiteSpace: "nowrap",
+                                      }}
+                                    >
+                                      <Clock size={11} color="#16a34a" />
+                                      {vr.mostActiveTimeSlot || st.mostActiveTimeSlot || "General"}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            };
+
+            return isMobile ? (
+              /* Mobile Card View (Zero Horizontal Scroll) with Rich Activity Details */
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {paginatedStudents.map((st) => {
+                  const studentKey = st.token || st.regNo;
+                  const isExpanded = expandedStudent === studentKey;
+
+                  return (
+                    <div
+                      key={studentKey}
+                      style={{
+                        background: isExpanded ? "#f8fafc" : "#ffffff",
+                        border: isExpanded ? "1.5px solid #2563eb" : "1px solid #e2e8f0",
+                        borderRadius: 12,
+                        padding: "12px 14px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div>
+                          <div style={{ fontWeight: 800, color: "#0f172a", fontSize: 14 }}>
+                            {st.studentName}
+                          </div>
+                          {st.regNo ? (
+                            <div style={{ fontSize: 12, color: "#2563eb", fontWeight: 700 }}>
+                              {st.regNo} · {st.branch} ({st.batch})
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: 11.5, color: "#64748b" }}>Student</div>
+                          )}
+                        </div>
+
                         <span
                           style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 5,
-                            background: "#faf5ff",
-                            border: "1px solid #f3e8ff",
-                            color: "#7e22ce",
-                            fontSize: 11.5,
-                            fontWeight: 700,
-                            padding: "3px 8px",
+                            background: "#eff6ff",
+                            color: "#2563eb",
+                            border: "1px solid #dbeafe",
+                            padding: "2px 8px",
                             borderRadius: 6,
-                            width: "fit-content",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
                           }}
                         >
-                          <Flame size={12} color="#a855f7" />
-                          {st.mostVisitedPageTitle || st.mostVisitedRoute || "/"} ({st.mostVisitedCount || 1}v)
-                        </span>
-                        <span style={{ fontSize: 11, color: "#64748b" }}>
-                          Total: <strong style={{ color: "#0f172a" }}>{formatDuration(st.totalTimeSpentSeconds || 0)}</strong>
+                          {renderDeviceIcon(st.deviceType)} {st.deviceType}
                         </span>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+
+                      {/* Visited Route & Time Spent Analytics */}
+                      <div
+                        style={{
+                          background: "#ffffff",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 10,
+                          padding: "10px 12px",
+                          fontSize: 12,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 6,
+                        }}
+                      >
+                        {/* 1. Last Active Page & Time */}
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6 }}>
+                            <span style={{ color: "#64748b", fontWeight: 700, fontSize: 11, textTransform: "uppercase" }}>
+                              Last Active Page:
+                            </span>
+                            <span style={{ color: "#2563eb", fontWeight: 700, fontSize: 11 }}>
+                              {formatLastActive(st.lastActiveAt)}
+                            </span>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                            <span style={{ color: "#0f172a", fontWeight: 800, fontSize: 12.5 }}>
+                              {st.lastActivePageTitle || st.pageTitle || "Dashboard"}
+                            </span>
+                            <span style={{ color: "#64748b", fontFamily: "monospace", fontSize: 10.5 }}>
+                              ({st.lastActiveRoute || st.currentRoute})
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 2. Most Active Time Slot (Peak Hours) */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 4, borderTop: "1px dashed #f1f5f9" }}>
+                          <span style={{ color: "#64748b", fontWeight: 600, fontSize: 11.5 }}>Most Active Time:</span>
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              background: "#f0f9ff",
+                              border: "1px solid #bae6fd",
+                              color: "#0369a1",
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: "2px 7px",
+                              borderRadius: 6,
+                            }}
+                          >
+                            <Clock size={11} color="#0284c7" />
+                            {st.mostActiveTimeSlot || "General"}
+                          </span>
+                        </div>
+
+                        {/* 3. Most Time-Spent Page */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11.5 }}>
+                          <span style={{ color: "#64748b", fontWeight: 600 }}>Most Time-Spent:</span>
+                          <span style={{ color: "#059669", fontWeight: 800 }}>
+                            {st.mostTimeSpentPageTitle || st.mostVisitedPageTitle || "Dashboard"}{" "}
+                            <span style={{ color: "#047857", fontWeight: 700 }}>
+                              ({formatDuration(st.mostTimeSpentSeconds || st.totalTimeSpentSeconds || 0)})
+                            </span>
+                          </span>
+                        </div>
+
+                        {/* 4. Top Visited Page */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11.5 }}>
+                          <span style={{ color: "#64748b", fontWeight: 600 }}>Top Visited Page:</span>
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              color: "#7e22ce",
+                              fontWeight: 700,
+                            }}
+                          >
+                            <Flame size={11} color="#a855f7" />
+                            {st.mostVisitedPageTitle || st.mostVisitedRoute || "/"} ({st.mostVisitedCount || 1}v)
+                          </span>
+                        </div>
+
+                        {/* 5. Frequency Breakdown (Per Day & Per Week) */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "#475569", paddingTop: 4, borderTop: "1px dashed #f1f5f9" }}>
+                          <span>Platform Visits:</span>
+                          <span style={{ fontWeight: 800, color: "#0f172a" }}>
+                            {st.visitsToday || 1} today · {st.visitsThisWeek || st.totalPageViews || 1} / wk ({st.mostActiveDay || "Weekdays"})
+                          </span>
+                        </div>
+
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "#64748b" }}>
+                          <span>Total Time on Site:</span>
+                          <span style={{ fontWeight: 800, color: "#0f172a" }}>
+                            {formatDuration(st.totalTimeSpentSeconds || 0)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "#64748b", gap: 6 }}>
+                        <span style={{ maxWidth: "60%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {st.browser} on {st.os}
+                        </span>
+                        <span style={{ color: "#64748b", fontWeight: 600 }}>
+                          {st.lastActiveAt ? new Date(st.lastActiveAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Recently"}
+                        </span>
+                      </div>
+
+                      {/* Mobile Expand / Collapse Button */}
+                      <button
+                        type="button"
+                        onClick={() => toggleExpandStudent(studentKey)}
+                        style={{
+                          marginTop: 4,
+                          width: "100%",
+                          padding: "8px 12px",
+                          borderRadius: 8,
+                          border: isExpanded ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
+                          background: isExpanded ? "#eff6ff" : "#ffffff",
+                          color: isExpanded ? "#2563eb" : "#1e293b",
+                          fontSize: 12,
+                          fontWeight: 750,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <Route size={14} color={isExpanded ? "#2563eb" : "#64748b"} />
+                        {isExpanded ? "Hide Route Details" : "View Route Intelligence Details"}
+                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </button>
+
+                      {/* Mobile Expanded Route Details */}
+                      {isExpanded && (
+                        <div style={{ marginTop: 6 }}>
+                          {renderRouteIntelligenceDetails(st)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* Desktop Table View with Rich Activity Columns & Expandable Sub-Rows */
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, textAlign: "left" }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1.5px solid #e2e8f0", color: "#64748b", fontSize: 11.5, textTransform: "uppercase" }}>
+                      <th style={{ padding: "10px 12px" }}>Student</th>
+                      <th style={{ padding: "10px 12px" }}>Device & System</th>
+                      <th style={{ padding: "10px 12px" }}>Last Active Page & Time</th>
+                      <th style={{ padding: "10px 12px" }}>Most Active Time</th>
+                      <th style={{ padding: "10px 12px" }}>Most Time-Spent</th>
+                      <th style={{ padding: "10px 12px" }}>Top Visited</th>
+                      <th style={{ padding: "10px 12px" }}>Visits Frequency</th>
+                      <th style={{ padding: "10px 12px", textAlign: "right" }}>Route Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedStudents.map((st) => {
+                      const studentKey = st.token || st.regNo;
+                      const isExpanded = expandedStudent === studentKey;
+
+                      return (
+                        <React.Fragment key={studentKey}>
+                          <tr style={{ borderBottom: isExpanded ? "none" : "1px solid #f1f5f9", background: isExpanded ? "#f8fafc" : "transparent" }}>
+                            {/* 1. Student */}
+                            <td style={{ padding: "12px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <div
+                                  style={{
+                                    width: 34,
+                                    height: 34,
+                                    borderRadius: "50%",
+                                    background: "#eff6ff",
+                                    color: "#2563eb",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontWeight: 800,
+                                    fontSize: 12,
+                                  }}
+                                >
+                                  {st.studentName ? st.studentName.slice(0, 2).toUpperCase() : "ST"}
+                                </div>
+                                <div>
+                                  <div style={{ fontWeight: 800, color: "#0f172a" }}>{st.studentName}</div>
+                                  {st.regNo && (
+                                    <div style={{ fontSize: 11.5, color: "#2563eb", fontWeight: 700 }}>
+                                      {st.regNo} · <span style={{ color: "#64748b", fontWeight: 500 }}>{st.branch} ({st.batch})</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* 2. Device & System */}
+                            <td style={{ padding: "12px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                {renderDeviceIcon(st.deviceType)}
+                                <span style={{ fontSize: 12, color: "#334155", fontWeight: 600 }}>
+                                  {st.deviceType} · {st.browser}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: 11, color: "#94a3b8" }}>{st.os}</div>
+                            </td>
+
+                            {/* 3. Last Active Page & Time */}
+                            <td style={{ padding: "12px" }}>
+                              <div style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
+                                <span style={{ color: "#0f172a", fontWeight: 700, fontSize: 12.5 }}>
+                                  {st.lastActivePageTitle || st.pageTitle || "Dashboard"}
+                                </span>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                  <span style={{ color: "#2563eb", fontWeight: 600, fontFamily: "monospace", fontSize: 11 }}>
+                                    {st.lastActiveRoute || st.currentRoute}
+                                  </span>
+                                  <span style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600 }}>
+                                    • {formatLastActive(st.lastActiveAt)}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* 4. Most Active Time (Peak Time Slot) */}
+                            <td style={{ padding: "12px" }}>
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 5,
+                                  background: "#f0f9ff",
+                                  border: "1px solid #bae6fd",
+                                  color: "#0369a1",
+                                  fontSize: 11.5,
+                                  fontWeight: 700,
+                                  padding: "3px 9px",
+                                  borderRadius: 6,
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                <Clock size={12} color="#0284c7" />
+                                {st.mostActiveTimeSlot || "General"}
+                              </span>
+                            </td>
+
+                            {/* 5. Most Time-Spent Page */}
+                            <td style={{ padding: "12px" }}>
+                              <div style={{ display: "flex", flexDirection: "column" }}>
+                                <span style={{ color: "#059669", fontWeight: 800, fontSize: 12.5 }}>
+                                  {st.mostTimeSpentPageTitle || st.mostVisitedPageTitle || "Dashboard"}
+                                </span>
+                                <span style={{ fontSize: 11, color: "#047857", fontWeight: 700 }}>
+                                  Spent: {formatDuration(st.mostTimeSpentSeconds || st.totalTimeSpentSeconds || 0)}
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* 6. Top Visited Page */}
+                            <td style={{ padding: "12px" }}>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                <span
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 5,
+                                    background: "#faf5ff",
+                                    border: "1px solid #f3e8ff",
+                                    color: "#7e22ce",
+                                    fontSize: 11.5,
+                                    fontWeight: 700,
+                                    padding: "3px 8px",
+                                    borderRadius: 6,
+                                    width: "fit-content",
+                                  }}
+                                >
+                                  <Flame size={12} color="#a855f7" />
+                                  {st.mostVisitedPageTitle || st.mostVisitedRoute || "/"} ({st.mostVisitedCount || 1}v)
+                                </span>
+                                <span style={{ fontSize: 11, color: "#64748b" }}>
+                                  Total: <strong style={{ color: "#0f172a" }}>{formatDuration(st.totalTimeSpentSeconds || 0)}</strong>
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* 7. Visits Frequency (Per Day & Per Week) */}
+                            <td style={{ padding: "12px" }}>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                <span style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>
+                                  {st.visitsToday || 1} today · {st.visitsThisWeek || st.totalPageViews || 1} / wk
+                                </span>
+                                <span style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600 }}>
+                                  Peak: {st.mostActiveDay || "Weekdays"}
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* 8. Action: Expand Route Intelligence */}
+                            <td style={{ padding: "12px", textAlign: "right" }}>
+                              <button
+                                type="button"
+                                onClick={() => toggleExpandStudent(studentKey)}
+                                style={{
+                                  padding: "6px 11px",
+                                  borderRadius: 8,
+                                  border: isExpanded ? "1.5px solid #2563eb" : "1.5px solid #cbd5e1",
+                                  background: isExpanded ? "#eff6ff" : "#ffffff",
+                                  color: isExpanded ? "#2563eb" : "#334155",
+                                  fontSize: 12,
+                                  fontWeight: 750,
+                                  cursor: "pointer",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 5,
+                                  transition: "all 0.15s ease",
+                                  boxShadow: isExpanded ? "0 2px 6px rgba(37,99,235,0.12)" : "none",
+                                }}
+                              >
+                                <Route size={13} color={isExpanded ? "#2563eb" : "#64748b"} />
+                                {isExpanded ? "Hide Details" : "Route Details"}
+                                {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                              </button>
+                            </td>
+                          </tr>
+
+                          {/* Expanded Deep Route Intelligence Drawer */}
+                          {isExpanded && (
+                            <tr key={`${studentKey}-expanded-drawer`} style={{ background: "#f8fafc" }}>
+                              <td colSpan={8} style={{ padding: "0 14px 16px 14px" }}>
+                                {renderRouteIntelligenceDetails(st)}
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()
         )}
 
         {/* ── Responsive Pagination Bar (Default 10 per page) ── */}
@@ -1167,7 +1587,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
               <span style={{ fontWeight: 800, color: "#0f172a" }}>
                 {filteredActiveStudents.length}
               </span>{" "}
-              students {studentListTab === "LIVE_NOW" ? "(Live on Site)" : "(Database Sessions)"}
+              students (Tracked Route Activity)
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>

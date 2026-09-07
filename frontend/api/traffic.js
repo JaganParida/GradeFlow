@@ -107,6 +107,47 @@ function calculatePeakTimeSlot(hourlyActivity) {
   return `${start} - ${end} (${tag})`;
 }
 
+function getIstDayOfWeek() {
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(now.getTime() + istOffset);
+  return istDate.getUTCDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+}
+
+function getIstDateStr() {
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(now.getTime() + istOffset);
+  return istDate.toISOString().split("T")[0]; // YYYY-MM-DD
+}
+
+function getIstWeekStr() {
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const d = new Date(now.getTime() + istOffset);
+  const dateNum = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const dayNum = dateNum.getUTCDay() || 7;
+  dateNum.setUTCDate(dateNum.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(dateNum.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil(((dateNum - yearStart) / 86400000 + 1) / 7);
+  return `${dateNum.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+}
+
+const DAYS_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+function calculatePeakDay(dayCounts) {
+  if (!Array.isArray(dayCounts) || dayCounts.length !== 7) return "Weekdays";
+  let maxCount = 0;
+  let peakIdx = -1;
+  dayCounts.forEach((count, idx) => {
+    if ((count || 0) > maxCount) {
+      maxCount = count;
+      peakIdx = idx;
+    }
+  });
+  if (peakIdx === -1 || maxCount === 0) return "Weekdays";
+  return DAYS_NAMES[peakIdx] || "Weekdays";
+}
+
 module.exports = async function handler(req, res) {
   if (applyCors(req, res, "GET,POST,OPTIONS")) return;
 
@@ -192,7 +233,18 @@ module.exports = async function handler(req, res) {
             mostTimeSpentPageTitle: s.mostTimeSpentPageTitle || s.mostVisitedPageTitle || getFriendlyPageTitle(s.mostVisitedRoute || "/"),
             mostTimeSpentSeconds: s.mostTimeSpentSeconds || 0,
             mostActiveTimeSlot: s.mostActiveTimeSlot || "General",
-            visitedRoutes: s.visitedRoutes || [],
+            mostActiveDay: s.mostActiveDay || "Weekdays",
+            visitsToday: s.visitsToday || 1,
+            visitsThisWeek: s.visitsThisWeek || s.totalPageViews || 1,
+            visitedRoutes: (s.visitedRoutes || []).map((vr) => ({
+              route: vr.route,
+              pageTitle: vr.pageTitle || getFriendlyPageTitle(vr.route),
+              durationSeconds: vr.durationSeconds || 0,
+              visitCount: vr.visitCount || 1,
+              weeklyVisitCount: vr.weeklyVisitCount || Math.min(vr.visitCount || 1, s.visitsThisWeek || 1),
+              mostActiveTimeSlot: vr.mostActiveTimeSlot || s.mostActiveTimeSlot || "General",
+              lastVisitedAt: vr.lastVisitedAt || s.lastActiveAt,
+            })),
             totalPageViews: s.totalPageViews || 1,
             lastActiveAt: s.lastActiveAt,
             connectedAt: s.firstSeenAt,
@@ -276,11 +328,17 @@ module.exports = async function handler(req, res) {
       // Find existing activity record for this student
       let studentActivity = await StudentRouteActivity.findOne({ regNo: cleanReg });
       const istHour = getIstHour();
+      const istDay = getIstDayOfWeek();
+      const todayStr = getIstDateStr();
+      const weekStr = getIstWeekStr();
 
       if (!studentActivity) {
         const initialHourly = new Array(24).fill(0);
         initialHourly[istHour] = 1;
         const peakSlot = calculatePeakTimeSlot(initialHourly);
+
+        const initialDays = new Array(7).fill(0);
+        initialDays[istDay] = 1;
 
         studentActivity = new StudentRouteActivity({
           regNo: cleanReg,
@@ -305,11 +363,20 @@ module.exports = async function handler(req, res) {
           mostTimeSpentSeconds: 0,
           hourlyActivity: initialHourly,
           mostActiveTimeSlot: peakSlot,
+          dayOfWeekActivity: initialDays,
+          mostActiveDay: DAYS_NAMES[istDay] || "Weekdays",
+          visitsToday: 1,
+          visitsThisWeek: 1,
+          lastVisitDateStr: todayStr,
+          lastVisitWeekStr: weekStr,
           visitedRoutes: [{
             route: normRoute,
             pageTitle,
             durationSeconds: 0,
             visitCount: 1,
+            weeklyVisitCount: 1,
+            hourlyActivity: initialHourly,
+            mostActiveTimeSlot: peakSlot,
             lastVisitedAt: new Date(),
           }],
           firstSeenAt: new Date(),
@@ -336,6 +403,28 @@ module.exports = async function handler(req, res) {
         studentActivity.hourlyActivity[istHour] = (studentActivity.hourlyActivity[istHour] || 0) + 1;
         studentActivity.mostActiveTimeSlot = calculatePeakTimeSlot(studentActivity.hourlyActivity);
 
+        // Update day of week activity & peak day
+        if (!studentActivity.dayOfWeekActivity || studentActivity.dayOfWeekActivity.length !== 7) {
+          studentActivity.dayOfWeekActivity = new Array(7).fill(0);
+        }
+        studentActivity.dayOfWeekActivity[istDay] = (studentActivity.dayOfWeekActivity[istDay] || 0) + 1;
+        studentActivity.mostActiveDay = calculatePeakDay(studentActivity.dayOfWeekActivity);
+
+        // Daily & weekly visit tracking
+        if (studentActivity.lastVisitDateStr !== todayStr) {
+          studentActivity.lastVisitDateStr = todayStr;
+          studentActivity.visitsToday = 1;
+        } else {
+          studentActivity.visitsToday = (studentActivity.visitsToday || 0) + 1;
+        }
+
+        if (studentActivity.lastVisitWeekStr !== weekStr) {
+          studentActivity.lastVisitWeekStr = weekStr;
+          studentActivity.visitsThisWeek = 1;
+        } else {
+          studentActivity.visitsThisWeek = (studentActivity.visitsThisWeek || 0) + 1;
+        }
+
         // If user stayed on previousRoute for >= 5 seconds, log duration
         if (previousRoute && validTimeSpent >= 5) {
           const normPrev = normalizeRoute(previousRoute);
@@ -347,13 +436,24 @@ module.exports = async function handler(req, res) {
           if (existingRouteItem) {
             existingRouteItem.durationSeconds = (existingRouteItem.durationSeconds || 0) + validTimeSpent;
             existingRouteItem.visitCount = (existingRouteItem.visitCount || 0) + 1;
+            existingRouteItem.weeklyVisitCount = (existingRouteItem.weeklyVisitCount || 0) + 1;
+            if (!existingRouteItem.hourlyActivity || existingRouteItem.hourlyActivity.length !== 24) {
+              existingRouteItem.hourlyActivity = new Array(24).fill(0);
+            }
+            existingRouteItem.hourlyActivity[istHour] = (existingRouteItem.hourlyActivity[istHour] || 0) + 1;
+            existingRouteItem.mostActiveTimeSlot = calculatePeakTimeSlot(existingRouteItem.hourlyActivity);
             existingRouteItem.lastVisitedAt = new Date();
           } else {
+            const rHourly = new Array(24).fill(0);
+            rHourly[istHour] = 1;
             studentActivity.visitedRoutes.push({
               route: normPrev,
               pageTitle: prevTitle,
               durationSeconds: validTimeSpent,
               visitCount: 1,
+              weeklyVisitCount: 1,
+              hourlyActivity: rHourly,
+              mostActiveTimeSlot: calculatePeakTimeSlot(rHourly),
               lastVisitedAt: new Date(),
             });
           }
