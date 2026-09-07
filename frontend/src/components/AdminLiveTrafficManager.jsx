@@ -952,7 +952,9 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                       <div style={{ fontSize: 13, fontWeight: 800, color: "#0369a1", marginTop: 4 }}>
                         {st.mostActiveTimeSlot || "General"}
                       </div>
-                      <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>Peak engagement slot</div>
+                      <div style={{ fontSize: 10.5, color: "#0284c7", fontWeight: 600, marginTop: 2 }}>
+                        More time spent: {formatDuration(st.peakTimeSpentSeconds || st.mostTimeSpentSeconds || st.totalTimeSpentSeconds || 0)} in peak slot
+                      </div>
                     </div>
 
                     <div style={{ background: "#fdf4ff", border: "1px solid #f5d0fe", borderRadius: 10, padding: "10px 12px" }}>
@@ -970,7 +972,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                         <TrendingUp size={12} /> VISITS PER DAY & WEEK
                       </div>
                       <div style={{ fontSize: 12.5, fontWeight: 800, color: "#065f46", marginTop: 4 }}>
-                        {st.visitsToday || 1} today · {st.visitsThisWeek || st.totalPageViews || 1} this week
+                        {st.visitsToday || 1} today and {st.visitsThisWeek || st.totalPageViews || 1} this week
                       </div>
                       <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>Platform visit velocity</div>
                     </div>
@@ -1015,7 +1017,97 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                       <div style={{ padding: "20px", textAlign: "center", color: "#94a3b8", fontSize: 12.5 }}>
                         No individual route visit history recorded for this student yet.
                       </div>
+                    ) : isMobile ? (
+                      /* Mobile Fluid Stacked Route Cards - Zero Horizontal Scroll */
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "10px 8px" }}>
+                        {routesList.map((vr, rIdx) => {
+                          const sharePercent =
+                            totalSiteSecs > 0
+                              ? Math.min(100, Math.round(((vr.durationSeconds || 0) / totalSiteSecs) * 100))
+                              : 0;
+
+                          return (
+                            <div
+                              key={vr.route || rIdx}
+                              style={{
+                                background: "#ffffff",
+                                border: "1px solid #e2e8f0",
+                                borderRadius: 10,
+                                padding: "10px 12px",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 7,
+                                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+                              }}
+                            >
+                              {/* Route Header */}
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                  <div style={{ fontWeight: 800, color: "#0f172a", fontSize: 12.5, wordBreak: "break-word" }}>
+                                    {vr.pageTitle || vr.route}
+                                  </div>
+                                  <div style={{ fontFamily: "monospace", fontSize: 11, color: "#2563eb", wordBreak: "break-all" }}>
+                                    {vr.route}
+                                  </div>
+                                </div>
+                                <span
+                                  style={{
+                                    background: "#eff6ff",
+                                    color: "#2563eb",
+                                    border: "1px solid #dbeafe",
+                                    padding: "2px 7px",
+                                    borderRadius: 6,
+                                    fontWeight: 700,
+                                    fontSize: 10.5,
+                                    whiteSpace: "nowrap",
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {vr.visitCount || 1}v ({vr.weeklyVisitCount || Math.min(vr.visitCount || 1, st.visitsThisWeek || 1)}/wk)
+                                </span>
+                              </div>
+
+                              {/* Time & Share Bar */}
+                              <div>
+                                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3 }}>
+                                  <span style={{ color: "#64748b", fontWeight: 600 }}>Time Spent:</span>
+                                  <span style={{ color: "#059669", fontWeight: 800 }}>
+                                    {formatDuration(vr.durationSeconds || 0)} <span style={{ color: "#64748b", fontWeight: 600 }}>({sharePercent}%)</span>
+                                  </span>
+                                </div>
+                                <div style={{ width: "100%", height: 5, borderRadius: 3, background: "#f1f5f9", overflow: "hidden" }}>
+                                  <div style={{ width: `${sharePercent}%`, height: "100%", background: "#10b981", borderRadius: 3 }} />
+                                </div>
+                              </div>
+
+                              {/* Timing Meta: Peak Time & Last Active */}
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6, fontSize: 10.5, paddingTop: 6, borderTop: "1px dashed #f1f5f9" }}>
+                                <div>
+                                  <span style={{ color: "#64748b", display: "block" }}>Peak Active:</span>
+                                  <span style={{ color: "#15803d", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 3, marginTop: 1 }}>
+                                    <Clock size={10} color="#16a34a" />
+                                    {vr.mostActiveTimeSlot || st.mostActiveTimeSlot || "General"}
+                                  </span>
+                                  <span style={{ display: "block", color: "#059669", fontWeight: 600, fontSize: 10 }}>
+                                    Spent: {formatDuration(vr.peakTimeSpentSeconds || vr.durationSeconds || 0)}
+                                  </span>
+                                </div>
+                                <div style={{ textAlign: "right" }}>
+                                  <span style={{ color: "#64748b", display: "block" }}>Last Active:</span>
+                                  <span style={{ color: "#334155", fontWeight: 700, display: "block", marginTop: 1 }}>
+                                    {formatLastActive(vr.lastVisitedAt || st.lastActiveAt)}
+                                  </span>
+                                  <span style={{ color: "#94a3b8", fontSize: 9.5 }}>
+                                    {vr.lastVisitedAt ? new Date(vr.lastVisitedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Recently"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     ) : (
+                      /* Desktop Table View */
                       <div style={{ overflowX: "auto" }}>
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                           <thead>
@@ -1130,24 +1222,25 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                                   </td>
 
                                   <td style={{ padding: "10px 12px" }}>
-                                    <span
-                                      style={{
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: 4,
-                                        background: "#f0fdf4",
-                                        border: "1px solid #bbf7d0",
-                                        color: "#15803d",
-                                        fontSize: 11,
-                                        fontWeight: 700,
-                                        padding: "2px 7px",
-                                        borderRadius: 6,
-                                        whiteSpace: "nowrap",
-                                      }}
-                                    >
-                                      <Clock size={11} color="#16a34a" />
-                                      {vr.mostActiveTimeSlot || st.mostActiveTimeSlot || "General"}
-                                    </span>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                      <span
+                                        style={{
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 4,
+                                          color: "#15803d",
+                                          fontSize: 11.5,
+                                          fontWeight: 700,
+                                          whiteSpace: "nowrap",
+                                        }}
+                                      >
+                                        <Clock size={11} color="#16a34a" />
+                                        {vr.mostActiveTimeSlot || st.mostActiveTimeSlot || "General"}
+                                      </span>
+                                      <span style={{ fontSize: 10.5, color: "#059669", fontWeight: 600 }}>
+                                        Spent: {formatDuration(vr.peakTimeSpentSeconds || vr.durationSeconds || 0)}
+                                      </span>
+                                    </div>
                                   </td>
                                 </tr>
                               );
@@ -1248,25 +1341,17 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                         </div>
 
                         {/* 2. Most Active Time Slot (Peak Hours) */}
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 4, borderTop: "1px dashed #f1f5f9" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", paddingTop: 4, borderTop: "1px dashed #f1f5f9" }}>
                           <span style={{ color: "#64748b", fontWeight: 600, fontSize: 11.5 }}>Most Active Time:</span>
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4,
-                              background: "#f0f9ff",
-                              border: "1px solid #bae6fd",
-                              color: "#0369a1",
-                              fontSize: 11,
-                              fontWeight: 700,
-                              padding: "2px 7px",
-                              borderRadius: 6,
-                            }}
-                          >
-                            <Clock size={11} color="#0284c7" />
-                            {st.mostActiveTimeSlot || "General"}
-                          </span>
+                          <div style={{ textAlign: "right" }}>
+                            <div style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#0369a1", fontSize: 11.5, fontWeight: 700 }}>
+                              <Clock size={11} color="#0284c7" />
+                              {st.mostActiveTimeSlot || "General"}
+                            </div>
+                            <div style={{ fontSize: 10.5, color: "#0284c7", fontWeight: 600, marginTop: 1 }}>
+                              More time spent: {formatDuration(st.peakTimeSpentSeconds || st.mostTimeSpentSeconds || st.totalTimeSpentSeconds || 0)}
+                            </div>
+                          </div>
                         </div>
 
                         {/* 3. Most Time-Spent Page */}
@@ -1301,7 +1386,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "#475569", paddingTop: 4, borderTop: "1px dashed #f1f5f9" }}>
                           <span>Platform Visits:</span>
                           <span style={{ fontWeight: 800, color: "#0f172a" }}>
-                            {st.visitsToday || 1} today · {st.visitsThisWeek || st.totalPageViews || 1} / wk ({st.mostActiveDay || "Weekdays"})
+                            {st.visitsToday || 1} today and {st.visitsThisWeek || st.totalPageViews || 1} this week ({st.mostActiveDay || "Weekdays"})
                           </span>
                         </div>
 
@@ -1443,24 +1528,15 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
 
                             {/* 4. Most Active Time (Peak Time Slot) */}
                             <td style={{ padding: "12px" }}>
-                              <span
-                                style={{
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: 5,
-                                  background: "#f0f9ff",
-                                  border: "1px solid #bae6fd",
-                                  color: "#0369a1",
-                                  fontSize: 11.5,
-                                  fontWeight: 700,
-                                  padding: "3px 9px",
-                                  borderRadius: 6,
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                <Clock size={12} color="#0284c7" />
-                                {st.mostActiveTimeSlot || "General"}
-                              </span>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, color: "#0f172a" }}>
+                                  <Clock size={13} color="#0284c7" />
+                                  <span>{st.mostActiveTimeSlot || "General"}</span>
+                                </div>
+                                <span style={{ fontSize: 11, color: "#0284c7", fontWeight: 600 }}>
+                                  More time spent: {formatDuration(st.peakTimeSpentSeconds || st.mostTimeSpentSeconds || st.totalTimeSpentSeconds || 0)}
+                                </span>
+                              </div>
                             </td>
 
                             {/* 5. Most Time-Spent Page */}
@@ -1478,26 +1554,12 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                             {/* 6. Top Visited Page */}
                             <td style={{ padding: "12px" }}>
                               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                                <span
-                                  style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: 5,
-                                    background: "#faf5ff",
-                                    border: "1px solid #f3e8ff",
-                                    color: "#7e22ce",
-                                    fontSize: 11.5,
-                                    fontWeight: 700,
-                                    padding: "3px 8px",
-                                    borderRadius: 6,
-                                    width: "fit-content",
-                                  }}
-                                >
-                                  <Flame size={12} color="#a855f7" />
-                                  {st.mostVisitedPageTitle || st.mostVisitedRoute || "/"} ({st.mostVisitedCount || 1}v)
-                                </span>
+                                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 750, color: "#0f172a" }}>
+                                  <Flame size={13} color="#ea580c" />
+                                  <span>{st.mostVisitedPageTitle || st.mostVisitedRoute || "/"}</span>
+                                </div>
                                 <span style={{ fontSize: 11, color: "#64748b" }}>
-                                  Total: <strong style={{ color: "#0f172a" }}>{formatDuration(st.totalTimeSpentSeconds || 0)}</strong>
+                                  {st.mostVisitedCount || 1} visits · Total: <strong style={{ color: "#0f172a" }}>{formatDuration(st.totalTimeSpentSeconds || 0)}</strong>
                                 </span>
                               </div>
                             </td>
@@ -1506,7 +1568,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                             <td style={{ padding: "12px" }}>
                               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                                 <span style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>
-                                  {st.visitsToday || 1} today · {st.visitsThisWeek || st.totalPageViews || 1} / wk
+                                  {st.visitsToday || 1} today and {st.visitsThisWeek || st.totalPageViews || 1} this week
                                 </span>
                                 <span style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600 }}>
                                   Peak: {st.mostActiveDay || "Weekdays"}
@@ -1520,23 +1582,22 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                                 type="button"
                                 onClick={() => toggleExpandStudent(studentKey)}
                                 style={{
-                                  padding: "6px 11px",
+                                  padding: "6px 12px",
                                   borderRadius: 8,
-                                  border: isExpanded ? "1.5px solid #2563eb" : "1.5px solid #cbd5e1",
+                                  border: isExpanded ? "1px solid #2563eb" : "1px solid #cbd5e1",
                                   background: isExpanded ? "#eff6ff" : "#ffffff",
                                   color: isExpanded ? "#2563eb" : "#334155",
                                   fontSize: 12,
-                                  fontWeight: 750,
+                                  fontWeight: 700,
                                   cursor: "pointer",
                                   display: "inline-flex",
                                   alignItems: "center",
                                   gap: 5,
                                   transition: "all 0.15s ease",
-                                  boxShadow: isExpanded ? "0 2px 6px rgba(37,99,235,0.12)" : "none",
                                 }}
                               >
                                 <Route size={13} color={isExpanded ? "#2563eb" : "#64748b"} />
-                                {isExpanded ? "Hide Details" : "Route Details"}
+                                <span>{isExpanded ? "Hide Details" : "Details"}</span>
                                 {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                               </button>
                             </td>
