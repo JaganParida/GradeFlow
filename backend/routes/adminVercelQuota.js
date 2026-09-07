@@ -125,10 +125,18 @@ router.get("/", async (req, res) => {
 
     // Merge stored metrics with baseline
     const storedTodayRequests = todayMetric ? todayMetric.totalRequests : 0;
-    const effectiveTodayRequests = Math.max(storedTodayRequests, baselineTodayRequests);
+    const storedMonthRequests = monthlyMetrics.reduce((sum, m) => sum + (m.totalRequests || 0), 0);
 
-    let storedMonthRequests = monthlyMetrics.reduce((sum, m) => sum + (m.totalRequests || 0), 0);
-    const effectiveMonthRequests = Math.max(storedMonthRequests, baselineMonthRequests);
+    const totalRouteInvocations = pages.reduce(
+      (sum, p) => sum + Math.max(1, Math.round((p.totalViews || 1) * API_AMPLIFICATION_FACTOR)),
+      0
+    );
+
+    const effectiveMonthRequests = Math.max(storedMonthRequests, totalRouteInvocations, baselineMonthRequests);
+    const effectiveTodayRequests = Math.max(
+      storedTodayRequests,
+      Math.round(effectiveMonthRequests / Math.max(1, dayOfMonth))
+    );
 
     // Merge 24-hour histogram
     const finalHourlyRequests = new Array(24).fill(0);
@@ -185,21 +193,39 @@ router.get("/", async (req, res) => {
     const bandwidthLimitGB = HOBBY_LIMITS.BANDWIDTH_LIMIT_GB;
     const bandwidthPercent = parseFloat(((bandwidthGB / bandwidthLimitGB) * 100).toFixed(1));
 
+    const getRouteCategory = (r) => {
+      if (!r) return "PUBLIC";
+      if (r.startsWith("/admin")) return "ADMIN";
+      if (
+        r.startsWith("/dashboard") ||
+        r.startsWith("/attendance") ||
+        r.startsWith("/timetable") ||
+        r.startsWith("/analytics") ||
+        r.startsWith("/leaderboard") ||
+        r.startsWith("/resources") ||
+        r.startsWith("/testimonials")
+      ) {
+        return "STUDENT";
+      }
+      return "PUBLIC";
+    };
+
     // ─── Route Breakdown Ranking ────────────────────────────────────
     const routeBreakdown = pages.map((page) => {
-      const estimatedInvocations = Math.round((page.totalViews || 1) * API_AMPLIFICATION_FACTOR);
-      const percentOfTotal = effectiveMonthRequests > 0
-        ? parseFloat(((estimatedInvocations / effectiveMonthRequests) * 100).toFixed(1))
+      const estimatedInvocations = Math.max(1, Math.round((page.totalViews || 1) * API_AMPLIFICATION_FACTOR));
+      const percentOfTotal = totalRouteInvocations > 0
+        ? parseFloat(((estimatedInvocations / totalRouteInvocations) * 100).toFixed(1))
         : 0;
       const routeBytes = estimatedInvocations * HOBBY_LIMITS.BYTES_PER_INVOCATION_EST;
       const bandwidthMB = parseFloat((routeBytes / (1024 * 1024)).toFixed(1));
+      const category = getRouteCategory(page.route);
 
       let priorityTier = "LIGHTWEIGHT";
       let cacheRecommendation = "Edge SWR (300s)";
-      if (percentOfTotal >= 25) {
+      if (percentOfTotal >= 20) {
         priorityTier = "HIGH_CONSUMPTION";
         cacheRecommendation = "Aggressive Stale-While-Revalidate + Cache-Control: max-age=120";
-      } else if (percentOfTotal >= 10) {
+      } else if (percentOfTotal >= 8) {
         priorityTier = "MEDIUM_CONSUMPTION";
         cacheRecommendation = "Browser Memory Cache + 60s Revalidation";
       }
@@ -207,6 +233,7 @@ router.get("/", async (req, res) => {
       return {
         route: page.route,
         pageTitle: page.pageTitle || page.route,
+        category,
         totalViews: page.totalViews || 0,
         estimatedInvocations,
         percentOfTotal,

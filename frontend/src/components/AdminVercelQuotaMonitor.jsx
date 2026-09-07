@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -19,6 +19,15 @@ import {
   Info,
   Check,
   X,
+  ChevronLeft,
+  ChevronRight,
+  Users,
+  Globe,
+  Flame,
+  Sparkles,
+  Sliders,
+  Search,
+  Filter,
 } from "lucide-react";
 
 export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: propIsMobile }) {
@@ -41,6 +50,12 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
   const [applyingPolicy, setApplyingPolicy] = useState(null);
   const [policyMessage, setPolicyMessage] = useState(null);
   const [activeHistogramHour, setActiveHistogramHour] = useState(null);
+
+  // Route breakdown filters & pagination
+  const [routeCategory, setRouteCategory] = useState("ALL"); // ALL | STUDENT | ADMIN | PUBLIC | HIGH
+  const [routeSearch, setRouteSearch] = useState("");
+  const [routePage, setRoutePage] = useState(1);
+  const ROUTES_PER_PAGE = isMobile ? 5 : 6;
 
   // Fetch Vercel Quota metrics strictly ON-DEMAND (Zero background polling / zero quota drain)
   const fetchQuotaMetrics = async (isManualRefresh = false) => {
@@ -111,6 +126,51 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
     }
   };
 
+  // Filtered and paginated route list
+  const allRoutes = data?.routeBreakdown || [];
+
+  const filteredRoutes = useMemo(() => {
+    return allRoutes.filter((r) => {
+      // Category filter
+      if (routeCategory === "STUDENT" && r.category !== "STUDENT") return false;
+      if (routeCategory === "ADMIN" && r.category !== "ADMIN") return false;
+      if (routeCategory === "PUBLIC" && r.category !== "PUBLIC") return false;
+      if (routeCategory === "HIGH" && r.priorityTier !== "HIGH_CONSUMPTION") return false;
+
+      // Search term filter
+      if (routeSearch.trim()) {
+        const query = routeSearch.toLowerCase();
+        const matchesTitle = (r.pageTitle || "").toLowerCase().includes(query);
+        const matchesRoute = (r.route || "").toLowerCase().includes(query);
+        if (!matchesTitle && !matchesRoute) return false;
+      }
+
+      return true;
+    });
+  }, [allRoutes, routeCategory, routeSearch]);
+
+  const totalRoutePages = Math.max(1, Math.ceil(filteredRoutes.length / ROUTES_PER_PAGE));
+  const paginatedRoutes = useMemo(() => {
+    const start = (routePage - 1) * ROUTES_PER_PAGE;
+    return filteredRoutes.slice(start, start + ROUTES_PER_PAGE);
+  }, [filteredRoutes, routePage, ROUTES_PER_PAGE]);
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setRoutePage(1);
+  }, [routeCategory, routeSearch]);
+
+  // Count by category for badge pills
+  const counts = useMemo(() => {
+    return {
+      ALL: allRoutes.length,
+      STUDENT: allRoutes.filter((r) => r.category === "STUDENT").length,
+      ADMIN: allRoutes.filter((r) => r.category === "ADMIN").length,
+      PUBLIC: allRoutes.filter((r) => r.category === "PUBLIC").length,
+      HIGH: allRoutes.filter((r) => r.priorityTier === "HIGH_CONSUMPTION").length,
+    };
+  }, [allRoutes]);
+
   if (loading) {
     return (
       <div
@@ -118,7 +178,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
           background: "#ffffff",
           borderRadius: 16,
           border: "1px solid #e2e8f0",
-          padding: isMobile ? "32px 16px" : "48px 24px",
+          padding: isMobile ? "36px 16px" : "48px 24px",
           textAlign: "center",
           boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
         }}
@@ -230,7 +290,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
     );
   }
 
-  const { today, month, bandwidth, peakTiming, routeBreakdown, defenseSystem, timestamp } = data;
+  const { today, month, bandwidth, peakTiming, defenseSystem, timestamp } = data;
 
   const maxHistogramRequests = Math.max(
     1,
@@ -249,34 +309,17 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
         overflowX: "hidden",
       }}
     >
-      {/* ── 1. HEADER BANNER: ZERO-DRAIN ARCHITECTURE & REFRESH ── */}
+      {/* ── 1. CLEAN LIGHT-MODE HEADER BANNER (NO DARK TYPE) ── */}
       <div
         style={{
-          background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)",
+          background: "#ffffff",
           borderRadius: isMobile ? 14 : 18,
-          border: "1px solid #1e293b",
-          padding: isMobile ? "14px 14px" : "20px 24px",
-          color: "#ffffff",
-          boxShadow: "0 4px 20px rgba(15, 23, 42, 0.12)",
-          position: "relative",
-          overflow: "hidden",
+          border: "1px solid #e2e8f0",
+          padding: isMobile ? "14px 14px" : "18px 22px",
+          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
           boxSizing: "border-box",
         }}
       >
-        <div
-          style={{
-            position: "absolute",
-            right: -30,
-            bottom: -30,
-            width: 140,
-            height: 140,
-            borderRadius: "50%",
-            background: "rgba(139, 92, 246, 0.15)",
-            filter: "blur(32px)",
-            pointerEvents: "none",
-          }}
-        />
-
         <div
           style={{
             display: "flex",
@@ -284,44 +327,42 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
             justifyContent: "space-between",
             alignItems: isMobile ? "flex-start" : "center",
             gap: isMobile ? 12 : 16,
-            position: "relative",
-            zIndex: 2,
           }}
         >
-          <div>
+          <div style={{ flex: 1 }}>
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
                 flexWrap: "wrap",
-                marginBottom: 6,
+                marginBottom: 4,
               }}
             >
               <div
                 style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 8,
-                  background: "rgba(139, 92, 246, 0.2)",
-                  border: "1px solid rgba(139, 92, 246, 0.4)",
-                  color: "#c4b5fd",
+                  width: 32,
+                  height: 32,
+                  borderRadius: 10,
+                  background: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  color: "#2563eb",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
                 }}
               >
-                <Zap size={16} />
+                <Zap size={17} />
               </div>
 
               <h2
                 style={{
-                  fontSize: isMobile ? 16 : 19,
+                  fontSize: isMobile ? 16 : 18,
                   fontWeight: 800,
+                  color: "#0f172a",
                   letterSpacing: "-0.3px",
                   margin: 0,
-                  color: "#ffffff",
                 }}
               >
                 Vercel Free Hobby Quota & Traffic Engine
@@ -329,31 +370,33 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
 
               <span
                 style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
                   padding: "2px 8px",
-                  fontSize: 10,
+                  fontSize: 10.5,
                   fontWeight: 700,
                   borderRadius: 20,
-                  background: "rgba(16, 185, 129, 0.2)",
-                  color: "#6ee7b7",
-                  border: "1px solid rgba(16, 185, 129, 0.35)",
+                  background: "#ecfdf5",
+                  color: "#059669",
+                  border: "1px solid #a7f3d0",
                   whiteSpace: "nowrap",
                 }}
               >
-                Zero-Drain Mode
+                <CheckCircle2 size={11} /> Zero-Drain Mode
               </span>
             </div>
 
             <p
               style={{
                 fontSize: isMobile ? 11 : 12.5,
-                color: "#cbd5e1",
+                color: "#64748b",
                 margin: 0,
                 lineHeight: 1.5,
-                maxWidth: 680,
+                maxWidth: 720,
               }}
             >
-              Real-time calculations computed strictly{" "}
-              <strong style={{ color: "#ffffff" }}>on-demand</strong> when you visit this page. Zero periodic polling intervals to protect your 100,000 monthly serverless quota.
+              Real-time calculations computed strictly <strong style={{ color: "#0f172a" }}>on-demand</strong>. Zero background polling intervals to protect your 100,000 monthly serverless limit. All routes including Admin & Students are tracked.
             </p>
           </div>
 
@@ -364,11 +407,12 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
               gap: 10,
               width: isMobile ? "100%" : "auto",
               justifyContent: isMobile ? "space-between" : "flex-end",
+              flexShrink: 0,
             }}
           >
             <div style={{ textAlign: isMobile ? "left" : "right" }}>
-              <div style={{ fontSize: 10, color: "#94a3b8" }}>Calculated At</div>
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: "#f1f5f9" }}>
+              <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600 }}>Calculated At</div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: "#334155" }}>
                 {timestamp
                   ? new Date(timestamp).toLocaleTimeString("en-IN", {
                       hour: "2-digit",
@@ -388,26 +432,24 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                 justifyContent: "center",
                 gap: 6,
                 padding: isMobile ? "8px 14px" : "9px 16px",
-                background: "rgba(255, 255, 255, 0.12)",
-                hover: "rgba(255, 255, 255, 0.2)",
-                border: "1px solid rgba(255, 255, 255, 0.25)",
-                borderRadius: 11,
-                color: "#ffffff",
+                background: "#f8fafc",
+                border: "1px solid #cbd5e1",
+                borderRadius: 10,
+                color: "#0f172a",
                 fontSize: isMobile ? 11.5 : 12.5,
                 fontWeight: 700,
                 cursor: refreshing ? "not-allowed" : "pointer",
                 transition: "all 0.15s ease",
-                flexShrink: 0,
               }}
             >
               <RefreshCw
                 size={13}
                 style={{
                   animation: refreshing ? "spin 1s linear infinite" : "none",
-                  color: "#c4b5fd",
+                  color: "#2563eb",
                 }}
               />
-              <span>{refreshing ? "Calculating..." : "Refresh Metrics"}</span>
+              <span>{refreshing ? "Syncing..." : "Refresh Metrics"}</span>
             </button>
           </div>
         </div>
@@ -415,7 +457,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
         {/* Policy Feedback Alert */}
         {policyMessage && (
           <motion.div
-            initial={{ opacity: 0, y: -6 }}
+            initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             style={{
               marginTop: 12,
@@ -426,22 +468,19 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              background:
-                policyMessage.type === "success"
-                  ? "rgba(6, 78, 59, 0.7)"
-                  : "rgba(136, 19, 55, 0.7)",
+              background: policyMessage.type === "success" ? "#ecfdf5" : "#fef2f2",
               border:
                 policyMessage.type === "success"
-                  ? "1px solid rgba(52, 211, 153, 0.4)"
-                  : "1px solid rgba(251, 113, 133, 0.4)",
-              color: policyMessage.type === "success" ? "#a7f3d0" : "#fecdd3",
+                  ? "1px solid #a7f3d0"
+                  : "1px solid #fecaca",
+              color: policyMessage.type === "success" ? "#065f46" : "#991b1b",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               {policyMessage.type === "success" ? (
-                <CheckCircle2 size={15} color="#34d399" />
+                <CheckCircle2 size={15} color="#059669" />
               ) : (
-                <AlertTriangle size={15} color="#fb7185" />
+                <AlertTriangle size={15} color="#dc2626" />
               )}
               <span>{policyMessage.text}</span>
             </div>
@@ -450,7 +489,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
               style={{
                 background: "transparent",
                 border: "none",
-                color: "#cbd5e1",
+                color: "#64748b",
                 cursor: "pointer",
                 fontSize: 12,
                 padding: "0 4px",
@@ -462,7 +501,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
         )}
       </div>
 
-      {/* ── 2. TOP 4 KEY KPI METRICS CARDS ── */}
+      {/* ── 2. TOP 4 KEY KPI METRICS CARDS (LIGHT, ELEGANT) ── */}
       <div
         style={{
           display: "grid",
@@ -1111,6 +1150,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                 gap: 6,
               }}
             >
+              <Clock size={13} color="#7c3aed" />
               <span style={{ color: "#7c3aed", fontWeight: 600 }}>Peak Hour:</span>
               <span style={{ color: "#2e1065", fontWeight: 800 }}>
                 {peakTiming?.peakHourText || "8:00 PM – 9:00 PM"}
@@ -1129,6 +1169,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                 gap: 6,
               }}
             >
+              <Calendar size={13} color="#4f46e5" />
               <span style={{ color: "#4f46e5", fontWeight: 600 }}>Peak Day:</span>
               <span style={{ color: "#1e1b4b", fontWeight: 800 }}>
                 {peakTiming?.peakDayText || "Tuesday"}
@@ -1212,16 +1253,11 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                     title={`${h.label}: ${h.requests} requests`}
                   >
                     {isPeak && (
-                      <span
-                        style={{
-                          fontSize: 10,
-                          color: "#f59e0b",
-                          fontWeight: 900,
-                          marginBottom: 2,
-                        }}
-                      >
-                        ★
-                      </span>
+                      <Sparkles
+                        size={11}
+                        color="#d97706"
+                        style={{ marginBottom: 2 }}
+                      />
                     )}
 
                     <div
@@ -1269,8 +1305,8 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
       {/* ── 4. ENTERPRISE AUTO-DEFENSE POLICIES (1-CLICK APPLY) ── */}
       <div
         style={{
-          background: "linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%)",
-          border: "1px solid #c7d2fe",
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
           borderRadius: isMobile ? 14 : 18,
           padding: isMobile ? "14px 14px" : "20px 22px",
           boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
@@ -1289,7 +1325,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
         >
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <ShieldCheck size={20} color="#4f46e5" />
+              <ShieldCheck size={20} color="#2563eb" />
               <h3
                 style={{
                   fontSize: isMobile ? 15 : 16,
@@ -1304,7 +1340,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
             <p
               style={{
                 fontSize: isMobile ? 11 : 12,
-                color: "#475569",
+                color: "#64748b",
                 margin: "4px 0 0 0",
                 lineHeight: 1.45,
                 maxWidth: 680,
@@ -1317,8 +1353,9 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
           <span
             style={{
               padding: "4px 10px",
-              background: "#4f46e5",
-              color: "#ffffff",
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              color: "#1d4ed8",
               fontSize: 11,
               fontWeight: 700,
               borderRadius: 20,
@@ -1624,7 +1661,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
         </div>
       </div>
 
-      {/* ── 5. ROUTE-BY-ROUTE CONSUMPTION BREAKDOWN ── */}
+      {/* ── 5. ROUTE-BY-ROUTE BREAKDOWN WITH CATEGORY TABS & PAGINATION ── */}
       <div
         style={{
           background: "#ffffff",
@@ -1635,11 +1672,14 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
           boxSizing: "border-box",
         }}
       >
+        {/* Header with Title & Live Search */}
         <div
           style={{
             display: "flex",
+            flexDirection: isMobile ? "column" : "row",
             justifyContent: "space-between",
-            alignItems: "center",
+            alignItems: isMobile ? "flex-start" : "center",
+            gap: 12,
             marginBottom: 14,
           }}
         >
@@ -1664,29 +1704,146 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                 margin: "4px 0 0 0",
               }}
             >
-              Ranked by serverless invocations and bandwidth consumed on Vercel.
+              Exact serverless requests and origin bandwidth consumed across platform pages.
             </p>
           </div>
 
-          <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>
-            {(routeBreakdown || []).length} Routes
-          </span>
+          {/* Quick Search */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              background: "#f8fafc",
+              border: "1px solid #cbd5e1",
+              borderRadius: 10,
+              padding: "6px 10px",
+              width: isMobile ? "100%" : 240,
+              boxSizing: "border-box",
+            }}
+          >
+            <Search size={14} color="#94a3b8" />
+            <input
+              type="text"
+              placeholder="Search route or page..."
+              value={routeSearch}
+              onChange={(e) => setRouteSearch(e.target.value)}
+              style={{
+                border: "none",
+                background: "transparent",
+                outline: "none",
+                fontSize: 12,
+                color: "#0f172a",
+                width: "100%",
+              }}
+            />
+            {routeSearch && (
+              <button
+                onClick={() => setRouteSearch("")}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: "#94a3b8",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  padding: 0,
+                }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Mobile Fluid Cards or Desktop Table */}
-        {isMobile ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
-            {(routeBreakdown || []).map((routeItem, idx) => (
+        {/* ── CATEGORY SUB-TABS (Clean pills with SVG icons) ── */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: isMobile ? 6 : 8,
+            overflowX: "auto",
+            paddingBottom: 6,
+            marginBottom: 14,
+            borderBottom: "1px solid #f1f5f9",
+          }}
+        >
+          {[
+            { id: "ALL", label: "All Routes", icon: <Layers size={13} />, count: counts.ALL },
+            { id: "STUDENT", label: "Student Portals", icon: <Users size={13} />, count: counts.STUDENT },
+            { id: "ADMIN", label: "Admin & Console", icon: <ShieldAlert size={13} />, count: counts.ADMIN },
+            { id: "PUBLIC", label: "Public & Landing", icon: <Globe size={13} />, count: counts.PUBLIC },
+            { id: "HIGH", label: "High Consumption", icon: <TrendingUp size={13} />, count: counts.HIGH },
+          ].map((cat) => {
+            const isActive = routeCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setRouteCategory(cat.id)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: isMobile ? "6px 10px" : "7px 13px",
+                  borderRadius: 10,
+                  fontSize: isMobile ? 11 : 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  transition: "all 0.15s ease",
+                  border: isActive ? "1px solid #4f46e5" : "1px solid #e2e8f0",
+                  background: isActive ? "#4f46e5" : "#f8fafc",
+                  color: isActive ? "#ffffff" : "#475569",
+                  boxShadow: isActive ? "0 2px 6px rgba(79, 70, 229, 0.25)" : "none",
+                }}
+              >
+                {cat.icon}
+                <span>{cat.label}</span>
+                <span
+                  style={{
+                    padding: "1px 5px",
+                    borderRadius: 8,
+                    fontSize: 10,
+                    fontWeight: 800,
+                    background: isActive ? "rgba(255, 255, 255, 0.25)" : "#e2e8f0",
+                    color: isActive ? "#ffffff" : "#64748b",
+                  }}
+                >
+                  {cat.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── ROUTE DISPLAY: MOBILE CARDS OR DESKTOP TABLE ── */}
+        {filteredRoutes.length === 0 ? (
+          <div
+            style={{
+              padding: "32px 16px",
+              textAlign: "center",
+              color: "#94a3b8",
+              fontSize: 12.5,
+              background: "#f8fafc",
+              borderRadius: 12,
+            }}
+          >
+            No routes found in this category matching your search.
+          </div>
+        ) : isMobile ? (
+          /* MOBILE FLUID CARDS (Clean, touch-friendly, zero overflow) */
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {paginatedRoutes.map((routeItem, idx) => (
               <div
                 key={idx}
                 style={{
-                  background: "#f8fafc",
+                  background: "#ffffff",
                   border: "1px solid #e2e8f0",
                   borderRadius: 12,
-                  padding: "12px 12px",
+                  padding: "12px",
                   display: "flex",
                   flexDirection: "column",
                   gap: 8,
+                  boxShadow: "0 1px 2px rgba(15, 23, 42, 0.03)",
                 }}
               >
                 <div
@@ -1713,8 +1870,8 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                     <code
                       style={{
                         fontSize: 11,
-                        color: "#7c3aed",
-                        background: "#f5f3ff",
+                        color: "#4f46e5",
+                        background: "#eef2ff",
                         padding: "1px 5px",
                         borderRadius: 4,
                         fontFamily: "monospace",
@@ -1763,13 +1920,13 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                     gridTemplateColumns: "1fr 1fr",
                     gap: 8,
                     paddingTop: 8,
-                    borderTop: "1px solid #e2e8f0",
+                    borderTop: "1px solid #f1f5f9",
                     fontSize: 11.5,
                   }}
                 >
                   <div>
                     <span style={{ fontSize: 10, color: "#94a3b8", display: "block" }}>
-                      Estimated Invocations
+                      Serverless Reqs
                     </span>
                     <strong style={{ color: "#0f172a" }}>
                       {routeItem.estimatedInvocations.toLocaleString()} ({routeItem.percentOfTotal}%)
@@ -1788,7 +1945,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                 <div
                   style={{
                     paddingTop: 6,
-                    borderTop: "1px solid #f1f5f9",
+                    borderTop: "1px solid #f8fafc",
                     fontSize: 10.5,
                     display: "flex",
                     justifyContent: "space-between",
@@ -1814,10 +1971,10 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
             ))}
           </div>
         ) : (
+          /* DESKTOP TABLE (Crisp, light, professional SaaS) */
           <div
             style={{
               overflowX: "auto",
-              marginTop: 10,
               borderRadius: 12,
               border: "1px solid #e2e8f0",
             }}
@@ -1842,6 +1999,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                   }}
                 >
                   <th style={{ padding: "10px 14px" }}>Route / Page</th>
+                  <th style={{ padding: "10px 14px" }}>Category</th>
                   <th style={{ padding: "10px 14px" }}>Serverless Reqs</th>
                   <th style={{ padding: "10px 14px" }}>Traffic Share</th>
                   <th style={{ padding: "10px 14px" }}>Bandwidth (MB)</th>
@@ -1850,7 +2008,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                 </tr>
               </thead>
               <tbody>
-                {(routeBreakdown || []).map((routeItem, idx) => (
+                {paginatedRoutes.map((routeItem, idx) => (
                   <tr
                     key={idx}
                     style={{
@@ -1865,8 +2023,8 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                       <code
                         style={{
                           fontSize: 11,
-                          color: "#7c3aed",
-                          background: "#f5f3ff",
+                          color: "#4f46e5",
+                          background: "#eef2ff",
                           padding: "1px 5px",
                           borderRadius: 4,
                           fontFamily: "monospace",
@@ -1875,12 +2033,37 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                         {routeItem.route}
                       </code>
                     </td>
+                    <td style={{ padding: "10px 14px" }}>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: "2px 6px",
+                          borderRadius: 6,
+                          background:
+                            routeItem.category === "ADMIN"
+                              ? "#fef2f2"
+                              : routeItem.category === "STUDENT"
+                              ? "#ecfdf5"
+                              : "#f8fafc",
+                          color:
+                            routeItem.category === "ADMIN"
+                              ? "#b91c1c"
+                              : routeItem.category === "STUDENT"
+                              ? "#047857"
+                              : "#475569",
+                          border: "1px solid rgba(0,0,0,0.06)",
+                        }}
+                      >
+                        {routeItem.category}
+                      </span>
+                    </td>
                     <td style={{ padding: "10px 14px", fontWeight: 800, color: "#0f172a" }}>
                       {routeItem.estimatedInvocations.toLocaleString()}
                     </td>
                     <td style={{ padding: "10px 14px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontWeight: 700, color: "#334155", minWidth: 36 }}>
+                        <span style={{ fontWeight: 700, color: "#334155", minWidth: 42 }}>
                           {routeItem.percentOfTotal}%
                         </span>
                         <div
@@ -1896,7 +2079,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                             style={{
                               width: `${Math.min(100, Math.max(2, routeItem.percentOfTotal))}%`,
                               height: "100%",
-                              background: "#7c3aed",
+                              background: "#6366f1",
                               borderRadius: 3,
                             }}
                           />
@@ -1946,6 +2129,107 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
             </table>
           </div>
         )}
+
+        {/* ── PAGINATION CONTROLS (Next / Prev buttons, SVG icons, Page indicator) ── */}
+        <div
+          style={{
+            marginTop: 14,
+            paddingTop: 10,
+            borderTop: "1px solid #f1f5f9",
+            display: "flex",
+            flexDirection: isMobile ? "column" : "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <span style={{ fontSize: 11.5, color: "#64748b", fontWeight: 600 }}>
+            Showing{" "}
+            <strong style={{ color: "#0f172a" }}>
+              {filteredRoutes.length === 0 ? 0 : (routePage - 1) * ROUTES_PER_PAGE + 1}
+            </strong>{" "}
+            to{" "}
+            <strong style={{ color: "#0f172a" }}>
+              {Math.min(routePage * ROUTES_PER_PAGE, filteredRoutes.length)}
+            </strong>{" "}
+            of <strong style={{ color: "#0f172a" }}>{filteredRoutes.length}</strong> routes
+          </span>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <button
+              onClick={() => setRoutePage((p) => Math.max(1, p - 1))}
+              disabled={routePage <= 1}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: "1px solid #cbd5e1",
+                background: routePage <= 1 ? "#f8fafc" : "#ffffff",
+                color: routePage <= 1 ? "#94a3b8" : "#0f172a",
+                fontSize: 11.5,
+                fontWeight: 700,
+                cursor: routePage <= 1 ? "not-allowed" : "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <ChevronLeft size={14} /> Previous
+            </button>
+
+            {/* Page number pills */}
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              {Array.from({ length: totalRoutePages }).map((_, i) => {
+                const pNum = i + 1;
+                const isCur = routePage === pNum;
+                return (
+                  <button
+                    key={pNum}
+                    onClick={() => setRoutePage(pNum)}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 7,
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      border: isCur ? "1px solid #4f46e5" : "1px solid #e2e8f0",
+                      background: isCur ? "#4f46e5" : "#ffffff",
+                      color: isCur ? "#ffffff" : "#475569",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {pNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => setRoutePage((p) => Math.min(totalRoutePages, p + 1))}
+              disabled={routePage >= totalRoutePages}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: "1px solid #cbd5e1",
+                background: routePage >= totalRoutePages ? "#f8fafc" : "#ffffff",
+                color: routePage >= totalRoutePages ? "#94a3b8" : "#0f172a",
+                fontSize: 11.5,
+                fontWeight: 700,
+                cursor: routePage >= totalRoutePages ? "not-allowed" : "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              Next <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
