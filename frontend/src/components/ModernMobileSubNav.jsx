@@ -124,58 +124,71 @@ export default function ModernMobileSubNav({
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("touchmove", preventBackdropTouch);
+
+      // 1. Stop Lenis BEFORE removing body lock — prevents any rAF loop interference
+      const lenis = window.__lenis;
+      if (lenis && typeof lenis.stop === "function") {
+        try { lenis.stop(); } catch (_) {}
+      }
+
+      // 2. Remove body lock styles
       document.documentElement.style.overflow = originalHtmlOverflow;
       document.documentElement.style.overscrollBehavior = originalHtmlOverscroll;
       document.body.style.overflow = originalBodyOverflow;
       document.body.style.position = originalBodyPosition;
       document.body.style.top = originalBodyTop;
       document.body.style.width = originalBodyWidth;
-      document.removeEventListener("touchmove", preventBackdropTouch);
 
-      // Helper: force both native scroll AND Lenis to the same Y, preventing any fighting
-      const forceScrollTo = (y) => {
-        window.scrollTo(0, y);
-        if (document.documentElement) document.documentElement.scrollTop = y;
-        if (document.body) document.body.scrollTop = y;
-        if (window.__lenis && typeof window.__lenis.scrollTo === "function") {
-          try { window.__lenis.scrollTo(y, { immediate: true }); } catch (_) {}
-        }
-      };
-
-      // If user selected an item from the bottom sheet, smoothly scroll directly to ModernSubNav top
       if (shouldScrollToSubNav.current) {
         shouldScrollToSubNav.current = false;
 
-        // Stop Lenis temporarily so it doesn't fight our scroll position changes
-        if (window.__lenis && typeof window.__lenis.stop === "function") {
-          try { window.__lenis.stop(); } catch (_) {}
-        }
+        // 3. Snap native scroll directly to the captured position (no visual gap)
+        window.scrollTo(0, scrollY);
 
-        // Unfreeze body at captured scrollY — synced with Lenis
-        forceScrollTo(scrollY);
-
+        // 4. Wait one frame for layout to settle after body unlock + content change
         requestAnimationFrame(() => {
           const targetY = getSubNavDocTop();
-          const currentY = window.pageYOffset || window.scrollY || document.documentElement.scrollTop || 0;
-          const distance = Math.abs(targetY - currentY);
+          const distance = Math.abs(targetY - scrollY);
 
-          // Re-start Lenis before any scroll action
-          if (window.__lenis && typeof window.__lenis.start === "function") {
-            try { window.__lenis.start(); } catch (_) {}
-          }
-
-          // Already at/near the subnav top — just snap precisely, no visible motion
           if (distance < 15) {
-            forceScrollTo(targetY);
-            return;
+            // Already at the subnav top — just lock position and restart Lenis
+            window.scrollTo(0, targetY);
+            if (lenis && typeof lenis.scrollTo === "function") {
+              try { lenis.scrollTo(targetY, { immediate: true }); } catch (_) {}
+            }
+            if (lenis && typeof lenis.start === "function") {
+              try { lenis.start(); } catch (_) {}
+            }
+          } else {
+            // Need to scroll to subnav — restart Lenis at current position, then animate
+            if (lenis && typeof lenis.scrollTo === "function") {
+              try { lenis.scrollTo(scrollY, { immediate: true }); } catch (_) {}
+            }
+            if (lenis && typeof lenis.start === "function") {
+              try { lenis.start(); } catch (_) {}
+            }
+            // Use Lenis native smooth scroll — zero fighting, silky smooth
+            if (lenis && typeof lenis.scrollTo === "function") {
+              try {
+                lenis.scrollTo(targetY, { duration: 0.55, easing: (t) => 1 - Math.pow(1 - t, 3) });
+              } catch (_) {
+                smoothScrollToY(targetY, 420);
+              }
+            } else {
+              smoothScrollToY(targetY, 420);
+            }
           }
-
-          // Meaningful distance — smooth scroll with cubic ease-out
-          smoothScrollToY(targetY, 420);
         });
       } else {
-        // Normal dismiss without selecting: restore previous scroll position (synced with Lenis)
-        forceScrollTo(scrollY);
+        // Normal dismiss — restore previous scroll position
+        window.scrollTo(0, scrollY);
+        if (lenis && typeof lenis.scrollTo === "function") {
+          try { lenis.scrollTo(scrollY, { immediate: true }); } catch (_) {}
+        }
+        if (lenis && typeof lenis.start === "function") {
+          try { lenis.start(); } catch (_) {}
+        }
       }
     };
   }, [isOpen]);
