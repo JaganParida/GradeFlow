@@ -257,6 +257,22 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
     return `${h}h ${remM > 0 ? `${remM}m` : ""}`.trim();
   };
 
+  // Helper: Format last active date into human-friendly time (e.g. "Just now", "4m ago", "Today, 8:15 PM")
+  const formatLastActive = (dateStr) => {
+    if (!dateStr) return "Recently";
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diffSecs = Math.floor((now - d) / 1000);
+
+    if (diffSecs < 60) return "Just now";
+    if (diffSecs < 3600) return `${Math.floor(diffSecs / 60)}m ago`;
+    if (diffSecs < 86400) {
+      const timeStr = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      return `Today, ${timeStr}`;
+    }
+    return d.toLocaleDateString([], { month: "short", day: "numeric" }) + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
   // ─── Filtered Active Students List (Strictly Excludes Admin & 230301120327) ──
   const filteredActiveStudents = useMemo(() => {
     const list = liveData.activeStudents || [];
@@ -278,15 +294,17 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
         if (filterDevice === "Tablet" && !d.includes("tablet") && !d.includes("ipad")) return false;
       }
 
-      // 4. Search term (RegNo, Name, Route, Most Visited Route, Branch)
+      // 4. Search term (RegNo, Name, Route, Most Visited Route, Most Time-Spent, Peak Slot, Branch)
       if (query) {
         const nameMatch = (st.studentName || "").toLowerCase().includes(query);
         const regMatch = (st.regNo || "").toLowerCase().includes(query);
         const routeMatch = (st.currentRoute || "").toLowerCase().includes(query);
-        const titleMatch = (st.pageTitle || "").toLowerCase().includes(query);
+        const titleMatch = (st.pageTitle || st.lastActivePageTitle || "").toLowerCase().includes(query);
         const mostMatch = (st.mostVisitedPageTitle || st.mostVisitedRoute || "").toLowerCase().includes(query);
+        const timeSpentMatch = (st.mostTimeSpentPageTitle || st.mostTimeSpentRoute || "").toLowerCase().includes(query);
+        const peakMatch = (st.mostActiveTimeSlot || "").toLowerCase().includes(query);
         const branchMatch = (st.branch || "").toLowerCase().includes(query);
-        if (!nameMatch && !regMatch && !routeMatch && !titleMatch && !mostMatch && !branchMatch) return false;
+        if (!nameMatch && !regMatch && !routeMatch && !titleMatch && !mostMatch && !timeSpentMatch && !peakMatch && !branchMatch) return false;
       }
 
       return true;
@@ -1009,55 +1027,95 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                   </span>
                 </div>
 
-                {/* Visited Route & Time Spent */}
+                {/* Visited Route & Time Spent Analytics */}
                 <div
                   style={{
                     background: "#ffffff",
                     border: "1px solid #e2e8f0",
-                    borderRadius: 8,
-                    padding: "8px 10px",
+                    borderRadius: 10,
+                    padding: "10px 12px",
                     fontSize: 12,
                     display: "flex",
                     flexDirection: "column",
-                    gap: 4,
+                    gap: 6,
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ color: "#64748b", fontWeight: 600 }}>Active Route:</span>
-                    <span
-                      style={{
-                        color: "#0f172a",
-                        fontWeight: 700,
-                        fontFamily: "monospace",
-                        maxWidth: "65%",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                      title={st.currentRoute}
-                    >
-                      {st.currentRoute}
-                    </span>
-                  </div>
-
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11.5 }}>
-                    <span style={{ color: "#64748b" }}>Time Spent:</span>
-                    <span style={{ color: "#059669", fontWeight: 700 }}>
-                      {formatDuration(st.timeSpentCurrentRoute || 0)}{" "}
-                      <span style={{ color: "#64748b", fontWeight: 500 }}>
-                        (Total: {formatDuration(st.totalTimeSpentSeconds || 0)})
+                  {/* 1. Last Active Page & Time */}
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6 }}>
+                      <span style={{ color: "#64748b", fontWeight: 700, fontSize: 11, textTransform: "uppercase" }}>
+                        Last Active Page:
                       </span>
-                    </span>
-                  </div>
-
-                  {st.mostVisitedRoute && (
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11.5 }}>
-                      <span style={{ color: "#64748b" }}>Most Visited:</span>
-                      <span style={{ color: "#c026d3", fontWeight: 700 }}>
-                        {st.mostVisitedPageTitle || st.mostVisitedRoute}
+                      <span style={{ color: "#2563eb", fontWeight: 700, fontSize: 11 }}>
+                        {formatLastActive(st.lastActiveAt)}
                       </span>
                     </div>
-                  )}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                      <span style={{ color: "#0f172a", fontWeight: 800, fontSize: 12.5 }}>
+                        {st.lastActivePageTitle || st.pageTitle || "Dashboard"}
+                      </span>
+                      <span style={{ color: "#64748b", fontFamily: "monospace", fontSize: 10.5 }}>
+                        ({st.lastActiveRoute || st.currentRoute})
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 2. Most Active Time Slot (Peak Hours) */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 4, borderTop: "1px dashed #f1f5f9" }}>
+                    <span style={{ color: "#64748b", fontWeight: 600, fontSize: 11.5 }}>Most Active Time:</span>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        background: "#f0f9ff",
+                        border: "1px solid #bae6fd",
+                        color: "#0369a1",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: "2px 7px",
+                        borderRadius: 6,
+                      }}
+                    >
+                      <Clock size={11} color="#0284c7" />
+                      {st.mostActiveTimeSlot || "General"}
+                    </span>
+                  </div>
+
+                  {/* 3. Most Time-Spent Page */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11.5 }}>
+                    <span style={{ color: "#64748b", fontWeight: 600 }}>Most Time-Spent:</span>
+                    <span style={{ color: "#059669", fontWeight: 800 }}>
+                      {st.mostTimeSpentPageTitle || st.mostVisitedPageTitle || "Dashboard"}{" "}
+                      <span style={{ color: "#047857", fontWeight: 700 }}>
+                        ({formatDuration(st.mostTimeSpentSeconds || st.totalTimeSpentSeconds || 0)})
+                      </span>
+                    </span>
+                  </div>
+
+                  {/* 4. Top Visited Page & Total Learning Time */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11.5 }}>
+                    <span style={{ color: "#64748b", fontWeight: 600 }}>Top Visited Page:</span>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        color: "#7e22ce",
+                        fontWeight: 700,
+                      }}
+                    >
+                      <Flame size={11} color="#a855f7" />
+                      {st.mostVisitedPageTitle || st.mostVisitedRoute || "/"} ({st.mostVisitedCount || 1}v)
+                    </span>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "#64748b", paddingTop: 4, borderTop: "1px dashed #f1f5f9" }}>
+                    <span>Total Time on Site:</span>
+                    <span style={{ fontWeight: 800, color: "#0f172a" }}>
+                      {formatDuration(st.totalTimeSpentSeconds || 0)}
+                    </span>
+                  </div>
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "#64748b", gap: 6 }}>
@@ -1078,11 +1136,11 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
               <thead>
                 <tr style={{ borderBottom: "1.5px solid #e2e8f0", color: "#64748b", fontSize: 11.5, textTransform: "uppercase" }}>
                   <th style={{ padding: "10px 12px" }}>Student</th>
-                  <th style={{ padding: "10px 12px" }}>Device & Browser</th>
-                  <th style={{ padding: "10px 12px" }}>Current / Last Route</th>
-                  <th style={{ padding: "10px 12px" }}>Time Spent</th>
-                  <th style={{ padding: "10px 12px" }}>Most Visited Route</th>
-                  <th style={{ padding: "10px 12px" }}>Last Active</th>
+                  <th style={{ padding: "10px 12px" }}>Device & System</th>
+                  <th style={{ padding: "10px 12px" }}>Last Active Page & Time</th>
+                  <th style={{ padding: "10px 12px" }}>Most Active Time</th>
+                  <th style={{ padding: "10px 12px" }}>Most Time-Spent Page</th>
+                  <th style={{ padding: "10px 12px" }}>Top Visited Page & Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -1127,50 +1185,82 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                       <div style={{ fontSize: 11, color: "#94a3b8" }}>{st.os}</div>
                     </td>
 
+                    {/* Last Active Page & Time */}
                     <td style={{ padding: "12px" }}>
                       <div style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
                         <span style={{ color: "#0f172a", fontWeight: 700, fontSize: 12.5 }}>
-                          {st.pageTitle || "Dashboard"}
+                          {st.lastActivePageTitle || st.pageTitle || "Dashboard"}
                         </span>
-                        <span style={{ color: "#2563eb", fontWeight: 600, fontFamily: "monospace", fontSize: 11 }}>
-                          {st.currentRoute}
-                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ color: "#2563eb", fontWeight: 600, fontFamily: "monospace", fontSize: 11 }}>
+                            {st.lastActiveRoute || st.currentRoute}
+                          </span>
+                          <span style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600 }}>
+                            • {formatLastActive(st.lastActiveAt)}
+                          </span>
+                        </div>
                       </div>
                     </td>
 
-                    <td style={{ padding: "12px" }}>
-                      <div style={{ display: "flex", flexDirection: "column" }}>
-                        <span style={{ color: "#059669", fontWeight: 800, fontSize: 13 }}>
-                          {formatDuration(st.timeSpentCurrentRoute || 0)}
-                        </span>
-                        <span style={{ fontSize: 11, color: "#64748b" }}>
-                          Total: {formatDuration(st.totalTimeSpentSeconds || 0)}
-                        </span>
-                      </div>
-                    </td>
-
+                    {/* Most Active Time (Peak Time Slot) */}
                     <td style={{ padding: "12px" }}>
                       <span
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
                           gap: 5,
-                          background: "#faf5ff",
-                          border: "1px solid #f3e8ff",
-                          color: "#7e22ce",
+                          background: "#f0f9ff",
+                          border: "1px solid #bae6fd",
+                          color: "#0369a1",
                           fontSize: 11.5,
                           fontWeight: 700,
                           padding: "3px 9px",
                           borderRadius: 6,
+                          whiteSpace: "nowrap",
                         }}
                       >
-                        <Flame size={12} color="#a855f7" />
-                        {st.mostVisitedPageTitle || st.mostVisitedRoute || "/"}
+                        <Clock size={12} color="#0284c7" />
+                        {st.mostActiveTimeSlot || "General"}
                       </span>
                     </td>
 
-                    <td style={{ padding: "12px", color: "#64748b", fontSize: 12 }}>
-                      {st.lastActiveAt ? new Date(st.lastActiveAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "Recently"}
+                    {/* Most Time-Spent Page */}
+                    <td style={{ padding: "12px" }}>
+                      <div style={{ display: "flex", flexDirection: "column" }}>
+                        <span style={{ color: "#059669", fontWeight: 800, fontSize: 12.5 }}>
+                          {st.mostTimeSpentPageTitle || st.mostVisitedPageTitle || "Dashboard"}
+                        </span>
+                        <span style={{ fontSize: 11, color: "#047857", fontWeight: 700 }}>
+                          Spent: {formatDuration(st.mostTimeSpentSeconds || st.totalTimeSpentSeconds || 0)}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Top Visited Page & Total Time */}
+                    <td style={{ padding: "12px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            background: "#faf5ff",
+                            border: "1px solid #f3e8ff",
+                            color: "#7e22ce",
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            padding: "3px 8px",
+                            borderRadius: 6,
+                            width: "fit-content",
+                          }}
+                        >
+                          <Flame size={12} color="#a855f7" />
+                          {st.mostVisitedPageTitle || st.mostVisitedRoute || "/"} ({st.mostVisitedCount || 1}v)
+                        </span>
+                        <span style={{ fontSize: 11, color: "#64748b" }}>
+                          Total: <strong style={{ color: "#0f172a" }}>{formatDuration(st.totalTimeSpentSeconds || 0)}</strong>
+                        </span>
+                      </div>
                     </td>
                   </tr>
                 ))}
