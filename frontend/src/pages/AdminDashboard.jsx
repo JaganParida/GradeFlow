@@ -68,6 +68,7 @@ import {
   ShieldAlert,
   KeyRound,
   Activity,
+  Route,
 } from "lucide-react";
 
 function getDynamicSessionOptions(bStr, semVal, yStr) {
@@ -3770,7 +3771,7 @@ export default function AdminDashboard({ defaultTab = null }) {
   // Build granular tab list based on authenticated identity
   const ALL_ADMIN_TABS = [
     { id: "overview", label: "Upload Results", icon: <CloudUpload size={15} />, desc: "Upload and process semester results & scorecards" },
-    { id: "live-traffic", label: "Live Active Students", icon: <Activity size={15} />, desc: "Real-time active student monitor, route analytics & waiting queue control" },
+    { id: "live-traffic", label: "Student Route Intelligence", icon: <Route size={15} />, desc: "Student device identification, route duration analytics, and top visited pages" },
     { id: "timetable", label: "Timetable & Calendar", icon: <Clock size={15} />, desc: "Manage class schedules, routines and academic calendar" },
     { id: "report-card", label: "Report Card Editor", icon: <FileText size={15} />, desc: "Official student grade sheets and report cards" },
     { id: "missing-uploader", label: "Missing Students Ingestion", icon: <UserPlus size={15} />, desc: "Manual student entry & individual score records" },
@@ -4097,19 +4098,15 @@ export default function AdminDashboard({ defaultTab = null }) {
               },
               {
                 label: "Currently Logged In",
-                sublabel: "Active Live Sessions",
-                mobileSublabel: "Live Sessions",
+                sublabel: "Active Student Sessions",
+                mobileSublabel: "Sessions",
                 value: (stats.activeLoggedInCount ?? 0).toLocaleString(),
                 icon: <Activity size={isMobile ? 15 : 18} color="#059669" />,
                 bg: "#ecfdf5",
                 border: "#a7f3d0",
-                badge: "Live Online",
+                badge: "Active Sessions",
                 badgeColor: "#059669",
                 badgeBg: "#d1fae5",
-                isLive: true,
-                targetTab: "live-traffic",
-                cta: "View Live Monitor",
-                mobileCta: "Monitor",
               },
               {
                 label: "Academic Records",
@@ -4343,9 +4340,9 @@ export default function AdminDashboard({ defaultTab = null }) {
                       gap: 6,
                       padding: "9px 16px",
                       borderRadius: 10,
-                      border: t.id === "live-traffic" && !isActive ? "1px dashed #a7f3d0" : "none",
-                      background: isActive ? "#ffffff" : t.id === "live-traffic" ? "#f0fdf4" : "transparent",
-                      color: isActive ? (t.id === "live-traffic" ? "#059669" : "#0f172a") : (t.id === "live-traffic" ? "#047857" : "#64748b"),
+                      border: "none",
+                      background: isActive ? "#ffffff" : "transparent",
+                      color: isActive ? "#0f172a" : "#64748b",
                       fontSize: 13,
                       fontWeight: isActive ? 800 : 600,
                       cursor: "pointer",
@@ -4355,39 +4352,10 @@ export default function AdminDashboard({ defaultTab = null }) {
                       fontFamily: "'DM Sans', sans-serif",
                     }}
                   >
-                    <span style={{ color: isActive ? (t.id === "live-traffic" ? "#059669" : "#2563eb") : (t.id === "live-traffic" ? "#10b981" : "#64748b") }}>
+                    <span style={{ color: isActive ? "#2563eb" : "#64748b" }}>
                       {t.icon}
                     </span>
                     <span>{t.label}</span>
-                    {t.id === "live-traffic" && (
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 3,
-                          fontSize: 9.5,
-                          fontWeight: 800,
-                          background: isActive ? "#dcfce7" : "#d1fae5",
-                          color: "#059669",
-                          padding: "1px 5px",
-                          borderRadius: 6,
-                          border: "1px solid #a7f3d0",
-                          marginLeft: 2,
-                          letterSpacing: "0.03em",
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: 5,
-                            height: 5,
-                            borderRadius: "50%",
-                            background: "#10b981",
-                            display: "inline-block",
-                          }}
-                        />
-                        LIVE
-                      </span>
-                    )}
                   </button>
                 );
               })}
@@ -5109,7 +5077,7 @@ export default function AdminDashboard({ defaultTab = null }) {
           <AdminAttendanceMonitor API={API} authHeaders={authHeaders} isMobile={isMobile} />
         )}
 
-        {/* ── TAB: LIVE ACTIVE STUDENTS & TRAFFIC INTELLIGENCE ── */}
+        {/* ── TAB: STUDENT ROUTE INTELLIGENCE ── */}
         {tab === "live-traffic" && (
           <div id="admin-live-traffic-monitor" data-tab-content="live-traffic">
             <AdminLiveTrafficManager API={API} authHeaders={authHeaders} isMobile={isMobile} />

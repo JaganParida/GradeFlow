@@ -3,6 +3,7 @@ import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { useApp } from "../context/AppContext";
+import AdminTrafficQueueManager from "./AdminTrafficQueueManager";
 import {
   ShieldCheck,
   ShieldAlert,
@@ -52,7 +53,7 @@ import {
 export const AVAILABLE_PERMISSIONS = {
   routes: [
     { id: "overview", label: "Upload Results", desc: "Access to upload semester results and internal marks" },
-    { id: "live-traffic", label: "Live Active Students", desc: "Access to real-time active student monitoring, traffic analytics, and queue control" },
+    { id: "live-traffic", label: "Student Route Intelligence", desc: "Access to student device identification, route duration analytics, and top visited pages" },
     { id: "timetable", label: "Timetable & Calendar", desc: "Access to view, create, and manage timetables" },
     { id: "report-card", label: "Report Card Editor", desc: "Access to student search and report card editor" },
     { id: "missing-uploader", label: "Missing Ingestion", desc: "Access to missing students ingestion" },
@@ -1028,6 +1029,31 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                 Manual
               </span>
             )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab("traffic-queue")}
+            className={`gf-mgmt-tab-btn ${activeTab === "traffic-queue" ? "active" : ""}`}
+            style={{
+              padding: "8px 14px",
+              borderRadius: 10,
+              border: activeTab === "traffic-queue" ? "1px solid #bfdbfe" : "1px solid transparent",
+              background: activeTab === "traffic-queue" ? "#eff6ff" : "transparent",
+              color: activeTab === "traffic-queue" ? "#2563eb" : "#64748b",
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+              transition: "all 0.15s ease",
+            }}
+          >
+            <ShieldCheck size={15} />
+            <span>Traffic & Queue Controls</span>
           </button>
         </div>
 
@@ -2889,6 +2915,11 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── TAB 5: TRAFFIC & VIRTUAL QUEUE SYSTEM ── */}
+      {activeTab === "traffic-queue" && (
+        <AdminTrafficQueueManager API={API} authHeaders={authHeaders} isMobile={isMobileView} />
       )}
 
       {/* ══════════════════════════════════════════════════════════════
