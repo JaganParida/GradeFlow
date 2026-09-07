@@ -11,13 +11,17 @@ const {
   currentConfig,
 } = require("../utils/liveTrafficManager");
 
+const StudentRouteActivity = require("../models/StudentRouteActivity");
+
 // ─── POST /api/traffic/page-view ─────────────────────────────────────────────
-// Called on route navigation. Checks queue requirements and logs route visit
+// Called on route navigation. Logs student route & device activity and duration
 router.post("/page-view", async (req, res) => {
   try {
     const {
       token,
       route = "/",
+      previousRoute = null,
+      timeSpentSeconds = 0,
       regNo = null,
       studentName = null,
       branch = null,
@@ -28,11 +32,12 @@ router.post("/page-view", async (req, res) => {
       isAdmin = false,
     } = req.body;
 
-    if (!token) {
-      return res.status(400).json({ success: false, message: "Client token required" });
+    const clientToken = token || regNo;
+    if (!clientToken) {
+      return res.status(400).json({ success: false, message: "Client token or RegNo required" });
     }
 
-    // Admins are exempt
+    // Admins are strictly exempt
     if (isAdmin) {
       return res.json({
         success: true,
@@ -40,6 +45,78 @@ router.post("/page-view", async (req, res) => {
         admitted: true,
         bypass: true,
       });
+    }
+
+    // Special student 230301120327 is strictly exempt from tracking
+    const cleanReg = regNo ? String(regNo).toUpperCase().trim() : null;
+    if (cleanReg === "230301120327") {
+      return res.json({ success: true, skipped: true });
+    }
+
+    // Log to StudentRouteActivity if cleanReg is available
+    if (cleanReg) {
+      try {
+        const validDuration = Math.max(0, parseInt(timeSpentSeconds, 10) || 0);
+        let studentActivity = await StudentRouteActivity.findOne({ regNo: cleanReg });
+
+        if (!studentActivity) {
+          studentActivity = new StudentRouteActivity({
+            regNo: cleanReg,
+            studentName: studentName || `Student (${cleanReg})`,
+            branch: branch || "CSE",
+            batch: batch || (cleanReg.startsWith("23") ? "2023" : "2024"),
+            deviceType: deviceType || "Desktop",
+            os: os || "Unknown",
+            browser: browser || "Unknown",
+            currentRoute: route,
+            currentPageTitle: route,
+            totalTimeSpentSeconds: 0,
+            totalPageViews: 1,
+            mostVisitedRoute: route,
+            mostVisitedPageTitle: route,
+            visitedRoutes: [{
+              route,
+              pageTitle: route,
+              durationSeconds: 0,
+              visitCount: 1,
+              lastVisitedAt: new Date(),
+            }],
+            firstSeenAt: new Date(),
+            lastActiveAt: new Date(),
+          });
+        } else {
+          studentActivity.studentName = studentName || studentActivity.studentName;
+          studentActivity.branch = branch || studentActivity.branch;
+          studentActivity.batch = batch || studentActivity.batch;
+          studentActivity.deviceType = deviceType || studentActivity.deviceType;
+          studentActivity.os = os || studentActivity.os;
+          studentActivity.browser = browser || studentActivity.browser;
+          studentActivity.lastActiveAt = new Date();
+          studentActivity.totalPageViews = (studentActivity.totalPageViews || 0) + 1;
+          studentActivity.currentRoute = route;
+
+          if (previousRoute && validDuration >= 5) {
+            studentActivity.totalTimeSpentSeconds = (studentActivity.totalTimeSpentSeconds || 0) + validDuration;
+            const existingRoute = studentActivity.visitedRoutes.find((r) => r.route === previousRoute);
+            if (existingRoute) {
+              existingRoute.durationSeconds = (existingRoute.durationSeconds || 0) + validDuration;
+              existingRoute.visitCount = (existingRoute.visitCount || 0) + 1;
+              existingRoute.lastVisitedAt = new Date();
+            } else {
+              studentActivity.visitedRoutes.push({
+                route: previousRoute,
+                pageTitle: previousRoute,
+                durationSeconds: validDuration,
+                visitCount: 1,
+                lastVisitedAt: new Date(),
+              });
+            }
+          }
+        }
+        await studentActivity.save();
+      } catch (err) {
+        console.warn("StudentRouteActivity backend save warning:", err.message);
+      }
     }
 
     // Check if token already admitted

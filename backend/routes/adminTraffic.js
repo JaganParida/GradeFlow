@@ -16,17 +16,71 @@ const liveTrafficManager = require("../utils/liveTrafficManager");
 // All admin traffic routes require administrative authentication
 router.use(protect);
 
+const StudentRouteActivity = require("../models/StudentRouteActivity");
+
 // ─── GET /api/admin/traffic/live-overview ─────────────────────────────────────
-// Returns real-time active users with details, waiting queue, and categorized page analytics
+// Returns student activity and route analytics (strictly excluding 230301120327)
 router.get("/live-overview", async (req, res) => {
   try {
-    const liveStats = getLiveStatsSummary();
+    const studentActivities = await StudentRouteActivity.find({
+      regNo: { $ne: "230301120327" },
+    })
+      .sort({ lastActiveAt: -1 })
+      .limit(200)
+      .lean();
+
     const analytics = await getCategorizedPageAnalytics();
+    const config = currentConfig;
+
+    const routeDistribution = {};
+    let totalTimeSpentAllStudents = 0;
+    let totalViewsAllStudents = 0;
+
+    studentActivities.forEach((st) => {
+      totalTimeSpentAllStudents += st.totalTimeSpentSeconds || 0;
+      totalViewsAllStudents += st.totalPageViews || 1;
+      const curr = st.currentRoute || "/";
+      routeDistribution[curr] = (routeDistribution[curr] || 0) + 1;
+    });
 
     res.json({
       success: true,
-      ...liveStats,
-      analytics,
+      totalTrackedUsers: studentActivities.length,
+      totalActiveUsers: studentActivities.length,
+      totalLoggedInSessions: studentActivities.length,
+      totalQueuedUsers: 0,
+      maxActiveCapacity: config.maxActiveCapacity || 200,
+      queueEnabled: Boolean(config.queueEnabled),
+      autoTriggerEnabled: Boolean(config.autoTriggerEnabled),
+      isQueueActive: false,
+      activeStudents: studentActivities.map((s) => ({
+        token: s.regNo,
+        regNo: s.regNo,
+        studentName: s.studentName,
+        branch: s.branch,
+        batch: s.batch,
+        deviceType: s.deviceType || "Desktop",
+        os: s.os || "Unknown",
+        browser: s.browser || "Unknown",
+        currentRoute: s.currentRoute || "/",
+        pageTitle: s.currentPageTitle || s.currentRoute || "/",
+        timeSpentCurrentRoute: s.timeSpentCurrentRoute || 0,
+        totalTimeSpentSeconds: s.totalTimeSpentSeconds || 0,
+        mostVisitedRoute: s.mostVisitedRoute || s.currentRoute || "/",
+        mostVisitedPageTitle: s.mostVisitedPageTitle || s.mostVisitedRoute || "/",
+        visitedRoutes: s.visitedRoutes || [],
+        totalPageViews: s.totalPageViews || 1,
+        lastActiveAt: s.lastActiveAt,
+        connectedAt: s.firstSeenAt,
+        isGuest: false,
+        status: "ACTIVE",
+      })),
+      routeDistribution,
+      analytics: {
+        ...analytics,
+        totalTimeSpentAllStudents,
+        totalViewsAllStudents,
+      },
     });
   } catch (err) {
     console.error("Error fetching live traffic overview:", err);
