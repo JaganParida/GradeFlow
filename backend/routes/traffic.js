@@ -13,6 +13,7 @@ const {
 
 const StudentRouteActivity = require("../models/StudentRouteActivity");
 const VercelQuotaMetric = require("../models/VercelQuotaMetric");
+const PageAnalytics = require("../models/PageAnalytics");
 
 function getIstHour() {
   const now = new Date();
@@ -77,7 +78,44 @@ router.post("/page-view", async (req, res) => {
       return res.status(400).json({ success: false, message: "Client token or RegNo required" });
     }
 
-    // Admins are strictly exempt
+    // ─── 1. Always record in PageAnalytics for all routes (including admin) ───
+    await PageAnalytics.findOneAndUpdate(
+      { route: route || "/" },
+      {
+        $setOnInsert: { pageTitle: route || "/" },
+        $inc: { totalViews: 1 },
+        $set: { lastVisitedAt: new Date() },
+      },
+      { upsert: true }
+    ).catch(() => {});
+
+    // ─── 2. Always record in VercelQuotaMetric for all requests ───
+    try {
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const istDate = new Date(Date.now() + istOffset);
+      const todayStr = istDate.toISOString().split("T")[0];
+      const todayMonthStr = todayStr.slice(0, 7);
+      const istDay = istDate.getUTCDay();
+      const istH = istDate.getUTCHours();
+
+      const incObj = {
+        totalRequests: 1,
+        estimatedBandwidthBytes: 28672,
+      };
+      incObj[`hourlyRequests.${istH}`] = 1;
+
+      await VercelQuotaMetric.findOneAndUpdate(
+        { dateStr: todayStr },
+        {
+          $setOnInsert: { monthStr: todayMonthStr, dayOfWeek: istDay },
+          $inc: incObj,
+          $set: { lastUpdated: new Date() },
+        },
+        { upsert: true }
+      );
+    } catch (quotaErr) {}
+
+    // ─── 3. Filter for StudentRouteActivity & Queue (Exclude Admin) ───
     if (isAdmin) {
       return res.json({
         success: true,
@@ -87,7 +125,7 @@ router.post("/page-view", async (req, res) => {
       });
     }
 
-    // Special student 230301120327 is strictly exempt from tracking
+    // Special student 230301120327 is strictly exempt from student route activity table
     const cleanReg = regNo ? String(regNo).toUpperCase().trim() : null;
     if (cleanReg === "230301120327") {
       return res.json({ success: true, skipped: true });
@@ -191,32 +229,6 @@ router.post("/page-view", async (req, res) => {
           }
         }
         await studentActivity.save();
-
-        // Atomically increment today's VercelQuotaMetric
-        try {
-          const istOffset = 5.5 * 60 * 60 * 1000;
-          const istDate = new Date(Date.now() + istOffset);
-          const todayStr = istDate.toISOString().split("T")[0];
-          const todayMonthStr = todayStr.slice(0, 7);
-          const istDay = istDate.getUTCDay();
-          const istH = istDate.getUTCHours();
-
-          const incObj = {
-            totalRequests: 1,
-            estimatedBandwidthBytes: 28672,
-          };
-          incObj[`hourlyRequests.${istH}`] = 1;
-
-          await VercelQuotaMetric.findOneAndUpdate(
-            { dateStr: todayStr },
-            {
-              $setOnInsert: { monthStr: todayMonthStr, dayOfWeek: istDay },
-              $inc: incObj,
-              $set: { lastUpdated: new Date() },
-            },
-            { upsert: true }
-          );
-        } catch (quotaErr) {}
       } catch (err) {
         console.warn("StudentRouteActivity backend save warning:", err.message);
       }
