@@ -29,6 +29,14 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
   });
 
   useEffect(() => {
+    // ─── FILTER 0: NEVER track on old domain (preserves CPU quota on retired Vercel project) ───
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname.toLowerCase();
+      if (host.includes("grade-flow-navy") || host.includes("gradeflow-navy")) {
+        return;
+      }
+    }
+
     // ─── FILTER 1: NEVER track Admin ───
     if (isAuthorizedAdmin) return;
 
