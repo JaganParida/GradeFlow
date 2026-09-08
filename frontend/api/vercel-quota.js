@@ -169,50 +169,24 @@ module.exports = async function handler(req, res) {
       estimatedWaitPerStudentSeconds: 15,
     };
 
-    // Synthesize realistic baseline if VercelQuotaMetric is freshly initialized
-    const API_AMPLIFICATION_FACTOR = 3.4;
-
-    let baselineTodayRequests = 0;
-    let baselineMonthRequests = 0;
-    const aggregateHourly = new Array(24).fill(0);
-    const aggregateDays = new Array(7).fill(0);
-
-    studentActivities.forEach((st) => {
-      baselineTodayRequests += Math.round((st.visitsToday || 1) * API_AMPLIFICATION_FACTOR);
-      baselineMonthRequests += Math.round((st.totalPageViews || 1) * API_AMPLIFICATION_FACTOR);
-
-      if (Array.isArray(st.hourlyActivity)) {
-        st.hourlyActivity.forEach((cnt, h) => {
-          aggregateHourly[h] = (aggregateHourly[h] || 0) + Math.round(cnt * API_AMPLIFICATION_FACTOR);
-        });
-      }
-      if (Array.isArray(st.dayOfWeekActivity)) {
-        st.dayOfWeekActivity.forEach((cnt, d) => {
-          aggregateDays[d] = (aggregateDays[d] || 0) + Math.round(cnt * API_AMPLIFICATION_FACTOR);
-        });
-      }
-    });
-
-    // Merge stored metrics with baseline
-    const storedTodayRequests = todayMetric ? todayMetric.totalRequests : 0;
+    // 100% genuine tracked metrics directly from VercelQuotaMetric
+    const storedTodayRequests = todayMetric ? (todayMetric.totalRequests || 0) : 0;
     const storedMonthRequests = monthlyMetrics.reduce((sum, m) => sum + (m.totalRequests || 0), 0);
 
+    const effectiveMonthRequests = storedMonthRequests;
+    const effectiveTodayRequests = storedTodayRequests;
+
     const totalRouteInvocations = pages.reduce(
-      (sum, p) => sum + Math.max(1, Math.round((p.totalViews || 1) * API_AMPLIFICATION_FACTOR)),
+      (sum, p) => sum + (p.totalViews || 0),
       0
     );
 
-    const effectiveMonthRequests = Math.max(storedMonthRequests, totalRouteInvocations, baselineMonthRequests);
-    const effectiveTodayRequests = Math.max(
-      storedTodayRequests,
-      Math.round(effectiveMonthRequests / Math.max(1, dayOfMonth))
-    );
-
-    // Merge 24-hour histogram
+    // Direct 24-hour histogram from today's actual metric
     const finalHourlyRequests = new Array(24).fill(0);
-    for (let h = 0; h < 24; h++) {
-      const fromMetric = todayMetric?.hourlyRequests?.[h] || 0;
-      finalHourlyRequests[h] = Math.max(fromMetric, aggregateHourly[h] || 0);
+    if (todayMetric && Array.isArray(todayMetric.hourlyRequests)) {
+      for (let h = 0; h < 24; h++) {
+        finalHourlyRequests[h] = todayMetric.hourlyRequests[h] || 0;
+      }
     }
 
     // Determine Peak Hour
@@ -226,16 +200,23 @@ module.exports = async function handler(req, res) {
     });
     const peakHourText = formatHourSlot(peakHourIndex);
 
-    // Determine Peak Day
+    // Determine Peak Day across this month's recorded metrics
+    const aggregateDays = new Array(7).fill(0);
+    monthlyMetrics.forEach((m) => {
+      if (typeof m.dayOfWeek === "number" && m.dayOfWeek >= 0 && m.dayOfWeek < 7) {
+        aggregateDays[m.dayOfWeek] = (aggregateDays[m.dayOfWeek] || 0) + (m.totalRequests || 0);
+      }
+    });
+
     let maxDayCount = 0;
-    let peakDayIndex = 2; // fallback Tuesday
+    let peakDayIndex = dayOfWeek; // fallback today's day of week
     aggregateDays.forEach((count, d) => {
       if (count > maxDayCount) {
         maxDayCount = count;
         peakDayIndex = d;
       }
     });
-    const peakDayText = DAYS_NAMES[peakDayIndex] || "Tuesday";
+    const peakDayText = DAYS_NAMES[peakDayIndex] || "Today";
 
     // ─── Calculate Quotas & Percentages ─────────────────────────────
     const todayBudget = HOBBY_LIMITS.DAILY_REQUESTS_BUDGET;
@@ -281,7 +262,7 @@ module.exports = async function handler(req, res) {
     };
 
     const routeBreakdown = pages.map((page) => {
-      const estimatedInvocations = Math.max(1, Math.round((page.totalViews || 1) * API_AMPLIFICATION_FACTOR));
+      const estimatedInvocations = page.totalViews || 0;
       const percentOfTotal = totalRouteInvocations > 0
         ? parseFloat(((estimatedInvocations / totalRouteInvocations) * 100).toFixed(1))
         : 0;
