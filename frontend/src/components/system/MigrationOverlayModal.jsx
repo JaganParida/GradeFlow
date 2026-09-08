@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Server,
   ShieldCheck,
-  CheckCircle2,
-  AlertCircle,
+  Server,
   Copy,
   Check,
   ArrowRight,
   Pause,
   Play,
-  Clock
+  Clock,
+  CheckCircle2
 } from "lucide-react";
 
 const NEW_ORIGIN = "https://grade-flow-six.vercel.app";
@@ -33,10 +32,40 @@ export default function MigrationOverlayModal() {
       const fullTarget = `${NEW_ORIGIN}${window.location.pathname}${window.location.search}${window.location.hash}`;
       setTargetUrl(fullTarget);
 
-      const origOverflow = document.body.style.overflow;
+      // Bulletproof mobile & desktop background scroll lock
+      const origBodyOverflow = document.body.style.overflow;
+      const origBodyPosition = document.body.style.position;
+      const origBodyWidth = document.body.style.width;
+      const origBodyHeight = document.body.style.height;
+      const origHtmlOverflow = document.documentElement.style.overflow;
+
       document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+      document.body.style.height = "100%";
+      document.body.style.top = "0";
+      document.body.style.left = "0";
+      document.documentElement.style.overflow = "hidden";
+
+      const preventTouchMove = (e) => {
+        const viewport = document.querySelector(".gf-migration-viewport");
+        if (viewport && viewport.contains(e.target) && viewport.scrollHeight > viewport.clientHeight) {
+          return; // Allow internal modal scroll if screen is extremely small
+        }
+        e.preventDefault();
+      };
+
+      document.addEventListener("touchmove", preventTouchMove, { passive: false });
+
       return () => {
-        document.body.style.overflow = origOverflow;
+        document.body.style.overflow = origBodyOverflow;
+        document.body.style.position = origBodyPosition;
+        document.body.style.width = origBodyWidth;
+        document.body.style.height = origBodyHeight;
+        document.body.style.top = "";
+        document.body.style.left = "";
+        document.documentElement.style.overflow = origHtmlOverflow;
+        document.removeEventListener("touchmove", preventTouchMove);
       };
     }
   }, []);
@@ -105,29 +134,37 @@ export default function MigrationOverlayModal() {
       <style>{`
         .gf-migration-viewport {
           position: fixed;
-          inset: 0;
-          z-index: 999999;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          width: 100vw;
+          width: 100dvw;
+          height: 100vh;
+          height: 100dvh;
+          max-height: 100dvh;
+          z-index: 9999999;
           background: #ffffff;
           background: radial-gradient(130% 120% at 50% 0%, #f1f5f9 0%, #f8fafc 50%, #ffffff 100%);
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: space-between;
-          padding: clamp(10px, 1.8vh, 20px) clamp(12px, 3vw, 28px);
+          padding: clamp(8px, 1.6vh, 20px) clamp(12px, 3vw, 28px);
           box-sizing: border-box;
           font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          height: 100vh;
-          height: 100dvh;
-          max-height: 100dvh;
           overflow-y: auto;
           overflow-x: hidden;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: none;
+          touch-action: pan-y;
           user-select: none;
           color: #0f172a;
         }
 
         .gf-migration-topbar {
           width: 100%;
-          max-width: 680px;
+          max-width: 720px;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -139,150 +176,167 @@ export default function MigrationOverlayModal() {
         .gf-migration-brand {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
         }
 
         .gf-migration-brand img {
-          height: clamp(24px, 3.5vh, 32px);
+          height: clamp(24px, 3.6vh, 32px);
           width: auto;
           object-fit: contain;
           display: block;
         }
 
         .gf-migration-brand-title {
-          font-size: clamp(16px, 2.2vh, 20px);
+          font-size: clamp(17px, 2.3vh, 21px);
           font-weight: 850;
           letter-spacing: -0.03em;
           color: #0f172a;
         }
 
-        .gf-migration-status-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          background: #f0fdf4;
-          border: 1px solid #bbf7d0;
-          color: #166534;
-          font-size: clamp(11px, 1.4vh, 12px);
-          font-weight: 700;
-          padding: 4px 10px;
-          border-radius: 9999px;
-        }
-
-        .gf-migration-status-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #22c55e;
-          box-shadow: 0 0 6px rgba(34, 197, 94, 0.7);
+        .gf-migration-topbar-subtitle {
+          font-size: clamp(11px, 1.4vh, 12.5px);
+          font-weight: 600;
+          color: #64748b;
+          letter-spacing: -0.01em;
         }
 
         .gf-migration-main-content {
           width: 100%;
-          max-width: 600px;
+          max-width: 660px;
           margin: auto 0;
           display: flex;
           flex-direction: column;
           align-items: center;
           text-align: center;
-          padding: clamp(6px, 1vh, 14px) 0;
+          padding: clamp(6px, 1.2vh, 14px) 0;
           box-sizing: border-box;
         }
 
         .gf-migration-icon-wrap {
-          width: clamp(44px, 6vh, 56px);
-          height: clamp(44px, 6vh, 56px);
-          border-radius: 16px;
+          width: clamp(42px, 5.5vh, 52px);
+          height: clamp(42px, 5.5vh, 52px);
+          border-radius: 14px;
           background: #eef2ff;
           border: 1px solid #c7d2fe;
           display: flex;
           align-items: center;
           justify-content: center;
           color: #4f46e5;
-          margin-bottom: clamp(8px, 1.4vh, 14px);
-          box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
+          margin-bottom: clamp(6px, 1vh, 10px);
+          box-shadow: 0 4px 10px rgba(79, 70, 229, 0.08);
+          flex-shrink: 0;
         }
 
         .gf-migration-heading {
-          font-size: clamp(19px, 2.8vh, 26px);
+          font-size: clamp(18px, 2.7vh, 25px);
           font-weight: 850;
           color: #0f172a;
           line-height: 1.2;
           letter-spacing: -0.03em;
-          margin: 0 0 clamp(6px, 1vh, 10px);
+          margin: 0 0 clamp(4px, 0.8vh, 8px);
         }
 
         .gf-migration-lead-text {
-          font-size: clamp(12px, 1.6vh, 14px);
+          font-size: clamp(12px, 1.55vh, 13.5px);
           color: #475569;
           line-height: 1.45;
-          margin: 0 0 clamp(10px, 1.8vh, 16px);
-          max-width: 520px;
+          margin: 0 0 clamp(10px, 1.6vh, 16px);
+          max-width: 580px;
         }
 
-        .gf-migration-notice-card {
+        /* ── TWO PROFESSIONAL CARDS (SIDE-BY-SIDE ON LAPTOP/DESKTOP, STACKED ON MOBILE) ── */
+        .gf-migration-cards-grid {
           width: 100%;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: clamp(8px, 1.2vh, 12px);
+          margin-bottom: clamp(10px, 1.6vh, 16px);
+          box-sizing: border-box;
+        }
+
+        @media (max-width: 580px) {
+          .gf-migration-cards-grid {
+            grid-template-columns: 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+          }
+        }
+
+        .gf-migration-card {
           background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 14px;
-          padding: clamp(8px, 1.4vh, 12px) clamp(10px, 2vw, 14px);
+          border-radius: 12px;
+          padding: clamp(8px, 1.4vh, 12px) clamp(10px, 1.8vw, 14px);
+          text-align: left;
+          box-sizing: border-box;
+          box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
           display: flex;
           flex-direction: column;
-          gap: clamp(6px, 1vh, 10px);
-          margin-bottom: clamp(12px, 1.8vh, 18px);
-          box-sizing: border-box;
-          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
-          text-align: left;
+          justify-content: flex-start;
+          transition: transform 0.15s ease;
         }
 
-        .gf-migration-item {
+        .gf-migration-card.trust {
+          border: 1px solid #bbf7d0;
+          background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);
+        }
+
+        .gf-migration-card.transition {
+          border: 1px solid #c7d2fe;
+          background: linear-gradient(180deg, #eef2ff 0%, #ffffff 100%);
+        }
+
+        .gf-migration-card-header {
           display: flex;
-          align-items: flex-start;
-          gap: 10px;
-          font-size: clamp(11.5px, 1.5vh, 13px);
-          line-height: 1.4;
+          align-items: center;
+          gap: 7px;
+          margin-bottom: 4px;
         }
 
-        .gf-migration-item.success {
+        .gf-migration-card-header h3 {
+          font-size: clamp(12px, 1.6vh, 13.5px);
+          font-weight: 750;
+          margin: 0;
+          letter-spacing: -0.01em;
+        }
+
+        .gf-migration-card.trust .gf-migration-card-header h3 {
           color: #15803d;
         }
 
-        .gf-migration-item.success strong {
-          color: #14532d;
-          font-weight: 750;
+        .gf-migration-card.transition .gf-migration-card-header h3 {
+          color: #4338ca;
         }
 
-        .gf-migration-item.warning {
-          color: #b91c1c;
+        .gf-migration-card-body {
+          font-size: clamp(11px, 1.4vh, 12px);
+          line-height: 1.45;
+          margin: 0;
+          color: #475569;
         }
 
-        .gf-migration-item.warning strong {
-          color: #991b1b;
-          font-weight: 750;
+        .gf-migration-card-body strong {
+          font-weight: 700;
+          color: #1e293b;
         }
 
-        .gf-migration-item-icon {
-          flex-shrink: 0;
-          margin-top: 1px;
-        }
-
+        /* ── URL BAR WITH COPY BUTTON ── */
         .gf-migration-link-panel {
           width: 100%;
           background: #f8fafc;
           border: 1px solid #cbd5e1;
           border-radius: 12px;
-          padding: 6px 8px 6px 14px;
+          padding: 5px 6px 5px 12px;
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 8px;
-          margin-bottom: clamp(10px, 1.6vh, 16px);
+          margin-bottom: clamp(8px, 1.4vh, 14px);
           box-sizing: border-box;
         }
 
         .gf-migration-link-address {
           font-family: 'Space Mono', SFMono-Regular, Menlo, Monaco, monospace;
-          font-size: clamp(12px, 1.6vh, 13.5px);
+          font-size: clamp(12px, 1.55vh, 13.5px);
           font-weight: 650;
           color: #1e293b;
           overflow: hidden;
@@ -295,18 +349,18 @@ export default function MigrationOverlayModal() {
           background: #ffffff;
           border: 1px solid #cbd5e1;
           color: #334155;
-          font-size: clamp(11px, 1.4vh, 12px);
+          font-size: clamp(11px, 1.35vh, 12px);
           font-weight: 650;
-          padding: 6px 12px;
+          padding: 5px 10px;
           border-radius: 8px;
           cursor: pointer;
           display: inline-flex;
           align-items: center;
-          gap: 5px;
+          gap: 4px;
           white-space: nowrap;
           flex-shrink: 0;
           transition: all 0.15s ease;
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
         }
 
         .gf-migration-copy-button:hover {
@@ -321,12 +375,13 @@ export default function MigrationOverlayModal() {
           color: #166534;
         }
 
+        /* ── ACTION CTA GROUP ── */
         .gf-migration-cta-group {
           width: 100%;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
         }
 
         .gf-migration-primary-action {
@@ -334,22 +389,22 @@ export default function MigrationOverlayModal() {
           background: #4f46e5;
           border: 1px solid #4338ca;
           color: #ffffff;
-          font-size: clamp(13.5px, 1.8vh, 15px);
+          font-size: clamp(13px, 1.7vh, 15px);
           font-weight: 750;
-          padding: clamp(10px, 1.6vh, 13px) 20px;
+          padding: clamp(9px, 1.4vh, 13px) 18px;
           border-radius: 12px;
           cursor: pointer;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
-          box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+          box-shadow: 0 4px 12px rgba(79, 70, 229, 0.22);
           transition: all 0.15s ease;
         }
 
         .gf-migration-primary-action:hover {
           background: #4338ca;
-          box-shadow: 0 6px 18px rgba(79, 70, 229, 0.35);
+          box-shadow: 0 6px 18px rgba(79, 70, 229, 0.32);
           transform: translateY(-1px);
         }
 
@@ -360,8 +415,8 @@ export default function MigrationOverlayModal() {
         .gf-migration-timer-caption {
           display: flex;
           align-items: center;
-          gap: 6px;
-          font-size: clamp(11px, 1.4vh, 12px);
+          gap: 5px;
+          font-size: clamp(10.5px, 1.35vh, 12px);
           color: #64748b;
           font-weight: 500;
         }
@@ -375,7 +430,7 @@ export default function MigrationOverlayModal() {
           background: transparent;
           border: none;
           color: #64748b;
-          font-size: clamp(11px, 1.4vh, 12px);
+          font-size: clamp(10.5px, 1.35vh, 12px);
           font-weight: 600;
           cursor: pointer;
           display: inline-flex;
@@ -392,62 +447,69 @@ export default function MigrationOverlayModal() {
 
         .gf-migration-footer {
           width: 100%;
-          max-width: 680px;
-          padding-top: clamp(6px, 1.2vh, 10px);
+          max-width: 720px;
+          padding-top: clamp(6px, 1vh, 10px);
           border-top: 1px solid #f1f5f9;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          font-size: 11px;
+          font-size: clamp(10px, 1.3vh, 11px);
           color: #94a3b8;
           flex-shrink: 0;
         }
       `}</style>
 
-      {/* Top Header with Real GradeFlow Logo */}
+      {/* Top Header with Real GradeFlow Logo & Clean Institutional Title */}
       <div className="gf-migration-topbar">
         <div className="gf-migration-brand">
           <img src="/webisteLogo.png" alt="GradeFlow" />
           <span className="gf-migration-brand-title">GradeFlow</span>
         </div>
-        <div className="gf-migration-status-pill">
-          <span className="gf-migration-status-dot" />
-          <span>New Server Operational</span>
+        <div className="gf-migration-topbar-subtitle">
+          Official Academic Network
         </div>
       </div>
 
       {/* Main Central Presentation */}
       <div className="gf-migration-main-content">
         <div className="gf-migration-icon-wrap">
-          <Server size={26} strokeWidth={2.2} />
+          <Server size={24} strokeWidth={2.2} />
         </div>
 
         <h1 id="migration-heading" className="gf-migration-heading">
-          GradeFlow Has Moved to an Upgraded Server
+          Important Notice: Official Server Migration
         </h1>
 
         <p className="gf-migration-lead-text">
-          To provide zero-downtime reliability and instant response speeds under high student traffic, GradeFlow has permanently transitioned to our upgraded high-performance server.
+          To handle high student traffic with zero lag, instant speed, and 100% uptime, GradeFlow has officially transitioned to our high-performance server.
         </p>
 
-        {/* Compact Integrated Notice Card */}
-        <div className="gf-migration-notice-card">
-          <div className="gf-migration-item success">
-            <CheckCircle2 size={16} className="gf-migration-item-icon" strokeWidth={2.4} />
-            <span>
-              <strong>Your data is 100% safe:</strong> All student accounts, grades, rankings, and schedules remain fully intact on the new server.
-            </span>
+        {/* ── TWO PROFESSIONAL TRUST CARDS (GRID ON LAPTOP, STACKED ON MOBILE) ── */}
+        <div className="gf-migration-cards-grid">
+          {/* Card 1: 100% Student Trust & Data Safety */}
+          <div className="gf-migration-card trust">
+            <div className="gf-migration-card-header">
+              <ShieldCheck size={17} color="#16a34a" strokeWidth={2.4} />
+              <h3>Your Data is 100% Safe</h3>
+            </div>
+            <p className="gf-migration-card-body">
+              All student records, semester grades, timetables, and analytics remain fully intact on our secure cloud database. <strong>Zero data has been reset or deleted.</strong>
+            </p>
           </div>
 
-          <div className="gf-migration-item warning">
-            <AlertCircle size={16} className="gf-migration-item-icon" strokeWidth={2.4} />
-            <span>
-              <strong>Please do not use this old link again:</strong> Bookmark our new official link below and visit it directly next time.
-            </span>
+          {/* Card 2: Actionable Migration & Bookmark Notice */}
+          <div className="gf-migration-card transition">
+            <div className="gf-migration-card-header">
+              <CheckCircle2 size={17} color="#4f46e5" strokeWidth={2.4} />
+              <h3>Please Use Our New Link</h3>
+            </div>
+            <p className="gf-migration-card-body">
+              This old address will be phased out soon. Please <strong>save & bookmark our new link below</strong> so you can access GradeFlow directly next time!
+            </p>
           </div>
         </div>
 
-        {/* URL Box */}
+        {/* New URL Bar with Quick Copy */}
         <div className="gf-migration-link-panel">
           <span className="gf-migration-link-address" title={NEW_ORIGIN}>
             {NEW_ORIGIN.replace("https://", "")}
@@ -459,12 +521,12 @@ export default function MigrationOverlayModal() {
           >
             {copied ? (
               <>
-                <Check size={13} strokeWidth={2.5} />
+                <Check size={12} strokeWidth={2.5} />
                 <span>Copied</span>
               </>
             ) : (
               <>
-                <Copy size={13} strokeWidth={2} />
+                <Copy size={12} strokeWidth={2} />
                 <span>Copy Link</span>
               </>
             )}
@@ -478,15 +540,15 @@ export default function MigrationOverlayModal() {
             className="gf-migration-primary-action"
             onClick={handleRedirect}
           >
-            <span>Continue to New Website</span>
+            <span>Open Upgraded Website Now</span>
             <ArrowRight size={16} strokeWidth={2.2} />
           </button>
 
           <div className="gf-migration-timer-caption">
-            <Clock size={12} strokeWidth={2} />
+            <Clock size={11} strokeWidth={2} />
             {!isPaused ? (
               <>
-                <span>Auto-redirecting in</span>
+                <span>Redirecting in</span>
                 <span className="gf-migration-timer-bold">{countdown}s</span>
                 <span>•</span>
                 <button
@@ -494,20 +556,20 @@ export default function MigrationOverlayModal() {
                   className="gf-migration-timer-btn"
                   onClick={() => setIsPaused(true)}
                 >
-                  <Pause size={10} strokeWidth={2.5} />
+                  <Pause size={9} strokeWidth={2.5} />
                   <span>Pause</span>
                 </button>
               </>
             ) : (
               <>
-                <span>Paused</span>
+                <span>Auto-redirect paused</span>
                 <span>•</span>
                 <button
                   type="button"
                   className="gf-migration-timer-btn"
                   onClick={() => setIsPaused(false)}
                 >
-                  <Play size={10} strokeWidth={2.5} />
+                  <Play size={9} strokeWidth={2.5} />
                   <span>Resume</span>
                 </button>
               </>
@@ -516,10 +578,10 @@ export default function MigrationOverlayModal() {
         </div>
       </div>
 
-      {/* Footer */}
+      {/* Clean Footer */}
       <div className="gf-migration-footer">
-        <span>GradeFlow • Academic Analytics</span>
-        <span>Zero Downtime Migration Protocol</span>
+        <span>GradeFlow • Academic Analytics & Intelligence</span>
+        <span>Secure Migration Protocol</span>
       </div>
     </div>
   );
