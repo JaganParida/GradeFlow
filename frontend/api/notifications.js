@@ -321,20 +321,15 @@ module.exports = async function handler(req, res) {
       const regNo = student.regNo;
       const currentSessionId = student.sessionId;
 
-      // Clean up expired notifications
-      await StudentNotification.updateMany(
-        {
-          status: "UNREAD",
-          expiresAt: { $lte: new Date() },
-        },
-        { $set: { status: "EXPIRED" } }
-      ).catch(() => {});
-
       const now = new Date();
       const directFilter = regNo
         ? {
             regNo,
             $or: [{ targetSessionId: null }, { targetSessionId: currentSessionId }],
+            $and: [
+              { $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }] },
+              { status: { $ne: "EXPIRED" } },
+            ],
             createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
           }
         : null;
@@ -564,53 +559,13 @@ module.exports = async function handler(req, res) {
       return res.json({ success: true, message: "Notifications marked as read." });
     }
 
-    // 6. SSE Real-time Notification Stream
+    // 6. SSE Real-time Notification Stream (Stream retired to eliminate serverless timeouts)
     if (action === "stream" && req.method === "GET") {
-      const regNo = student.regNo;
-      const currentSessionId = student.sessionId;
-
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache, no-transform");
-      res.setHeader("Connection", "keep-alive");
-      res.setHeader("X-Accel-Buffering", "no");
-
-      res.flushHeaders?.();
-      res.write(`event: connected\ndata: ${JSON.stringify({ connected: true, regNo })}\n\n`);
-
-      const onNotification = (data) => {
-        try {
-          res.write(`event: notification\ndata: ${JSON.stringify(data)}\n\n`);
-        } catch {}
-      };
-
-      const onSessionRevoked = (data) => {
-        try {
-          if (data.revokedSessionId === currentSessionId || !data.revokedSessionId) {
-            res.write(`event: session_revoked\ndata: ${JSON.stringify(data)}\n\n`);
-          }
-        } catch {}
-      };
-
-      authEventBus.on(`notification:${regNo}:${currentSessionId}`, onNotification);
-      authEventBus.on(`notification:${regNo}`, onNotification);
-      authEventBus.on(`session_revoked:${regNo}`, onSessionRevoked);
-      authEventBus.on("notification:ALL", onNotification);
-
-      const heartbeat = setInterval(() => {
-        try {
-          res.write(`: heartbeat\n\n`);
-        } catch {}
-      }, 25000);
-
-      req.on("close", () => {
-        clearInterval(heartbeat);
-        authEventBus.off(`notification:${regNo}:${currentSessionId}`, onNotification);
-        authEventBus.off(`notification:${regNo}`, onNotification);
-        authEventBus.off(`session_revoked:${regNo}`, onSessionRevoked);
-        authEventBus.off("notification:ALL", onNotification);
-        res.end();
-      });
-
+      res.setHeader("Connection", "close");
+      res.write(`event: connected\ndata: ${JSON.stringify({ connected: true, polling: true })}\n\n`);
+      res.end();
       return;
     }
 

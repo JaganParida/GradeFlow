@@ -388,11 +388,16 @@ function isSessionValid(session) {
 
 /**
  * Updates the last active timestamp for audit logging without expiring the session.
+ * Throttled to 5 minutes to avoid redundant MongoDB write locks on high-traffic reads.
  */
 async function touchSession(session) {
-  session.lastActiveAt = new Date();
+  const now = Date.now();
+  if (session.lastActiveAt && (now - new Date(session.lastActiveAt).getTime()) < 5 * 60 * 1000) {
+    return session;
+  }
+  session.lastActiveAt = new Date(now);
   if (!session.expiresAt || new Date(session.expiresAt).getFullYear() < 2050) {
-    session.expiresAt = new Date(Date.now() + PERMANENT_SESSION_MS);
+    session.expiresAt = new Date(now + PERMANENT_SESSION_MS);
   }
   return session.save();
 }
@@ -426,9 +431,13 @@ function isAdminSessionValid(session) {
 }
 
 async function touchAdminSession(session) {
-  session.lastActiveAt = new Date();
+  const now = Date.now();
+  if (session.lastActiveAt && (now - new Date(session.lastActiveAt).getTime()) < 5 * 60 * 1000) {
+    return session;
+  }
+  session.lastActiveAt = new Date(now);
   if (!session.expiresAt || new Date(session.expiresAt).getFullYear() < 2050) {
-    session.expiresAt = new Date(Date.now() + PERMANENT_SESSION_MS);
+    session.expiresAt = new Date(now + PERMANENT_SESSION_MS);
   }
   return session.save();
 }

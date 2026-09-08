@@ -131,7 +131,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       fetchBroadcasts(true);
-    }, 10000);
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
