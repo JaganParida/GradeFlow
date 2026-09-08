@@ -393,6 +393,86 @@ export default function MigrationOverlayModal() {
           color: #94a3b8;
           flex-shrink: 0;
         }
+
+        /* ── LARGE SCREEN & LAPTOP ENHANCEMENT (PROPORTIONATE & READABLE FOR LAPTOPS) ── */
+        @media (min-width: 769px) {
+          .gf-migration-topbar {
+            max-width: 860px;
+            padding-bottom: 14px;
+          }
+          .gf-migration-brand img {
+            height: 36px;
+          }
+          .gf-migration-brand-title {
+            font-size: 23px;
+          }
+          .gf-migration-topbar-subtitle {
+            font-size: 13.5px;
+          }
+          .gf-migration-main-content {
+            max-width: 820px;
+            padding: 16px 0;
+          }
+          .gf-migration-icon-wrap {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            margin-bottom: 14px;
+          }
+          .gf-migration-heading {
+            font-size: 27px;
+            line-height: 1.25;
+            margin-bottom: 10px;
+          }
+          .gf-migration-lead-text {
+            font-size: 14.5px;
+            line-height: 1.55;
+            max-width: 680px;
+            margin-bottom: 20px;
+          }
+          .gf-migration-cards-grid {
+            gap: 16px;
+            margin-bottom: 20px;
+          }
+          .gf-migration-card {
+            padding: 16px 20px;
+            border-radius: 14px;
+          }
+          .gf-migration-card-header {
+            margin-bottom: 7px;
+            gap: 9px;
+          }
+          .gf-migration-card-header h3 {
+            font-size: 15.5px;
+          }
+          .gf-migration-card-body {
+            font-size: 13px;
+            line-height: 1.55;
+          }
+          .gf-migration-link-panel {
+            padding: 8px 10px 8px 16px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+          }
+          .gf-migration-link-address {
+            font-size: 15px;
+          }
+          .gf-migration-copy-button {
+            padding: 7px 14px;
+            font-size: 13px;
+            border-radius: 9px;
+          }
+          .gf-migration-primary-action {
+            font-size: 16px;
+            padding: 14px 28px;
+            border-radius: 13px;
+          }
+          .gf-migration-footer {
+            max-width: 860px;
+            font-size: 12px;
+            padding-top: 14px;
+          }
+        }
       `}</style>
 
       {/* Top Header with Real GradeFlow Logo & Clean Institutional Title */}
