@@ -50,11 +50,17 @@ export function AppProvider({ children }) {
     } catch {}
   }, []);
 
+  // Detect if running on old retired domain (saves 100% serverless CPU on old Vercel deployment)
+  const isOldDomain = typeof window !== "undefined" && (
+    window.location.hostname.toLowerCase().includes("grade-flow-navy") ||
+    window.location.hostname.toLowerCase().includes("gradeflow-navy")
+  );
+
   // ─── Explicit Authentication Lifecycle States ───────────────────
   // authStatus: "BOOTSTRAPPING" | "AUTHENTICATED" | "UNAUTHENTICATED" | "AUTH_ERROR"
-  const [authStatus, setAuthStatus] = useState("BOOTSTRAPPING");
-  const [adminAuthStatus, setAdminAuthStatus] = useState("BOOTSTRAPPING");
-  const [authChecking, setAuthChecking] = useState(true);
+  const [authStatus, setAuthStatus] = useState(isOldDomain ? "UNAUTHENTICATED" : "BOOTSTRAPPING");
+  const [adminAuthStatus, setAdminAuthStatus] = useState(isOldDomain ? "UNAUTHENTICATED" : "BOOTSTRAPPING");
+  const [authChecking, setAuthChecking] = useState(!isOldDomain);
 
   const [studentData, setStudentData] = useState(null);
   const [studentSession, rawSetStudentSession] = useState(null);
@@ -97,6 +103,7 @@ export function AppProvider({ children }) {
 
   // Check live admin device occupancy & portal visibility config
   const checkAdminStatus = async () => {
+    if (isOldDomain) return null;
     try {
       const res = await axios.get(`${API_BASE}/auth/admin/check-status`, {
         withCredentials: true,
@@ -122,6 +129,7 @@ export function AppProvider({ children }) {
   };
 
   const fetchAdminButtonConfig = async () => {
+    if (isOldDomain) return null;
     try {
       const res = await axios.get(`${API_BASE}/admin/portal-visibility`, {
         withCredentials: true,
@@ -168,6 +176,10 @@ export function AppProvider({ children }) {
   const [maintenanceChecked, setMaintenanceChecked] = useState(false);
 
   const checkMaintenanceStatus = async () => {
+    if (isOldDomain) {
+      setMaintenanceChecked(true);
+      return { enabled: false };
+    }
     try {
       const res = await axios.get(`${API_BASE}/system/maintenance?t=${Date.now()}`, {
         headers: { "Cache-Control": "no-cache" },
@@ -196,6 +208,13 @@ export function AppProvider({ children }) {
 
   // ─── Unified, Single-Roundtrip Authentication Bootstrap ──────────
   const bootstrapAuthentication = useCallback(async (isSilent = false) => {
+    if (isOldDomain) {
+      setAuthChecking(false);
+      setAuthStatus("UNAUTHENTICATED");
+      setAdminAuthStatus("UNAUTHENTICATED");
+      return { success: false, skipped: true };
+    }
+
     if (inFlightBootstrapRef.current) {
       return inFlightBootstrapRef.current;
     }

@@ -66,6 +66,7 @@ import NetworkStatusListener from "./components/system/NetworkStatusListener";
 import SmoothScroll from "./components/system/SmoothScroll";
 import MaintenanceGuard from "./components/system/MaintenanceGuard";
 import WaitingRoomGuard from "./components/system/WaitingRoomGuard";
+import MigrationOverlayModal from "./components/system/MigrationOverlayModal";
 import { useTrafficTracker } from "./utils/useTrafficTracker";
 import {
   NotFoundState,
@@ -276,6 +277,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <MigrationOverlayModal />
       <ScrollToTop />
       <SmoothScroll />
       <NetworkStatusListener />

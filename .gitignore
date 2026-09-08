@@ -42,3 +42,6 @@ scratch/
 *.traineddata
 backend/scripts/
 
+
+.vercel
+.env*

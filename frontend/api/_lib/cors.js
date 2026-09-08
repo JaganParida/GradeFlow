@@ -7,9 +7,7 @@
  */
 
 const ALLOWED_ORIGIN_PATTERNS = [
-  /^https:\/\/grade-flow-navy\.vercel\.app$/,
-  /^https:\/\/gradeflow-navy\.vercel\.app$/,
-  /^https:\/\/gradeflow.*\.vercel\.app$/,
+  /^https:\/\/grade-?flow.*\.vercel\.app$/,
   /^http:\/\/localhost:(3000|5173)$/,
   /^http:\/\/127\.0\.0\.1:(3000|5173)$/,
 ];
