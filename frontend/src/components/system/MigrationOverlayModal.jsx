@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Rocket,
+  Server,
+  ShieldCheck,
+  AlertCircle,
+  CheckCircle2,
   Copy,
   Check,
-  Zap,
-  ShieldCheck,
   ArrowRight,
   Pause,
   Play,
-  HeartHandshake
+  Clock,
+  Sparkles
 } from "lucide-react";
 
 const NEW_ORIGIN = "https://grade-flow-six.vercel.app";
@@ -97,244 +99,307 @@ export default function MigrationOverlayModal() {
 
   return (
     <div
-      className="gf-migration-backdrop"
+      className="gf-migration-viewport"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="migration-title"
+      aria-labelledby="migration-heading"
     >
       <style>{`
-        .gf-migration-backdrop {
+        .gf-migration-viewport {
           position: fixed;
           inset: 0;
           z-index: 999999;
-          background: #060813;
-          background: radial-gradient(circle at 50% 15%, rgba(99, 102, 241, 0.18) 0%, rgba(15, 23, 42, 0.98) 55%, #04060d 100%);
+          background: #ffffff;
+          background: radial-gradient(120% 120% at 50% 0%, #f1f5f9 0%, #f8fafc 45%, #ffffff 100%);
           display: flex;
+          flex-direction: column;
           align-items: center;
-          justify-content: center;
-          padding: clamp(12px, 3vh, 24px) clamp(14px, 3vw, 24px);
+          justify-content: space-between;
+          padding: clamp(16px, 3vh, 32px) clamp(16px, 4vw, 36px);
           box-sizing: border-box;
           font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           overflow-y: auto;
           user-select: none;
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
+          color: #0f172a;
         }
 
-        .gf-migration-card {
+        .gf-migration-topbar {
           width: 100%;
-          max-width: 580px;
-          background: rgba(15, 23, 42, 0.88);
-          border: 1px solid rgba(129, 140, 248, 0.28);
-          box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.7), 0 0 45px rgba(99, 102, 241, 0.18);
-          border-radius: 24px;
-          padding: clamp(20px, 4vh, 36px) clamp(18px, 4vw, 32px);
-          color: #f8fafc;
-          text-align: center;
-          position: relative;
-          box-sizing: border-box;
-          margin: auto 0;
-        }
-
-        .gf-migration-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          background: rgba(99, 102, 241, 0.15);
-          border: 1px solid rgba(129, 140, 248, 0.35);
-          color: #a5b4fc;
-          font-size: clamp(11px, 1.6vh, 12px);
-          font-weight: 700;
-          letter-spacing: 0.6px;
-          text-transform: uppercase;
-          padding: 6px 14px;
-          border-radius: 9999px;
-          margin-bottom: clamp(12px, 2.5vh, 18px);
-        }
-
-        .gf-migration-icon-wrap {
-          width: clamp(56px, 8vh, 72px);
-          height: clamp(56px, 8vh, 72px);
-          border-radius: 20px;
-          background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(168, 85, 247, 0.25));
-          border: 1px solid rgba(168, 85, 247, 0.4);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto clamp(12px, 2vh, 18px);
-          box-shadow: 0 0 30px rgba(99, 102, 241, 0.35);
-        }
-
-        .gf-migration-title {
-          font-size: clamp(20px, 3.4vh, 27px);
-          font-weight: 850;
-          line-height: 1.25;
-          letter-spacing: -0.02em;
-          color: #ffffff;
-          margin: 0 0 clamp(8px, 1.8vh, 14px);
-        }
-
-        .gf-migration-subtitle {
-          font-size: clamp(13px, 1.9vh, 15px);
-          line-height: 1.55;
-          color: #cbd5e1;
-          margin: 0 0 clamp(16px, 3vh, 22px);
-        }
-
-        .gf-migration-peace-box {
-          background: rgba(16, 185, 129, 0.1);
-          border: 1px solid rgba(16, 185, 129, 0.3);
-          border-radius: 14px;
-          padding: clamp(10px, 1.8vh, 14px) 16px;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          text-align: left;
-          margin-bottom: clamp(14px, 2.5vh, 20px);
-        }
-
-        .gf-migration-peace-text {
-          font-size: clamp(12px, 1.7vh, 13.5px);
-          color: #a7f3d0;
-          line-height: 1.45;
-          margin: 0;
-        }
-
-        .gf-migration-peace-text strong {
-          color: #ffffff;
-          font-weight: 700;
-        }
-
-        .gf-migration-alert-box {
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid rgba(239, 68, 68, 0.3);
-          border-radius: 14px;
-          padding: clamp(10px, 1.8vh, 14px) 16px;
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-          text-align: left;
-          margin-bottom: clamp(16px, 3vh, 24px);
-        }
-
-        .gf-migration-alert-text {
-          font-size: clamp(12px, 1.7vh, 13.5px);
-          color: #fca5a5;
-          line-height: 1.45;
-          margin: 0;
-        }
-
-        .gf-migration-alert-text strong {
-          color: #fee2e2;
-          font-weight: 750;
-        }
-
-        .gf-migration-url-box {
-          background: rgba(0, 0, 0, 0.4);
-          border: 1px dashed rgba(148, 163, 184, 0.35);
-          border-radius: 14px;
-          padding: 10px 14px;
+          max-width: 760px;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 8px;
-          margin-bottom: clamp(16px, 3vh, 24px);
+          padding-bottom: clamp(12px, 2vh, 20px);
+          border-bottom: 1px solid #e2e8f0;
+          flex-shrink: 0;
         }
 
-        .gf-migration-url-text {
-          font-family: 'Space Mono', monospace, monospace;
-          font-size: clamp(12px, 1.8vh, 14px);
-          color: #93c5fd;
+        .gf-migration-brand {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .gf-migration-brand img {
+          height: clamp(26px, 4vh, 32px);
+          width: auto;
+          display: block;
+        }
+
+        .gf-migration-brand-title {
+          font-size: clamp(18px, 2.5vh, 21px);
+          font-weight: 850;
+          letter-spacing: -0.03em;
+          color: #0f172a;
+        }
+
+        .gf-migration-status-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: #f0fdf4;
+          border: 1px solid #bbf7d0;
+          color: #166534;
+          font-size: 12px;
+          font-weight: 700;
+          padding: 5px 12px;
+          border-radius: 9999px;
+        }
+
+        .gf-migration-status-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #22c55e;
+          box-shadow: 0 0 8px rgba(34, 197, 94, 0.7);
+        }
+
+        .gf-migration-main-content {
+          width: 100%;
+          max-width: 660px;
+          margin: auto 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          padding: clamp(12px, 2vh, 24px) 0;
+        }
+
+        .gf-migration-icon-badge {
+          width: clamp(52px, 7vh, 64px);
+          height: clamp(52px, 7vh, 64px);
+          border-radius: 18px;
+          background: #eef2ff;
+          border: 1px solid #c7d2fe;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #4f46e5;
+          margin-bottom: clamp(12px, 2vh, 18px);
+          box-shadow: 0 4px 14px rgba(79, 70, 229, 0.12);
+        }
+
+        .gf-migration-category-tag {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          color: #4f46e5;
+          background: #f5f3ff;
+          border: 1px solid #ddd6fe;
+          font-size: 11.5px;
+          font-weight: 750;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          padding: 4px 12px;
+          border-radius: 9999px;
+          margin-bottom: clamp(10px, 1.8vh, 14px);
+        }
+
+        .gf-migration-heading {
+          font-size: clamp(22px, 3.6vh, 32px);
+          font-weight: 850;
+          color: #0f172a;
+          line-height: 1.22;
+          letter-spacing: -0.03em;
+          margin: 0 0 clamp(8px, 1.5vh, 12px);
+        }
+
+        .gf-migration-lead-text {
+          font-size: clamp(13.5px, 1.8vh, 15.5px);
+          color: #475569;
+          line-height: 1.55;
+          margin: 0 0 clamp(16px, 2.8vh, 22px);
+          max-width: 580px;
+        }
+
+        .gf-migration-info-grid {
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          gap: clamp(10px, 1.6vh, 14px);
+          margin-bottom: clamp(16px, 2.8vh, 24px);
+        }
+
+        .gf-migration-info-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          padding: clamp(12px, 1.8vh, 15px) clamp(14px, 2.5vw, 18px);
+          border-radius: 14px;
+          text-align: left;
+          box-sizing: border-box;
+        }
+
+        .gf-migration-info-row.success {
+          background: #f0fdf4;
+          border: 1px solid #dcfce7;
+        }
+
+        .gf-migration-info-row.warning {
+          background: #fff1f2;
+          border: 1px solid #ffe4e6;
+        }
+
+        .gf-migration-info-icon {
+          flex-shrink: 0;
+          margin-top: 1px;
+        }
+
+        .gf-migration-info-text {
+          font-size: clamp(12.5px, 1.65vh, 14px);
+          line-height: 1.5;
+          margin: 0;
+        }
+
+        .gf-migration-info-row.success .gf-migration-info-text {
+          color: #15803d;
+        }
+
+        .gf-migration-info-row.success .gf-migration-info-text strong {
+          color: #14532d;
+          font-weight: 750;
+        }
+
+        .gf-migration-info-row.warning .gf-migration-info-text {
+          color: #be123c;
+        }
+
+        .gf-migration-info-row.warning .gf-migration-info-text strong {
+          color: #881337;
+          font-weight: 750;
+        }
+
+        .gf-migration-link-panel {
+          width: 100%;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 14px;
+          padding: 8px 10px 8px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          margin-bottom: clamp(16px, 2.5vh, 22px);
+          box-sizing: border-box;
+        }
+
+        .gf-migration-link-address {
+          font-family: 'Space Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: clamp(13px, 1.7vh, 14.5px);
           font-weight: 600;
+          color: #1e293b;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
           text-align: left;
         }
 
-        .gf-migration-copy-btn {
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.16);
-          color: #f1f5f9;
-          font-size: 12px;
-          font-weight: 600;
-          padding: 7px 12px;
-          border-radius: 8px;
+        .gf-migration-copy-button {
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          color: #334155;
+          font-size: 12.5px;
+          font-weight: 650;
+          padding: 8px 14px;
+          border-radius: 9px;
           cursor: pointer;
           display: inline-flex;
           align-items: center;
           gap: 6px;
           white-space: nowrap;
-          transition: all 0.2s ease;
           flex-shrink: 0;
+          transition: all 0.15s ease;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
 
-        .gf-migration-copy-btn:hover {
-          background: rgba(255, 255, 255, 0.16);
-          border-color: rgba(255, 255, 255, 0.3);
-          transform: translateY(-1px);
+        .gf-migration-copy-button:hover {
+          background: #f1f5f9;
+          border-color: #94a3b8;
+          color: #0f172a;
         }
 
-        .gf-migration-copy-btn.copied {
-          background: rgba(16, 185, 129, 0.2);
-          border-color: rgba(16, 185, 129, 0.5);
-          color: #6ee7b7;
+        .gf-migration-copy-button.active {
+          background: #f0fdf4;
+          border-color: #86efac;
+          color: #166534;
         }
 
-        .gf-migration-actions {
+        .gf-migration-cta-group {
+          width: 100%;
           display: flex;
           flex-direction: column;
+          align-items: center;
           gap: 10px;
         }
 
-        .gf-migration-primary-btn {
+        .gf-migration-primary-action {
           width: 100%;
-          background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%);
-          border: none;
+          background: #4f46e5;
+          border: 1px solid #4338ca;
           color: #ffffff;
-          font-size: clamp(14px, 2.2vh, 16px);
+          font-size: clamp(14px, 2vh, 16px);
           font-weight: 750;
-          padding: clamp(12px, 2vh, 16px) 20px;
-          border-radius: 14px;
+          padding: clamp(12px, 1.8vh, 15px) 24px;
+          border-radius: 12px;
           cursor: pointer;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
-          box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.55);
-          transition: all 0.2s ease;
+          gap: 8px;
+          box-shadow: 0 4px 14px rgba(79, 70, 229, 0.28);
+          transition: all 0.15s ease;
         }
 
-        .gf-migration-primary-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 15px 30px -5px rgba(79, 70, 229, 0.7);
-          filter: brightness(1.1);
+        .gf-migration-primary-action:hover {
+          background: #4338ca;
+          box-shadow: 0 6px 20px rgba(79, 70, 229, 0.38);
+          transform: translateY(-1px);
         }
 
-        .gf-migration-primary-btn:active {
+        .gf-migration-primary-action:active {
           transform: translateY(0);
         }
 
-        .gf-migration-timer-row {
+        .gf-migration-timer-caption {
           display: flex;
           align-items: center;
-          justify-content: center;
-          gap: 8px;
-          font-size: clamp(11.5px, 1.6vh, 13px);
-          color: #94a3b8;
-          margin-top: 10px;
+          gap: 6px;
+          font-size: 12.5px;
+          color: #64748b;
+          font-weight: 500;
         }
 
-        .gf-migration-timer-pill {
-          color: #a5b4fc;
-          font-weight: 700;
+        .gf-migration-timer-bold {
+          color: #4f46e5;
+          font-weight: 750;
         }
 
-        .gf-migration-pause-btn {
+        .gf-migration-timer-btn {
           background: transparent;
           border: none;
           color: #64748b;
-          font-size: 11.5px;
+          font-size: 12px;
+          font-weight: 600;
           cursor: pointer;
           display: inline-flex;
           align-items: center;
@@ -344,111 +409,147 @@ export default function MigrationOverlayModal() {
           text-decoration: underline;
         }
 
-        .gf-migration-pause-btn:hover {
-          color: #cbd5e1;
+        .gf-migration-timer-btn:hover {
+          color: #0f172a;
+        }
+
+        .gf-migration-footer {
+          width: 100%;
+          max-width: 760px;
+          padding-top: clamp(10px, 1.8vh, 18px);
+          border-top: 1px solid #f1f5f9;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-size: 12px;
+          color: #94a3b8;
+          flex-shrink: 0;
         }
       `}</style>
 
-      <div className="gf-migration-card">
-        {/* Badge */}
-        <div className="gf-migration-badge">
-          <Zap size={13} color="#fbbf24" />
-          <span>High-Speed Server Migration</span>
+      {/* Top Header */}
+      <div className="gf-migration-topbar">
+        <div className="gf-migration-brand">
+          <img src="/logo.png" alt="GradeFlow" />
+          <span className="gf-migration-brand-title">GradeFlow</span>
+        </div>
+        <div className="gf-migration-status-pill">
+          <span className="gf-migration-status-dot" />
+          <span>New Server Operational</span>
+        </div>
+      </div>
+
+      {/* Main Central Presentation */}
+      <div className="gf-migration-main-content">
+        <div className="gf-migration-icon-badge">
+          <Server size={30} strokeWidth={2.2} />
         </div>
 
-        {/* Icon */}
-        <div className="gf-migration-icon-wrap">
-          <Rocket size={34} color="#c084fc" />
+        <div className="gf-migration-category-tag">
+          <Sparkles size={12} strokeWidth={2.5} />
+          <span>System Infrastructure Upgrade</span>
         </div>
 
-        {/* Title */}
-        <h1 id="migration-title" className="gf-migration-title">
-          GradeFlow Has Moved to a New Link! 🚀
+        <h1 id="migration-heading" className="gf-migration-heading">
+          GradeFlow Has Moved to an Upgraded Server
         </h1>
 
-        {/* Reassurance peace of mind box */}
-        <div className="gf-migration-peace-box">
-          <HeartHandshake size={24} color="#34d399" style={{ flexShrink: 0 }} />
-          <p className="gf-migration-peace-text">
-            <strong>Don’t panic & don’t worry!</strong> Your accounts, marks, and timetables are 100% safe. We upgraded our servers so students can continue enjoying GradeFlow completely <strong>free with high speed and zero downtime</strong>.
-          </p>
+        <p className="gf-migration-lead-text">
+          To provide all students with uninterrupted free access, high responsiveness, and zero downtime under peak traffic, our official deployment has permanently transitioned to our high-performance infrastructure.
+        </p>
+
+        {/* Information Grid */}
+        <div className="gf-migration-info-grid">
+          {/* Reassurance Row */}
+          <div className="gf-migration-info-row success">
+            <CheckCircle2 size={19} className="gf-migration-info-icon" strokeWidth={2.2} />
+            <p className="gf-migration-info-text">
+              <strong>Do not panic. Your data is 100% safe.</strong> All student records, semester grades, timetables, and analytics remain fully intact and immediately accessible on the new server.
+            </p>
+          </div>
+
+          {/* Warning Row */}
+          <div className="gf-migration-info-row warning">
+            <AlertCircle size={19} className="gf-migration-info-icon" strokeWidth={2.2} />
+            <p className="gf-migration-info-text">
+              <strong>Do not visit this old link again.</strong> This legacy address is being permanently retired. Please save and bookmark the official link below, and navigate directly to it next time.
+            </p>
+          </div>
         </div>
 
-        {/* Warning / Instruction box */}
-        <div className="gf-migration-alert-box">
-          <ShieldCheck size={22} color="#f87171" style={{ flexShrink: 0, marginTop: "2px" }} />
-          <p className="gf-migration-alert-text">
-            <strong>⚠️ Do not visit this old link again.</strong> Please <strong>save and bookmark</strong> our new official link below, and visit the new website directly next time!
-          </p>
-        </div>
-
-        {/* New URL display & copy button */}
-        <div className="gf-migration-url-box">
-          <span className="gf-migration-url-text" title={NEW_ORIGIN}>
+        {/* URL Box */}
+        <div className="gf-migration-link-panel">
+          <span className="gf-migration-link-address" title={NEW_ORIGIN}>
             {NEW_ORIGIN.replace("https://", "")}
           </span>
           <button
             type="button"
-            className={`gf-migration-copy-btn ${copied ? "copied" : ""}`}
+            className={`gf-migration-copy-button ${copied ? "active" : ""}`}
             onClick={handleCopyLink}
           >
             {copied ? (
               <>
-                <Check size={14} />
-                <span>Link Copied!</span>
+                <Check size={14} strokeWidth={2.5} />
+                <span>Link Copied</span>
               </>
             ) : (
               <>
-                <Copy size={14} />
+                <Copy size={14} strokeWidth={2} />
                 <span>Copy Link</span>
               </>
             )}
           </button>
         </div>
 
-        {/* Primary CTA Button */}
-        <div className="gf-migration-actions">
+        {/* Action Group */}
+        <div className="gf-migration-cta-group">
           <button
             type="button"
-            className="gf-migration-primary-btn"
+            className="gf-migration-primary-action"
             onClick={handleRedirect}
           >
-            <span>Open New Website Now</span>
-            <ArrowRight size={18} />
+            <span>Continue to New Website</span>
+            <ArrowRight size={17} strokeWidth={2.2} />
           </button>
 
-          {/* Countdown & Pause option */}
-          <div className="gf-migration-timer-row">
+          <div className="gf-migration-timer-caption">
+            <Clock size={13} strokeWidth={2} />
             {!isPaused ? (
               <>
-                <span>Redirecting automatically in</span>
-                <span className="gf-migration-timer-pill">{countdown}s</span>
+                <span>Auto-redirecting in</span>
+                <span className="gf-migration-timer-bold">{countdown}s</span>
+                <span>•</span>
                 <button
                   type="button"
-                  className="gf-migration-pause-btn"
+                  className="gf-migration-timer-btn"
                   onClick={() => setIsPaused(true)}
-                  title="Pause auto-redirect"
                 >
-                  <Pause size={12} />
+                  <Pause size={11} strokeWidth={2.5} />
                   <span>Pause</span>
                 </button>
               </>
             ) : (
               <>
-                <span>Auto-redirect paused</span>
+                <span>Redirection paused</span>
+                <span>•</span>
                 <button
                   type="button"
-                  className="gf-migration-pause-btn"
+                  className="gf-migration-timer-btn"
                   onClick={() => setIsPaused(false)}
-                  title="Resume auto-redirect"
                 >
-                  <Play size={12} />
+                  <Play size={11} strokeWidth={2.5} />
                   <span>Resume</span>
                 </button>
               </>
             )}
           </div>
         </div>
+      </div>
+
+      {/* Footer */}
+      <div className="gf-migration-footer">
+        <span>GradeFlow • Academic Analytics & Intelligence</span>
+        <span>Zero Downtime Migration Protocol</span>
       </div>
     </div>
   );
