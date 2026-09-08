@@ -681,7 +681,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                   whiteSpace: "nowrap",
                 }}
               >
-                Month (100k)
+                Month (1M Quota)
               </span>
               <span
                 style={{
@@ -728,7 +728,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                 {month.used.toLocaleString()}
               </span>
               <span style={{ fontSize: 9.5, fontWeight: 600, color: "#94a3b8" }}>
-                / 100k
+                / 1M
               </span>
             </div>
 

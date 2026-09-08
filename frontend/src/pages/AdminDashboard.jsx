@@ -4139,8 +4139,8 @@ export default function AdminDashboard({ defaultTab = null }) {
               },
               {
                 label: "Vercel Quota",
-                sublabel: "Free Hobby 100k Limit",
-                mobileSublabel: "Vercel Quota",
+                sublabel: "Free Hobby 1M Limit · 4h CPU",
+                mobileSublabel: "1M Quota · 4h CPU",
                 value: "Hobby Safe",
                 icon: <Zap size={isMobile ? 15 : 18} color="#7c3aed" />,
                 bg: "#f5f3ff",
