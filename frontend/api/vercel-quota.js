@@ -6,14 +6,17 @@ const TrafficQueueConfig = require("./_lib/models/TrafficQueueConfig");
 const { applyCors } = require("./_lib/cors");
 const jwt = require("jsonwebtoken");
 
-// Vercel Free Hobby Tier Quota Limits
+// Vercel Free Hobby Tier Quota Limits (Official Vercel Documentation)
 const HOBBY_LIMITS = {
-  MONTHLY_REQUESTS_LIMIT: 100000, // 100,000 Serverless Invocations
-  DAILY_REQUESTS_BUDGET: 3333,    // ~100,000 / 30 days
-  BANDWIDTH_LIMIT_GB: 100,        // 100 GB Fast Data Transfer
-  TIMEOUT_SECONDS: 10,            // 10s Serverless Execution Timeout
-  CONCURRENCY_LIMIT: 100,         // 100 Concurrent Executions
-  BYTES_PER_INVOCATION_EST: 28672 // ~28 KB avg payload + headers
+  MONTHLY_REQUESTS_LIMIT: 1000000, // 1,000,000 (1M) Serverless Invocations
+  DAILY_REQUESTS_BUDGET: 33333,    // ~1,000,000 / 30 days
+  ACTIVE_CPU_LIMIT_HOURS: 4.0,     // 4.0 CPU-Hours (14,400s) Active CPU Time
+  DAILY_CPU_BUDGET_SECONDS: 480,   // ~14,400s / 30 days
+  BANDWIDTH_LIMIT_GB: 100,         // 100 GB Fast Data Transfer
+  EDGE_REQUESTS_LIMIT: 1000000,    // 1,000,000 Edge Requests
+  TIMEOUT_SECONDS: 60,             // 60s Serverless Execution Timeout
+  CONCURRENCY_LIMIT: 100,          // 100 Concurrent Executions
+  BYTES_PER_INVOCATION_EST: 28672  // ~28 KB avg payload + headers
 };
 
 const EXCLUDED_STUDENT_REG = "230301120327";
@@ -353,6 +356,13 @@ module.exports = async function handler(req, res) {
         projectedMonthEndRequests,
         projectedMonthPercent,
         projectionStatus,
+      },
+      cpu: {
+        limitHours: HOBBY_LIMITS.ACTIVE_CPU_LIMIT_HOURS,
+        limitSeconds: 14400,
+        estimatedUsedSeconds: Math.round(effectiveMonthRequests * 0.08),
+        estimatedUsedHours: parseFloat(((effectiveMonthRequests * 0.08) / 3600).toFixed(3)),
+        percent: parseFloat((((effectiveMonthRequests * 0.08) / 14400) * 100).toFixed(1)),
       },
       bandwidth: {
         usedGB: bandwidthGB,
