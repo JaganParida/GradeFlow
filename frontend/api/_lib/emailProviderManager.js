@@ -116,7 +116,7 @@ async function sendMailWithFailover(mailOptions) {
   const gmail = getGmailTransporter();
 
   const primaryChoice = (process.env.PRIMARY_EMAIL_PROVIDER || process.env.EMAIL_PROVIDER || "").toLowerCase();
-  const preferGmail = primaryChoice === "gmail" || process.env.EMAIL_SERVICE === "gmail" || process.env.GMAIL_PRIMARY === "true";
+  const preferGmail = primaryChoice === "gmail" || process.env.EMAIL_SERVICE === "gmail" || process.env.GMAIL_PRIMARY === "true" || Boolean(gmail);
 
   if (preferGmail && gmail) {
     // ── Attempt Gmail Primary ──
