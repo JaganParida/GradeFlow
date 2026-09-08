@@ -380,12 +380,13 @@ module.exports = async function handler(req, res) {
 
     const healthScore = calcAcademicHealth(cgpa, liveLatestSgpa, backlogs.length, results);
 
-    const ranking = await Ranking.findOne({
-      regNo: cleanRegNo,
-      semester: latestResult.semester,
-    });
-
-    const studentProfile = await Student.findOne({ regNo: cleanRegNo });
+    const [ranking, studentProfile] = await Promise.all([
+      Ranking.findOne({
+        regNo: cleanRegNo,
+        semester: latestResult.semester,
+      }).lean(),
+      Student.findOne({ regNo: cleanRegNo }).lean(),
+    ]);
 
     const responseData = {
       regNo: cleanRegNo,

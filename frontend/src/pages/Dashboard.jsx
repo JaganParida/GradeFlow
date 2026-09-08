@@ -579,7 +579,7 @@ export default function Dashboard() {
       ``,
       `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
       `*For detailed result and analytics, visit:*`,
-      `https://grade-flow-navy.vercel.app`,
+      `${typeof window !== "undefined" ? window.location.origin : "https://grade-flow-six.vercel.app"}`,
     ]
       .filter((line) => line !== null && line !== undefined)
       .join("\n");
@@ -623,6 +623,26 @@ export default function Dashboard() {
       return;
     }
 
+    // 3. Check sessionStorage cache for instant load across tabs/refreshes
+    const cacheKey = `gf_sem_${regNo}_${sem}`;
+    try {
+      const sessionCached = sessionStorage.getItem(cacheKey);
+      if (sessionCached) {
+        const parsed = JSON.parse(sessionCached);
+        if (parsed) {
+          if (parsed.semResult) setSemResult(parsed.semResult);
+          setInternalMarks(parsed.internal || null);
+          setSemesterRanking(parsed.ranking || null);
+          semCacheRef.current[sem] = {
+            internal: parsed.internal || null,
+            ranking: parsed.ranking || null,
+          };
+          setIsInternalLoading(false);
+          return;
+        }
+      }
+    } catch (_) {}
+
     if (sem === studentData?.latestSemester && studentData?.ranking) {
       setSemesterRanking(studentData.ranking);
     }
@@ -636,8 +656,10 @@ export default function Dashboard() {
         axios.get(`${API}/student/${regNo}/ranking/${sem}`),
       ]);
 
+      let fetchedSemResult = null;
       if (semRes.status === "fulfilled" && (semRes.value.data?.data || semRes.value.data)) {
-        setSemResult(semRes.value.data?.data || semRes.value.data);
+        fetchedSemResult = semRes.value.data?.data || semRes.value.data;
+        setSemResult(fetchedSemResult);
       } else if (!local) {
         const fallback = studentData?.results?.find((r) => r.semester === sem);
         setSemResult(fallback || null);
@@ -672,11 +694,22 @@ export default function Dashboard() {
         }
       }
 
-      // Cache the result for instant retrieval
+      // Cache the result for instant retrieval in memory and sessionStorage
       semCacheRef.current[sem] = {
         internal: finalInternal,
         ranking: finalRanking,
       };
+
+      try {
+        sessionStorage.setItem(
+          cacheKey,
+          JSON.stringify({
+            semResult: fetchedSemResult || local || null,
+            internal: finalInternal,
+            ranking: finalRanking,
+          })
+        );
+      } catch (_) {}
     } catch {
       // Fallbacks already in place
     } finally {

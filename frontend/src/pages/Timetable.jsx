@@ -303,12 +303,32 @@ export default function Timetable() {
           setSelectedSection(detected);
         }
 
-        // 2. Fetch dynamic active schedules
-        const API = import.meta.env.VITE_API_URL || "/api";
-        const { data } = await axios.get(`${API}/timetable/active-all`);
-        if (data?.schedules && isMounted) {
-          setDynamicSchedules(data.schedules);
-          setCustomSchedulesStore(data.schedules);
+        // 2. Fetch dynamic active schedules (with sessionStorage caching)
+        const CACHE_KEY = "gf_schedules_cache";
+        let cached = null;
+        try {
+          const raw = sessionStorage.getItem(CACHE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && Date.now() - parsed.ts < 1800000 && Array.isArray(parsed.schedules)) {
+              cached = parsed.schedules;
+            }
+          }
+        } catch (_) {}
+
+        if (cached && isMounted) {
+          setDynamicSchedules(cached);
+          setCustomSchedulesStore(cached);
+        } else {
+          const API = import.meta.env.VITE_API_URL || "/api";
+          const { data } = await axios.get(`${API}/timetable/active-all`);
+          if (data?.schedules && isMounted) {
+            setDynamicSchedules(data.schedules);
+            setCustomSchedulesStore(data.schedules);
+            try {
+              sessionStorage.setItem(CACHE_KEY, JSON.stringify({ schedules: data.schedules, ts: Date.now() }));
+            } catch (_) {}
+          }
         }
       } catch (err) {
         console.warn("Could not load timetable data:", err.message);

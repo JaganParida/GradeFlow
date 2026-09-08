@@ -335,16 +335,19 @@ export function AppProvider({ children }) {
   }, [authChecking, authStatus, bootstrapAuthentication, studentSession]);
 
   // ─── Initial Startup Bootstrap & Lifecycle Listeners ─────────────
+  const lastFocusBootstrapRef = useRef(0);
+
   useEffect(() => {
     bootstrapAuthentication();
 
-    // Periodic refresh of admin device occupancy (every 15s)
-    const interval = setInterval(checkAdminStatus, 15000);
-
-    // Passive silent revalidation on tab focus
+    // Passive silent revalidation on tab focus (throttled to 5 minutes to eliminate redundant serverless invocations)
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        bootstrapAuthentication(true);
+        const now = Date.now();
+        if (now - lastFocusBootstrapRef.current > 300000) {
+          lastFocusBootstrapRef.current = now;
+          bootstrapAuthentication(true);
+        }
       }
     };
 
@@ -352,7 +355,6 @@ export function AppProvider({ children }) {
     window.addEventListener("focus", handleVisibilityChange);
 
     return () => {
-      clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("focus", handleVisibilityChange);
     };
@@ -393,15 +395,30 @@ export function AppProvider({ children }) {
     if (!studentSession?.regNo || !studentSession?.sessionId) {
       setNotifications([]);
       setUnreadCount(0);
-      return;
+      return null;
     }
     try {
       const res = await axios.get(`${API_BASE}/notifications/student`, { withCredentials: true });
       if (res.data?.success) {
         setNotifications(res.data.notifications || []);
         setUnreadCount(res.data.unreadCount || 0);
+        return res.data;
       }
-    } catch {}
+    } catch (err) {
+      if (err.response?.status === 401) {
+        // Session terminated or transferred to another device
+        setSessionRevokedNotice(
+          err.response?.data?.message || "Your session ended because your account was approved on another device."
+        );
+        setTimeout(() => {
+          setStudentSession(null);
+          setStudentData(null);
+          setAuthStatus("UNAUTHENTICATED");
+          navigate("/", { replace: true });
+        }, 800);
+      }
+    }
+    return null;
   };
 
   const handleNotificationAction = async (notificationId, actionType) => {
@@ -525,7 +542,7 @@ export function AppProvider({ children }) {
     } catch {}
   };
 
-  // Realtime SSE stream + Resilient Background Sync for active student session
+  // ─── Resilient Adaptive Background Sync for Active Student Session ───
   useEffect(() => {
     if (!studentSession || !studentSession.regNo || !studentSession.sessionId) {
       setNotifications([]);
@@ -534,91 +551,56 @@ export function AppProvider({ children }) {
     }
 
     let isMounted = true;
-    let eventSource = null;
-    let reconnectTimeout = null;
+    let pollTimer = null;
 
-    const connectSSE = () => {
-      if (!isMounted || !studentSession?.regNo) return;
-      try {
-        if (eventSource) {
-          eventSource.close();
-        }
-
-        eventSource = new EventSource(`${API_BASE}/notifications/stream`, { withCredentials: true });
-
-        eventSource.addEventListener("notification", () => {
-          if (isMounted) fetchNotifications();
-        });
-
-        eventSource.addEventListener("session_revoked", (e) => {
-          if (!isMounted) return;
-          try {
-            const data = JSON.parse(e.data || "{}");
-            // Only process revocation if this specific device's sessionId was revoked
-            if (data.revokedSessionId && studentSession?.sessionId && data.revokedSessionId !== studentSession.sessionId) {
-              return;
-            }
-            setSessionRevokedNotice(
-              data.message || "Your session ended because your account was approved on another device."
-            );
-          } catch {
-            setSessionRevokedNotice("Your session ended because your account was approved on another device.");
-          }
-          // Smooth 800ms grace period so active UI animations complete cleanly without abrupt glitches
-          setTimeout(() => {
-            setStudentSession(null);
-            setStudentData(null);
-            navigate("/", { replace: true });
-          }, 800);
-        });
-
-        eventSource.onerror = () => {
-          if (eventSource) {
-            eventSource.close();
-            eventSource = null;
-          }
-          if (isMounted) {
-            // Auto-reconnect with 3s backoff
-            clearTimeout(reconnectTimeout);
-            reconnectTimeout = setTimeout(connectSSE, 3000);
-          }
-        };
-      } catch {
-        if (isMounted) {
-          clearTimeout(reconnectTimeout);
-          reconnectTimeout = setTimeout(connectSSE, 4000);
-        }
-      }
+    const scheduleNextPoll = (delayMs) => {
+      if (!isMounted) return;
+      clearTimeout(pollTimer);
+      pollTimer = setTimeout(runPoll, delayMs);
     };
 
-    // Initial fetch and SSE connection
-    fetchNotifications();
-    connectSSE();
+    const runPoll = async () => {
+      if (!isMounted) return;
+      // Do not poll if the tab/browser is hidden or minimized (0 background requests)
+      if (document.visibilityState === "hidden") {
+        return;
+      }
 
-    // Background sync every 5s for bulletproof real-time guarantees
-    const pollInterval = setInterval(() => {
-      if (isMounted) fetchNotifications();
-    }, 5000);
+      const res = await fetchNotifications();
+      if (!isMounted) return;
 
-    // Mobile / tab visibility handler
+      // If an unread notification has a pending device approval request, poll faster (4s)
+      // so device handover is instant. Otherwise, relax to 20s to conserve CPU & invocations.
+      const hasPendingApproval = res?.notifications?.some(
+        (n) => n.approvalRequestId && n.status === "PENDING"
+      );
+      scheduleNextPoll(hasPendingApproval ? 4000 : 20000);
+    };
+
+    // Initial fetch on mount
+    fetchNotifications().then((res) => {
+      if (!isMounted) return;
+      const hasPendingApproval = res?.notifications?.some(
+        (n) => n.approvalRequestId && n.status === "PENDING"
+      );
+      scheduleNextPoll(hasPendingApproval ? 4000 : 20000);
+    });
+
+    // Immediate re-check on tab resume
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible" && isMounted) {
-        fetchNotifications();
-        if (!eventSource || eventSource.readyState === EventSource.CLOSED) {
-          connectSSE();
-        }
+        runPoll();
+      } else {
+        clearTimeout(pollTimer);
       }
     };
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       isMounted = false;
-      clearInterval(pollInterval);
-      clearTimeout(reconnectTimeout);
+      clearTimeout(pollTimer);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      if (eventSource) {
-        eventSource.close();
-      }
     };
   }, [studentSession?.sessionId, studentSession?.regNo]);
 

@@ -155,6 +155,7 @@ module.exports = async function handler(req, res) {
       const query = { isActive: true };
       if (academicYear) query.academicYear = academicYear;
       const calendars = await AcademicCalendar.find(query).sort({ updatedAt: -1 });
+      res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
       return res.json({ success: true, calendars });
     }
 
@@ -164,6 +165,7 @@ module.exports = async function handler(req, res) {
       const query = { isActive: true };
       if (academicYear) query.academicYear = academicYear;
       const holidayDoc = await AcademicHoliday.findOne(query).sort({ updatedAt: -1 });
+      res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
       return res.json({ success: true, holidayDoc });
     }
 
