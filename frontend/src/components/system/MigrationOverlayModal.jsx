@@ -1,13 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ShieldCheck,
   Server,
   Copy,
   Check,
   ArrowRight,
-  Pause,
-  Play,
-  Clock,
   CheckCircle2
 } from "lucide-react";
 
@@ -16,10 +13,7 @@ const NEW_ORIGIN = "https://grade-flow-six.vercel.app";
 export default function MigrationOverlayModal() {
   const [isOldDomain, setIsOldDomain] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [countdown, setCountdown] = useState(8);
-  const [isPaused, setIsPaused] = useState(false);
   const [targetUrl, setTargetUrl] = useState(NEW_ORIGIN);
-  const timerRef = useRef(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -69,29 +63,6 @@ export default function MigrationOverlayModal() {
       };
     }
   }, []);
-
-  // Automatic countdown redirection
-  useEffect(() => {
-    if (!isOldDomain || isPaused) {
-      if (timerRef.current) clearInterval(timerRef.current);
-      return;
-    }
-
-    timerRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
-          handleRedirect();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isOldDomain, isPaused, targetUrl]);
 
   if (!isOldDomain) {
     return null;
@@ -150,7 +121,7 @@ export default function MigrationOverlayModal() {
           flex-direction: column;
           align-items: center;
           justify-content: space-between;
-          padding: clamp(8px, 1.6vh, 20px) clamp(12px, 3vw, 28px);
+          padding: clamp(8px, 1.8vh, 22px) clamp(12px, 3vw, 28px);
           box-sizing: border-box;
           font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           overflow-y: auto;
@@ -272,7 +243,6 @@ export default function MigrationOverlayModal() {
           display: flex;
           flex-direction: column;
           justify-content: flex-start;
-          transition: transform 0.15s ease;
         }
 
         .gf-migration-card.trust {
@@ -330,7 +300,7 @@ export default function MigrationOverlayModal() {
           align-items: center;
           justify-content: space-between;
           gap: 8px;
-          margin-bottom: clamp(8px, 1.4vh, 14px);
+          margin-bottom: clamp(10px, 1.8vh, 16px);
           box-sizing: border-box;
         }
 
@@ -381,7 +351,6 @@ export default function MigrationOverlayModal() {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 6px;
         }
 
         .gf-migration-primary-action {
@@ -391,7 +360,7 @@ export default function MigrationOverlayModal() {
           color: #ffffff;
           font-size: clamp(13px, 1.7vh, 15px);
           font-weight: 750;
-          padding: clamp(9px, 1.4vh, 13px) 18px;
+          padding: clamp(10px, 1.6vh, 14px) 18px;
           border-radius: 12px;
           cursor: pointer;
           display: inline-flex;
@@ -410,39 +379,6 @@ export default function MigrationOverlayModal() {
 
         .gf-migration-primary-action:active {
           transform: translateY(0);
-        }
-
-        .gf-migration-timer-caption {
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          font-size: clamp(10.5px, 1.35vh, 12px);
-          color: #64748b;
-          font-weight: 500;
-        }
-
-        .gf-migration-timer-bold {
-          color: #4f46e5;
-          font-weight: 750;
-        }
-
-        .gf-migration-timer-btn {
-          background: transparent;
-          border: none;
-          color: #64748b;
-          font-size: clamp(10.5px, 1.35vh, 12px);
-          font-weight: 600;
-          cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-          gap: 3px;
-          padding: 1px 4px;
-          border-radius: 4px;
-          text-decoration: underline;
-        }
-
-        .gf-migration-timer-btn:hover {
-          color: #0f172a;
         }
 
         .gf-migration-footer {
@@ -533,7 +469,7 @@ export default function MigrationOverlayModal() {
           </button>
         </div>
 
-        {/* Action Group */}
+        {/* Action Group (Student clicks when ready) */}
         <div className="gf-migration-cta-group">
           <button
             type="button"
@@ -543,38 +479,6 @@ export default function MigrationOverlayModal() {
             <span>Open Upgraded Website Now</span>
             <ArrowRight size={16} strokeWidth={2.2} />
           </button>
-
-          <div className="gf-migration-timer-caption">
-            <Clock size={11} strokeWidth={2} />
-            {!isPaused ? (
-              <>
-                <span>Redirecting in</span>
-                <span className="gf-migration-timer-bold">{countdown}s</span>
-                <span>•</span>
-                <button
-                  type="button"
-                  className="gf-migration-timer-btn"
-                  onClick={() => setIsPaused(true)}
-                >
-                  <Pause size={9} strokeWidth={2.5} />
-                  <span>Pause</span>
-                </button>
-              </>
-            ) : (
-              <>
-                <span>Auto-redirect paused</span>
-                <span>•</span>
-                <button
-                  type="button"
-                  className="gf-migration-timer-btn"
-                  onClick={() => setIsPaused(false)}
-                >
-                  <Play size={9} strokeWidth={2.5} />
-                  <span>Resume</span>
-                </button>
-              </>
-            )}
-          </div>
         </div>
       </div>
 
