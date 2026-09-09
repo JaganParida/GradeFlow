@@ -57,22 +57,42 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
   const [page, setPage] = useState(1);
   const [selectedStudent, setSelectedStudent] = useState(null);
 
-  // Fetch Attendance Monitor data
+  // Fetch Attendance Monitor data with sessionStorage cache
   const fetchAttendanceData = async (
     targetPage = page,
     targetFilter = filter,
     targetSearch = search,
     targetBranch = branch,
     targetSection = section,
-    targetSortBy = sortBy
+    targetSortBy = sortBy,
+    forceRefresh = false
   ) => {
+    const cleanSearch = String(targetSearch || "").trim().toUpperCase();
+    const cacheKey = `gf_admin_att_mon_${targetPage}_${targetFilter}_${cleanSearch}_${targetBranch}_${targetSection}_${targetSortBy}`;
+
+    if (!forceRefresh) {
+      try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && Date.now() - parsed.cachedAt < 5 * 60 * 1000) {
+            setStudents(parsed.students || []);
+            if (parsed.summary) setSummary(parsed.summary);
+            if (parsed.pagination) setPagination(parsed.pagination);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch {}
+    }
+
     setLoading(true);
     try {
       const params = new URLSearchParams({
         page: targetPage,
         limit: 10,
         filter: targetFilter,
-        search: targetSearch.trim(),
+        search: cleanSearch,
         branch: targetBranch,
         section: targetSection,
         sortBy: targetSortBy,
@@ -83,13 +103,25 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
         withCredentials: true,
       });
       if (res.data?.success) {
-        setStudents(res.data.students || []);
-        if (res.data.summary) {
-          setSummary(res.data.summary);
-        }
-        if (res.data.pagination) {
-          setPagination(res.data.pagination);
-        }
+        const fetchedStudents = res.data.students || [];
+        const fetchedSummary = res.data.summary || null;
+        const fetchedPagination = res.data.pagination || null;
+
+        setStudents(fetchedStudents);
+        if (fetchedSummary) setSummary(fetchedSummary);
+        if (fetchedPagination) setPagination(fetchedPagination);
+
+        try {
+          sessionStorage.setItem(
+            cacheKey,
+            JSON.stringify({
+              cachedAt: Date.now(),
+              students: fetchedStudents,
+              summary: fetchedSummary,
+              pagination: fetchedPagination,
+            })
+          );
+        } catch {}
       }
     } catch (err) {
       console.warn("Failed to fetch attendance monitor data:", err.message);
@@ -245,7 +277,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
         </div>
 
         <button
-          onClick={() => fetchAttendanceData(page, filter, search, branch, section)}
+          onClick={() => fetchAttendanceData(page, filter, search, branch, section, sortBy, true)}
           disabled={loading}
           style={{
             display: "inline-flex",

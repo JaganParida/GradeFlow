@@ -138,7 +138,7 @@ module.exports = async (req, res) => {
   if (req.method === "GET" || action === "history") {
     try {
       const studentRecord = await globalDbQueue.run(() =>
-        SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 })
+        SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 }).select("studentName").lean()
       );
 
       const studentName = studentRecord?.studentName || "Student";
@@ -165,6 +165,7 @@ module.exports = async (req, res) => {
 
       const allRecentSessions = await globalDbQueue.run(() =>
         StudentSession.find({ regNo: rawReg })
+          .select("sessionId isActive expiresAt deviceInfo loggedInAt lastActiveAt updatedAt")
           .sort({ lastActiveAt: -1, updatedAt: -1 })
           .limit(10)
           .lean()
