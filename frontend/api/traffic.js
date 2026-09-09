@@ -271,7 +271,20 @@ module.exports = async function handler(req, res) {
     // ─── 2. Student Route & Device Activity Logging (Zero Live Heartbeat, 100% Vercel Safe) ───
     const action = (req.query.action || "").toLowerCase();
 
-    if (action === "log-activity" || action === "page-view" || (req.method === "POST" && req.body?.route)) {
+    // Safely parse bodyData (handles pre-parsed objects or raw JSON strings from sendBeacon)
+    let bodyData = req.body || {};
+    if (typeof bodyData === "string") {
+      try {
+        bodyData = JSON.parse(bodyData);
+      } catch {}
+    }
+
+    if (
+      action === "log-activity" ||
+      action === "page-view" ||
+      action === "batch" ||
+      (req.method === "POST" && (bodyData.route || bodyData.routes || bodyData.isBatch))
+    ) {
       const {
         regNo,
         studentName,
@@ -284,9 +297,12 @@ module.exports = async function handler(req, res) {
         os = "Unknown",
         browser = "Unknown",
         isAdmin = false,
-      } = req.body || {};
+        isBatch = false,
+        routes = [],
+        currentRoute: explicitCurrentRoute = null,
+      } = bodyData;
 
-      const normRoute = normalizeRoute(route);
+      const normRoute = normalizeRoute(explicitCurrentRoute || route);
       const pageTitle = getFriendlyPageTitle(normRoute);
       const todayStr = getIstDateStr();
       const todayMonthStr = todayStr.slice(0, 7);
@@ -294,15 +310,17 @@ module.exports = async function handler(req, res) {
       const istHour = getIstHour();
 
       // ─── 1. Always update PageAnalytics for ALL routes (Admin, Student, Guest) ───
-      await PageAnalytics.findOneAndUpdate(
-        { route: normRoute },
-        {
-          $setOnInsert: { pageTitle },
-          $inc: { totalViews: 1 },
-          $set: { lastVisitedAt: new Date() },
-        },
-        { upsert: true }
-      ).catch(() => {});
+      if (!isBatch) {
+        await PageAnalytics.findOneAndUpdate(
+          { route: normRoute },
+          {
+            $setOnInsert: { pageTitle },
+            $inc: { totalViews: 1 },
+            $set: { lastVisitedAt: new Date() },
+          },
+          { upsert: true }
+        ).catch(() => {});
+      }
 
       // ─── 2. Always update VercelQuotaMetric for ALL requests (Vercel counts all serverless hits) ───
       try {
@@ -466,8 +484,54 @@ module.exports = async function handler(req, res) {
           studentActivity.visitsThisWeek = (studentActivity.visitsThisWeek || 0) + 1;
         }
 
-        // If user stayed on previousRoute for >= 5 seconds, log duration
-        if (previousRoute && validTimeSpent >= 5) {
+        // ─── Batch vs Single Route Activity Processing ───
+        if (isBatch && Array.isArray(routes) && routes.length > 0) {
+          for (const item of routes) {
+            const itemRoute = normalizeRoute(item.route || "/");
+            const itemTitle = item.pageTitle || getFriendlyPageTitle(itemRoute);
+            const itemDur = Math.max(0, parseInt(item.durationSeconds, 10) || 0);
+
+            // Update PageAnalytics for each route in batch
+            await PageAnalytics.findOneAndUpdate(
+              { route: itemRoute },
+              {
+                $setOnInsert: { pageTitle: itemTitle },
+                $inc: { totalViews: 1 },
+                $set: { lastVisitedAt: new Date() },
+              },
+              { upsert: true }
+            ).catch(() => {});
+
+            studentActivity.totalTimeSpentSeconds = (studentActivity.totalTimeSpentSeconds || 0) + itemDur;
+            studentActivity.totalPageViews = (studentActivity.totalPageViews || 0) + 1;
+
+            const existingItem = studentActivity.visitedRoutes.find((r) => r.route === itemRoute);
+            if (existingItem) {
+              existingItem.durationSeconds = (existingItem.durationSeconds || 0) + itemDur;
+              existingItem.visitCount = (existingItem.visitCount || 0) + 1;
+              existingItem.weeklyVisitCount = (existingItem.weeklyVisitCount || 0) + 1;
+              if (!existingItem.hourlyActivity || existingItem.hourlyActivity.length !== 24) {
+                existingItem.hourlyActivity = new Array(24).fill(0);
+              }
+              existingItem.hourlyActivity[istHour] = (existingItem.hourlyActivity[istHour] || 0) + 1;
+              existingItem.mostActiveTimeSlot = calculatePeakTimeSlot(existingItem.hourlyActivity);
+              existingItem.lastVisitedAt = new Date();
+            } else {
+              const rHourly = new Array(24).fill(0);
+              rHourly[istHour] = 1;
+              studentActivity.visitedRoutes.push({
+                route: itemRoute,
+                pageTitle: itemTitle,
+                durationSeconds: itemDur,
+                visitCount: 1,
+                weeklyVisitCount: 1,
+                hourlyActivity: rHourly,
+                mostActiveTimeSlot: calculatePeakTimeSlot(rHourly),
+                lastVisitedAt: new Date(),
+              });
+            }
+          }
+        } else if (previousRoute && validTimeSpent >= 5) {
           const normPrev = normalizeRoute(previousRoute);
           const prevTitle = getFriendlyPageTitle(normPrev);
 

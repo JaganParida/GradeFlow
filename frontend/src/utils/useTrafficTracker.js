@@ -10,10 +10,11 @@ const EXCLUDED_STUDENT_REG = "230301120327";
 export function useTrafficTracker({ studentSession, studentData, adminToken }) {
   const location = useLocation();
 
-  // Route tracking references for zero-request client-side duration calculation
+  // Route tracking references for zero-request in-memory aggregation
   const currentRouteRef = useRef(location.pathname);
   const routeStartTimeRef = useRef(Date.now());
-  const hasLoggedInitialRouteRef = useRef(false);
+  const routeBufferRef = useRef([]); // Accumulates { route, durationSeconds } across student navigation
+  const isFlushingRef = useRef(false);
 
   const isAdminRoute = location.pathname === "/admin" || location.pathname.startsWith("/admin/");
   const isAuthorizedAdmin = Boolean(adminToken) || isAdminRoute;
@@ -28,29 +29,60 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
     isAdmitted: true,
   });
 
-  useEffect(() => {
-    // ─── FILTER 0: NEVER track on old domain (preserves CPU quota on retired Vercel project) ───
-    if (typeof window !== "undefined") {
-      const host = window.location.hostname.toLowerCase();
-      if (host.includes("grade-flow-navy") || host.includes("gradeflow-navy")) {
-        return;
-      }
-    }
-
-    // ─── FILTER 1: NEVER track Admin ───
-    if (isAuthorizedAdmin) return;
-
-    // Resolve student registration number
+  // Resolve student registration number
+  const resolveRegNo = () => {
     let storedRegNo = null;
     try {
       storedRegNo = localStorage.getItem("gf_student_reg");
     } catch {}
+    const raw = studentSession?.regNo || studentData?.regNo || storedRegNo;
+    return raw ? String(raw).toUpperCase().trim() : null;
+  };
 
-    const rawRegNo = studentSession?.regNo || studentData?.regNo || storedRegNo;
-    const regNo = rawRegNo ? String(rawRegNo).toUpperCase().trim() : null;
+  // Helper to flush accumulated route buffer in 1 single consolidated batch
+  const flushRouteBuffer = (isBeacon = false) => {
+    if (isAuthorizedAdmin || isFlushingRef.current) return;
 
-    // ─── FILTER 2: NEVER track Special Student 230301120327 ───
+    // Domain check
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname.toLowerCase();
+      if (host.includes("grade-flow-navy") || host.includes("gradeflow-navy")) return;
+    }
+
+    const regNo = resolveRegNo();
     if (!regNo || regNo === EXCLUDED_STUDENT_REG) return;
+
+    // 1. Add final active route time to buffer if >= 5s
+    const now = Date.now();
+    const currentDuration = Math.round((now - routeStartTimeRef.current) / 1000);
+    if (currentDuration >= 5) {
+      routeBufferRef.current.push({
+        route: currentRouteRef.current,
+        durationSeconds: currentDuration,
+      });
+      routeStartTimeRef.current = now;
+    }
+
+    if (routeBufferRef.current.length === 0) return;
+
+    // 2. Cooldown Guard (10-20 Rapid Opens Protection)
+    // If synced recently (< 3 minutes) and total accumulated duration is < 15 seconds, skip
+    try {
+      const lastFlushStr = sessionStorage.getItem("gf_last_traffic_flush");
+      const lastFlushTime = lastFlushStr ? parseInt(lastFlushStr, 10) : 0;
+      const totalAccumulatedSecs = routeBufferRef.current.reduce((acc, r) => acc + (r.durationSeconds || 0), 0);
+
+      if (now - lastFlushTime < 3 * 60 * 1000 && totalAccumulatedSecs < 15) {
+        return; // Suppress micro-visit spam from rapid tab reloads
+      }
+    } catch {}
+
+    const routesToSend = [...routeBufferRef.current];
+    routeBufferRef.current = []; // Clear in-memory buffer immediately
+
+    try {
+      sessionStorage.setItem("gf_last_traffic_flush", String(now));
+    } catch {}
 
     const studentName = studentData?.studentName || studentSession?.studentName || null;
     const branch = studentData?.branch || studentSession?.branch || null;
@@ -61,91 +93,97 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
       platform: typeof navigator !== "undefined" ? navigator.platform : "",
     });
 
+    const payload = {
+      isBatch: true,
+      regNo,
+      studentName,
+      branch,
+      batch,
+      deviceType: deviceInfo.deviceType,
+      os: deviceInfo.os,
+      browser: deviceInfo.browser,
+      currentRoute: currentRouteRef.current,
+      routes: routesToSend,
+      isAdmin: false,
+    };
+
+    // 3. Dispatch: sendBeacon on tab exit, axios.post for periodic flush
+    if (isBeacon && typeof navigator !== "undefined" && navigator.sendBeacon) {
+      const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+      navigator.sendBeacon(`${API_BASE}/traffic/page-view`, blob);
+    } else {
+      isFlushingRef.current = true;
+      axios
+        .post(`${API_BASE}/traffic/page-view`, payload, { withCredentials: true, timeout: 5000 })
+        .catch(() => {})
+        .finally(() => {
+          isFlushingRef.current = false;
+        });
+    }
+  };
+
+  // ─── Zero-Request In-Memory Route Transition Tracking ───
+  useEffect(() => {
+    if (isAuthorizedAdmin) return;
+
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname.toLowerCase();
+      if (host.includes("grade-flow-navy") || host.includes("gradeflow-navy")) return;
+    }
+
+    const regNo = resolveRegNo();
+    if (!regNo || regNo === EXCLUDED_STUDENT_REG) return;
+
     const newRoute = location.pathname;
     const previousRoute = currentRouteRef.current;
     const now = Date.now();
     const timeSpentOnPrevious = Math.round((now - routeStartTimeRef.current) / 1000);
 
-    // Update refs for the current route
+    // If student spent >= 5 seconds on previous page, record it in local memory (0 network requests)
+    if (previousRoute !== newRoute && timeSpentOnPrevious >= 5) {
+      routeBufferRef.current.push({
+        route: previousRoute,
+        durationSeconds: timeSpentOnPrevious,
+      });
+    }
+
     currentRouteRef.current = newRoute;
     routeStartTimeRef.current = now;
-
-    // Helper to send route activity to backend
-    const sendActivityLog = (prevRoute, durationSecs) => {
-      axios
-        .post(
-          `${API_BASE}/traffic/page-view`,
-          {
-            regNo,
-            studentName,
-            branch,
-            batch,
-            route: newRoute,
-            previousRoute: prevRoute,
-            timeSpentSeconds: durationSecs,
-            deviceType: deviceInfo.deviceType,
-            os: deviceInfo.os,
-            browser: deviceInfo.browser,
-            isAdmin: false,
-          },
-          { withCredentials: true, timeout: 5000 }
-        )
-        .catch(() => {});
-    };
-
-    // Case A: Initial page entry on first visit / reload
-    if (!hasLoggedInitialRouteRef.current) {
-      hasLoggedInitialRouteRef.current = true;
-      sendActivityLog(null, 0);
-      return;
-    }
-
-    // Case B: Route change — only log duration if stayed on previous route >= 5 seconds (ignore instant bounces)
-    if (previousRoute !== newRoute) {
-      if (timeSpentOnPrevious >= 5) {
-        sendActivityLog(previousRoute, timeSpentOnPrevious);
-      }
-    }
   }, [location.pathname, isAuthorizedAdmin, studentSession?.regNo, studentData?.regNo]);
 
-  // ─── Final session duration beacon on tab close / leave (Zero Interval) ───
+  // ─── Lifecycle Triggers: Tab Exit, Tab Visibility & 5-Min Periodic Flush ───
   useEffect(() => {
     if (isAuthorizedAdmin) return;
 
-    let storedRegNo = null;
-    try {
-      storedRegNo = localStorage.getItem("gf_student_reg");
-    } catch {}
-    const rawRegNo = studentSession?.regNo || studentData?.regNo || storedRegNo;
-    const regNo = rawRegNo ? String(rawRegNo).toUpperCase().trim() : null;
+    const handleExitBeacon = () => {
+      flushRouteBuffer(true);
+    };
 
-    if (!regNo || regNo === EXCLUDED_STUDENT_REG) return;
-
-    const handleExit = () => {
-      const durationSeconds = Math.round((Date.now() - routeStartTimeRef.current) / 1000);
-      if (durationSeconds < 5) return; // Ignore accidental micro-visits
-
-      const payload = JSON.stringify({
-        regNo,
-        currentRoute: currentRouteRef.current,
-        durationSeconds,
-      });
-
-      if (typeof navigator !== "undefined" && navigator.sendBeacon) {
-        const blob = new Blob([payload], { type: "application/json" });
-        navigator.sendBeacon(`${API_BASE}/traffic/leave`, blob);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        flushRouteBuffer(true);
       }
     };
 
+    // Periodic flush every 5 minutes for long continuous study sessions
+    const periodicFlushInterval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        flushRouteBuffer(false);
+      }
+    }, 5 * 60 * 1000);
+
     if (typeof window !== "undefined") {
-      window.addEventListener("pagehide", handleExit, { capture: true });
-      window.addEventListener("beforeunload", handleExit);
+      window.addEventListener("pagehide", handleExitBeacon, { capture: true });
+      window.addEventListener("beforeunload", handleExitBeacon);
+      document.addEventListener("visibilitychange", handleVisibilityChange);
     }
 
     return () => {
+      clearInterval(periodicFlushInterval);
       if (typeof window !== "undefined") {
-        window.removeEventListener("pagehide", handleExit, { capture: true });
-        window.removeEventListener("beforeunload", handleExit);
+        window.removeEventListener("pagehide", handleExitBeacon, { capture: true });
+        window.removeEventListener("beforeunload", handleExitBeacon);
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
       }
     };
   }, [isAuthorizedAdmin, studentSession?.regNo, studentData?.regNo]);
