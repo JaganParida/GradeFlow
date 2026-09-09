@@ -174,7 +174,7 @@ module.exports = async function handler(req, res) {
           maxActiveCapacity: 200,
         };
 
-        const pages = await PageAnalytics.find({}).sort({ totalViews: -1 }).lean();
+        const pages = await PageAnalytics.find({}, "route pageTitle totalViews lastVisitedAt").sort({ totalViews: -1 }).lean();
         const totalPages = pages.length;
         const tierSize = Math.max(1, Math.ceil(totalPages / 3));
 
@@ -183,9 +183,10 @@ module.exports = async function handler(req, res) {
         const leastVisited = pages.slice(tierSize * 2).map((p) => ({ ...p, tier: "LEAST_VISITED" }));
 
         // Fetch Student Activity Logs (Strictly EXCLUDING 230301120327)
-        const studentActivities = await StudentRouteActivity.find({
-          regNo: { $ne: EXCLUDED_STUDENT_REG },
-        })
+        const studentActivities = await StudentRouteActivity.find(
+          { regNo: { $ne: EXCLUDED_STUDENT_REG } },
+          "regNo studentName branch batch deviceType os browser currentRoute currentPageTitle lastActiveRoute lastActivePageTitle timeSpentCurrentRoute totalTimeSpentSeconds mostVisitedRoute mostVisitedPageTitle mostVisitedCount mostTimeSpentRoute mostTimeSpentPageTitle mostTimeSpentSeconds mostActiveTimeSlot peakTimeSpentSeconds mostActiveDay visitsToday visitsThisWeek lastActiveAt"
+        )
           .sort({ lastActiveAt: -1 })
           .limit(200)
           .lean();

@@ -117,7 +117,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
       } catch (err) {
         console.error("Student search error:", err);
       }
-    }, 250);
+    }, 350);
 
     setSearchDebounceTimer(timer);
     return () => clearTimeout(timer);

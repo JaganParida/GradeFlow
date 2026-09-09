@@ -47,12 +47,23 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
   const [routePage, setRoutePage] = useState(1);
   const ROUTES_PER_PAGE = isMobile ? 5 : 6;
 
-  // Fetch Vercel Quota metrics strictly ON-DEMAND (Zero background polling / zero quota drain)
+  // Fetch Vercel Quota metrics strictly ON-DEMAND with sessionStorage cache
   const fetchQuotaMetrics = async (isManualRefresh = false) => {
-    if (isManualRefresh) {
-      setRefreshing(true);
-    } else {
+    if (!isManualRefresh) {
+      try {
+        const cached = sessionStorage.getItem("gf_admin_vercel_quota_cache");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && Date.now() - parsed.cachedAt < 3 * 60 * 1000) {
+            setData(parsed.data);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch {}
       setLoading(true);
+    } else {
+      setRefreshing(true);
     }
     setError(null);
 
@@ -64,6 +75,12 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
 
       if (res.data?.success) {
         setData(res.data);
+        try {
+          sessionStorage.setItem(
+            "gf_admin_vercel_quota_cache",
+            JSON.stringify({ cachedAt: Date.now(), data: res.data })
+          );
+        } catch {}
       } else {
         setError(res.data?.message || "Failed to load Vercel Quota metrics.");
       }

@@ -94,6 +94,21 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
   // ─── Fetch Overview via REST (On-Demand, Zero Polling) ─────────────────────
   const fetchOverview = async (isManual = false) => {
     if (isManual) setRefreshing(true);
+
+    if (!isManual) {
+      try {
+        const cached = sessionStorage.getItem("gf_admin_traffic_overview");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && Date.now() - parsed.cachedAt < 3 * 60 * 1000) {
+            setLiveData(parsed.data);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch {}
+    }
+
     try {
       const res = await axios.get(`${API}/admin/traffic/live-overview`, {
         withCredentials: true,
@@ -102,6 +117,12 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
 
       if (res.data && res.data.success) {
         setLiveData(res.data);
+        try {
+          sessionStorage.setItem(
+            "gf_admin_traffic_overview",
+            JSON.stringify({ cachedAt: Date.now(), data: res.data })
+          );
+        } catch {}
       }
     } catch (err) {
       console.warn("Failed to fetch traffic overview:", err.message);

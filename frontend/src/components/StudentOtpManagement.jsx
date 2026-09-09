@@ -174,21 +174,48 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   const [revokeReason, setRevokeReason] = useState("");
   const [revokeLoading, setRevokeLoading] = useState(false);
 
-  // Fetch all registered student accounts on mount & when filter changes
-  const fetchAccounts = async (search = directorySearch, filter = directoryFilter) => {
+  // Fetch all registered student accounts on mount & when filter changes with sessionStorage cache
+  const fetchAccounts = async (search = directorySearch, filter = directoryFilter, forceRefresh = false) => {
+    const cleanSearch = String(search || "").trim();
+    const cacheKey = `gf_admin_otp_dir_${cleanSearch}_${filter}`;
+
+    if (!forceRefresh) {
+      try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && Date.now() - parsed.cachedAt < 3 * 60 * 1000) {
+            setAccountsList(parsed.accounts || []);
+            setAccountsStats(parsed.stats || { totalRegistered: 0, totalActive: 0, totalOffline: 0 });
+            setAccountsLoading(false);
+            return;
+          }
+        }
+      } catch {}
+    }
+
     setAccountsLoading(true);
     try {
       const res = await axios.get(
-        `${API}/admin/student-accounts?search=${encodeURIComponent(search)}&filter=${filter}`,
+        `${API}/admin/student-accounts?search=${encodeURIComponent(cleanSearch)}&filter=${filter}`,
         authHeaders
       );
       if (res.data?.success) {
-        setAccountsList(res.data.accounts || []);
-        setAccountsStats({
+        const fetchedAccounts = res.data.accounts || [];
+        const fetchedStats = {
           totalRegistered: res.data.totalRegistered || 0,
           totalActive: res.data.totalActive || 0,
           totalOffline: res.data.totalOffline || 0,
-        });
+        };
+        setAccountsList(fetchedAccounts);
+        setAccountsStats(fetchedStats);
+
+        try {
+          sessionStorage.setItem(
+            cacheKey,
+            JSON.stringify({ cachedAt: Date.now(), accounts: fetchedAccounts, stats: fetchedStats })
+          );
+        } catch {}
       }
     } catch (err) {
       console.warn("Failed to fetch student accounts directory:", err.message);
@@ -205,7 +232,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   const handleDirectorySearchSubmit = (e) => {
     if (e) e.preventDefault();
     setDirectoryPage(1);
-    fetchAccounts(directorySearch, directoryFilter);
+    fetchAccounts(directorySearch, directoryFilter, true);
   };
 
   const handleSearchWithReg = async (targetReg) => {

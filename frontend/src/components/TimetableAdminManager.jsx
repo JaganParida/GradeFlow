@@ -179,14 +179,32 @@ export default function TimetableAdminManager({ authHeaders, API }) {
     loadSectionTimetable(section, batch, branch);
   }, [section, batch, branch]);
 
-  async function fetchPublishedSchedules() {
+  async function fetchPublishedSchedules(forceRefresh = false) {
+    if (!forceRefresh) {
+      try {
+        const cached = sessionStorage.getItem("gf_admin_schedules_list");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && Date.now() - parsed.cachedAt < 10 * 60 * 1000) {
+            setPublishedList(parsed.schedules || []);
+            setCustomSchedulesStore(parsed.schedules || []);
+            setIsLoadingList(false);
+            return;
+          }
+        }
+      } catch {}
+    }
+
     setIsLoadingList(true);
     try {
       const { data } = await axios.get(`${API}/timetable/admin/schedule/list`, authHeaders);
       if (data.success) {
-        setPublishedList(data.schedules || []);
-        // Update local helper cache
-        setCustomSchedulesStore(data.schedules || []);
+        const list = data.schedules || [];
+        setPublishedList(list);
+        setCustomSchedulesStore(list);
+        try {
+          sessionStorage.setItem("gf_admin_schedules_list", JSON.stringify({ cachedAt: Date.now(), schedules: list }));
+        } catch {}
       }
     } catch (e) {
       console.error("Error fetching published schedules:", e);
@@ -434,7 +452,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
           },
         ]);
 
-        fetchPublishedSchedules();
+        fetchPublishedSchedules(true);
       } else {
         setStatusMsg({ text: data.message || "Failed to save timetable.", type: "error" });
       }
@@ -489,7 +507,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
           type: "success",
         });
         setCloneModal({ isOpen: false, targetSection: "CSE-B", isCloning: false });
-        fetchPublishedSchedules();
+        fetchPublishedSchedules(true);
       }
     } catch (e) {
       setStatusMsg({
@@ -807,7 +825,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       const { data } = await axios.delete(`${API}/timetable/admin/schedule/${id}`, authHeaders);
       if (data.success) {
         setStatusMsg({ text: "Timetable schedule deleted successfully.", type: "success" });
-        fetchPublishedSchedules();
+        fetchPublishedSchedules(true);
       }
     } catch (e) {
       setStatusMsg({ text: "Failed to delete schedule.", type: "error" });
