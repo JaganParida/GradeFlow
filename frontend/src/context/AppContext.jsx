@@ -81,6 +81,7 @@ export function AppProvider({ children }) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [rankingsVersion, setRankingsVersion] = useState(null);
   
   // In-memory administrative authentication state — NOT persisted in localStorage
   const [adminToken, setAdminToken] = useState(false);
@@ -615,6 +616,14 @@ export function AppProvider({ children }) {
           return [newBroadcast, ...prev];
         });
         setUnreadCount((c) => c + 1);
+      });
+
+      // E. Listen for real-time ranking updates across all active students (<1s)
+      broadcastChannel.subscribe("rankings-updated", (msg) => {
+        if (!isMounted || !msg?.data) return;
+        const newVer = msg.data.version || msg.data.timestamp || Date.now();
+        setRankingsVersion(newVer);
+        window.dispatchEvent(new CustomEvent("gradeflow:rankings-updated", { detail: msg.data }));
       });
     } catch (err) {
       console.warn("[Ably] Realtime connection warning:", err?.message || err);
@@ -1188,6 +1197,8 @@ export function AppProvider({ children }) {
         setMaintenance,
         checkMaintenanceStatus,
         API: API_BASE,
+        rankingsVersion,
+        setRankingsVersion,
         stats: null,
         queuePosition: null,
         sessionTimeLeft: null,

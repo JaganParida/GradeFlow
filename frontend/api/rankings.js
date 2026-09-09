@@ -1,5 +1,6 @@
 const connectToDatabase = require("./_lib/db");
 const Ranking = require("./_lib/models/Ranking");
+const SystemConfig = require("./_lib/models/SystemConfig");
 const { sortByScore } = require("./_lib/gradeCalculations");
 const { globalDbQueue } = require("./_lib/dbProtection");
 
@@ -103,13 +104,36 @@ module.exports = async function handler(req, res) {
     const action = req.query.action;
 
     if (action === "meta") {
-      const semesters = await Ranking.distinct("semester", { sgpa: { $gt: 0 } });
-      const batches = await Ranking.distinct("batch", { batch: { $ne: null } });
-      const branches = ["CSE", "CIVIL", "ME", "ECE", "EEE", "BIO", "MI", "AERO"];
+      let metaDoc = await SystemConfig.findOne({ key: "rankings_meta" }).lean();
+      if (!metaDoc?.rankingsMeta?.semesters?.length) {
+        const semesters = await Ranking.distinct("semester", { sgpa: { $gt: 0 } });
+        const batches = await Ranking.distinct("batch", { batch: { $ne: null } });
+        const branches = ["CSE", "CIVIL", "ME", "ECE", "EEE", "BIO", "MI", "AERO"];
+        const version = Date.now();
+
+        metaDoc = await SystemConfig.findOneAndUpdate(
+          { key: "rankings_meta" },
+          {
+            $set: {
+              key: "rankings_meta",
+              "rankingsMeta.version": version,
+              "rankingsMeta.semesters": semesters.map(Number).sort((a, b) => a - b),
+              "rankingsMeta.batches": batches.filter(Boolean).sort(),
+              "rankingsMeta.branches": branches,
+              "rankingsMeta.updatedAt": new Date(),
+            },
+          },
+          { upsert: true, new: true }
+        ).lean();
+      }
+
+      const meta = metaDoc?.rankingsMeta || {};
+      res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=300");
       return res.json({
-        semesters: semesters.sort((a, b) => Number(a) - Number(b)),
-        batches: batches.filter(Boolean).sort(),
-        branches
+        semesters: (meta.semesters || []).map(Number).sort((a, b) => a - b),
+        batches: (meta.batches || []).filter(Boolean).sort(),
+        branches: meta.branches || ["CSE", "CIVIL", "ME", "ECE", "EEE", "BIO", "MI", "AERO"],
+        version: meta.version || Date.now(),
       });
     }
 
@@ -153,7 +177,13 @@ module.exports = async function handler(req, res) {
     if (andClauses.length > 0) query.$and = andClauses;
     
     // Set safe public edge cache headers
-    res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=300");
+    if (req.query.v) {
+      // Versioned query: 100% immutable Edge CDN cache hit (24 hours). 0 CPU, 0 DB reads!
+      res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=86400");
+    } else {
+      // Fallback for unversioned legacy calls
+      res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+    }
 
     let rankings = await globalDbQueue.run(() =>
       Ranking.find(query).lean()
