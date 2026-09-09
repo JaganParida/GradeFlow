@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
@@ -801,8 +801,39 @@ export default function AttendanceTracker() {
     } catch {}
   }, []);
 
-  // Sync to MongoDB helper (Direct Cloud Persistence)
-  const syncAttendanceToDb = async (
+  // Debounced Cloud Sync refs
+  const syncDebounceTimerRef = useRef(null);
+  const pendingSyncRef = useRef(null);
+
+  // Immediate flush function (used by timer or on unmount/tab exit)
+  const flushAttendanceSync = useCallback(async () => {
+    if (!pendingSyncRef.current) return;
+    const { regToSync, payload } = pendingSyncRef.current;
+    pendingSyncRef.current = null;
+    if (syncDebounceTimerRef.current) {
+      clearTimeout(syncDebounceTimerRef.current);
+      syncDebounceTimerRef.current = null;
+    }
+
+    try {
+      if (
+        typeof navigator !== "undefined" &&
+        typeof navigator.sendBeacon === "function" &&
+        typeof document !== "undefined" &&
+        document.visibilityState === "hidden"
+      ) {
+        const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+        navigator.sendBeacon(`${API}/student/${regToSync}/attendance`, blob);
+      } else {
+        await axios.post(`${API}/student/${regToSync}/attendance`, payload);
+      }
+    } catch (err) {
+      console.warn("Background attendance sync to MongoDB:", err?.message || err);
+    }
+  }, [API]);
+
+  // Debounced auto-sync with instant optimistic UI (Aggregates rapid clicks into 1 save)
+  const syncAttendanceToDb = (
     updatedSaved = savedSubjects,
     updatedAllLogs = allDailyLogs,
     goal = targetGoal,
@@ -810,18 +841,48 @@ export default function AttendanceTracker() {
   ) => {
     const regToSync = currentRegNo || studentSession?.regNo || studentData?.regNo;
     if (!regToSync) return;
-    try {
-      setAllDailyLogs(updatedAllLogs);
-      await axios.post(`${API}/student/${regToSync}/attendance`, {
-        section: sectionToSync || selectedSection,
-        targetGoal: goal,
-        savedSubjects: updatedSaved,
-        dailyLogs: updatedAllLogs,
-      });
-    } catch (err) {
-      console.warn("Background attendance sync to MongoDB:", err.message);
+
+    // 1. Instant optimistic state update for 0ms visual feedback
+    setAllDailyLogs(updatedAllLogs);
+
+    // 2. Buffer pending payload
+    const payload = {
+      section: sectionToSync || selectedSection,
+      targetGoal: goal,
+      savedSubjects: updatedSaved,
+      dailyLogs: updatedAllLogs,
+    };
+    pendingSyncRef.current = { regToSync, payload };
+
+    // 3. Debounce: if user clicks 5 subjects in a row, wait until 1000ms pause to send 1 save
+    if (syncDebounceTimerRef.current) {
+      clearTimeout(syncDebounceTimerRef.current);
     }
+    syncDebounceTimerRef.current = setTimeout(() => {
+      flushAttendanceSync();
+    }, 1000);
   };
+
+  // Safety net: flush any pending attendance save on tab switch, minimize, or navigation
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        flushAttendanceSync();
+      }
+    };
+    const handleBeforeUnload = () => {
+      flushAttendanceSync();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      flushAttendanceSync();
+    };
+  }, [flushAttendanceSync]);
 
   // Load student profile & saved Attendance from MongoDB Atlas in one smooth pass
   useEffect(() => {
@@ -841,10 +902,16 @@ export default function AttendanceTracker() {
           sData = await fetchStudent(targetReg, 2, 800);
         }
 
-        // 2. Fetch saved attendance from MongoDB
-        const res = await axios.get(`${API}/student/${targetReg}/attendance`);
-        if (res.data?.success && res.data.attendance && isMounted) {
-          const att = res.data.attendance;
+        // 2. Hydrate from eager student profile (0 GETs) or fetch from MongoDB Atlas
+        let att = sData?.attendance || null;
+        if (!att) {
+          const res = await axios.get(`${API}/student/${targetReg}/attendance`);
+          if (res.data?.success && res.data.attendance) {
+            att = res.data.attendance;
+          }
+        }
+
+        if (att && isMounted) {
           const loadedSubs = Array.isArray(att.savedSubjects) ? att.savedSubjects : [];
           setSavedSubjects(loadedSubs);
 

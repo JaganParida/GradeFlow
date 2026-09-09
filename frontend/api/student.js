@@ -258,7 +258,11 @@ module.exports = async function handler(req, res) {
       }
 
       if (req.method === "POST") {
-        const { section, targetGoal, savedSubjects, dailyLogs } = req.body || {};
+        let body = req.body || {};
+        if (typeof body === "string") {
+          try { body = JSON.parse(body); } catch {}
+        }
+        const { section, targetGoal, savedSubjects, dailyLogs } = body;
 
         const cleanSavedSubjects = Array.isArray(savedSubjects)
           ? savedSubjects.map((s) => ({
@@ -380,10 +384,11 @@ module.exports = async function handler(req, res) {
 
     const healthScore = calcAcademicHealth(cgpa, liveLatestSgpa, backlogs.length, results);
 
-    const [allRankings, allInternals, studentProfile] = await Promise.all([
+    const [allRankings, allInternals, studentProfile, attendanceDoc] = await Promise.all([
       Ranking.find({ regNo: cleanRegNo }).lean(),
       InternalMark.find({ regNo: cleanRegNo }).lean(),
       Student.findOne({ regNo: cleanRegNo }).lean(),
+      Attendance.findOne({ regNo: cleanRegNo }).lean(),
     ]);
 
     const rankingsMap = {};
@@ -397,6 +402,21 @@ module.exports = async function handler(req, res) {
     });
 
     const ranking = rankingsMap[String(latestResult.semester)] || null;
+
+    const formattedAttendance = attendanceDoc
+      ? {
+          regNo: attendanceDoc.regNo,
+          section: attendanceDoc.section,
+          targetGoal: attendanceDoc.targetGoal,
+          savedSubjects: attendanceDoc.savedSubjects,
+          dailyLogs: attendanceDoc.dailyLogs
+            ? attendanceDoc.dailyLogs instanceof Map
+              ? Object.fromEntries(attendanceDoc.dailyLogs)
+              : attendanceDoc.dailyLogs
+            : {},
+          lastSyncedAt: attendanceDoc.lastSyncedAt,
+        }
+      : null;
 
     const responseData = {
       regNo: cleanRegNo,
@@ -423,6 +443,7 @@ module.exports = async function handler(req, res) {
       internalMarksMap,
       allRankings: allRankings || [],
       allInternals: allInternals || [],
+      attendance: formattedAttendance,
     };
 
     return res.json(responseData);
