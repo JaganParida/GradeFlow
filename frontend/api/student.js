@@ -59,6 +59,7 @@ module.exports = async function handler(req, res) {
       const feedbackId = req.query.id;
 
       if (req.method === "GET" && !feedbackId) {
+        res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
         const feedbacks = await Feedback.find()
           .select("name rating comment category likes createdAt")
           .sort({ createdAt: -1 });
