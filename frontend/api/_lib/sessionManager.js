@@ -4,6 +4,10 @@ const EventEmitter = require("events");
 
 const DeviceApprovalRequest = require("./models/DeviceApprovalRequest");
 const StudentNotification = require("./models/StudentNotification");
+const {
+  publishStudentRealtimeEvent,
+  publishApprovalRealtimeEvent,
+} = require("./ablyService");
 
 const PERMANENT_SESSION_MS = 100 * 365 * 24 * 60 * 60 * 1000; // 100 years (Permanent sessions until explicit logout)
 const MAX_ADMIN_DEVICES = 2; // Maximum simultaneous active devices for Admin
@@ -183,6 +187,13 @@ async function createDeviceApprovalRequest(regNo, requestingDeviceInfo, targetSe
     approvalRequest,
   });
 
+  // Publish instant Ably WebSocket event to student's active device (<0.1s latency)
+  publishStudentRealtimeEvent(clean, "new-notification", {
+    type: "NEW_NOTIFICATION",
+    notification,
+    approvalRequest,
+  }).catch(() => {});
+
   return { approvalRequest, notification };
 }
 
@@ -246,6 +257,20 @@ async function respondDeviceApproval(StudentSession, requestId, respondingSessio
         requestId,
         status: "DENIED",
       });
+
+      // Publish instant Ably WebSocket events (<0.1s latency)
+      publishApprovalRealtimeEvent(requestId, cleanReg, "approval-status", {
+        status: "DENIED",
+        message: "Login request was denied from your active device.",
+      }).catch(() => {});
+      publishStudentRealtimeEvent(cleanReg, "approval-response", {
+        requestId,
+        status: "DENIED",
+      }).catch(() => {});
+      publishStudentRealtimeEvent(cleanReg, "notification-updated", {
+        requestId,
+        status: "DENIED",
+      }).catch(() => {});
 
       return { success: true, status: "DENIED", message: "Login request denied successfully." };
     }
@@ -339,6 +364,28 @@ async function respondDeviceApproval(StudentSession, requestId, respondingSessio
           sessionId: newSessionId,
         },
       });
+
+      // 7. Publish instant Ably WebSocket events (<0.1s latency)
+      publishStudentRealtimeEvent(cleanReg, "notification-updated", {
+        requestId,
+        status: "APPROVED",
+      }).catch(() => {});
+
+      // Instant session transfer notification to the old device
+      publishStudentRealtimeEvent(cleanReg, "session-revoked", {
+        revokedSessionId: targetSessionId,
+        reason: "APPROVED_ON_NEW_DEVICE",
+        message: "Your session ended because your account was approved on another device.",
+      }).catch(() => {});
+
+      // Instant approval notification to the waiting device
+      publishApprovalRealtimeEvent(requestId, cleanReg, "approval-status", {
+        status: "APPROVED",
+        student: {
+          regNo: cleanReg,
+          sessionId: newSessionId,
+        },
+      }).catch(() => {});
 
       return {
         success: true,

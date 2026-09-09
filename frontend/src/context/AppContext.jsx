@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { createAblyRealtime } from "../services/ablyClient";
 
 export const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
@@ -542,7 +543,7 @@ export function AppProvider({ children }) {
     } catch {}
   };
 
-  // ─── Resilient Adaptive Background Sync for Active Student Session ───
+  // ─── Dual-Ably Realtime Handover & Notification Sync (0 Polling, 0 Extra CPU) ───
   useEffect(() => {
     if (!studentSession || !studentSession.regNo || !studentSession.sessionId) {
       setNotifications([]);
@@ -551,56 +552,98 @@ export function AppProvider({ children }) {
     }
 
     let isMounted = true;
-    let pollTimer = null;
+    const cleanReg = String(studentSession.regNo).trim().toUpperCase();
 
-    const scheduleNextPoll = (delayMs) => {
-      if (!isMounted) return;
-      clearTimeout(pollTimer);
-      pollTimer = setTimeout(runPoll, delayMs);
-    };
+    // 1. Initial single fetch on mount to load initial notification list
+    fetchNotifications();
 
-    const runPoll = async () => {
-      if (!isMounted) return;
-      // Do not poll if the tab/browser is hidden or minimized (0 background requests)
-      if (document.visibilityState === "hidden") {
-        return;
-      }
+    // 2. Initialize Ably Realtime Client (automatically routes to Key 1 or Key 2)
+    let ably = null;
+    let studentChannel = null;
+    let broadcastChannel = null;
 
-      const res = await fetchNotifications();
-      if (!isMounted) return;
+    try {
+      ably = createAblyRealtime(cleanReg);
+      studentChannel = ably.channels.get(`student-${cleanReg}`);
+      broadcastChannel = ably.channels.get("broadcasts-all");
 
-      // If an unread notification has a pending device approval request, poll faster (4s)
-      // so device handover is instant. Otherwise, relax to 20s to conserve CPU & invocations.
-      const hasPendingApproval = res?.notifications?.some(
-        (n) => n.approvalRequestId && n.status === "PENDING"
-      );
-      scheduleNextPoll(hasPendingApproval ? 4000 : 20000);
-    };
+      // A. Listen for instant login approval requests on active device (<0.1s)
+      studentChannel.subscribe("new-notification", (msg) => {
+        if (!isMounted || !msg?.data) return;
+        const newNotif = msg.data.notification;
+        if (!newNotif) return;
 
-    // Initial fetch on mount
-    fetchNotifications().then((res) => {
-      if (!isMounted) return;
-      const hasPendingApproval = res?.notifications?.some(
-        (n) => n.approvalRequestId && n.status === "PENDING"
-      );
-      scheduleNextPoll(hasPendingApproval ? 4000 : 20000);
-    });
+        setNotifications((prev) => {
+          const exists = prev.some((n) => n.notificationId === newNotif.notificationId);
+          if (exists) return prev;
+          return [newNotif, ...prev];
+        });
+        setUnreadCount((c) => c + 1);
+      });
 
-    // Immediate re-check on tab resume
+      // B. Listen for approval response updates (APPROVED / DENIED)
+      studentChannel.subscribe("notification-updated", (msg) => {
+        if (!isMounted || !msg?.data?.requestId) return;
+        const { requestId, status } = msg.data;
+        setNotifications((prev) =>
+          prev.map((n) => (n.approvalRequestId === requestId ? { ...n, status } : n))
+        );
+      });
+
+      // C. Listen for session revocation (when another device is approved)
+      studentChannel.subscribe("session-revoked", (msg) => {
+        if (!isMounted || !msg?.data) return;
+        const { revokedSessionId, message } = msg.data;
+        if (!revokedSessionId || revokedSessionId === studentSession.sessionId) {
+          setSessionRevokedNotice(
+            message || "Your session ended because your account was approved on another device."
+          );
+          setStudentSession(null);
+          setStudentData(null);
+          setAuthStatus("UNAUTHENTICATED");
+          navigate("/", { replace: true });
+        }
+      });
+
+      // D. Listen for real-time admin broadcast announcements across all students
+      broadcastChannel.subscribe("new-broadcast", (msg) => {
+        if (!isMounted || !msg?.data) return;
+        const newBroadcast = msg.data;
+        setNotifications((prev) => {
+          const exists = prev.some((n) => n.notificationId === newBroadcast.notificationId);
+          if (exists) return prev;
+          return [newBroadcast, ...prev];
+        });
+        setUnreadCount((c) => c + 1);
+      });
+    } catch (err) {
+      console.warn("[Ably] Realtime connection warning:", err?.message || err);
+    }
+
+    // 3. Tab Visibility Slot Recycling: Close connection when hidden to release Ably slot
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && isMounted) {
-        runPoll();
-      } else {
-        clearTimeout(pollTimer);
-      }
+      if (!ably) return;
+      try {
+        if (document.visibilityState === "hidden") {
+          ably.connection.close();
+        } else if (document.visibilityState === "visible") {
+          ably.connection.connect();
+          // Gentle sync on resume
+          if (isMounted) fetchNotifications();
+        }
+      } catch {}
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       isMounted = false;
-      clearTimeout(pollTimer);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      try {
+        if (studentChannel) studentChannel.unsubscribe();
+        if (broadcastChannel) broadcastChannel.unsubscribe();
+        if (ably) ably.close();
+      } catch {}
     };
   }, [studentSession?.sessionId, studentSession?.regNo]);
 

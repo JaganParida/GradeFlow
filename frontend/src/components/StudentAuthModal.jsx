@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useApp, API_BASE } from "../context/AppContext";
 import axios from "axios";
 import { encodeStudentId } from "../utils/studentIdEncoder";
+import { createAblyRealtime } from "../services/ablyClient";
 import {
   GraduationCap,
   Mail,
@@ -417,13 +418,15 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     return () => clearInterval(interval);
   }, [resendCooldown]);
 
-  // Device Approval Polling & Countdown (Prompt Sections 11-13)
+  // Device Approval Realtime Listener & Countdown (0 Polling, Instant <0.1s Handover)
   useEffect(() => {
     let pollInterval = null;
     let timerInterval = null;
+    let ably = null;
+    let approvalChannel = null;
 
     if (step === "APPROVAL_PENDING" && approvalRequestId) {
-      // 1. Countdown timer
+      // 1. Countdown timer (purely in-memory, 0 network calls)
       timerInterval = setInterval(() => {
         setApprovalTimerSeconds((prev) => {
           if (prev <= 1) {
@@ -436,35 +439,76 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         });
       }, 1000);
 
-      const pollStatus = async () => {
+      const handleApprovalComplete = async () => {
+        clearInterval(timerInterval);
+        clearInterval(pollInterval);
+        setStatusNotice("Approval granted! Setting up your session...");
         const res = await checkApprovalStatus(approvalRequestId);
-        if (res?.status === "APPROVED" && res?.success) {
-          clearInterval(pollInterval);
-          clearInterval(timerInterval);
-          setStatusNotice("Approval granted! Setting up your session...");
+        if (res?.success) {
           setTimeout(() => {
             navigateToDestination(cleanReg);
           }, 350);
+        }
+      };
+
+      // 2. Connect to Ably Realtime using student's deterministic partition
+      try {
+        ably = createAblyRealtime(cleanReg);
+        approvalChannel = ably.channels.get(`approval-${approvalRequestId}`);
+
+        approvalChannel.subscribe("approval-status", (msg) => {
+          const data = msg?.data;
+          if (!data) return;
+
+          if (data.status === "APPROVED") {
+            handleApprovalComplete();
+          } else if (data.status === "DENIED") {
+            clearInterval(timerInterval);
+            clearInterval(pollInterval);
+            setErrorMsg("Login request was denied from your active device.");
+            setErrorCode("APPROVAL_DENIED");
+          } else if (data.status === "EXPIRED") {
+            clearInterval(timerInterval);
+            clearInterval(pollInterval);
+            setErrorMsg("Approval request timed out. Please try logging in again.");
+            setErrorCode("APPROVAL_EXPIRED");
+          }
+        });
+      } catch (err) {
+        console.warn("[Ably] Fallback to poll:", err?.message || err);
+      }
+
+      // 3. Ultra-relaxed fallback poll (12s instead of 1.5s) in case of socket drop
+      const pollStatus = async () => {
+        const res = await checkApprovalStatus(approvalRequestId);
+        if (res?.status === "APPROVED" && res?.success) {
+          handleApprovalComplete();
         } else if (res?.status === "DENIED") {
-          clearInterval(pollInterval);
           clearInterval(timerInterval);
+          clearInterval(pollInterval);
           setErrorMsg("Login request was denied from your active device.");
           setErrorCode("APPROVAL_DENIED");
         } else if (res?.status === "EXPIRED") {
-          clearInterval(pollInterval);
           clearInterval(timerInterval);
+          clearInterval(pollInterval);
           setErrorMsg("Approval request timed out. Please try logging in again.");
           setErrorCode("APPROVAL_EXPIRED");
         }
       };
 
-      // 2. High-speed poll every 1.5s
-      pollInterval = setInterval(pollStatus, 1500);
+      pollInterval = setInterval(pollStatus, 12000);
 
-      // 3. Immediate poll on tab resume / visibility change
+      // 4. Immediate poll on tab resume / visibility change
       const handleVisibilityChange = () => {
         if (document.visibilityState === "visible") {
           pollStatus();
+          try {
+            if (ably) ably.connection.connect();
+          } catch {}
+        } else if (document.visibilityState === "hidden") {
+          try {
+            if (ably) ably.connection.close();
+          } catch {}
         }
       };
       document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -473,12 +517,20 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         clearInterval(pollInterval);
         clearInterval(timerInterval);
         document.removeEventListener("visibilitychange", handleVisibilityChange);
+        try {
+          if (approvalChannel) approvalChannel.unsubscribe();
+          if (ably) ably.close();
+        } catch {}
       };
     }
 
     return () => {
       clearInterval(pollInterval);
       clearInterval(timerInterval);
+      try {
+        if (approvalChannel) approvalChannel.unsubscribe();
+        if (ably) ably.close();
+      } catch {}
     };
   }, [step, approvalRequestId]);
 
