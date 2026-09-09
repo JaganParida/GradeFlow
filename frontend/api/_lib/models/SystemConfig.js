@@ -50,9 +50,28 @@ const systemConfigSchema = new mongoose.Schema(
         type: Date,
         default: Date.now,
       },
-      updatedBy: {
-        type: String,
-        default: "",
+    },
+    // For rankings metadata and edge CDN cache-busting revision
+    rankingsMeta: {
+      version: {
+        type: Number,
+        default: Date.now,
+      },
+      semesters: {
+        type: [Number],
+        default: [],
+      },
+      batches: {
+        type: [String],
+        default: [],
+      },
+      branches: {
+        type: [String],
+        default: ["CSE", "CIVIL", "ME", "ECE", "EEE", "BIO", "MI", "AERO"],
+      },
+      updatedAt: {
+        type: Date,
+        default: Date.now,
       },
     },
   },

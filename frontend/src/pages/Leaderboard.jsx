@@ -22,11 +22,11 @@ import {
 } from "lucide-react";
 
 export default function Leaderboard() {
-  const { API } = useApp();
+  const { API, rankingsVersion } = useApp();
   const location = useLocation();
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [meta, setMeta] = useState({ semesters: [], branches: [], batches: [] });
+  const [meta, setMeta] = useState({ semesters: [], branches: [], batches: [], version: null });
   const [showCount, setShowCount] = useState(10);
   const [highlightRegNo, setHighlightRegNo] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -116,7 +116,7 @@ export default function Leaderboard() {
 
   const leaderboardCacheRef = useRef(new Map());
 
-  async function fetchRankings(f = filters, metaData = meta) {
+  async function fetchRankings(f = filters, metaData = meta, forceBust = false) {
     let targetFilter = { ...f };
 
     // Auto-set default semester if in SGPA mode and empty
@@ -128,8 +128,9 @@ export default function Leaderboard() {
       targetFilter.semester = defaultSem;
     }
 
-    const cacheKey = JSON.stringify(targetFilter);
-    if (leaderboardCacheRef.current.has(cacheKey)) {
+    const currentVersion = metaData?.version || rankingsVersion || "";
+    const cacheKey = JSON.stringify({ ...targetFilter, v: currentVersion });
+    if (!forceBust && leaderboardCacheRef.current.has(cacheKey)) {
       setRankings(leaderboardCacheRef.current.get(cacheKey));
       setLoading(false);
       return;
@@ -149,6 +150,9 @@ export default function Leaderboard() {
         params.append("section", targetFilter.section);
       }
       params.append("limit", targetFilter.section ? "200" : "50");
+      if (currentVersion) {
+        params.append("v", currentVersion);
+      }
 
       const { data } = await axios.get(`${API}/rankings/top?${params}`);
       leaderboardCacheRef.current.set(cacheKey, data);
@@ -159,6 +163,14 @@ export default function Leaderboard() {
       setLoading(false);
     }
   }
+
+  // Listen for real-time ranking updates (<1s live refresh without manual reload)
+  useEffect(() => {
+    if (!rankingsVersion) return;
+    leaderboardCacheRef.current.clear();
+    setMeta((prev) => ({ ...prev, version: rankingsVersion }));
+    fetchRankings(filters, { ...meta, version: rankingsVersion }, true);
+  }, [rankingsVersion]);
 
   // Tab switcher with automatic default assignment
   const handleTabSwitch = (newSortBy) => {

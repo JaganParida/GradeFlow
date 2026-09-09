@@ -26,6 +26,7 @@ const {
 } = require("./_lib/gradeCalculations");
 
 const { applyCors } = require("./_lib/cors");
+const { broadcastRealtimeEvent } = require("./_lib/ablyService");
 
 function parseCookies(cookieHeader) {
   const cookies = {};
@@ -161,7 +162,40 @@ async function authenticateAdmin(req) {
   }
 }
 
-async function generateRankingForSemester(semester, preloadedResults = null) {
+async function syncRankingsMetadataAndBroadcast(semester = null) {
+  try {
+    const semesters = await Ranking.distinct("semester", { sgpa: { $gt: 0 } });
+    const batches = await Ranking.distinct("batch", { batch: { $ne: null } });
+    const branches = ["CSE", "CIVIL", "ME", "ECE", "EEE", "BIO", "MI", "AERO"];
+    const newVersion = Date.now();
+
+    await SystemConfig.findOneAndUpdate(
+      { key: "rankings_meta" },
+      {
+        $set: {
+          key: "rankings_meta",
+          "rankingsMeta.version": newVersion,
+          "rankingsMeta.semesters": semesters.map(Number).sort((a, b) => a - b),
+          "rankingsMeta.batches": batches.filter(Boolean).sort(),
+          "rankingsMeta.branches": branches,
+          "rankingsMeta.updatedAt": new Date(),
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+    // Broadcast real-time update across dual Ably accounts
+    await broadcastRealtimeEvent("rankings-updated", {
+      timestamp: newVersion,
+      version: newVersion,
+      semester: semester ? Number(semester) : null,
+    });
+  } catch (err) {
+    console.error("[RankingsSync] Failed to sync rankings metadata/broadcast:", err?.message || err);
+  }
+}
+
+async function generateRankingForSemester(semester, preloadedResults = null, shouldBroadcast = true) {
   const semResults = preloadedResults || (await SemesterResult.find({ semester: Number(semester) }).lean());
   if (!semResults || semResults.length === 0) return;
 
@@ -203,6 +237,10 @@ async function generateRankingForSemester(semester, preloadedResults = null) {
 
   if (bulkOps.length > 0) {
     await Ranking.bulkWrite(bulkOps);
+  }
+
+  if (shouldBroadcast) {
+    await syncRankingsMetadataAndBroadcast(semester);
   }
 }
 
@@ -1049,8 +1087,10 @@ module.exports = async function handler(req, res) {
       const semesters = [...new Set(allSemesterResults.map((r) => Number(r.semester)))].filter((s) => !isNaN(s) && s > 0).sort((a, b) => a - b);
 
       for (const sem of semesters) {
-        await generateRankingForSemester(sem, allSemesterResults);
+        await generateRankingForSemester(sem, allSemesterResults, false);
       }
+
+      await syncRankingsMetadataAndBroadcast();
 
       return res.json({
         success: true,
@@ -1060,7 +1100,8 @@ module.exports = async function handler(req, res) {
 
     // 11. POST /cache/clear
     if (action === "cache-clear" || cleanUrl.includes("/cache/clear")) {
-      return res.json({ success: true, message: "Server cache cleared successfully." });
+      await syncRankingsMetadataAndBroadcast();
+      return res.json({ success: true, message: "Server cache cleared and live rankings synchronized successfully." });
     }
 
     // 12. GET /section-toppers
