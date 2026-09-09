@@ -34,3 +34,14 @@ export function createAblyRealtime(regNo, options = {}) {
     ...options,
   });
 }
+
+/**
+ * Creates an Ably Realtime client for the Admin portal with slot recycling.
+ */
+export function createAdminAblyRealtime(options = {}) {
+  return new Ably.Realtime({
+    key: ABLY_KEY_1,
+    closeOnUnload: true,
+    ...options,
+  });
+}

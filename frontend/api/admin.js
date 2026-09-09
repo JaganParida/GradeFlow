@@ -244,6 +244,10 @@ async function generateRankingForSemester(semester, preloadedResults = null, sho
   }
 }
 
+let statsCache = null;
+let statsCacheTimestamp = 0;
+const STATS_CACHE_TTL_MS = 60 * 1000; // 60s memory cache to prevent redundant aggregations
+
 module.exports = async function handler(req, res) {
   if (applyCors(req, res, "GET,POST,PUT,DELETE,OPTIONS")) return;
 
@@ -318,10 +322,16 @@ module.exports = async function handler(req, res) {
 
     // 1. GET /stats
     if (action === "stats" || cleanUrl.includes("/stats")) {
+      const isForce = req.query.force === "true" || req.query.refresh === "true";
+      const now = Date.now();
+      if (!isForce && statsCache && (now - statsCacheTimestamp < STATS_CACHE_TTL_MS)) {
+        return res.json(statsCache);
+      }
+
       const [totalResults, totalInternal, totalRankings, totalAccountsCreated, activeSessions] = await Promise.all([
-        SemesterResult.countDocuments(),
-        InternalMark.countDocuments(),
-        Ranking.countDocuments(),
+        typeof SemesterResult.estimatedDocumentCount === "function" ? SemesterResult.estimatedDocumentCount() : SemesterResult.countDocuments(),
+        typeof InternalMark.estimatedDocumentCount === "function" ? InternalMark.estimatedDocumentCount() : InternalMark.countDocuments(),
+        typeof Ranking.estimatedDocumentCount === "function" ? Ranking.estimatedDocumentCount() : Ranking.countDocuments(),
         Student.countDocuments({ passwordHash: { $exists: true, $ne: null } }),
         StudentSession.find({ isActive: true }, "regNo").lean(),
       ]);
@@ -437,7 +447,7 @@ module.exports = async function handler(req, res) {
           return Number(b.batch) - Number(a.batch);
         });
 
-      return res.json({
+      const resultData = {
         totalStudents: uniqueStudents.length,
         totalAccountsCreated,
         activeLoggedInCount,
@@ -445,7 +455,12 @@ module.exports = async function handler(req, res) {
         totalInternal,
         totalRankings,
         batchBreakdown,
-      });
+      };
+
+      statsCache = resultData;
+      statsCacheTimestamp = Date.now();
+
+      return res.json(resultData);
     }
 
     // 1B. GET /student-accounts
@@ -470,9 +485,10 @@ module.exports = async function handler(req, res) {
       const regNos = registeredStudents.map((s) => s.regNo);
 
       // All sessions lookup (active + recent for logout audit)
-      const studentSessions = await StudentSession.find({
-        regNo: { $in: regNos },
-      }).sort({ lastActiveAt: -1, updatedAt: -1 }).lean();
+      const studentSessions = await StudentSession.find(
+        { regNo: { $in: regNos } },
+        "regNo isActive sessionId deviceInfo lastActiveAt loggedInAt updatedAt"
+      ).sort({ lastActiveAt: -1, updatedAt: -1 }).lean();
 
       const sessionMap = new Map();
       const latestSessionMap = new Map();
@@ -587,7 +603,10 @@ module.exports = async function handler(req, res) {
       const page = Math.max(1, parseInt(req.query.page, 10) || 1);
       const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 10));
 
-      const attendanceDocs = await Attendance.find().sort({ updatedAt: -1, lastSyncedAt: -1 }).lean();
+      const attendanceDocs = await Attendance.find(
+        {},
+        "regNo section targetGoal savedSubjects lastSyncedAt updatedAt dailyLogs"
+      ).sort({ updatedAt: -1, lastSyncedAt: -1 }).lean();
       const regNos = attendanceDocs.map((a) => a.regNo);
 
       const studentMetaDocs = await SemesterResult.find(
@@ -1090,6 +1109,8 @@ module.exports = async function handler(req, res) {
         await generateRankingForSemester(sem, allSemesterResults, false);
       }
 
+      statsCache = null;
+      statsCacheTimestamp = 0;
       await syncRankingsMetadataAndBroadcast();
 
       return res.json({
@@ -1100,6 +1121,8 @@ module.exports = async function handler(req, res) {
 
     // 11. POST /cache/clear
     if (action === "cache-clear" || cleanUrl.includes("/cache/clear")) {
+      statsCache = null;
+      statsCacheTimestamp = 0;
       await syncRankingsMetadataAndBroadcast();
       return res.json({ success: true, message: "Server cache cleared and live rankings synchronized successfully." });
     }
@@ -1113,8 +1136,11 @@ module.exports = async function handler(req, res) {
       const semester = req.query.semester;
 
       const [allRankings, studentsTracking] = await Promise.all([
-        Ranking.find({}).lean(),
-        Student.find({}).lean(),
+        Ranking.find(
+          semester ? { semester: Number(semester) } : {},
+          "regNo semester studentName batch branch cgpa sgpa sectionCgpaRank sectionSgpaRank deptCgpaRank deptRank universityRank cgpaRank"
+        ).lean(),
+        Student.find({}, "regNo lastTopperEmailSentAt lastTopperEmailStatus lastTopperEmailError").lean(),
       ]);
 
       const studentTrackingMap = new Map();
@@ -1232,9 +1258,15 @@ module.exports = async function handler(req, res) {
       const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
 
       const [semResults, rankings, studentsTracking] = await Promise.all([
-        SemesterResult.find({}).sort({ semester: 1 }).lean(),
-        Ranking.find({}).lean(),
-        Student.find({}).lean(),
+        SemesterResult.find(
+          {},
+          "regNo batch branch studentName semester subjects.subjectName subjects.subjectCode subjects.grade subjects.credits"
+        ).sort({ semester: 1 }).lean(),
+        Ranking.find(
+          {},
+          "regNo semester cgpa universityRank cgpaRank deptCgpaRank deptRank sectionCgpaRank sectionSgpaRank"
+        ).lean(),
+        Student.find({}, "regNo lastBacklogEmailSentAt lastBacklogEmailStatus lastBacklogEmailError").lean(),
       ]);
 
       const studentTrackingMap = new Map();
