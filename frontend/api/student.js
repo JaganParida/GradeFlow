@@ -380,13 +380,23 @@ module.exports = async function handler(req, res) {
 
     const healthScore = calcAcademicHealth(cgpa, liveLatestSgpa, backlogs.length, results);
 
-    const [ranking, studentProfile] = await Promise.all([
-      Ranking.findOne({
-        regNo: cleanRegNo,
-        semester: latestResult.semester,
-      }).lean(),
+    const [allRankings, allInternals, studentProfile] = await Promise.all([
+      Ranking.find({ regNo: cleanRegNo }).lean(),
+      InternalMark.find({ regNo: cleanRegNo }).lean(),
       Student.findOne({ regNo: cleanRegNo }).lean(),
     ]);
+
+    const rankingsMap = {};
+    (allRankings || []).forEach((r) => {
+      if (r.semester) rankingsMap[String(r.semester)] = r;
+    });
+
+    const internalMarksMap = {};
+    (allInternals || []).forEach((im) => {
+      if (im.semester) internalMarksMap[String(im.semester)] = im;
+    });
+
+    const ranking = rankingsMap[String(latestResult.semester)] || null;
 
     const responseData = {
       regNo: cleanRegNo,
@@ -409,6 +419,10 @@ module.exports = async function handler(req, res) {
       backlogs,
       results,
       ranking: ranking || null,
+      rankingsMap,
+      internalMarksMap,
+      allRankings: allRankings || [],
+      allInternals: allInternals || [],
     };
 
     return res.json(responseData);
