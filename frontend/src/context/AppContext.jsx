@@ -623,6 +623,9 @@ export function AppProvider({ children }) {
         if (!isMounted || !msg?.data) return;
         const newVer = msg.data.version || msg.data.timestamp || Date.now();
         setRankingsVersion(newVer);
+        try {
+          if (cleanReg) sessionStorage.removeItem(`gf_student_profile_${cleanReg}`);
+        } catch (_) {}
         window.dispatchEvent(new CustomEvent("gradeflow:rankings-updated", { detail: msg.data }));
       });
     } catch (err) {
@@ -1038,14 +1041,29 @@ export function AppProvider({ children }) {
   const logoutAdmin = adminLogout;
   const authHeaders = { "X-Requested-With": "XMLHttpRequest" };
 
-  // ─── Student Profile Fetch ───────────────────────────────────────
+  // ─── Student Profile Fetch (with sessionStorage cache across reloads) ───
   const fetchStudent = async (regNo, retries = 4, backoffMs = 1000, forceRefresh = false) => {
     if (!regNo) return null;
     const cleanReg = regNo.trim().toUpperCase();
+    const profileCacheKey = `gf_student_profile_${cleanReg}`;
 
     if (!forceRefresh && studentData && studentData.regNo === cleanReg) {
       setLoading(false);
       return studentData;
+    }
+
+    if (!forceRefresh) {
+      try {
+        const cachedRaw = sessionStorage.getItem(profileCacheKey);
+        if (cachedRaw) {
+          const parsed = JSON.parse(cachedRaw);
+          if (parsed && Date.now() - parsed.ts < 15 * 60 * 1000 && parsed.data?.regNo === cleanReg) {
+            setStudentData(parsed.data);
+            setLoading(false);
+            return parsed.data;
+          }
+        }
+      } catch (_) {}
     }
 
     if (backoffMs === 1000) {
@@ -1057,6 +1075,9 @@ export function AppProvider({ children }) {
         withCredentials: true,
       });
       setStudentData(res.data);
+      try {
+        sessionStorage.setItem(profileCacheKey, JSON.stringify({ data: res.data, ts: Date.now() }));
+      } catch (_) {}
       setLoading(false);
       return res.data;
     } catch (err) {
@@ -1093,6 +1114,11 @@ export function AppProvider({ children }) {
   };
 
   const clearStudentData = () => {
+    try {
+      if (studentData?.regNo) {
+        sessionStorage.removeItem(`gf_student_profile_${studentData.regNo}`);
+      }
+    } catch (_) {}
     setStudentData(null);
     setNotifications([]);
     setUnreadCount(0);
