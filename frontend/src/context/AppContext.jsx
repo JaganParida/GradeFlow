@@ -392,7 +392,6 @@ export function AppProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [sessionRevokedNotice, setSessionRevokedNotice] = useState(null);
-  const lastNotifSyncRef = useRef(Date.now());
 
   const fetchNotifications = async () => {
     if (!studentSession?.regNo || !studentSession?.sessionId) {
@@ -640,13 +639,8 @@ export function AppProvider({ children }) {
         if (document.visibilityState === "hidden") {
           ably.connection.close();
         } else if (document.visibilityState === "visible") {
+          // Reconnect Ably WebSocket stream outside Vercel (0 HTTP requests to Vercel)
           ably.connection.connect();
-          // Gentle sync on resume only if hidden for more than 15 minutes (WebSockets deliver live notifications instantly)
-          const now = Date.now();
-          if (isMounted && now - lastNotifSyncRef.current > 900000) {
-            lastNotifSyncRef.current = now;
-            fetchNotifications();
-          }
         }
       } catch {}
     };
