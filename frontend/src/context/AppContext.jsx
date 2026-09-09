@@ -378,6 +378,25 @@ export function AppProvider({ children }) {
     };
   }, [authStatus, bootstrapAuthentication]);
 
+  // ─── Admin Logout Handler ─────────────────────────────────────────
+  const adminLogout = useCallback(async () => {
+    try {
+      OBSOLETE_AUTH_STORAGE_KEYS.forEach((key) => {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      });
+      await axios.post(`${API_BASE}/auth/admin/logout`, {}, { withCredentials: true });
+    } catch (err) {
+      console.warn("Logout error:", err.message);
+    } finally {
+      setAdminToken(false);
+      setAdminProfile(null);
+      navigate("/admin");
+    }
+  }, [navigate]);
+
+  const logoutAdmin = adminLogout;
+
   // ─── Active Admin Ably Realtime Handover (0 Polling, 0 Vercel Reqs) ────
   const lastAdminSyncRef = useRef(Date.now());
 
@@ -1093,23 +1112,6 @@ export function AppProvider({ children }) {
     }
   };
 
-  const adminLogout = async () => {
-    try {
-      OBSOLETE_AUTH_STORAGE_KEYS.forEach((key) => {
-        localStorage.removeItem(key);
-        sessionStorage.removeItem(key);
-      });
-      await axios.post(`${API_BASE}/auth/admin/logout`, {}, { withCredentials: true });
-    } catch (err) {
-      console.warn("Logout error:", err.message);
-    } finally {
-      setAdminToken(false);
-      setAdminProfile(null);
-      navigate("/admin");
-    }
-  };
-
-  const logoutAdmin = adminLogout;
   const authHeaders = { "X-Requested-With": "XMLHttpRequest" };
 
   // ─── Student Profile Fetch (with sessionStorage cache across reloads) ───
