@@ -218,11 +218,27 @@ export default function AttendanceTracker() {
   useEffect(() => {
     let isMounted = true;
     async function fetchLiveTimetableSchedules() {
+      const CACHE_KEY = "gf_schedules_cache";
+      try {
+        const raw = sessionStorage.getItem(CACHE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Date.now() - parsed.ts < 1800000 && Array.isArray(parsed.schedules)) {
+            setCustomSchedulesStore(parsed.schedules);
+            setTimetableVersion((v) => v + 1);
+            return;
+          }
+        }
+      } catch (_) {}
+
       try {
         const { data } = await axios.get(`${API}/timetable/active-all`);
         if (data && data.success && Array.isArray(data.schedules) && isMounted) {
           setCustomSchedulesStore(data.schedules);
           setTimetableVersion((v) => v + 1);
+          try {
+            sessionStorage.setItem(CACHE_KEY, JSON.stringify({ schedules: data.schedules, ts: Date.now() }));
+          } catch (_) {}
         }
       } catch (err) {
         console.warn("Could not fetch live timetable schedules:", err.message);
