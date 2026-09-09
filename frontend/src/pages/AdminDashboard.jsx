@@ -2696,9 +2696,9 @@ function BacklogTrackerCard({ authHeaders, API }) {
   useEffect(() => {
     return onAdminCacheDirty(AdminCacheScopes.BACKLOGS, () => {
       backlogCacheRef.current.clear();
-      fetchBacklogs(page, true);
+      fetchBacklogs(page, search, null, true);
     });
-  }, [page, batch, branch, section, semester, limit]);
+  }, [page, search, batch, branch, section, semester, limit]);
 
   return (
     <div

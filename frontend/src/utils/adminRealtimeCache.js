@@ -1,4 +1,4 @@
-﻿/**
+/**
  * GradeFlow Admin Realtime Reactive Cache Engine
  * Replaces arbitrary time-based TTLs (5m/10m) with true event-driven Ably WebSocket invalidation.
  *
@@ -18,6 +18,8 @@ export const AdminCacheScopes = {
   OTP: "otp",
   TRAFFIC: "traffic",
   RANKINGS: "rankings",
+  ADMIN: "admin",
+  BROADCAST: "broadcast",
   ALL: "all",
 };
 
@@ -77,13 +79,23 @@ export function invalidateAdminCache(scope) {
         keysToRemove.push(k);
       } else if (scope === AdminCacheScopes.BACKLOGS && k.startsWith("gf_admin_backlog")) {
         keysToRemove.push(k);
-      } else if (scope === AdminCacheScopes.TIMETABLE && k.startsWith("gf_admin_schedules")) {
+      } else if (scope === AdminCacheScopes.TIMETABLE && (k.startsWith("gf_admin_schedules") || k.startsWith("gf_admin_tt_"))) {
         keysToRemove.push(k);
       } else if (scope === AdminCacheScopes.FEEDBACK && k.startsWith("gf_admin_feedback")) {
         keysToRemove.push(k);
       } else if (scope === AdminCacheScopes.OTP && k.startsWith("gf_admin_otp")) {
         keysToRemove.push(k);
-      } else if (scope === AdminCacheScopes.TRAFFIC && k.startsWith("gf_admin_traffic")) {
+      } else if (scope === AdminCacheScopes.TRAFFIC && (k.startsWith("gf_admin_traffic") || k.startsWith("gf_admin_vercel"))) {
+        keysToRemove.push(k);
+      } else if (
+        scope === AdminCacheScopes.ADMIN &&
+        (k.startsWith("gf_admin_visibility") ||
+          k.startsWith("gf_admin_maintenance") ||
+          k.startsWith("gf_admin_subadmins") ||
+          k.startsWith("gf_admin_audit_logs"))
+      ) {
+        keysToRemove.push(k);
+      } else if (scope === AdminCacheScopes.BROADCAST && k.startsWith("gf_admin_broadcasts")) {
         keysToRemove.push(k);
       }
     }
