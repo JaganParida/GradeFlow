@@ -19,6 +19,7 @@ import AdminVercelQuotaMonitor from "../components/AdminVercelQuotaMonitor";
 import ModernMobileSubNav from "../components/ModernMobileSubNav";
 import AdminNotificationBroadcast from "../components/AdminNotificationBroadcast";
 import { createAdminAblyRealtime } from "../services/ablyClient";
+import { getAdminCache, setAdminCache, onAdminCacheDirty, AdminCacheScopes } from "../utils/adminRealtimeCache";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -1877,18 +1878,13 @@ function SectionToppersCard({ authHeaders, API }) {
         setLoading(false);
         return;
       }
-      try {
-        const stored = sessionStorage.getItem(storageKey);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed && Date.now() - parsed.cachedAt < 5 * 60 * 1000) {
-            toppersCacheRef.current.set(cacheKey, parsed.data);
-            setData(parsed.data);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch {}
+      const cached = getAdminCache(storageKey);
+      if (cached) {
+        toppersCacheRef.current.set(cacheKey, cached);
+        setData(cached);
+        setLoading(false);
+        return;
+      }
     }
 
     setLoading(true);
@@ -1903,9 +1899,7 @@ function SectionToppersCard({ authHeaders, API }) {
       const res = await axios.get(`${API}/admin/section-toppers?${params}`, authHeaders);
       const resData = res.data || { totalToppers: 0, students: [] };
       toppersCacheRef.current.set(cacheKey, resData);
-      try {
-        sessionStorage.setItem(storageKey, JSON.stringify({ cachedAt: Date.now(), data: resData }));
-      } catch {}
+      setAdminCache(storageKey, resData, AdminCacheScopes.TOPPERS);
       setData(resData);
     } catch (e) {
       console.error(e);
@@ -1917,6 +1911,14 @@ function SectionToppersCard({ authHeaders, API }) {
 
   useEffect(() => {
     fetchSectionToppers(false);
+  }, []);
+
+  // Real-time reactive invalidation listener for toppers & rankings
+  useEffect(() => {
+    return onAdminCacheDirty(AdminCacheScopes.TOPPERS, () => {
+      toppersCacheRef.current.clear();
+      fetchSectionToppers(true);
+    });
   }, []);
 
   function handleFilterChange(field, val) {
@@ -2654,18 +2656,13 @@ function BacklogTrackerCard({ authHeaders, API }) {
         setLoading(false);
         return;
       }
-      try {
-        const stored = sessionStorage.getItem(storageKey);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed && Date.now() - parsed.cachedAt < 5 * 60 * 1000) {
-            backlogCacheRef.current.set(cacheKey, parsed.data);
-            setData(parsed.data);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch {}
+      const cached = getAdminCache(storageKey);
+      if (cached) {
+        backlogCacheRef.current.set(cacheKey, cached);
+        setData(cached);
+        setLoading(false);
+        return;
+      }
     }
 
     setLoading(true);
@@ -2682,9 +2679,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
       const res = await axios.get(`${API}/admin/backlogs?${params}`, authHeaders);
       const resData = res.data || { totalStudentsWithBacklogs: 0, totalBacklogsCount: 0, students: [], totalPages: 1, page: 1 };
       backlogCacheRef.current.set(cacheKey, resData);
-      try {
-        sessionStorage.setItem(storageKey, JSON.stringify({ cachedAt: Date.now(), data: resData }));
-      } catch {}
+      setAdminCache(storageKey, resData, AdminCacheScopes.BACKLOGS);
       setData(resData);
     } catch (e) {
       console.error(e);
@@ -2696,6 +2691,14 @@ function BacklogTrackerCard({ authHeaders, API }) {
   useEffect(() => {
     fetchBacklogs(1);
   }, [batch, branch, section, semester, limit]);
+
+  // Real-time reactive invalidation listener for backlogs & rankings
+  useEffect(() => {
+    return onAdminCacheDirty(AdminCacheScopes.BACKLOGS, () => {
+      backlogCacheRef.current.clear();
+      fetchBacklogs(page, true);
+    });
+  }, [page, batch, branch, section, semester, limit]);
 
   return (
     <div
@@ -3554,6 +3557,14 @@ function FeedbackManager({ authHeaders, API }) {
     fetchFeedbacks();
   }, []);
 
+  // Real-time reactive invalidation listener for feedback (0 polling)
+  useEffect(() => {
+    return onAdminCacheDirty(AdminCacheScopes.FEEDBACK, () => {
+      feedbackCacheRef.current = null;
+      fetchFeedbacks(true);
+    });
+  }, []);
+
   async function fetchFeedbacks(forceRefresh = false) {
     if (!forceRefresh) {
       if (feedbackCacheRef.current) {
@@ -3561,26 +3572,19 @@ function FeedbackManager({ authHeaders, API }) {
         setLoading(false);
         return;
       }
-      try {
-        const stored = sessionStorage.getItem("gf_admin_feedback_cache");
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed && Date.now() - parsed.cachedAt < 5 * 60 * 1000) {
-            feedbackCacheRef.current = parsed.data;
-            setFeedbacks(parsed.data);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch {}
+      const cached = getAdminCache("gf_admin_feedback_cache");
+      if (cached) {
+        feedbackCacheRef.current = cached;
+        setFeedbacks(cached);
+        setLoading(false);
+        return;
+      }
     }
     setLoading(true);
     try {
       const { data } = await axios.get(`${API}/feedback`);
       feedbackCacheRef.current = data;
-      try {
-        sessionStorage.setItem("gf_admin_feedback_cache", JSON.stringify({ cachedAt: Date.now(), data }));
-      } catch {}
+      setAdminCache("gf_admin_feedback_cache", data, AdminCacheScopes.FEEDBACK);
       setFeedbacks(data);
     } catch (e) {
       setErr("Failed to load feedbacks");
@@ -3884,16 +3888,11 @@ export default function AdminDashboard({ defaultTab = null }) {
 
   async function fetchStats(forceRefresh = false) {
     if (!forceRefresh) {
-      try {
-        const stored = sessionStorage.getItem("gf_admin_stats_cache");
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed && Date.now() - parsed.cachedAt < 5 * 60 * 1000) {
-            setStats(parsed.data);
-            return;
-          }
-        }
-      } catch {}
+      const cached = getAdminCache("gf_admin_stats_cache");
+      if (cached) {
+        setStats(cached);
+        return;
+      }
     }
 
     try {
@@ -3901,13 +3900,18 @@ export default function AdminDashboard({ defaultTab = null }) {
       const url = forceRefresh ? `${API}/admin/stats?force=true` : `${API}/admin/stats`;
       const { data } = await axios.get(url, headers);
       setStats(data);
-      try {
-        sessionStorage.setItem("gf_admin_stats_cache", JSON.stringify({ cachedAt: Date.now(), data }));
-      } catch {}
+      setAdminCache("gf_admin_stats_cache", data, AdminCacheScopes.STATS);
     } catch (err) {
       console.warn("fetchStats notice:", err.message);
     }
   }
+
+  // Real-time reactive invalidation listener for stats (0 polling)
+  useEffect(() => {
+    return onAdminCacheDirty(AdminCacheScopes.STATS, () => {
+      fetchStats(true);
+    });
+  }, []);
 
   // Ably Realtime Listener for instant ranking and stats synchronization (0 polling)
   useEffect(() => {

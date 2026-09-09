@@ -10,6 +10,7 @@ const SubAdminSession = require("./_lib/models/SubAdminSession");
 const Feedback = require("./_lib/models/Feedback");
 const { isSessionValid, touchSession, isAdminSessionValid } = require("./_lib/sessionManager");
 const { globalDbQueue } = require("./_lib/dbProtection");
+const { publishAdminRealtimeEvent } = require("./_lib/ablyService");
 const {
   calculateBacklogs,
   calculateCGPA,
@@ -86,6 +87,7 @@ module.exports = async function handler(req, res) {
           category: typeof category === "string" && category.trim() ? category.trim() : "Overall Experience",
         });
         const savedFeedback = await newFeedback.save();
+        publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() }).catch(() => {});
         return res.status(201).json(savedFeedback);
       }
 
@@ -94,6 +96,7 @@ module.exports = async function handler(req, res) {
         if (!feedback) return res.status(404).json({ message: "Feedback not found" });
         feedback.likes = (feedback.likes || 0) + 1;
         await feedback.save();
+        publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() }).catch(() => {});
         return res.json(feedback);
       }
 
@@ -116,6 +119,7 @@ module.exports = async function handler(req, res) {
         if (rating) feedback.rating = rating;
         if (comment) feedback.comment = comment;
         const updatedFeedback = await feedback.save();
+        publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() }).catch(() => {});
         return res.json(updatedFeedback);
       }
 
@@ -133,6 +137,7 @@ module.exports = async function handler(req, res) {
         const feedback = await Feedback.findById(feedbackId);
         if (!feedback) return res.status(404).json({ message: "Feedback not found" });
         await feedback.deleteOne();
+        publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() }).catch(() => {});
         return res.json({ message: "Feedback deleted successfully" });
       }
 
@@ -314,6 +319,9 @@ module.exports = async function handler(req, res) {
           },
           { upsert: true, new: true, setDefaultsOnInsert: true }
         );
+
+        publishAdminRealtimeEvent("attendance-updated", { regNo: cleanRegNo, timestamp: Date.now() }).catch(() => {});
+
         return res.json({
           success: true,
           message: "Attendance data saved successfully to database.",

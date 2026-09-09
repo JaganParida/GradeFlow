@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
+import { getAdminCache, setAdminCache, onAdminCacheDirty, invalidateAdminCache, AdminCacheScopes } from "../utils/adminRealtimeCache";
 import {
   Clock,
   Calendar,
@@ -181,18 +182,13 @@ export default function TimetableAdminManager({ authHeaders, API }) {
 
   async function fetchPublishedSchedules(forceRefresh = false) {
     if (!forceRefresh) {
-      try {
-        const cached = sessionStorage.getItem("gf_admin_schedules_list");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed && Date.now() - parsed.cachedAt < 10 * 60 * 1000) {
-            setPublishedList(parsed.schedules || []);
-            setCustomSchedulesStore(parsed.schedules || []);
-            setIsLoadingList(false);
-            return;
-          }
-        }
-      } catch {}
+      const cached = getAdminCache("gf_admin_schedules_list");
+      if (cached && cached.schedules) {
+        setPublishedList(cached.schedules || []);
+        setCustomSchedulesStore(cached.schedules || []);
+        setIsLoadingList(false);
+        return;
+      }
     }
 
     setIsLoadingList(true);
@@ -202,9 +198,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
         const list = data.schedules || [];
         setPublishedList(list);
         setCustomSchedulesStore(list);
-        try {
-          sessionStorage.setItem("gf_admin_schedules_list", JSON.stringify({ cachedAt: Date.now(), schedules: list }));
-        } catch {}
+        setAdminCache("gf_admin_schedules_list", { schedules: list }, AdminCacheScopes.TIMETABLE);
       }
     } catch (e) {
       console.error("Error fetching published schedules:", e);
@@ -212,6 +206,13 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       setIsLoadingList(false);
     }
   }
+
+  // Real-time reactive invalidation listener (0 polling, instant silent refresh on schedule mutation)
+  useEffect(() => {
+    return onAdminCacheDirty(AdminCacheScopes.TIMETABLE, () => {
+      fetchPublishedSchedules(true);
+    });
+  }, []);
 
   // Load schedule for specific section (checks MongoDB published schedule first, fallback to JSON)
   async function loadSectionTimetable(sec, bch, brn) {
@@ -825,6 +826,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       const { data } = await axios.delete(`${API}/timetable/admin/schedule/${id}`, authHeaders);
       if (data.success) {
         setStatusMsg({ text: "Timetable schedule deleted successfully.", type: "success" });
+        invalidateAdminCache(AdminCacheScopes.TIMETABLE);
         fetchPublishedSchedules(true);
       }
     } catch (e) {

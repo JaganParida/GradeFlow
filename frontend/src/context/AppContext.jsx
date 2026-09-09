@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useRef, useCallback } f
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { createAblyRealtime, createAdminAblyRealtime } from "../services/ablyClient";
+import { invalidateAdminCache, AdminCacheScopes } from "../utils/adminRealtimeCache";
 
 export const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
@@ -397,6 +398,31 @@ export function AppProvider({ children }) {
 
       adminChannel.subscribe("admin-logout", () => {
         adminLogout();
+      });
+
+      // ── Realtime Event-Driven Cache Invalidation Subscriptions ──
+      adminChannel.subscribe("attendance-updated", () => {
+        invalidateAdminCache(AdminCacheScopes.ATTENDANCE);
+      });
+
+      adminChannel.subscribe("timetable-updated", () => {
+        invalidateAdminCache(AdminCacheScopes.TIMETABLE);
+      });
+
+      adminChannel.subscribe("rankings-updated", () => {
+        invalidateAdminCache(AdminCacheScopes.RANKINGS);
+      });
+
+      adminChannel.subscribe("feedback-updated", () => {
+        invalidateAdminCache(AdminCacheScopes.FEEDBACK);
+      });
+
+      adminChannel.subscribe("otp-updated", () => {
+        invalidateAdminCache(AdminCacheScopes.OTP);
+      });
+
+      adminChannel.subscribe("admin-cache-invalidate", (msg) => {
+        invalidateAdminCache(msg?.data?.scope || AdminCacheScopes.ALL);
       });
     } catch (err) {
       console.warn("[AdminAbly] Connection init warning:", err?.message || err);
