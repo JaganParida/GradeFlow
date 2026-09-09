@@ -19,7 +19,7 @@ import AdminVercelQuotaMonitor from "../components/AdminVercelQuotaMonitor";
 import ModernMobileSubNav from "../components/ModernMobileSubNav";
 import AdminNotificationBroadcast from "../components/AdminNotificationBroadcast";
 import { createAdminAblyRealtime } from "../services/ablyClient";
-import { getAdminCache, setAdminCache, onAdminCacheDirty, AdminCacheScopes } from "../utils/adminRealtimeCache";
+import { getAdminCache, setAdminCache, onAdminCacheDirty, invalidateAdminCache, AdminCacheScopes } from "../utils/adminRealtimeCache";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -1279,7 +1279,7 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
       } catch (e) {
         console.error(e);
       }
-    }, 250);
+    }, 350);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -3787,7 +3787,6 @@ export default function AdminDashboard({ defaultTab = null }) {
 
   const [selectedBatchFilter, setSelectedBatchFilter] = useState("all");
   const [showBatchPills, setShowBatchPills] = useState(false);
-  const [purgeLogs, setPurgeLogs] = useState([]);
 
   useEffect(() => {
     if (authChecking) return;
@@ -3808,9 +3807,6 @@ export default function AdminDashboard({ defaultTab = null }) {
         const permittedRoutes = data.permissions?.routes || [];
         if (!isMain && permittedRoutes.length > 0 && !permittedRoutes.includes(tab)) {
           setTab(permittedRoutes[0]);
-        }
-        if (isMain || (data.permissions?.actions || []).includes("manage.purge-batches")) {
-          fetchPurgeLogs();
         }
       } else if (data && data.authenticated === false) {
         setAdminProfile(null);
@@ -3944,15 +3940,14 @@ export default function AdminDashboard({ defaultTab = null }) {
     };
   }, []);
 
-  async function fetchPurgeLogs() {
-    try {
-      const headers = getAuthHeaders();
-      const { data } = await axios.get(`${API}/admin/purge-logs`, headers);
-      setPurgeLogs(data || []);
-    } catch (err) {
-      console.warn("fetchPurgeLogs notice:", err.message);
-    }
-  }
+  // Triggered when an academic record is created, edited, deleted, or uploaded
+  const handleAcademicDataChanged = () => {
+    invalidateAdminCache(AdminCacheScopes.STATS);
+    invalidateAdminCache(AdminCacheScopes.TOPPERS);
+    invalidateAdminCache(AdminCacheScopes.BACKLOGS);
+    invalidateAdminCache(AdminCacheScopes.RANKINGS);
+    fetchStats(true);
+  };
 
   async function regenAllRankings() {
     if (
@@ -4514,7 +4509,7 @@ export default function AdminDashboard({ defaultTab = null }) {
                 endpoint="upload"
                 API={API}
                 authHeaders={authHeaders}
-                onSuccess={() => fetchStats(true)}
+                onSuccess={handleAcademicDataChanged}
                 extraFields={[
                   {
                     key: "batch",
@@ -4562,7 +4557,7 @@ export default function AdminDashboard({ defaultTab = null }) {
                 endpoint="upload-internal"
                 API={API}
                 authHeaders={authHeaders}
-                onSuccess={() => fetchStats(true)}
+                onSuccess={handleAcademicDataChanged}
                 extraFields={[
                   {
                     key: "batch",
@@ -4603,7 +4598,7 @@ export default function AdminDashboard({ defaultTab = null }) {
                 endpoint="upload-backlogs"
                 API={API}
                 authHeaders={authHeaders}
-                onSuccess={() => fetchStats(true)}
+                onSuccess={handleAcademicDataChanged}
                 extraFields={[
                   {
                     key: "batch",
@@ -5080,7 +5075,7 @@ export default function AdminDashboard({ defaultTab = null }) {
                 endpoint="upload-missing-results"
                 API={API}
                 authHeaders={authHeaders}
-                onSuccess={() => fetchStats(true)}
+                onSuccess={handleAcademicDataChanged}
                 extraFields={[
                   {
                     key: "batch",
@@ -5129,7 +5124,7 @@ export default function AdminDashboard({ defaultTab = null }) {
                 endpoint="upload-missing-internal"
                 API={API}
                 authHeaders={authHeaders}
-                onSuccess={() => fetchStats(true)}
+                onSuccess={handleAcademicDataChanged}
                 extraFields={[
                   {
                     key: "batch",
@@ -5175,7 +5170,7 @@ export default function AdminDashboard({ defaultTab = null }) {
 
         {/* ── TAB 1.75: STUDENT REPORT CARD FULL DATA EDITOR ── */}
         {tab === "report-card" && (
-          <StudentReportCardEditor authHeaders={authHeaders} API={API} onSuccess={() => fetchStats(true)} />
+          <StudentReportCardEditor authHeaders={authHeaders} API={API} onSuccess={handleAcademicDataChanged} />
         )}
 
         {/* ── TAB 2: SECTION TOPPERS ── */}
@@ -5187,8 +5182,8 @@ export default function AdminDashboard({ defaultTab = null }) {
         {/* ── TAB 4: MANAGE RECORDS & MANUAL GRADE EDITS ── */}
         {tab === "manage" && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 20 }}>
-            <ManualGradeUpdateCard authHeaders={authHeaders} API={API} onSuccess={() => fetchStats(true)} />
-            <DeleteRecordCard authHeaders={authHeaders} API={API} onSuccess={() => fetchStats(true)} />
+            <ManualGradeUpdateCard authHeaders={authHeaders} API={API} onSuccess={handleAcademicDataChanged} />
+            <DeleteRecordCard authHeaders={authHeaders} API={API} onSuccess={handleAcademicDataChanged} />
           </div>
         )}
 

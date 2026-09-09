@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import axios from "axios";
 import { createAdminAblyRealtime } from "../services/ablyClient";
+import { getAdminCache, setAdminCache } from "../utils/adminRealtimeCache";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell,
@@ -137,7 +138,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
       ably = createAdminAblyRealtime();
       channel = ably.channels.get("broadcasts-all");
       channel.subscribe(() => {
-        fetchBroadcasts(true);
+        fetchBroadcasts(true, true);
       });
     } catch (err) {
       console.warn("[AdminBroadcast] Ably connection warning:", err?.message || err);
@@ -160,18 +161,30 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
     };
   }, []);
 
-  const fetchBroadcasts = async (silent = false) => {
+  const fetchBroadcasts = async (silent = false, forceRefresh = false) => {
+    if (!forceRefresh) {
+      const cached = getAdminCache("gf_admin_broadcasts_list");
+      if (cached) {
+        setBroadcasts(cached);
+        if (!silent) setHistoryLoading(false);
+        return;
+      }
+    }
     if (!silent) setHistoryLoading(true);
     try {
       const res = await axios.get(`${API}/admin/notifications/broadcasts`, authHeaders);
       if (res.data?.success) {
-        setBroadcasts(res.data.broadcasts || []);
+        const list = res.data.broadcasts || [];
+        setBroadcasts(list);
+        setAdminCache("gf_admin_broadcasts_list", list);
       }
     } catch {
       try {
         const res2 = await axios.get(`${API}/notifications?action=admin-broadcast-list`, authHeaders);
         if (res2.data?.success) {
-          setBroadcasts(res2.data.broadcasts || []);
+          const list = res2.data.broadcasts || [];
+          setBroadcasts(list);
+          setAdminCache("gf_admin_broadcasts_list", list);
         }
       } catch {}
     } finally {
@@ -229,7 +242,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
 
       if (res.data?.success) {
         setFeedbackMsg(res.data.message || "Broadcast notification published to all students successfully!");
-        fetchBroadcasts();
+        fetchBroadcasts(false, true);
         setTimeout(() => setFeedbackMsg(""), 6000);
       } else {
         setFeedbackErr(res.data?.message || "Failed to publish broadcast announcement.");
@@ -1129,7 +1142,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
 
             <button
               type="button"
-              onClick={() => fetchBroadcasts()}
+              onClick={() => fetchBroadcasts(false, true)}
               disabled={historyLoading}
               style={{
                 padding: "6px 12px",

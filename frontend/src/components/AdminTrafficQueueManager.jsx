@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
+import { getAdminCache, setAdminCache, onAdminCacheDirty, invalidateAdminCache, AdminCacheScopes } from "../utils/adminRealtimeCache";
 import {
   ShieldCheck,
   Lock,
@@ -54,6 +55,17 @@ export default function AdminTrafficQueueManager({ API, authHeaders, isMobile })
 
   const fetchOverview = async (isManual = false) => {
     if (isManual) setRefreshing(true);
+
+    if (!isManual) {
+      const cached = getAdminCache("gf_admin_traffic_overview");
+      if (cached) {
+        setLiveData(cached);
+        setCapacityInput(cached.maxActiveCapacity || 200);
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       const res = await axios.get(`${API}/admin/traffic/live-overview`, {
         withCredentials: true,
@@ -63,6 +75,7 @@ export default function AdminTrafficQueueManager({ API, authHeaders, isMobile })
       if (res.data && res.data.success) {
         setLiveData(res.data);
         setCapacityInput(res.data.maxActiveCapacity || 200);
+        setAdminCache("gf_admin_traffic_overview", res.data, AdminCacheScopes.TRAFFIC);
       }
     } catch (err) {
       console.warn("Failed to fetch traffic overview:", err.message);
@@ -77,6 +90,13 @@ export default function AdminTrafficQueueManager({ API, authHeaders, isMobile })
     fetchOverview();
   }, []);
 
+  // Real-time reactive invalidation listener for queue and traffic analytics
+  useEffect(() => {
+    return onAdminCacheDirty(AdminCacheScopes.TRAFFIC, () => {
+      fetchOverview(true);
+    });
+  }, []);
+
   const handleToggleQueue = async () => {
     const nextState = !liveData.queueEnabled;
     setActionLoading(true);
@@ -88,6 +108,7 @@ export default function AdminTrafficQueueManager({ API, authHeaders, isMobile })
       );
       if (res.data?.success) {
         setLiveData((prev) => ({ ...prev, queueEnabled: nextState, isQueueActive: nextState }));
+        invalidateAdminCache(AdminCacheScopes.TRAFFIC);
         notifySuccess(
           nextState
             ? "Traffic Queue is now ENABLED. New visitors will be queued."
@@ -112,6 +133,7 @@ export default function AdminTrafficQueueManager({ API, authHeaders, isMobile })
       );
       if (res.data?.success) {
         setLiveData((prev) => ({ ...prev, autoTriggerEnabled: nextState }));
+        invalidateAdminCache(AdminCacheScopes.TRAFFIC);
         notifySuccess(
           nextState
             ? "Auto-Queue Trigger enabled on capacity threshold."
@@ -140,6 +162,7 @@ export default function AdminTrafficQueueManager({ API, authHeaders, isMobile })
       );
       if (res.data?.success) {
         setLiveData((prev) => ({ ...prev, maxActiveCapacity: cap }));
+        invalidateAdminCache(AdminCacheScopes.TRAFFIC);
         notifySuccess(`Active capacity limit set to ${cap} students.`);
       }
     } catch (err) {

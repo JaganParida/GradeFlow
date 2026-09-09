@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { useApp } from "../context/AppContext";
 import AdminTrafficQueueManager from "./AdminTrafficQueueManager";
+import { getAdminCache, setAdminCache } from "../utils/adminRealtimeCache";
 import {
   ShieldCheck,
   ShieldAlert,
@@ -238,12 +239,20 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
     }
   }, [activeTab, logFilterAction, logFilterResult]);
 
-  async function fetchVisibilitySettings() {
+  async function fetchVisibilitySettings(forceRefresh = false) {
+    if (!forceRefresh) {
+      const cached = getAdminCache("gf_admin_visibility_settings");
+      if (cached) {
+        setVisibilityData(cached);
+        setVisibilityLoading(false);
+        return;
+      }
+    }
     setVisibilityLoading(true);
     try {
       const { data } = await axios.get(`${API}/admin/portal-visibility`, authHeaders);
       if (data && data.success) {
-        setVisibilityData({
+        const nextData = {
           mode: data.config?.mode || "AUTO",
           allowedRoles: {
             mainAdmin: data.config?.allowedRoles?.mainAdmin !== false,
@@ -254,7 +263,9 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
           },
           activeAdminCount: data.activeAdminCount ?? 0,
           isAutoVisible: data.isAutoVisible ?? true,
-        });
+        };
+        setVisibilityData(nextData);
+        setAdminCache("gf_admin_visibility_settings", nextData);
       }
     } catch (err) {
       console.warn("Failed to fetch visibility settings:", err);
@@ -274,11 +285,13 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
     try {
       const { data } = await axios.put(`${API}/admin/portal-visibility`, payload, authHeaders);
       if (data && data.success) {
-        setVisibilityData((prev) => ({
-          ...prev,
+        const nextData = {
+          ...visibilityData,
           mode: data.config.mode,
           allowedRoles: data.config.allowedRoles,
-        }));
+        };
+        setVisibilityData(nextData);
+        setAdminCache("gf_admin_visibility_settings", nextData);
         if (updateAdminButtonConfig) {
           await updateAdminButtonConfig(data.config).catch(() => {});
         }
@@ -295,13 +308,23 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
     }
   }
 
-  async function fetchMaintenanceSettings() {
+  async function fetchMaintenanceSettings(forceRefresh = false) {
+    if (!forceRefresh) {
+      const cached = getAdminCache("gf_admin_maintenance_settings");
+      if (cached) {
+        setMaintenanceData(cached);
+        setMaintenanceMessageInput(cached.message || "");
+        setMaintenanceLoading(false);
+        return;
+      }
+    }
     setMaintenanceLoading(true);
     try {
       const { data } = await axios.get(`${API}/admin/maintenance`, authHeaders);
       if (data.success && data.maintenance) {
         setMaintenanceData(data.maintenance);
         setMaintenanceMessageInput(data.maintenance.message || "");
+        setAdminCache("gf_admin_maintenance_settings", data.maintenance);
         if (setMaintenance) setMaintenance(data.maintenance);
       }
     } catch (err) {
@@ -323,6 +346,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
       );
       if (data.success) {
         setMaintenanceData(data.maintenance);
+        setAdminCache("gf_admin_maintenance_settings", data.maintenance);
         if (setMaintenance) setMaintenance(data.maintenance);
         if (checkMaintenanceStatus) await checkMaintenanceStatus(true);
         setShowEnableConfirmModal(false);
@@ -351,6 +375,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
       );
       if (data.success) {
         setMaintenanceData(data.maintenance);
+        setAdminCache("gf_admin_maintenance_settings", data.maintenance);
         if (setMaintenance) setMaintenance(data.maintenance);
         if (checkMaintenanceStatus) await checkMaintenanceStatus(true);
         setShowDisableConfirmModal(false);
@@ -364,12 +389,22 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
     }
   }
 
-  async function fetchSubAdmins() {
+  async function fetchSubAdmins(forceRefresh = false) {
+    if (!forceRefresh) {
+      const cached = getAdminCache("gf_admin_subadmins_list");
+      if (cached) {
+        setSubAdmins(cached);
+        setLoading(false);
+        return;
+      }
+    }
     setLoading(true);
     try {
       const { data } = await axios.get(`${API}/admin/subadmins`, authHeaders);
       if (data.success) {
-        setSubAdmins(data.subAdmins || []);
+        const list = data.subAdmins || [];
+        setSubAdmins(list);
+        setAdminCache("gf_admin_subadmins_list", list);
       }
     } catch (err) {
       console.error("Failed to fetch sub-admins:", err);
@@ -378,7 +413,16 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
     }
   }
 
-  async function fetchAuditLogs() {
+  async function fetchAuditLogs(forceRefresh = false) {
+    const cacheKey = `gf_admin_audit_logs_${logFilterAction}_${logFilterResult}`;
+    if (!forceRefresh) {
+      const cached = getAdminCache(cacheKey);
+      if (cached) {
+        setAuditLogs(cached);
+        setLogsLoading(false);
+        return;
+      }
+    }
     setLogsLoading(true);
     try {
       const params = {};
@@ -390,7 +434,9 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
         params,
       });
       if (data.success) {
-        setAuditLogs(data.logs || []);
+        const logs = data.logs || [];
+        setAuditLogs(logs);
+        setAdminCache(cacheKey, logs);
       }
     } catch (err) {
       console.error("Failed to fetch audit logs:", err);
@@ -519,7 +565,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
         setFormSuccess(`Sub-Admin '${formName}' created successfully.`);
         setTimeout(() => {
           setShowCreateModal(false);
-          fetchSubAdmins();
+          fetchSubAdmins(true);
         }, 1200);
       }
     } catch (err) {
@@ -554,7 +600,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
         setFormSuccess("Permissions updated successfully. Changes are live immediately.");
         setTimeout(() => {
           setEditingPermissionsSubAdmin(null);
-          fetchSubAdmins();
+          fetchSubAdmins(true);
         }, 1200);
       }
     } catch (err) {
@@ -590,7 +636,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
         setFormSuccess("Account details updated.");
         setTimeout(() => {
           setEditingInfoSubAdmin(null);
-          fetchSubAdmins();
+          fetchSubAdmins(true);
         }, 1000);
       }
     } catch (err) {
@@ -613,7 +659,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
       );
       if (data.success) {
         showFeedback("success", `Sub-Admin '${subAdmin.name}' status updated to ${newStatus.toUpperCase()} successfully.`);
-        fetchSubAdmins();
+        fetchSubAdmins(true);
       }
     } catch (err) {
       showFeedback("error", err.response?.data?.message || "Failed to update status.");
@@ -633,7 +679,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
       );
       if (data.success) {
         setActiveSessionsList([]);
-        fetchSubAdmins();
+        fetchSubAdmins(true);
         showFeedback("success", data.message || "All active device sessions revoked successfully.");
       }
     } catch (err) {
@@ -649,7 +695,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
       );
       if (data.success) {
         setActiveSessionsList((prev) => prev.filter((s) => s.sessionId !== sessionId));
-        fetchSubAdmins();
+        fetchSubAdmins(true);
         showFeedback("success", "Device session revoked successfully.");
       }
     } catch (err) {
@@ -670,7 +716,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
       const { data } = await axios.delete(`${API}/admin/subadmins/${subAdmin._id}`, authHeaders);
       if (data.success) {
         showFeedback("success", `Sub-Admin '${subAdmin.name}' permanently deleted.`);
-        fetchSubAdmins();
+        fetchSubAdmins(true);
       }
     } catch (err) {
       showFeedback("error", err.response?.data?.message || "Failed to delete sub-admin.");
