@@ -99,11 +99,35 @@ async function broadcastRealtimeEvent(eventName, payload) {
   await Promise.allSettled([p1, p2]);
 }
 
+/**
+ * Publishes an administrative event to the admin channel across both accounts.
+ */
+async function publishAdminRealtimeEvent(eventName, payload) {
+  const p1 = (async () => {
+    const c1 = getClient1();
+    if (c1) {
+      const ch1 = c1.channels.get("admin-control");
+      await ch1.publish(eventName, payload);
+    }
+  })();
+
+  const p2 = (async () => {
+    const c2 = getClient2();
+    if (c2) {
+      const ch2 = c2.channels.get("admin-control");
+      await ch2.publish(eventName, payload);
+    }
+  })();
+
+  await Promise.allSettled([p1, p2]);
+}
+
 module.exports = {
   getClientForRegNo,
   publishStudentRealtimeEvent,
   publishApprovalRealtimeEvent,
   broadcastRealtimeEvent,
+  publishAdminRealtimeEvent,
   ABLY_KEY_1,
   ABLY_KEY_2,
 };

@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import axios from "axios";
+import { createAdminAblyRealtime } from "../services/ablyClient";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell,
@@ -128,11 +129,35 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
 
   useEffect(() => {
     fetchBroadcasts();
-    const interval = setInterval(() => {
-      if (typeof document !== "undefined" && document.hidden) return;
-      fetchBroadcasts(true);
-    }, 30000);
-    return () => clearInterval(interval);
+
+    // Ably Realtime listener: triggers when any broadcast is published (0 polling requests to Vercel)
+    let ably = null;
+    let channel = null;
+    try {
+      ably = createAdminAblyRealtime();
+      channel = ably.channels.get("broadcasts-all");
+      channel.subscribe(() => {
+        fetchBroadcasts(true);
+      });
+    } catch (err) {
+      console.warn("[AdminBroadcast] Ably connection warning:", err?.message || err);
+    }
+
+    const handleVisibility = () => {
+      if (!ably) return;
+      if (document.visibilityState === "hidden") {
+        if (ably.connection.state === "connected") ably.connection.close();
+      } else if (document.visibilityState === "visible") {
+        if (ably.connection.state !== "connected") ably.connection.connect();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      if (channel) channel.unsubscribe();
+      if (ably) ably.close();
+    };
   }, []);
 
   const fetchBroadcasts = async (silent = false) => {

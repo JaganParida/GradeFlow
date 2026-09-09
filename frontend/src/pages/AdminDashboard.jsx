@@ -18,6 +18,7 @@ import AdminLiveTrafficManager from "../components/AdminLiveTrafficManager";
 import AdminVercelQuotaMonitor from "../components/AdminVercelQuotaMonitor";
 import ModernMobileSubNav from "../components/ModernMobileSubNav";
 import AdminNotificationBroadcast from "../components/AdminNotificationBroadcast";
+import { createAdminAblyRealtime } from "../services/ablyClient";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -1868,10 +1869,26 @@ function SectionToppersCard({ authHeaders, API }) {
       search: activeSearch,
     });
 
-    if (!forceRefetch && toppersCacheRef.current.has(cacheKey)) {
-      setData(toppersCacheRef.current.get(cacheKey));
-      setLoading(false);
-      return;
+    const storageKey = `gf_admin_toppers_${activeBatch}_${activeBranch}_${activeSection}_${activeSearch}`;
+
+    if (!forceRefetch) {
+      if (toppersCacheRef.current.has(cacheKey)) {
+        setData(toppersCacheRef.current.get(cacheKey));
+        setLoading(false);
+        return;
+      }
+      try {
+        const stored = sessionStorage.getItem(storageKey);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && Date.now() - parsed.cachedAt < 5 * 60 * 1000) {
+            toppersCacheRef.current.set(cacheKey, parsed.data);
+            setData(parsed.data);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch {}
     }
 
     setLoading(true);
@@ -1886,6 +1903,9 @@ function SectionToppersCard({ authHeaders, API }) {
       const res = await axios.get(`${API}/admin/section-toppers?${params}`, authHeaders);
       const resData = res.data || { totalToppers: 0, students: [] };
       toppersCacheRef.current.set(cacheKey, resData);
+      try {
+        sessionStorage.setItem(storageKey, JSON.stringify({ cachedAt: Date.now(), data: resData }));
+      } catch {}
       setData(resData);
     } catch (e) {
       console.error(e);
@@ -1896,7 +1916,7 @@ function SectionToppersCard({ authHeaders, API }) {
   }
 
   useEffect(() => {
-    fetchSectionToppers(true);
+    fetchSectionToppers(false);
   }, []);
 
   function handleFilterChange(field, val) {
@@ -2626,11 +2646,26 @@ function BacklogTrackerCard({ authHeaders, API }) {
     const activePage = targetPage || 1;
 
     const cacheKey = `${activePage}_${activeBatch}_${activeBranch}_${activeSection}_${activeSemester}_${activeSearch}_${limit}`;
+    const storageKey = `gf_admin_backlog_${cacheKey}`;
 
-    if (!forceRefresh && backlogCacheRef.current.has(cacheKey)) {
-      setData(backlogCacheRef.current.get(cacheKey));
-      setLoading(false);
-      return;
+    if (!forceRefresh) {
+      if (backlogCacheRef.current.has(cacheKey)) {
+        setData(backlogCacheRef.current.get(cacheKey));
+        setLoading(false);
+        return;
+      }
+      try {
+        const stored = sessionStorage.getItem(storageKey);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && Date.now() - parsed.cachedAt < 5 * 60 * 1000) {
+            backlogCacheRef.current.set(cacheKey, parsed.data);
+            setData(parsed.data);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch {}
     }
 
     setLoading(true);
@@ -2647,6 +2682,9 @@ function BacklogTrackerCard({ authHeaders, API }) {
       const res = await axios.get(`${API}/admin/backlogs?${params}`, authHeaders);
       const resData = res.data || { totalStudentsWithBacklogs: 0, totalBacklogsCount: 0, students: [], totalPages: 1, page: 1 };
       backlogCacheRef.current.set(cacheKey, resData);
+      try {
+        sessionStorage.setItem(storageKey, JSON.stringify({ cachedAt: Date.now(), data: resData }));
+      } catch {}
       setData(resData);
     } catch (e) {
       console.error(e);
@@ -3517,15 +3555,32 @@ function FeedbackManager({ authHeaders, API }) {
   }, []);
 
   async function fetchFeedbacks(forceRefresh = false) {
-    if (!forceRefresh && feedbackCacheRef.current) {
-      setFeedbacks(feedbackCacheRef.current);
-      setLoading(false);
-      return;
+    if (!forceRefresh) {
+      if (feedbackCacheRef.current) {
+        setFeedbacks(feedbackCacheRef.current);
+        setLoading(false);
+        return;
+      }
+      try {
+        const stored = sessionStorage.getItem("gf_admin_feedback_cache");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && Date.now() - parsed.cachedAt < 5 * 60 * 1000) {
+            feedbackCacheRef.current = parsed.data;
+            setFeedbacks(parsed.data);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch {}
     }
     setLoading(true);
     try {
       const { data } = await axios.get(`${API}/feedback`);
       feedbackCacheRef.current = data;
+      try {
+        sessionStorage.setItem("gf_admin_feedback_cache", JSON.stringify({ cachedAt: Date.now(), data }));
+      } catch {}
       setFeedbacks(data);
     } catch (e) {
       setErr("Failed to load feedbacks");
@@ -3827,15 +3882,63 @@ export default function AdminDashboard({ defaultTab = null }) {
     }
   }, [adminProfile, tab, isMainAdmin]);
 
-  async function fetchStats() {
+  async function fetchStats(forceRefresh = false) {
+    if (!forceRefresh) {
+      try {
+        const stored = sessionStorage.getItem("gf_admin_stats_cache");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && Date.now() - parsed.cachedAt < 5 * 60 * 1000) {
+            setStats(parsed.data);
+            return;
+          }
+        }
+      } catch {}
+    }
+
     try {
       const headers = getAuthHeaders();
-      const { data } = await axios.get(`${API}/admin/stats`, headers);
+      const url = forceRefresh ? `${API}/admin/stats?force=true` : `${API}/admin/stats`;
+      const { data } = await axios.get(url, headers);
       setStats(data);
+      try {
+        sessionStorage.setItem("gf_admin_stats_cache", JSON.stringify({ cachedAt: Date.now(), data }));
+      } catch {}
     } catch (err) {
       console.warn("fetchStats notice:", err.message);
     }
   }
+
+  // Ably Realtime Listener for instant ranking and stats synchronization (0 polling)
+  useEffect(() => {
+    let ably = null;
+    let bcastChannel = null;
+    try {
+      ably = createAdminAblyRealtime();
+      bcastChannel = ably.channels.get("broadcasts-all");
+      bcastChannel.subscribe("rankings-updated", () => {
+        fetchStats(true);
+      });
+    } catch (err) {
+      console.warn("[AdminDashboard] Ably sync init notice:", err?.message || err);
+    }
+
+    const handleVisibility = () => {
+      if (!ably) return;
+      if (document.visibilityState === "hidden") {
+        if (ably.connection.state === "connected") ably.connection.close();
+      } else if (document.visibilityState === "visible") {
+        if (ably.connection.state !== "connected") ably.connection.connect();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      if (bcastChannel) bcastChannel.unsubscribe();
+      if (ably) ably.close();
+    };
+  }, []);
 
   async function fetchPurgeLogs() {
     try {
@@ -3865,7 +3968,7 @@ export default function AdminDashboard({ defaultTab = null }) {
       );
       setRegenAllMsg(data.message || "All student rankings regenerated successfully.");
       setTimeout(() => setRegenAllMsg(""), 6000);
-      fetchStats();
+      fetchStats(true);
     } catch (e) {
       setRegenAllErr(e.response?.data?.message || "Failed to regenerate rankings");
       setTimeout(() => setRegenAllErr(""), 6000);
@@ -3886,6 +3989,7 @@ export default function AdminDashboard({ defaultTab = null }) {
       );
       setClearCacheMsg(data.message || "Server cache cleared successfully.");
       setTimeout(() => setClearCacheMsg(""), 5000);
+      fetchStats(true);
     } catch (e) {
       setClearCacheErr(e.response?.data?.message || "Failed to clear cache");
       setTimeout(() => setClearCacheErr(""), 5000);
@@ -4406,7 +4510,7 @@ export default function AdminDashboard({ defaultTab = null }) {
                 endpoint="upload"
                 API={API}
                 authHeaders={authHeaders}
-                onSuccess={fetchStats}
+                onSuccess={() => fetchStats(true)}
                 extraFields={[
                   {
                     key: "batch",
@@ -4454,7 +4558,7 @@ export default function AdminDashboard({ defaultTab = null }) {
                 endpoint="upload-internal"
                 API={API}
                 authHeaders={authHeaders}
-                onSuccess={fetchStats}
+                onSuccess={() => fetchStats(true)}
                 extraFields={[
                   {
                     key: "batch",
@@ -4495,7 +4599,7 @@ export default function AdminDashboard({ defaultTab = null }) {
                 endpoint="upload-backlogs"
                 API={API}
                 authHeaders={authHeaders}
-                onSuccess={fetchStats}
+                onSuccess={() => fetchStats(true)}
                 extraFields={[
                   {
                     key: "batch",
@@ -4972,7 +5076,7 @@ export default function AdminDashboard({ defaultTab = null }) {
                 endpoint="upload-missing-results"
                 API={API}
                 authHeaders={authHeaders}
-                onSuccess={fetchStats}
+                onSuccess={() => fetchStats(true)}
                 extraFields={[
                   {
                     key: "batch",
@@ -5021,7 +5125,7 @@ export default function AdminDashboard({ defaultTab = null }) {
                 endpoint="upload-missing-internal"
                 API={API}
                 authHeaders={authHeaders}
-                onSuccess={fetchStats}
+                onSuccess={() => fetchStats(true)}
                 extraFields={[
                   {
                     key: "batch",
@@ -5067,7 +5171,7 @@ export default function AdminDashboard({ defaultTab = null }) {
 
         {/* ── TAB 1.75: STUDENT REPORT CARD FULL DATA EDITOR ── */}
         {tab === "report-card" && (
-          <StudentReportCardEditor authHeaders={authHeaders} API={API} onSuccess={fetchStats} />
+          <StudentReportCardEditor authHeaders={authHeaders} API={API} onSuccess={() => fetchStats(true)} />
         )}
 
         {/* ── TAB 2: SECTION TOPPERS ── */}
@@ -5079,8 +5183,8 @@ export default function AdminDashboard({ defaultTab = null }) {
         {/* ── TAB 4: MANAGE RECORDS & MANUAL GRADE EDITS ── */}
         {tab === "manage" && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 20 }}>
-            <ManualGradeUpdateCard authHeaders={authHeaders} API={API} onSuccess={fetchStats} />
-            <DeleteRecordCard authHeaders={authHeaders} API={API} onSuccess={fetchStats} />
+            <ManualGradeUpdateCard authHeaders={authHeaders} API={API} onSuccess={() => fetchStats(true)} />
+            <DeleteRecordCard authHeaders={authHeaders} API={API} onSuccess={() => fetchStats(true)} />
           </div>
         )}
 

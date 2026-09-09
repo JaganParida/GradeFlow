@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { createAblyRealtime } from "../services/ablyClient";
+import { createAblyRealtime, createAdminAblyRealtime } from "../services/ablyClient";
 
 export const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
@@ -377,16 +377,59 @@ export function AppProvider({ children }) {
     };
   }, [authStatus, bootstrapAuthentication]);
 
-  // ─── Active Admin Heartbeat (Keep lastActiveAt fresh every 30s) ────
+  // ─── Active Admin Ably Realtime Handover (0 Polling, 0 Vercel Reqs) ────
+  const lastAdminSyncRef = useRef(Date.now());
+
   useEffect(() => {
     if (!adminToken) return;
-    const heartbeatInterval = setInterval(async () => {
-      try {
-        await axios.get(`${API_BASE}/auth/admin/me`, { withCredentials: true, timeout: 3500 });
-      } catch {}
-    }, 30000);
-    return () => clearInterval(heartbeatInterval);
-  }, [adminToken]);
+
+    let adminAbly = null;
+    let adminChannel = null;
+
+    try {
+      adminAbly = createAdminAblyRealtime();
+      adminChannel = adminAbly.channels.get("admin-control");
+
+      adminChannel.subscribe("session-revoked", (msg) => {
+        console.warn("[AdminAbly] Received session-revoked event:", msg?.data);
+        adminLogout();
+      });
+
+      adminChannel.subscribe("admin-logout", () => {
+        adminLogout();
+      });
+    } catch (err) {
+      console.warn("[AdminAbly] Connection init warning:", err?.message || err);
+    }
+
+    // Tab Visibility Slot Recycling: Close WebSocket when hidden to free slots
+    const handleAdminVisibility = () => {
+      if (!adminAbly) return;
+      if (document.visibilityState === "hidden") {
+        if (adminAbly.connection.state === "connected") {
+          adminAbly.connection.close();
+        }
+      } else if (document.visibilityState === "visible") {
+        if (adminAbly.connection.state !== "connected") {
+          adminAbly.connection.connect();
+        }
+        // Only verify session via HTTP if tab was hidden for >30 minutes
+        const now = Date.now();
+        if (now - lastAdminSyncRef.current > 30 * 60 * 1000) {
+          lastAdminSyncRef.current = now;
+          axios.get(`${API_BASE}/auth/admin/me`, { withCredentials: true, timeout: 3500 }).catch(() => {});
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleAdminVisibility);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleAdminVisibility);
+      if (adminChannel) adminChannel.unsubscribe();
+      if (adminAbly) adminAbly.close();
+    };
+  }, [adminToken, adminLogout]);
 
   // ─── Student In-App Notifications & Realtime SSE Stream ──────────
   const [notifications, setNotifications] = useState([]);

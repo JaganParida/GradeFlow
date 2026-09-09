@@ -152,10 +152,10 @@ module.exports = async function handler(req, res) {
     // 2. Fetch All Records for the Current Month
     const monthlyMetrics = await VercelQuotaMetric.find({ monthStr }).lean();
 
-    // 3. Fetch Student Activity baseline (excluding special student and admin)
-    const studentActivities = await StudentRouteActivity.find({
+    // 3. Fetch Student Activity count (excluding special student and admin)
+    const totalActiveStudents = await StudentRouteActivity.countDocuments({
       regNo: { $ne: EXCLUDED_STUDENT_REG },
-    }).lean();
+    });
 
     // 4. Fetch PageAnalytics
     const pages = await PageAnalytics.find({}).sort({ totalViews: -1 }).lean();
@@ -310,8 +310,6 @@ module.exports = async function handler(req, res) {
       defenseBadge = "Surge Protection Alert";
       defenseDescription = "Elevated traffic detected. Enabling queue for heavy routes preserves free tier allocation.";
     }
-
-    const totalActiveStudents = studentActivities.length;
 
     return res.json({
       success: true,
