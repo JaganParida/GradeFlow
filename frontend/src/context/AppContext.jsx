@@ -411,6 +411,9 @@ export function AppProvider({ children }) {
 
       adminChannel.subscribe("rankings-updated", () => {
         invalidateAdminCache(AdminCacheScopes.RANKINGS);
+        invalidateAdminCache(AdminCacheScopes.STATS);
+        invalidateAdminCache(AdminCacheScopes.TOPPERS);
+        invalidateAdminCache(AdminCacheScopes.BACKLOGS);
       });
 
       adminChannel.subscribe("feedback-updated", () => {

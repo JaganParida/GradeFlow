@@ -211,13 +211,26 @@ export default function TimetableAdminManager({ authHeaders, API }) {
   useEffect(() => {
     return onAdminCacheDirty(AdminCacheScopes.TIMETABLE, () => {
       fetchPublishedSchedules(true);
+      loadSectionTimetable(section, batch, branch, true);
     });
-  }, []);
+  }, [section, batch, branch]);
 
   // Load schedule for specific section (checks MongoDB published schedule first, fallback to JSON)
-  async function loadSectionTimetable(sec, bch, brn) {
+  async function loadSectionTimetable(sec, bch, brn, forceRefresh = false) {
     setIsMatrixLoading(true);
     setHasUnsavedChanges(false);
+
+    const cacheKey = `gf_admin_tt_sec_${bch}_${brn}_${sec}`;
+    if (!forceRefresh) {
+      const cached = getAdminCache(cacheKey);
+      if (cached) {
+        setCurrentMatrix(normalizeMatrixStructure(cached.schedule));
+        setCustomTitle(cached.title || `${brn} Sec ${sec} (Batch ${bch})`);
+        setIsLiveCustomPublished(Boolean(cached.isLiveCustomPublished));
+        setIsMatrixLoading(false);
+        return;
+      }
+    }
 
     try {
       const { data } = await axios.get(
@@ -228,14 +241,19 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       if (data.success && data.found && data.schedule && data.schedule.schedule) {
         const dbSchedule = JSON.parse(JSON.stringify(data.schedule.schedule));
         setCurrentMatrix(normalizeMatrixStructure(dbSchedule));
-        setCustomTitle(data.schedule.title || `${brn} Sec ${sec} (Batch ${bch})`);
+        const title = data.schedule.title || `${brn} Sec ${sec} (Batch ${bch})`;
+        setCustomTitle(title);
         setIsLiveCustomPublished(true);
+        setAdminCache(cacheKey, { schedule: dbSchedule, title, isLiveCustomPublished: true }, AdminCacheScopes.TIMETABLE);
       } else {
         const norm = normalizeSection(sec);
         const jsonTemplate = timetableData[norm] || timetableData["CSE-F"] || {};
-        setCurrentMatrix(normalizeMatrixStructure(JSON.parse(JSON.stringify(jsonTemplate))));
-        setCustomTitle(`${brn} Sec ${sec} (Batch ${bch})`);
+        const parsed = JSON.parse(JSON.stringify(jsonTemplate));
+        setCurrentMatrix(normalizeMatrixStructure(parsed));
+        const title = `${brn} Sec ${sec} (Batch ${bch})`;
+        setCustomTitle(title);
         setIsLiveCustomPublished(false);
+        setAdminCache(cacheKey, { schedule: parsed, title, isLiveCustomPublished: false }, AdminCacheScopes.TIMETABLE);
       }
     } catch (err) {
       console.warn("Could not fetch schedule from API, falling back to JSON:", err);
