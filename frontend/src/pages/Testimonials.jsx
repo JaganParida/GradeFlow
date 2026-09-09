@@ -115,13 +115,31 @@ export default function Testimonials() {
     }
   }, [studentData, currentRegNo, currentStudentName]);
 
-  // ─── Fetch Real Feedbacks from Backend ───────────────────────────
-  async function loadFeedbacks() {
+  // ─── Fetch Real Feedbacks from Backend (with sessionStorage caching) ──
+  async function loadFeedbacks(force = false) {
+    const CACHE_KEY = "gf_feedbacks_cache";
+    if (!force) {
+      try {
+        const raw = sessionStorage.getItem(CACHE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Date.now() - parsed.ts < 300000 && Array.isArray(parsed.feedbacks)) {
+            setFeedbacks(parsed.feedbacks);
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch (_) {}
+    }
+
     try {
       setIsLoading(true);
       const res = await axios.get(`${API}/feedback`);
       if (Array.isArray(res.data)) {
         setFeedbacks(res.data);
+        try {
+          sessionStorage.setItem(CACHE_KEY, JSON.stringify({ feedbacks: res.data, ts: Date.now() }));
+        } catch (_) {}
       }
     } catch (err) {
       console.error("Error loading feedbacks from backend:", err);
@@ -218,6 +236,9 @@ export default function Testimonials() {
       if (res.data) {
         // Prepend new feedback from server
         setFeedbacks((prev) => [res.data, ...prev]);
+        try {
+          sessionStorage.removeItem("gf_feedbacks_cache");
+        } catch (_) {}
         setSubmittedSuccess(true);
         setComment("");
         setRating(5);
