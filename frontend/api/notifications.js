@@ -9,6 +9,7 @@ const {
   respondDeviceApproval,
   authEventBus,
 } = require("./_lib/sessionManager");
+const { broadcastRealtimeEvent } = require("./_lib/ablyService");
 
 const { applyCors } = require("./_lib/cors");
 
@@ -157,6 +158,9 @@ module.exports = async function handler(req, res) {
           notification: newBroadcast,
         });
       } catch {}
+
+      // Broadcast real-time WebSocket event to all students across both Ably accounts (<0.1s latency)
+      broadcastRealtimeEvent("new-broadcast", newBroadcast).catch(() => {});
 
       return res.json({
         success: true,
