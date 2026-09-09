@@ -342,11 +342,11 @@ export function AppProvider({ children }) {
   useEffect(() => {
     bootstrapAuthentication();
 
-    // Passive silent revalidation on tab focus (throttled to 5 minutes to eliminate redundant serverless invocations)
+    // Passive silent revalidation on tab focus (throttled to 30 minutes to eliminate redundant serverless invocations)
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         const now = Date.now();
-        if (now - lastFocusBootstrapRef.current > 300000) {
+        if (now - lastFocusBootstrapRef.current > 1800000) {
           lastFocusBootstrapRef.current = now;
           bootstrapAuthentication(true);
         }
@@ -392,6 +392,7 @@ export function AppProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [sessionRevokedNotice, setSessionRevokedNotice] = useState(null);
+  const lastNotifSyncRef = useRef(Date.now());
 
   const fetchNotifications = async () => {
     if (!studentSession?.regNo || !studentSession?.sessionId) {
@@ -640,8 +641,12 @@ export function AppProvider({ children }) {
           ably.connection.close();
         } else if (document.visibilityState === "visible") {
           ably.connection.connect();
-          // Gentle sync on resume
-          if (isMounted) fetchNotifications();
+          // Gentle sync on resume only if hidden for more than 15 minutes (WebSockets deliver live notifications instantly)
+          const now = Date.now();
+          if (isMounted && now - lastNotifSyncRef.current > 900000) {
+            lastNotifSyncRef.current = now;
+            fetchNotifications();
+          }
         }
       } catch {}
     };
