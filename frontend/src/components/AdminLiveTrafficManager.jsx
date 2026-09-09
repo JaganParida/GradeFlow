@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
+import { getAdminCache, setAdminCache, onAdminCacheDirty, AdminCacheScopes } from "../utils/adminRealtimeCache";
 import {
   Activity,
   Users,
@@ -96,17 +97,12 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
     if (isManual) setRefreshing(true);
 
     if (!isManual) {
-      try {
-        const cached = sessionStorage.getItem("gf_admin_traffic_overview");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed && Date.now() - parsed.cachedAt < 3 * 60 * 1000) {
-            setLiveData(parsed.data);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch {}
+      const cached = getAdminCache("gf_admin_traffic_overview");
+      if (cached) {
+        setLiveData(cached);
+        setLoading(false);
+        return;
+      }
     }
 
     try {
@@ -117,12 +113,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
 
       if (res.data && res.data.success) {
         setLiveData(res.data);
-        try {
-          sessionStorage.setItem(
-            "gf_admin_traffic_overview",
-            JSON.stringify({ cachedAt: Date.now(), data: res.data })
-          );
-        } catch {}
+        setAdminCache("gf_admin_traffic_overview", res.data, AdminCacheScopes.TRAFFIC);
       }
     } catch (err) {
       console.warn("Failed to fetch traffic overview:", err.message);
@@ -132,6 +123,13 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
       if (isManual) setRefreshing(false);
     }
   };
+
+  // Real-time reactive invalidation listener for traffic
+  useEffect(() => {
+    return onAdminCacheDirty(AdminCacheScopes.TRAFFIC, () => {
+      fetchOverview(true);
+    });
+  }, []);
 
   useEffect(() => {
     fetchOverview();

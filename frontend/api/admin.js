@@ -26,7 +26,11 @@ const {
 } = require("./_lib/gradeCalculations");
 
 const { applyCors } = require("./_lib/cors");
-const { broadcastRealtimeEvent } = require("./_lib/ablyService");
+const { broadcastRealtimeEvent, publishAdminRealtimeEvent } = require("./_lib/ablyService");
+
+let statsCache = null;
+let statsCacheTimestamp = 0;
+const STATS_CACHE_TTL_MS = 60 * 1000; // 60s memory cache to prevent redundant aggregations
 
 function parseCookies(cookieHeader) {
   const cookies = {};
@@ -184,8 +188,15 @@ async function syncRankingsMetadataAndBroadcast(semester = null) {
       { upsert: true, new: true }
     );
 
-    // Broadcast real-time update across dual Ably accounts
+    // Broadcast real-time update across dual Ably accounts to students AND admins
+    statsCache = null;
+    statsCacheTimestamp = 0;
     await broadcastRealtimeEvent("rankings-updated", {
+      timestamp: newVersion,
+      version: newVersion,
+      semester: semester ? Number(semester) : null,
+    });
+    await publishAdminRealtimeEvent("rankings-updated", {
       timestamp: newVersion,
       version: newVersion,
       semester: semester ? Number(semester) : null,
@@ -243,10 +254,6 @@ async function generateRankingForSemester(semester, preloadedResults = null, sho
     await syncRankingsMetadataAndBroadcast(semester);
   }
 }
-
-let statsCache = null;
-let statsCacheTimestamp = 0;
-const STATS_CACHE_TTL_MS = 60 * 1000; // 60s memory cache to prevent redundant aggregations
 
 module.exports = async function handler(req, res) {
   if (applyCors(req, res, "GET,POST,PUT,DELETE,OPTIONS")) return;
@@ -1047,6 +1054,8 @@ module.exports = async function handler(req, res) {
       semResult.subjects[subjectIndex].grade = normalizedGrade;
       semResult.markModified("subjects");
       await semResult.save();
+
+      await generateRankingForSemester(semNum).catch(() => {});
 
       return res.json({
         success: true,

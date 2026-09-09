@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
+import { getAdminCache, setAdminCache, onAdminCacheDirty, AdminCacheScopes } from "../utils/adminRealtimeCache";
 import {
   Users,
   Search,
@@ -71,19 +72,14 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
     const cacheKey = `gf_admin_att_mon_${targetPage}_${targetFilter}_${cleanSearch}_${targetBranch}_${targetSection}_${targetSortBy}`;
 
     if (!forceRefresh) {
-      try {
-        const cached = sessionStorage.getItem(cacheKey);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed && Date.now() - parsed.cachedAt < 5 * 60 * 1000) {
-            setStudents(parsed.students || []);
-            if (parsed.summary) setSummary(parsed.summary);
-            if (parsed.pagination) setPagination(parsed.pagination);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch {}
+      const cached = getAdminCache(cacheKey);
+      if (cached) {
+        setStudents(cached.students || []);
+        if (cached.summary) setSummary(cached.summary);
+        if (cached.pagination) setPagination(cached.pagination);
+        setLoading(false);
+        return;
+      }
     }
 
     setLoading(true);
@@ -111,17 +107,15 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
         if (fetchedSummary) setSummary(fetchedSummary);
         if (fetchedPagination) setPagination(fetchedPagination);
 
-        try {
-          sessionStorage.setItem(
-            cacheKey,
-            JSON.stringify({
-              cachedAt: Date.now(),
-              students: fetchedStudents,
-              summary: fetchedSummary,
-              pagination: fetchedPagination,
-            })
-          );
-        } catch {}
+        setAdminCache(
+          cacheKey,
+          {
+            students: fetchedStudents,
+            summary: fetchedSummary,
+            pagination: fetchedPagination,
+          },
+          AdminCacheScopes.ATTENDANCE
+        );
       }
     } catch (err) {
       console.warn("Failed to fetch attendance monitor data:", err.message);
@@ -133,6 +127,13 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
   useEffect(() => {
     fetchAttendanceData(page, filter, search, branch, section, sortBy);
   }, [page, filter, branch, section, sortBy]);
+
+  // Real-time reactive invalidation listener (0 polling, instant silent refresh on attendance save)
+  useEffect(() => {
+    return onAdminCacheDirty(AdminCacheScopes.ATTENDANCE, () => {
+      fetchAttendanceData(page, filter, search, branch, section, sortBy, true);
+    });
+  }, [page, filter, search, branch, section, sortBy]);
 
   const handleSearchSubmit = (e) => {
     if (e) e.preventDefault();

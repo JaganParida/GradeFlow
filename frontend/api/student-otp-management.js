@@ -11,6 +11,7 @@ const AdminAuditLog = require("./_lib/models/AdminAuditLog");
 const jwt = require("jsonwebtoken");
 const { globalDbQueue } = require("./_lib/dbProtection");
 const { getActiveSessions, getMaxAllowedDevices } = require("./_lib/sessionManager");
+const { publishAdminRealtimeEvent, publishStudentRealtimeEvent } = require("./_lib/ablyService");
 
 const { applyCors } = require("./_lib/cors");
 
@@ -417,6 +418,12 @@ module.exports = async (req, res) => {
       );
       const maxAllowed = getMaxAllowedDevices(rawReg);
 
+      publishAdminRealtimeEvent("otp-updated", { regNo: rawReg, timestamp: Date.now() }).catch(() => {});
+      publishStudentRealtimeEvent(rawReg, "session-revoked", {
+        revokedSessionId: sessionId,
+        message: "Your session was ended by Institutional Administrator.",
+      }).catch(() => {});
+
       return res.json({
         success: true,
         message: `Device session (${sessionToRevoke.deviceInfo?.platform || "Authorized Device"}) for student ${rawReg} was successfully revoked.`,
@@ -486,6 +493,11 @@ module.exports = async (req, res) => {
 
       const maxAllowed = getMaxAllowedDevices(rawReg);
 
+      publishAdminRealtimeEvent("otp-updated", { regNo: rawReg, timestamp: Date.now() }).catch(() => {});
+      publishStudentRealtimeEvent(rawReg, "session-revoked", {
+        message: "All active sessions were ended by Institutional Administrator.",
+      }).catch(() => {});
+
       return res.json({
         success: true,
         message: `All active device sessions (${countToRevoke}) for student ${rawReg} were successfully revoked.`,
@@ -552,6 +564,8 @@ module.exports = async (req, res) => {
       } catch (auditErr) {
         console.warn("Audit log error:", auditErr.message);
       }
+
+      publishAdminRealtimeEvent("otp-updated", { regNo: rawReg, timestamp: Date.now() }).catch(() => {});
 
       return res.json({
         success: true,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
+import { getAdminCache, setAdminCache, onAdminCacheDirty, invalidateAdminCache, AdminCacheScopes } from "../utils/adminRealtimeCache";
 import {
   Search,
   ShieldAlert,
@@ -174,24 +175,19 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   const [revokeReason, setRevokeReason] = useState("");
   const [revokeLoading, setRevokeLoading] = useState(false);
 
-  // Fetch all registered student accounts on mount & when filter changes with sessionStorage cache
+  // Fetch all registered student accounts on mount & when filter changes with permanent session cache
   const fetchAccounts = async (search = directorySearch, filter = directoryFilter, forceRefresh = false) => {
     const cleanSearch = String(search || "").trim();
     const cacheKey = `gf_admin_otp_dir_${cleanSearch}_${filter}`;
 
     if (!forceRefresh) {
-      try {
-        const cached = sessionStorage.getItem(cacheKey);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed && Date.now() - parsed.cachedAt < 3 * 60 * 1000) {
-            setAccountsList(parsed.accounts || []);
-            setAccountsStats(parsed.stats || { totalRegistered: 0, totalActive: 0, totalOffline: 0 });
-            setAccountsLoading(false);
-            return;
-          }
-        }
-      } catch {}
+      const cached = getAdminCache(cacheKey);
+      if (cached) {
+        setAccountsList(cached.accounts || []);
+        setAccountsStats(cached.stats || { totalRegistered: 0, totalActive: 0, totalOffline: 0 });
+        setAccountsLoading(false);
+        return;
+      }
     }
 
     setAccountsLoading(true);
@@ -210,12 +206,11 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
         setAccountsList(fetchedAccounts);
         setAccountsStats(fetchedStats);
 
-        try {
-          sessionStorage.setItem(
-            cacheKey,
-            JSON.stringify({ cachedAt: Date.now(), accounts: fetchedAccounts, stats: fetchedStats })
-          );
-        } catch {}
+        setAdminCache(
+          cacheKey,
+          { accounts: fetchedAccounts, stats: fetchedStats },
+          AdminCacheScopes.OTP
+        );
       }
     } catch (err) {
       console.warn("Failed to fetch student accounts directory:", err.message);
@@ -228,6 +223,13 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
     setDirectoryPage(1);
     fetchAccounts(directorySearch, directoryFilter);
   }, [directoryFilter]);
+
+  // Real-time reactive invalidation listener (0 polling, instant silent refresh on OTP/session change)
+  useEffect(() => {
+    return onAdminCacheDirty(AdminCacheScopes.OTP, () => {
+      fetchAccounts(directorySearch, directoryFilter, true);
+    });
+  }, [directorySearch, directoryFilter]);
 
   const handleDirectorySearchSubmit = (e) => {
     if (e) e.preventDefault();
@@ -291,6 +293,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
         setSuccessMsg(res.data.message || "OTP attempts reset successfully.");
         setShowResetModal(false);
         setResetReason("");
+        invalidateAdminCache(AdminCacheScopes.OTP);
         // Refresh details
         handleSearch();
       } else {
@@ -334,6 +337,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
         setShowRevokeModal(false);
         setRevokeTarget(null);
         setRevokeReason("");
+        invalidateAdminCache(AdminCacheScopes.OTP);
         // Instantly reload student session details
         handleSearch();
       } else {

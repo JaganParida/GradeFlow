@@ -7,6 +7,7 @@ const SubAdmin = require("./_lib/models/SubAdmin");
 const AdminSession = require("./_lib/models/AdminSession");
 const jwt = require("jsonwebtoken");
 const { isAdminSessionValid, touchAdminSession } = require("./_lib/sessionManager");
+const { publishAdminRealtimeEvent } = require("./_lib/ablyService");
 
 const { applyCors } = require("./_lib/cors");
 
@@ -209,6 +210,7 @@ module.exports = async function handler(req, res) {
         existing.uploadedAt = new Date();
         existing.uploadedBy = auth.admin.email || "Admin";
         await existing.save();
+        publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }).catch(() => {});
 
         return res.json({
           success: true,
@@ -229,6 +231,8 @@ module.exports = async function handler(req, res) {
         uploadedBy: auth.admin.email || "Admin",
       });
 
+      publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }).catch(() => {});
+
       return res.json({
         success: true,
         message: `Published new timetable for ${normalizedSection} (Batch ${normalizedBatch}) successfully.`,
@@ -246,6 +250,7 @@ module.exports = async function handler(req, res) {
       if (!deleted) {
         return res.status(404).json({ success: false, message: "Schedule not found." });
       }
+      publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }).catch(() => {});
       return res.json({ success: true, message: "Timetable schedule deleted successfully." });
     }
 
@@ -269,6 +274,7 @@ module.exports = async function handler(req, res) {
         existing.uploadedAt = new Date();
         existing.uploadedBy = auth.admin.email || "Admin";
         await existing.save();
+        publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }).catch(() => {});
 
         return res.json({
           success: true,
@@ -285,6 +291,8 @@ module.exports = async function handler(req, res) {
         activities,
         uploadedBy: auth.admin.email || "Admin",
       });
+
+      publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }).catch(() => {});
 
       return res.json({
         success: true,
@@ -313,6 +321,7 @@ module.exports = async function handler(req, res) {
         holidayDoc.uploadedAt = new Date();
         holidayDoc.uploadedBy = auth.admin.email || "Admin";
         await holidayDoc.save();
+        publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }).catch(() => {});
 
         return res.json({
           success: true,
@@ -328,6 +337,8 @@ module.exports = async function handler(req, res) {
         optionalRules: optionalRules || [],
         uploadedBy: auth.admin.email || "Admin",
       });
+
+      publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }).catch(() => {});
 
       return res.json({
         success: true,

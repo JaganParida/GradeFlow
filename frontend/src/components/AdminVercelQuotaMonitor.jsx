@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
+import { getAdminCache, setAdminCache, onAdminCacheDirty, AdminCacheScopes } from "../utils/adminRealtimeCache";
 import {
   Zap,
   Clock,
@@ -47,20 +48,15 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
   const [routePage, setRoutePage] = useState(1);
   const ROUTES_PER_PAGE = isMobile ? 5 : 6;
 
-  // Fetch Vercel Quota metrics strictly ON-DEMAND with sessionStorage cache
+  // Fetch Vercel Quota metrics strictly ON-DEMAND with permanent session cache
   const fetchQuotaMetrics = async (isManualRefresh = false) => {
     if (!isManualRefresh) {
-      try {
-        const cached = sessionStorage.getItem("gf_admin_vercel_quota_cache");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed && Date.now() - parsed.cachedAt < 3 * 60 * 1000) {
-            setData(parsed.data);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch {}
+      const cached = getAdminCache("gf_admin_vercel_quota_cache");
+      if (cached) {
+        setData(cached);
+        setLoading(false);
+        return;
+      }
       setLoading(true);
     } else {
       setRefreshing(true);
@@ -75,12 +71,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
 
       if (res.data?.success) {
         setData(res.data);
-        try {
-          sessionStorage.setItem(
-            "gf_admin_vercel_quota_cache",
-            JSON.stringify({ cachedAt: Date.now(), data: res.data })
-          );
-        } catch {}
+        setAdminCache("gf_admin_vercel_quota_cache", res.data, AdminCacheScopes.TRAFFIC);
       } else {
         setError(res.data?.message || "Failed to load Vercel Quota metrics.");
       }
@@ -98,6 +89,13 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
 
   useEffect(() => {
     fetchQuotaMetrics();
+  }, []);
+
+  // Real-time reactive invalidation listener for quota metrics
+  useEffect(() => {
+    return onAdminCacheDirty(AdminCacheScopes.TRAFFIC, () => {
+      fetchQuotaMetrics(true);
+    });
   }, []);
 
   const handleApplyPolicy = async (policyName) => {
