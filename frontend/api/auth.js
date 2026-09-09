@@ -1337,7 +1337,10 @@ module.exports = async function handler(req, res) {
             });
             if (session && (!session.expiresAt || new Date(session.expiresAt) > new Date())) {
               await touchSession(session);
-              const studentRecord = await SemesterResult.findOne({ regNo: decoded.regNo }).sort({ semester: -1 });
+              const studentRecord = await SemesterResult.findOne({ regNo: decoded.regNo })
+                .select("studentName")
+                .sort({ semester: -1 })
+                .lean();
               studentAuth = {
                 regNo: decoded.regNo,
                 studentName: studentRecord?.studentName || "Student",
@@ -1404,9 +1407,9 @@ module.exports = async function handler(req, res) {
 
       try {
         const [activeAdminSessions, config, vConfigDoc] = await Promise.all([
-          AdminSession.find({ isActive: true, expiresAt: { $gt: new Date() } }).lean(),
-          SystemConfig.findOne({ key: "maintenance" }).lean(),
-          SystemConfig.findOne({ key: "admin_button_config" }).lean(),
+          AdminSession.find({ isActive: true, expiresAt: { $gt: new Date() } }).select("_id").lean(),
+          SystemConfig.findOne({ key: "maintenance" }).select("maintenance").lean(),
+          SystemConfig.findOne({ key: "admin_button_config" }).select("adminButtonVisibility").lean(),
         ]);
         activeAdminCount = activeAdminSessions?.length || 0;
         if (config?.maintenance) {
