@@ -387,9 +387,6 @@ module.exports = async function handler(req, res) {
 
       // Find existing activity record for this student
       let studentActivity = await StudentRouteActivity.findOne({ regNo: cleanReg });
-      const istHour = getIstHour();
-      const istDay = getIstDayOfWeek();
-      const todayStr = getIstDateStr();
       const weekStr = getIstWeekStr();
 
       if (!studentActivity) {
