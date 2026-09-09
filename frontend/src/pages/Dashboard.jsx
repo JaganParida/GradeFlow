@@ -614,7 +614,25 @@ export default function Dashboard() {
       setSemResult(local);
     }
 
-    // 2. Check memory cache for already fetched data
+    // 2. Check if already hydrated from initial eager student profile payload (0 Network Requests!)
+    const eagerInternal = studentData?.internalMarksMap ? (studentData.internalMarksMap[String(sem)] || null) : undefined;
+    const eagerRanking = studentData?.rankingsMap ? (studentData.rankingsMap[String(sem)] || null) : undefined;
+
+    if (eagerInternal !== undefined || eagerRanking !== undefined) {
+      const finalInternal = eagerInternal || null;
+      const finalRanking = eagerRanking || (sem === studentData?.latestSemester ? studentData?.ranking : null);
+
+      setInternalMarks(finalInternal);
+      setSemesterRanking(finalRanking);
+      semCacheRef.current[sem] = {
+        internal: finalInternal,
+        ranking: finalRanking,
+      };
+      setIsInternalLoading(false);
+      return;
+    }
+
+    // 3. Check memory cache for already fetched data
     if (semCacheRef.current[sem]) {
       const { internal, ranking } = semCacheRef.current[sem];
       setInternalMarks(internal);
@@ -623,7 +641,7 @@ export default function Dashboard() {
       return;
     }
 
-    // 3. Check sessionStorage cache for instant load across tabs/refreshes
+    // 4. Check sessionStorage cache for instant load across tabs/refreshes
     const cacheKey = `gf_sem_${regNo}_${sem}`;
     try {
       const sessionCached = sessionStorage.getItem(cacheKey);
@@ -650,20 +668,13 @@ export default function Dashboard() {
     setIsInternalLoading(true);
 
     try {
-      const [semRes, imRes, rankRes] = await Promise.allSettled([
-        axios.get(`${API}/student/${regNo}/semester/${sem}`),
+      const [imRes, rankRes] = await Promise.allSettled([
         axios.get(`${API}/student/${regNo}/internal/${sem}`),
         axios.get(`${API}/student/${regNo}/ranking/${sem}`),
       ]);
 
-      let fetchedSemResult = null;
-      if (semRes.status === "fulfilled" && (semRes.value.data?.data || semRes.value.data)) {
-        fetchedSemResult = semRes.value.data?.data || semRes.value.data;
-        setSemResult(fetchedSemResult);
-      } else if (!local) {
-        const fallback = studentData?.results?.find((r) => r.semester === sem);
-        setSemResult(fallback || null);
-      }
+      const fetchedSemResult = local || studentData?.results?.find((r) => r.semester === sem) || null;
+      setSemResult(fetchedSemResult);
 
       let finalInternal = null;
       if (imRes.status === "fulfilled" && (imRes.value.data?.data || imRes.value.data)) {
