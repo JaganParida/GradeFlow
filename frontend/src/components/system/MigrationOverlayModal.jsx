@@ -21,15 +21,23 @@ export default function MigrationOverlayModal() {
     const host = window.location.hostname.toLowerCase();
     const isOld = host.includes("grade-flow-navy") || host.includes("gradeflow-navy");
 
-    if (isOld) {
+    let isPreview = false;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      isPreview = params.get("migration") === "1" || params.get("migration") === "true" || params.get("domain") === "1";
+    } catch (_) {}
+
+    if (isOld || isPreview) {
       setIsOldDomain(true);
       const fullTarget = `${NEW_ORIGIN}${window.location.pathname}${window.location.search}${window.location.hash}`;
       setTargetUrl(fullTarget);
 
-      // Instant auto-bounce so student never waits or gets stuck
-      try {
-        window.location.replace(fullTarget);
-      } catch {}
+      // Instant auto-bounce ONLY on real old domains (never during preview)
+      if (isOld) {
+        try {
+          window.location.replace(fullTarget);
+        } catch {}
+      }
 
       // Bulletproof mobile & desktop background scroll lock
       const origBodyOverflow = document.body.style.overflow;
@@ -75,7 +83,13 @@ export default function MigrationOverlayModal() {
 
   const handleRedirect = () => {
     if (typeof window !== "undefined") {
-      window.location.replace(targetUrl);
+      const host = window.location.hostname.toLowerCase();
+      if (host.includes("grade-flow-navy") || host.includes("gradeflow-navy")) {
+        window.location.replace(targetUrl);
+      } else {
+        // On new domain preview: smoothly close the modal
+        setIsOldDomain(false);
+      }
     }
   };
 
