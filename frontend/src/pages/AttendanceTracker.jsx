@@ -1022,17 +1022,19 @@ export default function AttendanceTracker() {
         let initialAtt = sData?.attendance || null;
         if (initialAtt) {
           applyAttendance(initialAtt, sData);
-        }
-
-        // 3. Stale-While-Revalidate: fetch fresh attendance from MongoDB Atlas
-        const res = await axios.get(`${API}/student/${targetReg}/attendance`);
-        if (res.data?.success && res.data.attendance && isMounted) {
-          applyAttendance(res.data.attendance, sData);
-          if (updateCachedAttendance) updateCachedAttendance(res.data.attendance);
-        } else if (!initialAtt && isMounted) {
-          setSavedSubjects([]);
-          if (!hasUserManuallySelectedTabRef.current && !urlTabParam) {
-            setActiveTab("studio_simulator");
+          // Zero-latency bypass: Attendance is already in memory/sessionStorage.
+          // Real-time Ably events ('gradeflow:attendance-updated') will keep it synchronized if updated elsewhere.
+        } else {
+          // 3. Cache Miss: Fetch fresh attendance from MongoDB Atlas
+          const res = await axios.get(`${API}/student/${targetReg}/attendance`);
+          if (res.data?.success && res.data.attendance && isMounted) {
+            applyAttendance(res.data.attendance, sData);
+            if (updateCachedAttendance) updateCachedAttendance(res.data.attendance);
+          } else if (isMounted) {
+            setSavedSubjects([]);
+            if (!hasUserManuallySelectedTabRef.current && !urlTabParam) {
+              setActiveTab("studio_simulator");
+            }
           }
         }
       } catch (err) {

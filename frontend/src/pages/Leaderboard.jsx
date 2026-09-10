@@ -52,7 +52,7 @@ export default function Leaderboard() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Initial Load & Meta
+  // Initial Load & Meta with persistent sessionStorage caching (0ms hydration on tab return)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const hl = params.get("highlight");
@@ -63,38 +63,70 @@ export default function Leaderboard() {
       setShowCount(50);
     }
 
+    const META_CACHE_KEY = "gf_rankings_meta";
+    let cachedMeta = null;
+    try {
+      const raw = sessionStorage.getItem(META_CACHE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && Date.now() - parsed.ts < 900000 && parsed.data) {
+          cachedMeta = parsed.data;
+        }
+      }
+    } catch (_) {}
+
+    const initializeWithMeta = (metaData) => {
+      setMeta(metaData);
+
+      let f = { ...filters };
+
+      const initBranch = params.get("branch");
+      if (initBranch) f.branch = initBranch;
+
+      const initSection = params.get("section");
+      if (initSection) f.section = initSection;
+
+      const defaultSem =
+        metaData.semesters?.length > 0
+          ? Math.max(...metaData.semesters).toString()
+          : "6";
+
+      if (initTab === "cgpa") {
+        f.sortBy = "cgpa";
+        f.semester = "";
+      } else {
+        f.sortBy = "sgpa";
+        f.semester = defaultSem;
+      }
+
+      setFilters(f);
+      fetchRankings(f, metaData);
+    };
+
+    if (cachedMeta) {
+      // 0ms instant display from session cache
+      initializeWithMeta(cachedMeta);
+    }
+
+    // Network fetch meta (first load or background freshness sync)
     axios
       .get(`${API}/rankings/meta`)
       .then((r) => {
         const metaData = r.data || { semesters: [], branches: [], batches: [] };
-        setMeta(metaData);
+        try {
+          sessionStorage.setItem(META_CACHE_KEY, JSON.stringify({ data: metaData, ts: Date.now() }));
+        } catch (_) {}
 
-        let f = { ...filters };
-
-        const initBranch = params.get("branch");
-        if (initBranch) f.branch = initBranch;
-
-        const initSection = params.get("section");
-        if (initSection) f.section = initSection;
-
-        const defaultSem =
-          metaData.semesters?.length > 0
-            ? Math.max(...metaData.semesters).toString()
-            : "6";
-
-        if (initTab === "cgpa") {
-          f.sortBy = "cgpa";
-          f.semester = "";
-        } else {
-          f.sortBy = "sgpa";
-          f.semester = defaultSem;
+        if (!cachedMeta) {
+          initializeWithMeta(metaData);
+        } else if (metaData.version && metaData.version !== cachedMeta.version) {
+          initializeWithMeta(metaData);
         }
-
-        setFilters(f);
-        fetchRankings(f, metaData);
       })
       .catch(() => {
-        fetchRankings(filters);
+        if (!cachedMeta) {
+          fetchRankings(filters);
+        }
       });
     // eslint-disable-next-line
   }, []);
@@ -130,10 +162,26 @@ export default function Leaderboard() {
 
     const currentVersion = metaData?.version || rankingsVersion || "";
     const cacheKey = JSON.stringify({ ...targetFilter, v: currentVersion });
-    if (!forceBust && leaderboardCacheRef.current.has(cacheKey)) {
-      setRankings(leaderboardCacheRef.current.get(cacheKey));
-      setLoading(false);
-      return;
+    const storageKey = `gf_rank_data_${cacheKey}`;
+
+    if (!forceBust) {
+      if (leaderboardCacheRef.current.has(cacheKey)) {
+        setRankings(leaderboardCacheRef.current.get(cacheKey));
+        setLoading(false);
+        return;
+      }
+      try {
+        const raw = sessionStorage.getItem(storageKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Date.now() - parsed.ts < 300000 && Array.isArray(parsed.data)) {
+            leaderboardCacheRef.current.set(cacheKey, parsed.data);
+            setRankings(parsed.data);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (_) {}
     }
 
     setLoading(true);
@@ -155,8 +203,12 @@ export default function Leaderboard() {
       }
 
       const { data } = await axios.get(`${API}/rankings/top?${params}`);
-      leaderboardCacheRef.current.set(cacheKey, data);
-      setRankings(data || []);
+      const list = data || [];
+      leaderboardCacheRef.current.set(cacheKey, list);
+      try {
+        sessionStorage.setItem(storageKey, JSON.stringify({ data: list, ts: Date.now() }));
+      } catch (_) {}
+      setRankings(list);
     } catch {
       setRankings([]);
     } finally {
@@ -168,6 +220,12 @@ export default function Leaderboard() {
   useEffect(() => {
     if (!rankingsVersion) return;
     leaderboardCacheRef.current.clear();
+    try {
+      sessionStorage.removeItem("gf_rankings_meta");
+      Object.keys(sessionStorage).forEach((k) => {
+        if (k.startsWith("gf_rank_data_")) sessionStorage.removeItem(k);
+      });
+    } catch (_) {}
     setMeta((prev) => ({ ...prev, version: rankingsVersion }));
     fetchRankings(filters, { ...meta, version: rankingsVersion }, true);
   }, [rankingsVersion]);
