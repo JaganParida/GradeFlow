@@ -236,6 +236,69 @@ export function AppProvider({ children }) {
 
     const bootstrapPromise = (async () => {
       try {
+        // ─── Bootstrap TTL Gate: Skip network call if cache is fresh (<5 min) ───
+        // Ably WebSocket handles session-revoked events in real-time.
+        const BOOTSTRAP_TTL_MS = 5 * 60 * 1000;
+        const bootstrapCacheKey = "gf_bootstrap_cache";
+        if (!isSilent) {
+          try {
+            const cachedBootstrap = sessionStorage.getItem(bootstrapCacheKey);
+            if (cachedBootstrap) {
+              const parsed = JSON.parse(cachedBootstrap);
+              if (parsed?.ts && (Date.now() - parsed.ts < BOOTSTRAP_TTL_MS) && parsed.data?.success) {
+                // Hydrate from cache — 0 network calls, 0 CPU on serverless
+                const cachedRes = { data: parsed.data };
+                const { student, admin, adminDeviceCount: devCount, isAdminButtonVisible: btnVis, adminButtonConfig: btnConfig, maintenance: maint } = cachedRes.data;
+
+                if (student && student.regNo && student.sessionId) {
+                  setStudentSession(student);
+                  setAuthStatus("AUTHENTICATED");
+                  const path = typeof window !== "undefined" ? window.location.pathname : "";
+                  const isViewingSpecificRoute =
+                    path.startsWith("/dashboard/") ||
+                    path.startsWith("/analytics/") ||
+                    path.startsWith("/attendance/") ||
+                    path.startsWith("/timetable/");
+                  if (!isViewingSpecificRoute) {
+                    fetchStudent(student.regNo, 2, 500).catch(() => {});
+                  }
+                } else {
+                  setStudentSession(null);
+                  setStudentData(null);
+                  setAuthStatus("UNAUTHENTICATED");
+                }
+
+                if (admin && admin.authenticated) {
+                  setAdminToken(true);
+                  setAdminProfile(admin);
+                  setAdminAuthStatus("AUTHENTICATED");
+                } else {
+                  setAdminToken(false);
+                  setAdminProfile(null);
+                  setAdminAuthStatus("UNAUTHENTICATED");
+                }
+
+                if (btnConfig) setAdminButtonConfig(btnConfig);
+                if (typeof devCount === "number") {
+                  setAdminDeviceCount(devCount);
+                  setIsAdminButtonVisible(typeof btnVis === "boolean" ? btnVis : devCount < 2);
+                }
+
+                if (maint) {
+                  const maintObj = { enabled: Boolean(maint.enabled), message: maint.message || "", enabledAt: maint.enabledAt || null };
+                  setMaintenance(maintObj);
+                  setMaintenanceChecked(true);
+                }
+
+                setAuthChecking(false);
+                setMaintenanceChecked(true);
+                inFlightBootstrapRef.current = null;
+                return cachedRes.data;
+              }
+            }
+          } catch (_) {}
+        }
+
         const res = await axios.get(`${API_BASE}/auth/bootstrap`, {
           withCredentials: true,
           // Serverless cold starts and slow mobile networks can take longer than
@@ -306,6 +369,11 @@ export function AppProvider({ children }) {
             } catch {}
             setMaintenanceChecked(true);
           }
+
+          // Store bootstrap response for TTL cache (skip network on subsequent mounts)
+          try {
+            sessionStorage.setItem("gf_bootstrap_cache", JSON.stringify({ data: res.data, ts: Date.now() }));
+          } catch (_) {}
 
           return res.data;
         } else {
@@ -651,8 +719,19 @@ export function AppProvider({ children }) {
     let isMounted = true;
     const cleanReg = String(studentSession.regNo).trim().toUpperCase();
 
-    // 1. Initial single fetch on mount to load initial notification list
-    fetchNotifications();
+    // 1. Initial single fetch on mount — with TTL gate to skip if recently fetched.
+    //    Ably WebSocket delivers real-time notifications instantly; mount fetch is safety net only.
+    const NOTIF_MOUNT_TTL_MS = 2 * 60 * 1000; // 2 minutes
+    const notifLastFetchKey = "gf_notif_last_fetch";
+    try {
+      const lastFetch = sessionStorage.getItem(notifLastFetchKey);
+      if (!lastFetch || (Date.now() - Number(lastFetch)) > NOTIF_MOUNT_TTL_MS) {
+        fetchNotifications();
+        sessionStorage.setItem(notifLastFetchKey, String(Date.now()));
+      }
+    } catch (_) {
+      fetchNotifications(); // Fallback: always fetch if sessionStorage fails
+    }
 
     // 2. Initialize Ably Realtime Client (automatically routes to Key 1 or Key 2)
     let ably = null;
