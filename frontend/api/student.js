@@ -87,7 +87,11 @@ module.exports = async function handler(req, res) {
           category: typeof category === "string" && category.trim() ? category.trim() : "Overall Experience",
         });
         const savedFeedback = await newFeedback.save();
-        publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() }).catch(() => {});
+        try {
+          await publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() });
+        } catch (e) {
+          console.warn("[Ably] Feedback updated publish warning:", e?.message || e);
+        }
         return res.status(201).json(savedFeedback);
       }
 
@@ -96,7 +100,11 @@ module.exports = async function handler(req, res) {
         if (!feedback) return res.status(404).json({ message: "Feedback not found" });
         feedback.likes = (feedback.likes || 0) + 1;
         await feedback.save();
-        publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() }).catch(() => {});
+        try {
+          await publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() });
+        } catch (e) {
+          console.warn("[Ably] Feedback updated publish warning:", e?.message || e);
+        }
         return res.json(feedback);
       }
 
@@ -119,7 +127,11 @@ module.exports = async function handler(req, res) {
         if (rating) feedback.rating = rating;
         if (comment) feedback.comment = comment;
         const updatedFeedback = await feedback.save();
-        publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() }).catch(() => {});
+        try {
+          await publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() });
+        } catch (e) {
+          console.warn("[Ably] Feedback updated publish warning:", e?.message || e);
+        }
         return res.json(updatedFeedback);
       }
 
@@ -137,7 +149,11 @@ module.exports = async function handler(req, res) {
         const feedback = await Feedback.findById(feedbackId);
         if (!feedback) return res.status(404).json({ message: "Feedback not found" });
         await feedback.deleteOne();
-        publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() }).catch(() => {});
+        try {
+          await publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() });
+        } catch (e) {
+          console.warn("[Ably] Feedback updated publish warning:", e?.message || e);
+        }
         return res.json({ message: "Feedback deleted successfully" });
       }
 
@@ -320,7 +336,11 @@ module.exports = async function handler(req, res) {
           { upsert: true, new: true, setDefaultsOnInsert: true }
         );
 
-        publishAdminRealtimeEvent("attendance-updated", { regNo: cleanRegNo, timestamp: Date.now() }).catch(() => {});
+        try {
+          await publishAdminRealtimeEvent("attendance-updated", { regNo: cleanRegNo, timestamp: Date.now() });
+        } catch (e) {
+          console.warn("[Ably] Attendance updated publish warning:", e?.message || e);
+        }
 
         return res.json({
           success: true,

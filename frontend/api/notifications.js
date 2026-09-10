@@ -160,7 +160,12 @@ module.exports = async function handler(req, res) {
       } catch {}
 
       // Broadcast real-time WebSocket event to all students across both Ably accounts (<0.1s latency)
-      broadcastRealtimeEvent("new-broadcast", newBroadcast).catch(() => {});
+      try {
+        const plainBroadcast = newBroadcast && newBroadcast.toObject ? newBroadcast.toObject() : JSON.parse(JSON.stringify(newBroadcast));
+        await broadcastRealtimeEvent("new-broadcast", plainBroadcast);
+      } catch (e) {
+        console.warn("[Ably] Broadcast publish warning:", e?.message || e);
+      }
 
       return res.json({
         success: true,
@@ -302,6 +307,11 @@ module.exports = async function handler(req, res) {
       }
 
       await StudentNotification.deleteOne({ notificationId, regNo: "ALL" });
+      try {
+        await broadcastRealtimeEvent("delete-broadcast", { notificationId });
+      } catch (e) {
+        console.warn("[Ably] Delete broadcast publish warning:", e?.message || e);
+      }
       return res.json({ success: true, message: "Broadcast notification removed." });
     }
 

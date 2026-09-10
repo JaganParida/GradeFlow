@@ -210,7 +210,11 @@ module.exports = async function handler(req, res) {
         existing.uploadedAt = new Date();
         existing.uploadedBy = auth.admin.email || "Admin";
         await existing.save();
-        publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }).catch(() => {});
+        try {
+          await publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() });
+        } catch (e) {
+          console.warn("[Ably] Timetable updated publish warning:", e?.message || e);
+        }
 
         return res.json({
           success: true,
@@ -231,7 +235,11 @@ module.exports = async function handler(req, res) {
         uploadedBy: auth.admin.email || "Admin",
       });
 
-      publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }).catch(() => {});
+      try {
+        await publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() });
+      } catch (e) {
+        console.warn("[Ably] Timetable updated publish warning:", e?.message || e);
+      }
 
       return res.json({
         success: true,
@@ -250,7 +258,11 @@ module.exports = async function handler(req, res) {
       if (!deleted) {
         return res.status(404).json({ success: false, message: "Schedule not found." });
       }
-      publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }).catch(() => {});
+      try {
+        await publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() });
+      } catch (e) {
+        console.warn("[Ably] Timetable updated publish warning:", e?.message || e);
+      }
       return res.json({ success: true, message: "Timetable schedule deleted successfully." });
     }
 
@@ -274,7 +286,11 @@ module.exports = async function handler(req, res) {
         existing.uploadedAt = new Date();
         existing.uploadedBy = auth.admin.email || "Admin";
         await existing.save();
-        publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }).catch(() => {});
+        try {
+          await publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() });
+        } catch (e) {
+          console.warn("[Ably] Timetable updated publish warning:", e?.message || e);
+        }
 
         return res.json({
           success: true,
@@ -292,7 +308,11 @@ module.exports = async function handler(req, res) {
         uploadedBy: auth.admin.email || "Admin",
       });
 
-      publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }).catch(() => {});
+      try {
+        await publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() });
+      } catch (e) {
+        console.warn("[Ably] Timetable updated publish warning:", e?.message || e);
+      }
 
       return res.json({
         success: true,
@@ -321,7 +341,11 @@ module.exports = async function handler(req, res) {
         holidayDoc.uploadedAt = new Date();
         holidayDoc.uploadedBy = auth.admin.email || "Admin";
         await holidayDoc.save();
-        publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }).catch(() => {});
+        try {
+          await publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() });
+        } catch (e) {
+          console.warn("[Ably] Timetable updated publish warning:", e?.message || e);
+        }
 
         return res.json({
           success: true,
@@ -338,7 +362,11 @@ module.exports = async function handler(req, res) {
         uploadedBy: auth.admin.email || "Admin",
       });
 
-      publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }).catch(() => {});
+      try {
+        await publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() });
+      } catch (e) {
+        console.warn("[Ably] Timetable updated publish warning:", e?.message || e);
+      }
 
       return res.json({
         success: true,
