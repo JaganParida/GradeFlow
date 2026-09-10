@@ -689,14 +689,20 @@ module.exports = async function handler(req, res) {
 
       const attendanceDocs = await Attendance.find(
         {},
-        "regNo section targetGoal savedSubjects lastSyncedAt updatedAt dailyLogs"
+        "regNo section targetGoal savedSubjects lastSyncedAt updatedAt dailyLogsCount"
       ).sort({ updatedAt: -1, lastSyncedAt: -1 }).lean();
       const regNos = attendanceDocs.map((a) => a.regNo);
 
-      const studentMetaDocs = await SemesterResult.find(
-        { regNo: { $in: regNos } },
-        "regNo studentName batch branch section"
-      ).lean();
+      const [studentMetaDocs, studentUsers] = await Promise.all([
+        SemesterResult.find(
+          { regNo: { $in: regNos } },
+          "regNo studentName batch branch section"
+        ).lean(),
+        Student.find(
+          { regNo: { $in: regNos } },
+          "regNo studentName createdAt updatedAt"
+        ).lean(),
+      ]);
 
       const metaMap = new Map();
       studentMetaDocs.forEach((doc) => {
@@ -705,10 +711,6 @@ module.exports = async function handler(req, res) {
         }
       });
 
-      const studentUsers = await Student.find(
-        { regNo: { $in: regNos } },
-        "regNo studentName createdAt updatedAt"
-      ).lean();
       const studentUserMap = new Map();
       studentUsers.forEach((u) => {
         if (u.regNo && !studentUserMap.has(u.regNo)) {
@@ -759,8 +761,8 @@ module.exports = async function handler(req, res) {
         const isReset = subjects.length === 0 || totalDelivered === 0;
         const targetGoal = Number(doc.targetGoal) || 75;
 
-        let dailyLogsCount = 0;
-        if (doc.dailyLogs) {
+        let dailyLogsCount = Number(doc.dailyLogsCount || 0);
+        if (!dailyLogsCount && doc.dailyLogs) {
           if (doc.dailyLogs instanceof Map) {
             dailyLogsCount = doc.dailyLogs.size;
           } else if (typeof doc.dailyLogs === "object") {
@@ -885,6 +887,19 @@ module.exports = async function handler(req, res) {
         },
         students: paginatedStudents,
       });
+    }
+
+    // 1D. GET /attendance-tracker/student-details?regNo=XXXX
+    if (action === "attendance-student" || cleanUrl.includes("/attendance-tracker/student")) {
+      const targetReg = String(req.query.regNo || "").trim().toUpperCase();
+      if (!targetReg) {
+        return res.status(400).json({ success: false, message: "Registration number is required." });
+      }
+      const studentAttendance = await Attendance.findOne({ regNo: targetReg }).lean();
+      if (!studentAttendance) {
+        return res.status(404).json({ success: false, message: "Attendance record not found for student." });
+      }
+      return res.json({ success: true, attendance: studentAttendance });
     }
 
     // 2. GET /purge-logs & DELETE /purge-logs

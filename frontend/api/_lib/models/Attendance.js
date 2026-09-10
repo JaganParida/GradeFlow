@@ -32,6 +32,7 @@ const attendanceSchema = new mongoose.Schema(
       of: Object,
       default: {},
     },
+    dailyLogsCount: { type: Number, default: 0 },
     lastSyncedAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
