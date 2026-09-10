@@ -412,31 +412,40 @@ module.exports = async function handler(req, res) {
         return res.json(statsCache);
       }
 
-      const [totalResults, totalInternal, totalRankings, totalAccountsCreated, activeSessions] = await Promise.all([
-        typeof SemesterResult.estimatedDocumentCount === "function" ? SemesterResult.estimatedDocumentCount() : SemesterResult.countDocuments(),
-        typeof InternalMark.estimatedDocumentCount === "function" ? InternalMark.estimatedDocumentCount() : InternalMark.countDocuments(),
-        typeof Ranking.estimatedDocumentCount === "function" ? Ranking.estimatedDocumentCount() : Ranking.countDocuments(),
+      const [
+        totalAccountsCreated,
+        activeSessions,
+        semResults,
+        rankings,
+        internalMarks,
+      ] = await Promise.all([
         Student.countDocuments({ passwordHash: { $exists: true, $ne: null } }),
         StudentSession.find({ isActive: true }, "regNo").lean(),
+        SemesterResult.find({}, "regNo batch semester").lean(),
+        Ranking.find({}, "regNo batch semester").lean(),
+        InternalMark.find({}, "regNo batch semester").lean(),
       ]);
-      const uniqueStudents = await SemesterResult.distinct("regNo");
-      const activeLoggedInCount = new Set(activeSessions.map((s) => s.regNo)).size;
 
-      const semResults = await SemesterResult.find({}, "regNo batch semester").lean();
-      const rankings = await Ranking.find({}, "regNo batch semester").lean();
-      const internalMarks = await InternalMark.find({}, "regNo batch semester").lean();
+      const activeLoggedInCount = new Set(activeSessions.map((s) => s.regNo)).size;
+      const totalResults = semResults.length;
+      const totalInternal = internalMarks.length;
+      const totalRankings = rankings.length;
 
       const batchMap = new Map();
+      const uniqueStudentsSet = new Set();
 
-      semResults.forEach((r) => {
-        let b = String(r.batch || "").trim();
-        if (!b && r.regNo && /^\d{2}/.test(r.regNo)) {
-          b = `20${r.regNo.slice(0, 2)}`;
+      const resolveBatch = (batchVal, reg) => {
+        let b = String(batchVal || "").trim();
+        if (!b && reg && /^\d{2}/.test(reg)) {
+          b = `20${reg.slice(0, 2)}`;
         }
-        if (!b) b = "Other";
+        return b || "Other";
+      };
 
-        if (!batchMap.has(b)) {
-          batchMap.set(b, {
+      const getBatchEntry = (b) => {
+        let entry = batchMap.get(b);
+        if (!entry) {
+          entry = {
             batch: b,
             studentsSet: new Set(),
             rankedStudentsSet: new Set(),
@@ -444,10 +453,18 @@ module.exports = async function handler(req, res) {
             totalResults: 0,
             totalInternal: 0,
             totalRankings: 0,
-          });
+          };
+          batchMap.set(b, entry);
         }
-        const entry = batchMap.get(b);
+        return entry;
+      };
+
+      semResults.forEach((r) => {
+        const b = resolveBatch(r.batch, r.regNo);
+        const entry = getBatchEntry(b);
+
         if (r.regNo) {
+          uniqueStudentsSet.add(r.regNo);
           entry.studentsSet.add(r.regNo);
           if (r.semester) {
             const semNum = Number(r.semester);
@@ -461,47 +478,17 @@ module.exports = async function handler(req, res) {
       });
 
       internalMarks.forEach((m) => {
-        let b = String(m.batch || "").trim();
-        if (!b && m.regNo && /^\d{2}/.test(m.regNo)) {
-          b = `20${m.regNo.slice(0, 2)}`;
-        }
-        if (!b) b = "Other";
+        const b = resolveBatch(m.batch, m.regNo);
+        const entry = getBatchEntry(b);
 
-        if (!batchMap.has(b)) {
-          batchMap.set(b, {
-            batch: b,
-            studentsSet: new Set(),
-            rankedStudentsSet: new Set(),
-            semMap: new Map(),
-            totalResults: 0,
-            totalInternal: 0,
-            totalRankings: 0,
-          });
-        }
-        const entry = batchMap.get(b);
         if (m.regNo) entry.studentsSet.add(m.regNo);
         entry.totalInternal++;
       });
 
       rankings.forEach((rk) => {
-        let b = String(rk.batch || "").trim();
-        if (!b && rk.regNo && /^\d{2}/.test(rk.regNo)) {
-          b = `20${rk.regNo.slice(0, 2)}`;
-        }
-        if (!b) b = "Other";
+        const b = resolveBatch(rk.batch, rk.regNo);
+        const entry = getBatchEntry(b);
 
-        if (!batchMap.has(b)) {
-          batchMap.set(b, {
-            batch: b,
-            studentsSet: new Set(),
-            rankedStudentsSet: new Set(),
-            semMap: new Map(),
-            totalResults: 0,
-            totalInternal: 0,
-            totalRankings: 0,
-          });
-        }
-        const entry = batchMap.get(b);
         if (rk.regNo) {
           entry.studentsSet.add(rk.regNo);
           entry.rankedStudentsSet.add(rk.regNo);
@@ -532,7 +519,7 @@ module.exports = async function handler(req, res) {
         });
 
       const resultData = {
-        totalStudents: uniqueStudents.length,
+        totalStudents: uniqueStudentsSet.size,
         totalAccountsCreated,
         activeLoggedInCount,
         totalResults,
