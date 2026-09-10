@@ -776,6 +776,7 @@ export function AppProvider({ children }) {
     }
 
     // 3. Tab Visibility & Auto-Sync: Keep WebSocket alive in background, auto-sync on tab return
+    let lastVisibilitySyncTime = 0;
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         try {
@@ -783,9 +784,16 @@ export function AppProvider({ children }) {
             ably.connection.connect();
           }
         } catch {}
-        fetchNotifications();
-        if (cleanReg) {
-          fetchStudent(cleanReg, 1, 500, false).catch(() => {});
+
+        // SWR focusThrottleInterval: Avoid spamming serverless revalidations on quick tab switching.
+        // WebSocket pushes live changes instantly anyway; background sync only needed if user was away >60s.
+        const now = Date.now();
+        if (now - lastVisibilitySyncTime > 60000) {
+          lastVisibilitySyncTime = now;
+          fetchNotifications();
+          if (cleanReg) {
+            fetchStudent(cleanReg, 1, 500, false).catch(() => {});
+          }
         }
       }
     };

@@ -605,7 +605,7 @@ export default function Dashboard() {
     }
   }, [studentData]);
 
-  const loadSemester = async (sem) => {
+  const loadSemester = async (sem, forceRefresh = false) => {
     if (!sem) return;
 
     // 1. Immediately update with local semester result so there is zero UI delay, zero hanging, zero lag
@@ -614,70 +614,87 @@ export default function Dashboard() {
       setSemResult(local);
     }
 
-    // 2. Check if already hydrated from initial eager student profile payload (0 Network Requests!)
-    const eagerInternal = studentData?.internalMarksMap ? (studentData.internalMarksMap[String(sem)] || null) : undefined;
-    const eagerRanking = studentData?.rankingsMap ? (studentData.rankingsMap[String(sem)] || null) : undefined;
+    const cacheKey = `gf_sem_${regNo}_${sem}`;
 
     // Verify ranking object is complete (has totalStudents, deptStudents, etc.) and not a stale partial payload
     const isCompleteRanking = (rk) => !rk || (rk.totalStudents !== undefined && rk.deptStudents !== undefined);
 
     let hasCachedDetails = false;
 
-    if ((eagerInternal !== undefined || eagerRanking !== undefined) && isCompleteRanking(eagerRanking)) {
-      const finalInternal = eagerInternal || null;
-      const finalRanking = eagerRanking || (sem === studentData?.latestSemester ? studentData?.ranking : null);
+    // 2. Check if already hydrated from initial eager student profile payload (0 Network Requests!)
+    if (!forceRefresh) {
+      const eagerInternal = studentData?.internalMarksMap ? (studentData.internalMarksMap[String(sem)] || null) : undefined;
+      const eagerRanking = studentData?.rankingsMap ? (studentData.rankingsMap[String(sem)] || null) : undefined;
 
-      if (isCompleteRanking(finalRanking)) {
-        setInternalMarks(finalInternal);
-        setSemesterRanking(finalRanking);
-        semCacheRef.current[sem] = {
-          internal: finalInternal,
-          ranking: finalRanking,
-        };
+      if ((eagerInternal !== undefined || eagerRanking !== undefined) && isCompleteRanking(eagerRanking)) {
+        const finalInternal = eagerInternal || null;
+        const finalRanking = eagerRanking || (sem === studentData?.latestSemester ? studentData?.ranking : null);
+
+        if (isCompleteRanking(finalRanking)) {
+          setInternalMarks(finalInternal);
+          setSemesterRanking(finalRanking);
+          semCacheRef.current[sem] = {
+            internal: finalInternal,
+            ranking: finalRanking,
+          };
+          hasCachedDetails = true;
+        }
+      }
+
+      // 3. Check memory cache for already fetched data
+      if (!hasCachedDetails && semCacheRef.current[sem] && isCompleteRanking(semCacheRef.current[sem].ranking)) {
+        const { internal, ranking } = semCacheRef.current[sem];
+        setInternalMarks(internal);
+        setSemesterRanking(ranking);
         hasCachedDetails = true;
       }
-    }
 
-    // 3. Check memory cache for already fetched data
-    if (!hasCachedDetails && semCacheRef.current[sem] && isCompleteRanking(semCacheRef.current[sem].ranking)) {
-      const { internal, ranking } = semCacheRef.current[sem];
-      setInternalMarks(internal);
-      setSemesterRanking(ranking);
-      hasCachedDetails = true;
-    }
-
-    // 4. Check sessionStorage cache for instant load across tabs/refreshes
-    const cacheKey = `gf_sem_${regNo}_${sem}`;
-    if (!hasCachedDetails) {
-      try {
-        const sessionCached = sessionStorage.getItem(cacheKey);
-        if (sessionCached) {
-          const parsed = JSON.parse(sessionCached);
-          if (parsed && isCompleteRanking(parsed.ranking)) {
-            if (parsed.semResult) setSemResult(parsed.semResult);
-            setInternalMarks(parsed.internal || null);
-            setSemesterRanking(parsed.ranking || null);
-            semCacheRef.current[sem] = {
-              internal: parsed.internal || null,
-              ranking: parsed.ranking || null,
-            };
-            hasCachedDetails = true;
+      // 4. Check sessionStorage cache for instant load across tabs/refreshes
+      if (!hasCachedDetails) {
+        try {
+          const sessionCached = sessionStorage.getItem(cacheKey);
+          if (sessionCached) {
+            const parsed = JSON.parse(sessionCached);
+            if (parsed && isCompleteRanking(parsed.ranking)) {
+              if (parsed.semResult) setSemResult(parsed.semResult);
+              setInternalMarks(parsed.internal || null);
+              setSemesterRanking(parsed.ranking || null);
+              semCacheRef.current[sem] = {
+                internal: parsed.internal || null,
+                ranking: parsed.ranking || null,
+              };
+              hasCachedDetails = true;
+            }
           }
-        }
-      } catch (_) {}
-    }
-
-    // 5. If no cache was found, show loading indicator for internal marks
-    if (!hasCachedDetails) {
-      if (sem === studentData?.latestSemester && studentData?.ranking) {
-        setSemesterRanking(studentData.ranking);
+        } catch (_) {}
       }
-      setIsInternalLoading(true);
-    } else {
-      setIsInternalLoading(false);
+
+      // If data is already hydrated in memory/sessionStorage, instantly return (0 Network Requests, 0ms Lag!)
+      if (hasCachedDetails) {
+        setIsInternalLoading(false);
+        try {
+          if (!sessionStorage.getItem(cacheKey)) {
+            sessionStorage.setItem(
+              cacheKey,
+              JSON.stringify({
+                semResult: local || null,
+                internal: semCacheRef.current[sem]?.internal || null,
+                ranking: semCacheRef.current[sem]?.ranking || null,
+              })
+            );
+          }
+        } catch (_) {}
+        return;
+      }
     }
 
-    // 6. SWR: Perform silent background revalidation against MongoDB to guarantee 100% fresh data
+    // 5. Fallback or Force Refresh: If no cache was found, show loading indicator for internal marks
+    if (sem === studentData?.latestSemester && studentData?.ranking) {
+      setSemesterRanking(studentData.ranking);
+    }
+    setIsInternalLoading(true);
+
+    // 6. Network fetch against MongoDB (only executed on cache-miss or explicit realtime forceRefresh)
     try {
       const [imRes, rankRes] = await Promise.allSettled([
         axios.get(`${API}/student/${regNo}/internal/${sem}`),
@@ -746,7 +763,7 @@ export default function Dashboard() {
   // Re-fetch or ensure internal marks are loaded if user switches to internal view
   useEffect(() => {
     if (tab === "internal" && selectedSem) {
-      if (!internalMarks && !semCacheRef.current[selectedSem]?.internal) {
+      if (!internalMarks && semCacheRef.current[selectedSem] === undefined) {
         loadSemester(selectedSem);
       }
     }
@@ -770,7 +787,7 @@ export default function Dashboard() {
     } catch (_) {}
     // 3. Re-fetch active semester details with fresh database data
     if (selectedSem) {
-      loadSemester(selectedSem);
+      loadSemester(selectedSem, true);
     }
   }, [rankingsVersion, selectedSem]);
 
@@ -789,7 +806,7 @@ export default function Dashboard() {
         }
       } catch (_) {}
       if (selectedSem) {
-        loadSemester(selectedSem);
+        loadSemester(selectedSem, true);
       }
     };
 
