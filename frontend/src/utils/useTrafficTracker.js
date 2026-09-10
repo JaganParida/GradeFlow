@@ -80,7 +80,7 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
       } catch {}
     }
 
-    const routesToSend = [...routeBufferRef.current];
+    const routesToSend = routeBufferRef.current.slice(-50);
     routeBufferRef.current = []; // Clear in-memory buffer immediately
 
     try {

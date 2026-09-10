@@ -484,57 +484,71 @@ module.exports = async function handler(req, res) {
 
         // ─── Batch vs Single Route Activity Processing ───
         if (isBatch && Array.isArray(routes) && routes.length > 0) {
-          const pageOps = [];
+          // Pre-consolidate routes by route path to prevent duplicate bulkWrite filters and minimize DB overhead
+          const routeMap = new Map();
           for (const item of routes) {
             const itemRoute = normalizeRoute(item.route || "/");
             const itemTitle = item.pageTitle || getFriendlyPageTitle(itemRoute);
             const itemDur = Math.max(0, parseInt(item.durationSeconds, 10) || 0);
 
-            // Queue atomic bulk write operation for each route in batch
-            pageOps.push({
-              updateOne: {
-                filter: { route: itemRoute },
-                update: {
-                  $setOnInsert: { pageTitle: itemTitle },
-                  $inc: { totalViews: 1 },
-                  $set: { lastVisitedAt: new Date() },
-                },
-                upsert: true,
+            if (!routeMap.has(itemRoute)) {
+              routeMap.set(itemRoute, {
+                route: itemRoute,
+                pageTitle: itemTitle,
+                count: 0,
+                durationSeconds: 0,
+              });
+            }
+            const rec = routeMap.get(itemRoute);
+            rec.count += 1;
+            rec.durationSeconds += itemDur;
+          }
+
+          const pageOps = Array.from(routeMap.values()).map((rec) => ({
+            updateOne: {
+              filter: { route: rec.route },
+              update: {
+                $setOnInsert: { pageTitle: rec.pageTitle },
+                $inc: { totalViews: rec.count },
+                $set: { lastVisitedAt: new Date() },
               },
-            });
+              upsert: true,
+            },
+          }));
 
-            studentActivity.totalTimeSpentSeconds = (studentActivity.totalTimeSpentSeconds || 0) + itemDur;
-            studentActivity.totalPageViews = (studentActivity.totalPageViews || 0) + 1;
+          if (pageOps.length > 0) {
+            await PageAnalytics.bulkWrite(pageOps, { ordered: false }).catch(() => {});
+          }
 
-            const existingItem = studentActivity.visitedRoutes.find((r) => r.route === itemRoute);
+          for (const rec of routeMap.values()) {
+            studentActivity.totalTimeSpentSeconds = (studentActivity.totalTimeSpentSeconds || 0) + rec.durationSeconds;
+            studentActivity.totalPageViews = (studentActivity.totalPageViews || 0) + rec.count;
+
+            const existingItem = studentActivity.visitedRoutes.find((r) => r.route === rec.route);
             if (existingItem) {
-              existingItem.durationSeconds = (existingItem.durationSeconds || 0) + itemDur;
-              existingItem.visitCount = (existingItem.visitCount || 0) + 1;
-              existingItem.weeklyVisitCount = (existingItem.weeklyVisitCount || 0) + 1;
+              existingItem.durationSeconds = (existingItem.durationSeconds || 0) + rec.durationSeconds;
+              existingItem.visitCount = (existingItem.visitCount || 0) + rec.count;
+              existingItem.weeklyVisitCount = (existingItem.weeklyVisitCount || 0) + rec.count;
               if (!existingItem.hourlyActivity || existingItem.hourlyActivity.length !== 24) {
                 existingItem.hourlyActivity = new Array(24).fill(0);
               }
-              existingItem.hourlyActivity[istHour] = (existingItem.hourlyActivity[istHour] || 0) + 1;
+              existingItem.hourlyActivity[istHour] = (existingItem.hourlyActivity[istHour] || 0) + rec.count;
               existingItem.mostActiveTimeSlot = calculatePeakTimeSlot(existingItem.hourlyActivity);
               existingItem.lastVisitedAt = new Date();
             } else {
               const rHourly = new Array(24).fill(0);
-              rHourly[istHour] = 1;
+              rHourly[istHour] = rec.count;
               studentActivity.visitedRoutes.push({
-                route: itemRoute,
-                pageTitle: itemTitle,
-                durationSeconds: itemDur,
-                visitCount: 1,
-                weeklyVisitCount: 1,
+                route: rec.route,
+                pageTitle: rec.pageTitle,
+                durationSeconds: rec.durationSeconds,
+                visitCount: rec.count,
+                weeklyVisitCount: rec.count,
                 hourlyActivity: rHourly,
                 mostActiveTimeSlot: calculatePeakTimeSlot(rHourly),
                 lastVisitedAt: new Date(),
               });
             }
-          }
-
-          if (pageOps.length > 0) {
-            await PageAnalytics.bulkWrite(pageOps, { ordered: false }).catch(() => {});
           }
         } else if (previousRoute && validTimeSpent >= 5) {
           const normPrev = normalizeRoute(previousRoute);
