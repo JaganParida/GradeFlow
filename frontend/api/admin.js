@@ -26,7 +26,7 @@ const {
 } = require("./_lib/gradeCalculations");
 
 const { applyCors } = require("./_lib/cors");
-const { broadcastRealtimeEvent, publishAdminRealtimeEvent } = require("./_lib/ablyService");
+const { broadcastRealtimeEvent, publishAdminRealtimeEvent, publishStudentRealtimeEvent } = require("./_lib/ablyService");
 
 let statsCache = null;
 let statsCacheTimestamp = 0;
@@ -1074,6 +1074,13 @@ module.exports = async function handler(req, res) {
       // Update ranking for this semester
       await generateRankingForSemester(semNum);
 
+      // Notify this student in real-time across active tabs/devices (<1s)
+      await publishStudentRealtimeEvent(cleanRegNo, "results-updated", {
+        regNo: cleanRegNo,
+        semester: semNum,
+        timestamp: Date.now(),
+      });
+
       return res.json({
         success: true,
         message: `Academic Report Card for ${cleanRegNo} (Sem ${semNum}) synchronized successfully!`,
@@ -1106,7 +1113,7 @@ module.exports = async function handler(req, res) {
     // 8. POST /student/update-grade
     if (action === "update-grade" || cleanUrl.includes("/student/update-grade")) {
       const { regNo, semester, subCode, newGrade } = req.body || {};
-      const trimmedRegNo = String(regNo || "").trim();
+      const trimmedRegNo = String(regNo || "").trim().toUpperCase();
       const semNum = Number(semester);
       const rawSubCode = String(subCode || "").trim();
       const normalizedGrade = normalizeGrade(newGrade);
@@ -1129,10 +1136,38 @@ module.exports = async function handler(req, res) {
       }
 
       semResult.subjects[subjectIndex].grade = normalizedGrade;
+      semResult.subjects[subjectIndex].gradePoint = getGradePoint(normalizedGrade) !== undefined ? getGradePoint(normalizedGrade) : 10;
+
+      // Recalculate semester metrics (credits, sgpa)
+      const currentSemMetrics = calculateSemesterMetrics(semResult.subjects, semNum);
+      semResult.totalCredits = currentSemMetrics.totalCredits;
+      semResult.creditsCleared = currentSemMetrics.creditsCleared;
+      semResult.sgpa = currentSemMetrics.sgpa;
       semResult.markModified("subjects");
       await semResult.save();
 
+      // Recalculate CGPA for all semesters of this student
+      const allStudentResults = await SemesterResult.find({ regNo: trimmedRegNo }).sort({ semester: 1 });
+      for (const r of allStudentResults) {
+        const sNum = Number(r.semester);
+        const metrics = calculateSemesterMetrics(r.subjects, sNum);
+        r.totalCredits = metrics.totalCredits;
+        r.creditsCleared = metrics.creditsCleared;
+        r.sgpa = metrics.sgpa;
+        r.cgpa = calculateCGPA(allStudentResults, sNum);
+        r.markModified("subjects");
+        await r.save();
+      }
+
+      // Update ranking for this semester
       await generateRankingForSemester(semNum).catch(() => {});
+
+      // Notify this student in real-time across active tabs/devices (<1s)
+      await publishStudentRealtimeEvent(trimmedRegNo, "results-updated", {
+        regNo: trimmedRegNo,
+        semester: semNum,
+        timestamp: Date.now(),
+      });
 
       return res.json({
         success: true,
@@ -1175,6 +1210,13 @@ module.exports = async function handler(req, res) {
       }
 
       await generateRankingForSemester(semNum);
+
+      // Notify this student in real-time across active tabs/devices (<1s)
+      await publishStudentRealtimeEvent(cleanRegNo, "results-updated", {
+        regNo: cleanRegNo,
+        semester: semNum,
+        timestamp: Date.now(),
+      });
 
       return res.json({
         success: true,

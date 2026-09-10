@@ -102,6 +102,7 @@ export function AppProvider({ children }) {
 
   // In-flight bootstrap promise ref for 100% request deduplication
   const inFlightBootstrapRef = useRef(null);
+  const inFlightStudentFetchRef = useRef({});
   const navigate = useNavigate();
 
   // Check live admin device occupancy & portal visibility config
@@ -751,6 +752,25 @@ export function AppProvider({ children }) {
         }
         window.dispatchEvent(new CustomEvent("gradeflow:attendance-updated", { detail: msg?.data }));
       });
+
+      // H. Listen for real-time results & grade updates for this student (<1s)
+      studentChannel.subscribe("results-updated", (msg) => {
+        if (!isMounted) return;
+        try {
+          if (cleanReg) {
+            sessionStorage.removeItem(`gf_student_profile_${cleanReg}`);
+            Object.keys(sessionStorage).forEach((k) => {
+              if (k.startsWith(`gf_sem_${cleanReg}_`)) {
+                sessionStorage.removeItem(k);
+              }
+            });
+          }
+        } catch (_) {}
+        if (cleanReg) {
+          fetchStudent(cleanReg, 1, 500, true).catch(() => {});
+        }
+        window.dispatchEvent(new CustomEvent("gradeflow:results-updated", { detail: msg?.data }));
+      });
     } catch (err) {
       console.warn("[Ably] Realtime connection warning:", err?.message || err);
     }
@@ -764,6 +784,9 @@ export function AppProvider({ children }) {
           }
         } catch {}
         fetchNotifications();
+        if (cleanReg) {
+          fetchStudent(cleanReg, 1, 500, false).catch(() => {});
+        }
       }
     };
 
@@ -1145,76 +1168,107 @@ export function AppProvider({ children }) {
 
   const authHeaders = { "X-Requested-With": "XMLHttpRequest" };
 
-  // ─── Student Profile Fetch (with sessionStorage cache across reloads) ───
+  // ─── Student Profile Fetch with SWR (Stale-While-Revalidate & Deduplication) ───
   const fetchStudent = async (regNo, retries = 4, backoffMs = 1000, forceRefresh = false) => {
     if (!regNo) return null;
     const cleanReg = regNo.trim().toUpperCase();
     const profileCacheKey = `gf_student_profile_${cleanReg}`;
 
-    if (!forceRefresh && studentData && studentData.regNo === cleanReg) {
-      setLoading(false);
-      return studentData;
-    }
-
+    // 1. Instant Cache Hydration (0ms load)
+    let cachedData = null;
     if (!forceRefresh) {
-      try {
-        const cachedRaw = sessionStorage.getItem(profileCacheKey);
-        if (cachedRaw) {
-          const parsed = JSON.parse(cachedRaw);
-          if (parsed && Date.now() - parsed.ts < 15 * 60 * 1000 && parsed.data?.regNo === cleanReg) {
-            setStudentData(parsed.data);
-            setLoading(false);
-            return parsed.data;
+      if (studentData && studentData.regNo === cleanReg) {
+        cachedData = studentData;
+      } else {
+        try {
+          const cachedRaw = sessionStorage.getItem(profileCacheKey);
+          if (cachedRaw) {
+            const parsed = JSON.parse(cachedRaw);
+            if (parsed?.data && parsed.data.regNo === cleanReg) {
+              cachedData = parsed.data;
+              setStudentData(parsed.data);
+              setLoading(false);
+            }
           }
-        }
-      } catch (_) {}
+        } catch (_) {}
+      }
     }
 
-    if (backoffMs === 1000) {
+    // 2. If no cache hit, show initial loading state
+    if (!cachedData && backoffMs === 1000) {
       setLoading(true);
       setError("");
     }
-    try {
-      const res = await axios.get(`${API_BASE}/student/${cleanReg}`, {
-        withCredentials: true,
-      });
-      setStudentData(res.data);
-      try {
-        sessionStorage.setItem(profileCacheKey, JSON.stringify({ data: res.data, ts: Date.now() }));
-      } catch (_) {}
-      setLoading(false);
-      return res.data;
-    } catch (err) {
-      const status = err.response?.status;
-      const isTransient = status === 429 || status === 502 || status === 503;
-      if (isTransient && retries > 0) {
-        await new Promise((resolve) => setTimeout(resolve, backoffMs));
-        return fetchStudent(cleanReg, retries - 1, backoffMs * 2);
-      }
 
-      let msg = "Something went wrong. Please try again.";
-      if (status === 401) {
-        msg = "Session expired or authentication required. Please log in with your registration number.";
-        setStudentSession(null);
-      } else if (status === 403) {
-        msg = "Access Denied: You are only authorized to view your own registered student records.";
-      } else if (status === 404) {
-        msg = "Student not found. Please check your Registration Number.";
-      } else if (status === 429) {
-        msg = "Server is very busy right now. Please try again in a few seconds.";
-      } else if (status === 502 || status === 503) {
-        msg = "Server is restarting. Please try again in a moment.";
-      } else if (!err.response) {
-        msg = "Network error — please check your internet connection.";
-      } else if (err.response?.data?.message) {
-        msg = err.response.data.message;
-      }
-
-      setError(msg);
-      setStudentData(null);
-      setLoading(false);
-      return false;
+    // 3. Deduplicate concurrent in-flight fetches for the same student
+    if (inFlightStudentFetchRef.current[cleanReg]) {
+      return inFlightStudentFetchRef.current[cleanReg];
     }
+
+    // 4. Background / Foreground Revalidation against MongoDB
+    const fetchPromise = (async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/student/${cleanReg}`, {
+          withCredentials: true,
+        });
+        if (res.data) {
+          setStudentData(res.data);
+          try {
+            sessionStorage.setItem(profileCacheKey, JSON.stringify({ data: res.data, ts: Date.now() }));
+          } catch (_) {}
+        }
+        setLoading(false);
+        return res.data;
+      } catch (err) {
+        const status = err.response?.status;
+        const isTransient = status === 429 || status === 502 || status === 503;
+        if (isTransient && retries > 0) {
+          await new Promise((resolve) => setTimeout(resolve, backoffMs));
+          return fetchStudent(cleanReg, retries - 1, backoffMs * 2, forceRefresh);
+        }
+
+        // If we already served cached data, don't wipe it on background network error
+        if (cachedData) {
+          setLoading(false);
+          return cachedData;
+        }
+
+        let msg = "Something went wrong. Please try again.";
+        if (status === 401) {
+          msg = "Session expired or authentication required. Please log in with your registration number.";
+          setStudentSession(null);
+        } else if (status === 403) {
+          msg = "Access Denied: You are only authorized to view your own registered student records.";
+        } else if (status === 404) {
+          msg = "Student not found. Please check your Registration Number.";
+        } else if (status === 429) {
+          msg = "Server is very busy right now. Please try again in a few seconds.";
+        } else if (status === 502 || status === 503) {
+          msg = "Server is restarting. Please try again in a moment.";
+        } else if (!err.response) {
+          msg = "Network error — please check your internet connection.";
+        } else if (err.response?.data?.message) {
+          msg = err.response.data.message;
+        }
+
+        setError(msg);
+        setStudentData(null);
+        setLoading(false);
+        return false;
+      } finally {
+        delete inFlightStudentFetchRef.current[cleanReg];
+      }
+    })();
+
+    inFlightStudentFetchRef.current[cleanReg] = fetchPromise;
+
+    // If cache was available, return cachedData immediately to unblock UI,
+    // while the fetchPromise finishes silently in the background
+    if (cachedData && !forceRefresh) {
+      return cachedData;
+    }
+
+    return fetchPromise;
   };
 
   const clearStudentData = () => {
