@@ -138,17 +138,32 @@ module.exports = async (req, res) => {
   // ── 1. GET /history ──
   if (req.method === "GET" || action === "history") {
     try {
-      const studentRecord = await globalDbQueue.run(() =>
-        SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 }).select("studentName").lean()
-      );
+      // Parallel fetch all independent student data sources for maximum throughput.
+      // Fixed .select to include "branch batch" (was missing, causing undefined in response).
+      const [studentRecord, dailyLimit, allRecentSessions, activeOtp, requestLogs] = await Promise.all([
+        globalDbQueue.run(() =>
+          SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 }).select("studentName branch batch").lean()
+        ),
+        globalDbQueue.run(() =>
+          StudentDailyLimit.findOne({ regNo: rawReg, dateKey: todayKey })
+        ),
+        globalDbQueue.run(() =>
+          StudentSession.find({ regNo: rawReg })
+            .select("sessionId isActive expiresAt deviceInfo loggedInAt lastActiveAt updatedAt")
+            .sort({ lastActiveAt: -1, updatedAt: -1 })
+            .limit(10)
+            .lean()
+        ),
+        globalDbQueue.run(() => OtpVerification.findOne({ regNo: rawReg })),
+        globalDbQueue.run(() =>
+          OtpRequestLog.find({ regNo: rawReg }).sort({ timestamp: -1 }).limit(50).lean()
+        ),
+      ]);
 
       const studentName = studentRecord?.studentName || "Student";
       const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
       const maskedEmail = `${studentEmail.slice(0, 4)}***@${studentEmail.split("@")[1]}`;
 
-      const dailyLimit = await globalDbQueue.run(() =>
-        StudentDailyLimit.findOne({ regNo: rawReg, dateKey: todayKey })
-      );
       const todayUsage = dailyLimit ? dailyLimit.otpSendCount : 0;
 
       let isCooldownActive = false;
@@ -164,13 +179,6 @@ module.exports = async (req, res) => {
         }
       }
 
-      const allRecentSessions = await globalDbQueue.run(() =>
-        StudentSession.find({ regNo: rawReg })
-          .select("sessionId isActive expiresAt deviceInfo loggedInAt lastActiveAt updatedAt")
-          .sort({ lastActiveAt: -1, updatedAt: -1 })
-          .limit(10)
-          .lean()
-      );
       const maxAllowedDevices = getMaxAllowedDevices(rawReg);
 
       const sanitizeSession = (s, idx) => {
@@ -261,15 +269,10 @@ module.exports = async (req, res) => {
               }
             : null);
 
-      const activeOtp = await globalDbQueue.run(() => OtpVerification.findOne({ regNo: rawReg }));
       let latestOtpStatus = "NONE";
       if (activeOtp) {
         latestOtpStatus = new Date(activeOtp.expiresAt) > new Date() ? "ACTIVE" : "EXPIRED";
       }
-
-      const requestLogs = await globalDbQueue.run(() =>
-        OtpRequestLog.find({ regNo: rawReg }).sort({ timestamp: -1 }).limit(50).lean()
-      );
 
       const todayDeliveries = requestLogs.filter(
         (l) => l.dateKey === todayKey && l.status === "DELIVERED"

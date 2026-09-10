@@ -795,9 +795,9 @@ export function AppProvider({ children }) {
         } catch {}
 
         // SWR focusThrottleInterval: Avoid spamming serverless revalidations on quick tab switching.
-        // WebSocket pushes live changes instantly anyway; background sync only needed if user was away >60s.
+        // WebSocket pushes live changes instantly anyway; background sync only needed if user was away >5min.
         const now = Date.now();
-        if (now - lastVisibilitySyncTime > 60000) {
+        if (now - lastVisibilitySyncTime > 300000) {
           lastVisibilitySyncTime = now;
           fetchNotifications();
           if (cleanReg) {
@@ -1186,6 +1186,7 @@ export function AppProvider({ children }) {
   const authHeaders = { "X-Requested-With": "XMLHttpRequest" };
 
   // ─── Student Profile Fetch with SWR (Stale-While-Revalidate & Deduplication) ───
+  const PROFILE_REVALIDATION_TTL_MS = 5 * 60 * 1000; // 5 minutes — skip background revalidation if cache is fresh
   const fetchStudent = async (regNo, retries = 4, backoffMs = 1000, forceRefresh = false) => {
     if (!regNo) return null;
     const cleanReg = regNo.trim().toUpperCase();
@@ -1193,9 +1194,18 @@ export function AppProvider({ children }) {
 
     // 1. Instant Cache Hydration (0ms load)
     let cachedData = null;
+    let cachedTs = 0;
     if (!forceRefresh) {
       if (studentData && studentData.regNo === cleanReg) {
         cachedData = studentData;
+        // Try to read timestamp from sessionStorage for TTL check
+        try {
+          const cachedRaw = sessionStorage.getItem(profileCacheKey);
+          if (cachedRaw) {
+            const parsed = JSON.parse(cachedRaw);
+            if (parsed?.ts) cachedTs = parsed.ts;
+          }
+        } catch (_) {}
       } else {
         try {
           const cachedRaw = sessionStorage.getItem(profileCacheKey);
@@ -1203,6 +1213,7 @@ export function AppProvider({ children }) {
             const parsed = JSON.parse(cachedRaw);
             if (parsed?.data && parsed.data.regNo === cleanReg) {
               cachedData = parsed.data;
+              cachedTs = parsed.ts || 0;
               setStudentData(parsed.data);
               setLoading(false);
             }
@@ -1211,13 +1222,19 @@ export function AppProvider({ children }) {
       }
     }
 
-    // 2. If no cache hit, show initial loading state
+    // 2. TTL Gate: If cache is fresh (< 5 min old), skip background revalidation entirely.
+    //    Ably WebSocket events call fetchStudent with forceRefresh=true, bypassing this gate.
+    if (!forceRefresh && cachedData && cachedTs && (Date.now() - cachedTs < PROFILE_REVALIDATION_TTL_MS)) {
+      return cachedData;
+    }
+
+    // 3. If no cache hit, show initial loading state
     if (!cachedData && backoffMs === 1000) {
       setLoading(true);
       setError("");
     }
 
-    // 3. Deduplicate concurrent in-flight fetches for the same student
+    // 4. Deduplicate concurrent in-flight fetches for the same student
     if (inFlightStudentFetchRef.current[cleanReg]) {
       return inFlightStudentFetchRef.current[cleanReg];
     }

@@ -113,14 +113,14 @@ module.exports = async function handler(req, res) {
     const action = req.query.action || "";
     const cleanUrl = req.url || "";
 
-    // For administrative routes, authenticate first before connecting to database
+    await connectToDatabase();
+
+    // For administrative routes, authenticate once (requires DB connection)
     if (action.startsWith("admin-") || cleanUrl.includes("/admin")) {
       const auth = await authenticateAdmin(req);
       if (auth.error) return res.status(auth.error.status).json(auth.error);
       req.adminAuth = auth;
     }
-
-    await connectToDatabase();
 
     // 1. GET /api/timetable/schedule
     if (action === "schedule" || (cleanUrl.includes("/timetable/schedule") && !cleanUrl.includes("admin"))) {
@@ -174,8 +174,7 @@ module.exports = async function handler(req, res) {
 
     // 5. GET /api/timetable/admin/schedule/list
     if (action === "admin-schedule-list" || cleanUrl.includes("/admin/schedule/list")) {
-      const auth = await authenticateAdmin(req);
-      if (auth.error) return res.status(auth.error.status).json(auth.error);
+      const auth = req.adminAuth;
 
       const schedules = await TimetableSchedule.find().sort({ updatedAt: -1 }).lean();
       return res.json({ success: true, count: schedules.length, schedules });
@@ -183,8 +182,7 @@ module.exports = async function handler(req, res) {
 
     // 6. POST /api/timetable/admin/schedule/save
     if (action === "admin-schedule-save" || (cleanUrl.includes("/admin/schedule/save") && req.method === "POST")) {
-      const auth = await authenticateAdmin(req);
-      if (auth.error) return res.status(auth.error.status).json(auth.error);
+      const auth = req.adminAuth;
 
       const { batch, branch, year, semester, section, title, schedule } = req.body || {};
       if (!batch || !branch || !section || !schedule) {
@@ -256,8 +254,7 @@ module.exports = async function handler(req, res) {
 
     // 7. DELETE /api/timetable/admin/schedule/:id
     if (action === "admin-schedule-delete" || (cleanUrl.includes("/admin/schedule/") && req.method === "DELETE")) {
-      const auth = await authenticateAdmin(req);
-      if (auth.error) return res.status(auth.error.status).json(auth.error);
+      const auth = req.adminAuth;
 
       const id = req.query.id || cleanUrl.split("/").pop();
       const deleted = await TimetableSchedule.findByIdAndDelete(id);
@@ -277,8 +274,7 @@ module.exports = async function handler(req, res) {
 
     // 8. POST /api/timetable/admin/calendar/save
     if (action === "admin-calendar-save" || (cleanUrl.includes("/admin/calendar/save") && req.method === "POST")) {
-      const auth = await authenticateAdmin(req);
-      if (auth.error) return res.status(auth.error.status).json(auth.error);
+      const auth = req.adminAuth;
 
       const { academicYear, semesterType, title, semestersLabel, activities } = req.body || {};
       if (!semesterType || !activities || !Array.isArray(activities)) {
@@ -338,8 +334,7 @@ module.exports = async function handler(req, res) {
 
     // 9. POST /api/timetable/admin/holidays/save
     if (action === "admin-holidays-save" || (cleanUrl.includes("/admin/holidays/save") && req.method === "POST")) {
-      const auth = await authenticateAdmin(req);
-      if (auth.error) return res.status(auth.error.status).json(auth.error);
+      const auth = req.adminAuth;
 
       const { academicYear, title, holidays, optionalRules } = req.body || {};
       if (!holidays || !Array.isArray(holidays)) {

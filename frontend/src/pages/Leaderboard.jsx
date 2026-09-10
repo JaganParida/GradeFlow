@@ -104,30 +104,24 @@ export default function Leaderboard() {
     };
 
     if (cachedMeta) {
-      // 0ms instant display from session cache
+      // 0ms instant display from session cache — skip background revalidation.
+      // Ably `rankings-updated` event wipes gf_rankings_meta, so next mount auto-fetches fresh data.
       initializeWithMeta(cachedMeta);
-    }
-
-    // Network fetch meta (first load or background freshness sync)
-    axios
-      .get(`${API}/rankings/meta`)
-      .then((r) => {
-        const metaData = r.data || { semesters: [], branches: [], batches: [] };
-        try {
-          sessionStorage.setItem(META_CACHE_KEY, JSON.stringify({ data: metaData, ts: Date.now() }));
-        } catch (_) {}
-
-        if (!cachedMeta) {
+    } else {
+      // Cold start: no cache — fetch meta from network
+      axios
+        .get(`${API}/rankings/meta`)
+        .then((r) => {
+          const metaData = r.data || { semesters: [], branches: [], batches: [] };
+          try {
+            sessionStorage.setItem(META_CACHE_KEY, JSON.stringify({ data: metaData, ts: Date.now() }));
+          } catch (_) {}
           initializeWithMeta(metaData);
-        } else if (metaData.version && metaData.version !== cachedMeta.version) {
-          initializeWithMeta(metaData);
-        }
-      })
-      .catch(() => {
-        if (!cachedMeta) {
+        })
+        .catch(() => {
           fetchRankings(filters);
-        }
-      });
+        });
+    }
     // eslint-disable-next-line
   }, []);
 
