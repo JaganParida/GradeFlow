@@ -498,16 +498,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
       pollInterval = setInterval(pollStatus, 12000);
 
-      // 4. Immediate poll on tab resume / visibility change
+      // 4. Immediate sync on tab resume / visibility change (keep socket alive in background)
       const handleVisibilityChange = () => {
         if (document.visibilityState === "visible") {
           pollStatus();
           try {
-            if (ably) ably.connection.connect();
-          } catch {}
-        } else if (document.visibilityState === "hidden") {
-          try {
-            if (ably) ably.connection.close();
+            if (ably && ably.connection.state !== "connected") {
+              ably.connection.connect();
+            }
           } catch {}
         }
       };

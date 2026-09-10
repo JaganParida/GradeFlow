@@ -418,11 +418,17 @@ module.exports = async (req, res) => {
       );
       const maxAllowed = getMaxAllowedDevices(rawReg);
 
-      publishAdminRealtimeEvent("otp-updated", { regNo: rawReg, timestamp: Date.now() }).catch(() => {});
-      publishStudentRealtimeEvent(rawReg, "session-revoked", {
-        revokedSessionId: sessionId,
-        message: "Your session was ended by Institutional Administrator.",
-      }).catch(() => {});
+      try {
+        await Promise.allSettled([
+          publishAdminRealtimeEvent("otp-updated", { regNo: rawReg, timestamp: Date.now() }),
+          publishStudentRealtimeEvent(rawReg, "session-revoked", {
+            revokedSessionId: sessionId,
+            message: "Your session was ended by Institutional Administrator.",
+          }),
+        ]);
+      } catch (e) {
+        console.warn("[Ably] Revoke session publish warning:", e?.message || e);
+      }
 
       return res.json({
         success: true,
@@ -493,10 +499,16 @@ module.exports = async (req, res) => {
 
       const maxAllowed = getMaxAllowedDevices(rawReg);
 
-      publishAdminRealtimeEvent("otp-updated", { regNo: rawReg, timestamp: Date.now() }).catch(() => {});
-      publishStudentRealtimeEvent(rawReg, "session-revoked", {
-        message: "All active sessions were ended by Institutional Administrator.",
-      }).catch(() => {});
+      try {
+        await Promise.allSettled([
+          publishAdminRealtimeEvent("otp-updated", { regNo: rawReg, timestamp: Date.now() }),
+          publishStudentRealtimeEvent(rawReg, "session-revoked", {
+            message: "All active sessions were ended by Institutional Administrator.",
+          }),
+        ]);
+      } catch (e) {
+        console.warn("[Ably] Revoke all sessions publish warning:", e?.message || e);
+      }
 
       return res.json({
         success: true,
@@ -565,7 +577,11 @@ module.exports = async (req, res) => {
         console.warn("Audit log error:", auditErr.message);
       }
 
-      publishAdminRealtimeEvent("otp-updated", { regNo: rawReg, timestamp: Date.now() }).catch(() => {});
+      try {
+        await publishAdminRealtimeEvent("otp-updated", { regNo: rawReg, timestamp: Date.now() });
+      } catch (e) {
+        console.warn("[Ably] OTP updated publish warning:", e?.message || e);
+      }
 
       return res.json({
         success: true,

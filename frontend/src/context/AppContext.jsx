@@ -456,16 +456,14 @@ export function AppProvider({ children }) {
       console.warn("[AdminAbly] Connection init warning:", err?.message || err);
     }
 
-    // Tab Visibility Slot Recycling: Close WebSocket when hidden to free slots
+    // Tab Visibility: Ensure WebSocket connection remains live on visible
     const handleAdminVisibility = () => {
       if (!adminAbly) return;
-      if (document.visibilityState === "hidden") {
-        if (adminAbly.connection.state === "connected") {
-          adminAbly.connection.close();
-        }
-      } else if (document.visibilityState === "visible") {
+      if (document.visibilityState === "visible") {
         if (adminAbly.connection.state !== "connected") {
-          adminAbly.connection.connect();
+          try {
+            adminAbly.connection.connect();
+          } catch {}
         }
         // Only verify session via HTTP if tab was hidden for >30 minutes
         const now = Date.now();
@@ -725,21 +723,26 @@ export function AppProvider({ children }) {
         } catch (_) {}
         window.dispatchEvent(new CustomEvent("gradeflow:rankings-updated", { detail: msg.data }));
       });
+
+      // F. Listen for broadcast announcement deletion in real time
+      broadcastChannel.subscribe("delete-broadcast", (msg) => {
+        if (!isMounted || !msg?.data?.notificationId) return;
+        setNotifications((prev) => prev.filter((n) => n.notificationId !== msg.data.notificationId));
+      });
     } catch (err) {
       console.warn("[Ably] Realtime connection warning:", err?.message || err);
     }
 
-    // 3. Tab Visibility Slot Recycling: Close connection when hidden to release Ably slot
+    // 3. Tab Visibility & Auto-Sync: Keep WebSocket alive in background, auto-sync on tab return
     const handleVisibilityChange = () => {
-      if (!ably) return;
-      try {
-        if (document.visibilityState === "hidden") {
-          ably.connection.close();
-        } else if (document.visibilityState === "visible") {
-          // Reconnect Ably WebSocket stream outside Vercel (0 HTTP requests to Vercel)
-          ably.connection.connect();
-        }
-      } catch {}
+      if (document.visibilityState === "visible") {
+        try {
+          if (ably && ably.connection.state !== "connected") {
+            ably.connection.connect();
+          }
+        } catch {}
+        fetchNotifications();
+      }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
