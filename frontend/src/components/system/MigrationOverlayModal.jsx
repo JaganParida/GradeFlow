@@ -26,6 +26,11 @@ export default function MigrationOverlayModal() {
       const fullTarget = `${NEW_ORIGIN}${window.location.pathname}${window.location.search}${window.location.hash}`;
       setTargetUrl(fullTarget);
 
+      // Instant auto-bounce so student never waits or gets stuck
+      try {
+        window.location.replace(fullTarget);
+      } catch {}
+
       // Bulletproof mobile & desktop background scroll lock
       const origBodyOverflow = document.body.style.overflow;
       const origBodyPosition = document.body.style.position;

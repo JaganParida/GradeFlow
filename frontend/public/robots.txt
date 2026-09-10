@@ -17,4 +17,4 @@ Disallow: /rate-limit
 Disallow: /500
 Disallow: /503
 
-Sitemap: https://grade-flow-navy.vercel.app/sitemap.xml
+Sitemap: https://grade-flow-six.vercel.app/sitemap.xml

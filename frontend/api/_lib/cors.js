@@ -30,7 +30,7 @@ function applyCors(req, res, allowedMethods = "GET,POST,PUT,DELETE,OPTIONS") {
     res.setHeader("Access-Control-Allow-Origin", "*");
   } else {
     // External origin
-    res.setHeader("Access-Control-Allow-Origin", "https://grade-flow-navy.vercel.app");
+    res.setHeader("Access-Control-Allow-Origin", "https://grade-flow-six.vercel.app");
     res.setHeader("Access-Control-Allow-Credentials", "true");
   }
 
