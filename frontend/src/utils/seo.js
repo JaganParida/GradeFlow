@@ -1,4 +1,4 @@
-export const SITE_URL = "https://grade-flow-navy.vercel.app";
+export const SITE_URL = "https://grade-flow-six.vercel.app";
 
 const publicPages = {
   "/": {

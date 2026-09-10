@@ -15,6 +15,7 @@ const ALLOWED_ORIGINS = [
   "http://localhost:3000",
   "http://127.0.0.1:5173",
   "http://127.0.0.1:3000",
+  "https://grade-flow-six.vercel.app",
   "https://grade-flow-navy.vercel.app",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
