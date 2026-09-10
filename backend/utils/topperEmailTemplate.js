@@ -11,13 +11,13 @@ function generateTopperEmailHtml({
   branch = "N/A",
   section = "N/A",
   developerWhatsapp = "919124540575",
-  frontendUrl = "https://grade-flow-navy.vercel.app/",
+  frontendUrl = "https://grade-flow-six.vercel.app/",
 }) {
   const cleanRegNo = String(regNo || "").trim();
   const cleanName = String(studentName || "Student").trim();
   const formattedCgpa = typeof cgpa === "number" ? cgpa.toFixed(2) : cgpa || "0.00";
   const formattedSgpa = typeof sgpa === "number" ? sgpa.toFixed(2) : sgpa || "0.00";
-  const baseUrl = String(frontendUrl || "https://grade-flow-navy.vercel.app/").replace(/\/$/, "");
+  const baseUrl = String(frontendUrl || "https://grade-flow-six.vercel.app/").replace(/\/$/, "");
 
   const rankDisplay = sectionCgpaRank ? `#${sectionCgpaRank}` : "Top Rank";
 
@@ -275,7 +275,7 @@ Section CGPA Rank  : #${payload.sectionCgpaRank || "N/A"}
 Section SGPA Rank  : #${payload.sectionSgpaRank || "N/A"}
 ${payload.universityRank ? `University Rank    : #${payload.universityRank}\n` : ""}
 View section leaderboards & analytics on GradeFlow:
-https://grade-flow-navy.vercel.app/leaderboard
+https://grade-flow-six.vercel.app/leaderboard
 
 Important: Academic Verification & Technical Support
 ---------------------------------------------------
@@ -283,7 +283,7 @@ If you notice any discrepancy in your grades, SGPA/CGPA calculations, or experie
 Connect on WhatsApp: https://wa.me/${payload.developerWhatsapp || "919124540575"}
 
 Rate Your Experience on GradeFlow:
-https://grade-flow-navy.vercel.app/testimonials
+https://grade-flow-six.vercel.app/testimonials
 
 Regards,
 GradeFlow Developer

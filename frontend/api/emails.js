@@ -217,7 +217,7 @@ module.exports = async function handler(req, res) {
         branch: sanitizeText(branch),
         section: sanitizeText(section),
         developerWhatsapp: process.env.DEVELOPER_WHATSAPP || "919124540575",
-        frontendUrl: process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app",
+        frontendUrl: process.env.FRONTEND_URL || "https://grade-flow-six.vercel.app",
       };
 
       const html = generateTopperEmailHtml(emailPayload);
@@ -284,7 +284,7 @@ module.exports = async function handler(req, res) {
       branch: sanitizeText(branch),
       section: sanitizeText(section),
       developerWhatsapp: process.env.DEVELOPER_WHATSAPP || "919124540575",
-      frontendUrl: process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app",
+      frontendUrl: process.env.FRONTEND_URL || "https://grade-flow-six.vercel.app",
     };
 
     const html = generateBacklogEmailHtml(emailPayload);
