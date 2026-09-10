@@ -68,6 +68,16 @@ export default function UpgradeModal() {
       setIsOpen(false);
       return;
     }
+
+    // Allow testing / opening via URL param (e.g., ?upgrade=1 or ?whatsnew=1)
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("upgrade") === "true" || params.get("upgrade") === "1" || params.get("whatsnew") === "1") {
+        setIsOpen(true);
+        return;
+      }
+    } catch (_) {}
+
     // Check if user has already seen the upgrade announcement on this device
     const hasSeen = localStorage.getItem("gf_v2_upgrade_popup_seen");
     if (!hasSeen) {
@@ -77,6 +87,13 @@ export default function UpgradeModal() {
       return () => clearTimeout(timer);
     }
   }, [isMaintenanceBlocked]);
+
+  // Support programmatic triggering via custom event across the app
+  useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener("open-upgrade-modal", handleOpen);
+    return () => window.removeEventListener("open-upgrade-modal", handleOpen);
+  }, []);
 
   if (isMaintenanceBlocked) return null;
 
