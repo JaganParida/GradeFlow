@@ -397,7 +397,7 @@ module.exports = async function handler(req, res) {
     const healthScore = calcAcademicHealth(cgpa, liveLatestSgpa, backlogs.length, results);
 
     const [allRankings, allInternals, studentProfile, attendanceDoc] = await Promise.all([
-      Ranking.find({ regNo: cleanRegNo }).select("semester deptRank sgpaRank universityRank").lean(),
+      Ranking.find({ regNo: cleanRegNo }).lean(),
       InternalMark.find({ regNo: cleanRegNo }).select("semester subjects").lean(),
       Student.findOne({ regNo: cleanRegNo }).select("branch batch section").lean(),
       Attendance.findOne({ regNo: cleanRegNo }).lean(),

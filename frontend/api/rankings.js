@@ -67,8 +67,8 @@ function parseCookies(cookieHeader) {
 
 function verifyAuth(req) {
   const cookies = parseCookies(req.headers.cookie);
-  const adminToken = cookies.jwt || (req.headers.authorization?.startsWith("Bearer") ? req.headers.authorization.split(" ")[1] : null);
-  const studentToken = cookies.student_jwt || (req.headers.authorization?.startsWith("Bearer") ? req.headers.authorization.split(" ")[1] : null);
+  const adminToken = cookies.jwt || req.headers["x-admin-token"] || (req.headers.authorization?.startsWith("Bearer") ? req.headers.authorization.split(" ")[1] : null);
+  const studentToken = cookies.student_jwt || req.headers["x-student-token"] || (req.headers.authorization?.startsWith("Bearer") ? req.headers.authorization.split(" ")[1] : null);
 
   if (adminToken && adminToken !== "none") {
     try {
