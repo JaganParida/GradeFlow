@@ -1953,21 +1953,27 @@ router.post("/backlogs/email-status", protect, requirePermission("backlogs.view"
 
 router.get("/stats", protect, async (req, res) => {
   try {
-    const [totalResults, totalInternal, totalRankings, totalAccountsCreated, activeSessions] = await Promise.all([
-      SemesterResult.countDocuments(),
-      InternalMark.countDocuments(),
-      Ranking.countDocuments(),
+    const [
+      totalAccountsCreated,
+      activeSessions,
+      semResults,
+      rankings,
+      internalMarks,
+    ] = await Promise.all([
       Student.countDocuments({ passwordHash: { $exists: true, $ne: null } }),
       StudentSession.find({ isActive: true }, "regNo").lean(),
+      SemesterResult.find({}, "regNo batch semester").lean(),
+      Ranking.find({}, "regNo batch semester").lean(),
+      InternalMark.find({}, "regNo batch semester").lean(),
     ]);
-    const uniqueStudents = await SemesterResult.distinct("regNo");
-    const activeLoggedInCount = new Set(activeSessions.map((s) => s.regNo)).size;
 
-    const semResults = await SemesterResult.find({}, "regNo batch semester").lean();
-    const rankings = await Ranking.find({}, "regNo batch semester").lean();
-    const internalMarks = await InternalMark.find({}, "regNo batch semester").lean();
+    const activeLoggedInCount = new Set(activeSessions.map((s) => s.regNo)).size;
+    const totalResults = semResults.length;
+    const totalInternal = internalMarks.length;
+    const totalRankings = rankings.length;
 
     const batchMap = new Map();
+    const uniqueStudentsSet = new Set();
 
     semResults.forEach((r) => {
       let b = String(r.batch || "").trim();
@@ -1989,6 +1995,7 @@ router.get("/stats", protect, async (req, res) => {
       }
       const entry = batchMap.get(b);
       if (r.regNo) {
+        uniqueStudentsSet.add(r.regNo);
         entry.studentsSet.add(r.regNo);
         if (r.semester) {
           const semNum = Number(r.semester);
@@ -2022,7 +2029,10 @@ router.get("/stats", protect, async (req, res) => {
         });
       }
       const entry = batchMap.get(b);
-      if (m.regNo) entry.studentsSet.add(m.regNo);
+      if (m.regNo) {
+        uniqueStudentsSet.add(m.regNo);
+        entry.studentsSet.add(m.regNo);
+      }
       entry.totalInternal++;
     });
 
@@ -2046,6 +2056,7 @@ router.get("/stats", protect, async (req, res) => {
       }
       const entry = batchMap.get(b);
       if (rk.regNo) {
+        uniqueStudentsSet.add(rk.regNo);
         entry.studentsSet.add(rk.regNo);
         entry.rankedStudentsSet.add(rk.regNo);
       }
@@ -2075,7 +2086,7 @@ router.get("/stats", protect, async (req, res) => {
       });
 
     res.json({
-      totalStudents: uniqueStudents.length,
+      totalStudents: uniqueStudentsSet.size,
       totalAccountsCreated,
       activeLoggedInCount,
       totalResults,
@@ -3623,15 +3634,24 @@ router.get("/attendance-tracker/monitor", protect, async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 10));
 
-    // Fetch all attendance records from MongoDB
-    const attendanceDocs = await Attendance.find().sort({ updatedAt: -1, lastSyncedAt: -1 }).lean();
+    // Fetch attendance records with lean projection (stripping heavy dailyLogs)
+    const attendanceDocs = await Attendance.find(
+      {},
+      "regNo section targetGoal savedSubjects lastSyncedAt updatedAt dailyLogsCount"
+    ).sort({ updatedAt: -1, lastSyncedAt: -1 }).lean();
     const regNos = attendanceDocs.map((a) => a.regNo);
 
-    // Fetch student metadata (Name, batch, branch, section)
-    const studentMetaDocs = await SemesterResult.find(
-      { regNo: { $in: regNos } },
-      "regNo studentName batch branch section"
-    ).lean();
+    // Parallelize student metadata & registered users queries
+    const [studentMetaDocs, studentUsers] = await Promise.all([
+      SemesterResult.find(
+        { regNo: { $in: regNos } },
+        "regNo studentName batch branch section"
+      ).lean(),
+      Student.find(
+        { regNo: { $in: regNos } },
+        "regNo studentName createdAt updatedAt"
+      ).lean(),
+    ]);
 
     const metaMap = new Map();
     studentMetaDocs.forEach((doc) => {
@@ -3640,11 +3660,6 @@ router.get("/attendance-tracker/monitor", protect, async (req, res) => {
       }
     });
 
-    // Also check Student collection for registered students
-    const studentUsers = await Student.find(
-      { regNo: { $in: regNos } },
-      "regNo studentName createdAt updatedAt"
-    ).lean();
     const studentUserMap = new Map();
     studentUsers.forEach((u) => {
       if (u.regNo && !studentUserMap.has(u.regNo)) {
@@ -3695,8 +3710,8 @@ router.get("/attendance-tracker/monitor", protect, async (req, res) => {
       const isReset = subjects.length === 0 || totalDelivered === 0;
       const targetGoal = Number(doc.targetGoal) || 75;
 
-      let dailyLogsCount = 0;
-      if (doc.dailyLogs) {
+      let dailyLogsCount = doc.dailyLogsCount || 0;
+      if (!dailyLogsCount && doc.dailyLogs) {
         if (doc.dailyLogs instanceof Map) {
           dailyLogsCount = doc.dailyLogs.size;
         } else if (typeof doc.dailyLogs === "object") {
