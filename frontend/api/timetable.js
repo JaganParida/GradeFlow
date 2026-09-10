@@ -7,7 +7,7 @@ const SubAdmin = require("./_lib/models/SubAdmin");
 const AdminSession = require("./_lib/models/AdminSession");
 const jwt = require("jsonwebtoken");
 const { isAdminSessionValid, touchAdminSession } = require("./_lib/sessionManager");
-const { publishAdminRealtimeEvent } = require("./_lib/ablyService");
+const { publishAdminRealtimeEvent, broadcastRealtimeEvent } = require("./_lib/ablyService");
 
 const { applyCors } = require("./_lib/cors");
 
@@ -130,7 +130,7 @@ module.exports = async function handler(req, res) {
       if (branch && branch !== "ALL") query.branch = { $in: [branch.toUpperCase(), "ALL"] };
       if (section && section !== "ALL") query.section = { $in: [section.toUpperCase(), "ALL"] };
 
-      const schedules = await TimetableSchedule.find(query).sort({ updatedAt: -1 });
+      const schedules = await TimetableSchedule.find(query).sort({ updatedAt: -1 }).lean();
       let bestMatch = null;
       if (schedules.length > 0) {
         bestMatch =
@@ -139,14 +139,14 @@ module.exports = async function handler(req, res) {
           schedules[0];
       }
 
-      res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+      res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
       return res.json({ success: true, found: !!bestMatch, schedule: bestMatch });
     }
 
     // 2. GET /api/timetable/active-all
     if (action === "active-all" || cleanUrl.includes("/timetable/active-all")) {
-      const schedules = await TimetableSchedule.find({ isActive: true }).sort({ batch: -1, section: 1 });
-      res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+      const schedules = await TimetableSchedule.find({ isActive: true }).sort({ batch: -1, section: 1 }).lean();
+      res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
       return res.json({ success: true, count: schedules.length, schedules });
     }
 
@@ -155,7 +155,7 @@ module.exports = async function handler(req, res) {
       const { academicYear } = req.query;
       const query = { isActive: true };
       if (academicYear) query.academicYear = academicYear;
-      const calendars = await AcademicCalendar.find(query).sort({ updatedAt: -1 });
+      const calendars = await AcademicCalendar.find(query).sort({ updatedAt: -1 }).lean();
       res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
       return res.json({ success: true, calendars });
     }
@@ -165,7 +165,7 @@ module.exports = async function handler(req, res) {
       const { academicYear } = req.query;
       const query = { isActive: true };
       if (academicYear) query.academicYear = academicYear;
-      const holidayDoc = await AcademicHoliday.findOne(query).sort({ updatedAt: -1 });
+      const holidayDoc = await AcademicHoliday.findOne(query).sort({ updatedAt: -1 }).lean();
       res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
       return res.json({ success: true, holidayDoc });
     }
@@ -177,7 +177,7 @@ module.exports = async function handler(req, res) {
       const auth = await authenticateAdmin(req);
       if (auth.error) return res.status(auth.error.status).json(auth.error);
 
-      const schedules = await TimetableSchedule.find().sort({ updatedAt: -1 });
+      const schedules = await TimetableSchedule.find().sort({ updatedAt: -1 }).lean();
       return res.json({ success: true, count: schedules.length, schedules });
     }
 
@@ -211,7 +211,10 @@ module.exports = async function handler(req, res) {
         existing.uploadedBy = auth.admin.email || "Admin";
         await existing.save();
         try {
-          await publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() });
+          await Promise.allSettled([
+            publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+            broadcastRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+          ]);
         } catch (e) {
           console.warn("[Ably] Timetable updated publish warning:", e?.message || e);
         }
@@ -236,7 +239,10 @@ module.exports = async function handler(req, res) {
       });
 
       try {
-        await publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() });
+        await Promise.allSettled([
+          publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+          broadcastRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+        ]);
       } catch (e) {
         console.warn("[Ably] Timetable updated publish warning:", e?.message || e);
       }
@@ -259,7 +265,10 @@ module.exports = async function handler(req, res) {
         return res.status(404).json({ success: false, message: "Schedule not found." });
       }
       try {
-        await publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() });
+        await Promise.allSettled([
+          publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+          broadcastRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+        ]);
       } catch (e) {
         console.warn("[Ably] Timetable updated publish warning:", e?.message || e);
       }
@@ -287,7 +296,10 @@ module.exports = async function handler(req, res) {
         existing.uploadedBy = auth.admin.email || "Admin";
         await existing.save();
         try {
-          await publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() });
+          await Promise.allSettled([
+            publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+            broadcastRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+          ]);
         } catch (e) {
           console.warn("[Ably] Timetable updated publish warning:", e?.message || e);
         }
@@ -309,7 +321,10 @@ module.exports = async function handler(req, res) {
       });
 
       try {
-        await publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() });
+        await Promise.allSettled([
+          publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+          broadcastRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+        ]);
       } catch (e) {
         console.warn("[Ably] Timetable updated publish warning:", e?.message || e);
       }
@@ -342,7 +357,10 @@ module.exports = async function handler(req, res) {
         holidayDoc.uploadedBy = auth.admin.email || "Admin";
         await holidayDoc.save();
         try {
-          await publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() });
+          await Promise.allSettled([
+            publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+            broadcastRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+          ]);
         } catch (e) {
           console.warn("[Ably] Timetable updated publish warning:", e?.message || e);
         }
@@ -363,7 +381,10 @@ module.exports = async function handler(req, res) {
       });
 
       try {
-        await publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() });
+        await Promise.allSettled([
+          publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+          broadcastRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+        ]);
       } catch (e) {
         console.warn("[Ably] Timetable updated publish warning:", e?.message || e);
       }
