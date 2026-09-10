@@ -621,6 +621,8 @@ export default function Dashboard() {
     // Verify ranking object is complete (has totalStudents, deptStudents, etc.) and not a stale partial payload
     const isCompleteRanking = (rk) => !rk || (rk.totalStudents !== undefined && rk.deptStudents !== undefined);
 
+    let hasCachedDetails = false;
+
     if ((eagerInternal !== undefined || eagerRanking !== undefined) && isCompleteRanking(eagerRanking)) {
       const finalInternal = eagerInternal || null;
       const finalRanking = eagerRanking || (sem === studentData?.latestSemester ? studentData?.ranking : null);
@@ -632,46 +634,50 @@ export default function Dashboard() {
           internal: finalInternal,
           ranking: finalRanking,
         };
-        setIsInternalLoading(false);
-        return;
+        hasCachedDetails = true;
       }
     }
 
     // 3. Check memory cache for already fetched data
-    if (semCacheRef.current[sem] && isCompleteRanking(semCacheRef.current[sem].ranking)) {
+    if (!hasCachedDetails && semCacheRef.current[sem] && isCompleteRanking(semCacheRef.current[sem].ranking)) {
       const { internal, ranking } = semCacheRef.current[sem];
       setInternalMarks(internal);
       setSemesterRanking(ranking);
-      setIsInternalLoading(false);
-      return;
+      hasCachedDetails = true;
     }
 
     // 4. Check sessionStorage cache for instant load across tabs/refreshes
     const cacheKey = `gf_sem_${regNo}_${sem}`;
-    try {
-      const sessionCached = sessionStorage.getItem(cacheKey);
-      if (sessionCached) {
-        const parsed = JSON.parse(sessionCached);
-        if (parsed && isCompleteRanking(parsed.ranking)) {
-          if (parsed.semResult) setSemResult(parsed.semResult);
-          setInternalMarks(parsed.internal || null);
-          setSemesterRanking(parsed.ranking || null);
-          semCacheRef.current[sem] = {
-            internal: parsed.internal || null,
-            ranking: parsed.ranking || null,
-          };
-          setIsInternalLoading(false);
-          return;
+    if (!hasCachedDetails) {
+      try {
+        const sessionCached = sessionStorage.getItem(cacheKey);
+        if (sessionCached) {
+          const parsed = JSON.parse(sessionCached);
+          if (parsed && isCompleteRanking(parsed.ranking)) {
+            if (parsed.semResult) setSemResult(parsed.semResult);
+            setInternalMarks(parsed.internal || null);
+            setSemesterRanking(parsed.ranking || null);
+            semCacheRef.current[sem] = {
+              internal: parsed.internal || null,
+              ranking: parsed.ranking || null,
+            };
+            hasCachedDetails = true;
+          }
         }
-      }
-    } catch (_) {}
-
-    if (sem === studentData?.latestSemester && studentData?.ranking) {
-      setSemesterRanking(studentData.ranking);
+      } catch (_) {}
     }
 
-    setIsInternalLoading(true);
+    // 5. If no cache was found, show loading indicator for internal marks
+    if (!hasCachedDetails) {
+      if (sem === studentData?.latestSemester && studentData?.ranking) {
+        setSemesterRanking(studentData.ranking);
+      }
+      setIsInternalLoading(true);
+    } else {
+      setIsInternalLoading(false);
+    }
 
+    // 6. SWR: Perform silent background revalidation against MongoDB to guarantee 100% fresh data
     try {
       const [imRes, rankRes] = await Promise.allSettled([
         axios.get(`${API}/student/${regNo}/internal/${sem}`),
@@ -685,6 +691,8 @@ export default function Dashboard() {
       if (imRes.status === "fulfilled" && (imRes.value.data?.data || imRes.value.data)) {
         finalInternal = imRes.value.data?.data || imRes.value.data;
         setInternalMarks(finalInternal);
+      } else if (hasCachedDetails && semCacheRef.current[sem]?.internal) {
+        finalInternal = semCacheRef.current[sem].internal;
       } else {
         setInternalMarks(null);
       }
@@ -701,6 +709,8 @@ export default function Dashboard() {
         } else {
           setSemesterRanking(null);
         }
+      } else if (hasCachedDetails && semCacheRef.current[sem]?.ranking) {
+        finalRanking = semCacheRef.current[sem].ranking;
       } else {
         if (sem === studentData?.latestSemester && studentData?.ranking) {
           finalRanking = studentData.ranking;
@@ -763,6 +773,33 @@ export default function Dashboard() {
       loadSemester(selectedSem);
     }
   }, [rankingsVersion, selectedSem]);
+
+  // Real-time listener for direct student results and report card updates
+  useEffect(() => {
+    const handleRefreshData = () => {
+      semCacheRef.current = {};
+      try {
+        const cleanReg = regNo || studentData?.regNo;
+        if (cleanReg) {
+          Object.keys(sessionStorage).forEach((key) => {
+            if (key.startsWith(`gf_sem_${cleanReg}_`)) {
+              sessionStorage.removeItem(key);
+            }
+          });
+        }
+      } catch (_) {}
+      if (selectedSem) {
+        loadSemester(selectedSem);
+      }
+    };
+
+    window.addEventListener("gradeflow:results-updated", handleRefreshData);
+    window.addEventListener("gradeflow:rankings-updated", handleRefreshData);
+    return () => {
+      window.removeEventListener("gradeflow:results-updated", handleRefreshData);
+      window.removeEventListener("gradeflow:rankings-updated", handleRefreshData);
+    };
+  }, [selectedSem, regNo, studentData?.regNo]);
 
   if (loading || (!studentData && !error)) {
     return (
