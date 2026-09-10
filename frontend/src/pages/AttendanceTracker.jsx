@@ -1018,25 +1018,35 @@ export default function AttendanceTracker() {
           sData = await fetchStudent(targetReg, 2, 800);
         }
 
-        // 2. Hydrate from eager student profile (0ms instant display)
+        // 2. Instant Optimistic Hydration (0ms display from memory)
         let initialAtt = sData?.attendance || null;
         if (initialAtt) {
           applyAttendance(initialAtt, sData);
-          // Zero-latency bypass: Attendance is already in memory/sessionStorage.
-          // Real-time Ably events ('gradeflow:attendance-updated') will keep it synchronized if updated elsewhere.
-        } else {
-          // 3. Cache Miss: Fetch fresh attendance from MongoDB Atlas
-          const res = await axios.get(`${API}/student/${targetReg}/attendance`);
-          if (res.data?.success && res.data.attendance && isMounted) {
-            applyAttendance(res.data.attendance, sData);
-            if (updateCachedAttendance) updateCachedAttendance(res.data.attendance);
-          } else if (isMounted) {
-            setSavedSubjects([]);
-            if (!hasUserManuallySelectedTabRef.current && !urlTabParam) {
+        }
+
+        // 3. Background Database Freshness: Fetch latest attendance from MongoDB Atlas
+        // Guaranteed to pick up manual database updates and auto-imports with zero UI freeze.
+        axios
+          .get(`${API}/student/${targetReg}/attendance?t=${Date.now()}`, {
+            headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+          })
+          .then((res) => {
+            if (res.data?.success && res.data.attendance && isMounted) {
+              applyAttendance(res.data.attendance, sData);
+              if (updateCachedAttendance) updateCachedAttendance(res.data.attendance);
+            } else if (!initialAtt && isMounted) {
+              setSavedSubjects([]);
+              if (!hasUserManuallySelectedTabRef.current && !urlTabParam) {
+                setActiveTab("studio_simulator");
+              }
+            }
+          })
+          .catch((err) => {
+            console.warn("Background attendance freshness sync:", err?.message || err);
+            if (!initialAtt && isMounted && !hasUserManuallySelectedTabRef.current && !urlTabParam) {
               setActiveTab("studio_simulator");
             }
-          }
-        }
+          });
       } catch (err) {
         console.warn("Could not load student attendance:", err.message);
         if (isMounted && !hasUserManuallySelectedTabRef.current && !urlTabParam) {
@@ -1056,7 +1066,9 @@ export default function AttendanceTracker() {
     const handleAttendanceLiveSync = () => {
       if (!isMounted) return;
       axios
-        .get(`${API}/student/${targetReg}/attendance`)
+        .get(`${API}/student/${targetReg}/attendance?t=${Date.now()}`, {
+          headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+        })
         .then((res) => {
           if (!isMounted || !res.data?.attendance) return;
           applyAttendance(res.data.attendance, studentData);

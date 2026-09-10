@@ -345,6 +345,9 @@ module.exports = async function handler(req, res) {
           { upsert: true, new: true, setDefaultsOnInsert: true }
         );
 
+        // Invalidate server-side profile memoization cache so subsequent profile reads get fresh attendance
+        profileMemoCache.delete(cleanRegNo);
+
         try {
           await Promise.allSettled([
             publishAdminRealtimeEvent("attendance-updated", { regNo: cleanRegNo, timestamp: Date.now() }),
@@ -402,7 +405,13 @@ module.exports = async function handler(req, res) {
 
     // ─── Server-Side Memoization: Early ETag check BEFORE DB queries ───
     // Returns cached response in ~1ms with 0 DB queries when data is unchanged.
-    const memoEntry = profileMemoCache.get(cleanRegNo);
+    // When force refresh is requested (?force=true or Cache-Control: no-cache), purge and query MongoDB directly.
+    const isForced = req.query.force === "true" || req.headers["cache-control"] === "no-cache" || req.headers["pragma"] === "no-cache";
+    if (isForced) {
+      profileMemoCache.delete(cleanRegNo);
+    }
+
+    const memoEntry = !isForced ? profileMemoCache.get(cleanRegNo) : null;
     if (memoEntry && (Date.now() - memoEntry.ts < MEMO_TTL_MS)) {
       res.setHeader("Cache-Control", "private, no-cache");
       res.setHeader("Pragma", "no-cache");
@@ -421,7 +430,7 @@ module.exports = async function handler(req, res) {
     // no-cache forces revalidation every time, but browser can send If-None-Match for 304 responses.
     res.setHeader("Cache-Control", "private, no-cache");
     res.setHeader("Pragma", "no-cache");
-    res.setHeader("X-Cache", "MISS"); // Debug: cache miss — full DB pipeline runs
+    res.setHeader("X-Cache", isForced ? "BYPASS" : "MISS"); // Debug: track cache bypass vs miss
 
     // Full student profile with lean projections for ultra-fast 15ms-25ms response
     const results = await globalDbQueue.run(() =>
