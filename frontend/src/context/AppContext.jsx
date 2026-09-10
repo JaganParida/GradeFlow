@@ -741,6 +741,15 @@ export function AppProvider({ children }) {
         setNotifications((prev) => prev.filter((n) => n.notificationId !== msg.data.notificationId));
       });
 
+      // F2. Listen for broadcast timetable and schedule updates in real time
+      broadcastChannel.subscribe("timetable-updated", (msg) => {
+        if (!isMounted) return;
+        try {
+          sessionStorage.removeItem("gf_schedules_cache");
+        } catch (_) {}
+        window.dispatchEvent(new CustomEvent("gradeflow:timetable-updated", { detail: msg?.data }));
+      });
+
       // G. Listen for real-time attendance sync across active devices and tabs
       studentChannel.subscribe("attendance-updated", (msg) => {
         if (!isMounted) return;

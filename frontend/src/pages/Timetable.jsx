@@ -346,6 +346,30 @@ export default function Timetable() {
     };
   }, [decodedParam, studentSession?.regNo]);
 
+  // Real-time synchronization when admin publishes or updates timetable schedule (<1s)
+  useEffect(() => {
+    const handleTimetableUpdated = () => {
+      try {
+        sessionStorage.removeItem("gf_schedules_cache");
+      } catch (_) {}
+      const API = import.meta.env.VITE_API_URL || "/api";
+      axios.get(`${API}/timetable/active-all?t=${Date.now()}`).then(({ data }) => {
+        if (data?.schedules) {
+          setDynamicSchedules(data.schedules);
+          setCustomSchedulesStore(data.schedules);
+          try {
+            sessionStorage.setItem("gf_schedules_cache", JSON.stringify({ schedules: data.schedules, ts: Date.now() }));
+          } catch (_) {}
+        }
+      }).catch(() => {});
+    };
+
+    window.addEventListener("gradeflow:timetable-updated", handleTimetableUpdated);
+    return () => {
+      window.removeEventListener("gradeflow:timetable-updated", handleTimetableUpdated);
+    };
+  }, []);
+
   const activeCustomSchedule = useMemo(() => {
     if (!dynamicSchedules.length) return null;
     const reg = String(currentRegNo || "").trim();
