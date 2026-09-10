@@ -372,21 +372,21 @@ module.exports = async function handler(req, res) {
 
     // Sub-resource: specific semester result
     if (action === "semester" && sem) {
-      const result = await SemesterResult.findOne({ regNo: cleanRegNo, semester: Number(sem) });
+      const result = await SemesterResult.findOne({ regNo: cleanRegNo, semester: Number(sem) }).lean();
       if (!result) return res.status(404).json({ message: "Result not found" });
       return res.json(result);
     }
 
     // Sub-resource: specific semester ranking
     if (action === "ranking" && sem) {
-      const ranking = await Ranking.findOne({ regNo: cleanRegNo, semester: Number(sem) });
+      const ranking = await Ranking.findOne({ regNo: cleanRegNo, semester: Number(sem) }).lean();
       if (!ranking) return res.status(404).json({ message: "Ranking not found" });
       return res.json(ranking);
     }
 
     // Sub-resource: internal marks
     if (action === "internal" && sem) {
-      const marks = await InternalMark.findOne({ regNo: cleanRegNo, semester: Number(sem) });
+      const marks = await InternalMark.findOne({ regNo: cleanRegNo, semester: Number(sem) }).lean();
       if (!marks) return res.status(404).json({ message: "Internal marks not found" });
       return res.json(marks);
     }
