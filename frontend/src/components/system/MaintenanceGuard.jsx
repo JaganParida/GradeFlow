@@ -16,6 +16,18 @@ export default function MaintenanceGuard({ children }) {
   // Authorized Admin Access: Authenticated admins/sub-admins or admin portal routes must never be blocked
   const isAdminAuthenticated = Boolean(adminToken);
   const isAdminRoute = location.pathname === "/admin" || location.pathname.startsWith("/admin/");
+  const isPublicRoute =
+    location.pathname === "/" ||
+    [
+      "/about",
+      "/help",
+      "/contact",
+      "/privacy",
+      "/terms",
+      "/cookies",
+      "/about-dev",
+      "/testimonials",
+    ].includes(location.pathname);
 
   // Allow unrestricted access for authenticated admins on all routes, and allow admin portal routes for authentication & control
   const allowAccess = isAdminAuthenticated || isAdminRoute;
@@ -32,8 +44,8 @@ export default function MaintenanceGuard({ children }) {
     };
   }, [maintenance?.enabled, allowAccess]);
 
-  // Initial startup barrier: Prevent 404 or student dashboard flash on hard refresh
-  if (!maintenanceChecked && authChecking && !isAdminRoute) {
+  // Initial startup barrier: Prevent 404 or student dashboard flash on protected routes before bootstrap resolves
+  if (!maintenanceChecked && authChecking && !isAdminRoute && !isPublicRoute) {
     return (
       <div
         style={{
