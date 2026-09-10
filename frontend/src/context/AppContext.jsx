@@ -785,7 +785,7 @@ export function AppProvider({ children }) {
     }
 
     // 3. Tab Visibility & Auto-Sync: Keep WebSocket alive in background, auto-sync on tab return
-    let lastVisibilitySyncTime = 0;
+    let lastVisibilitySyncTime = Date.now();
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         try {
