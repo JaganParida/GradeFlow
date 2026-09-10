@@ -176,7 +176,13 @@ export function AppProvider({ children }) {
       enabledAt: null,
     };
   });
-  const [maintenanceChecked, setMaintenanceChecked] = useState(false);
+  const [maintenanceChecked, setMaintenanceChecked] = useState(() => {
+    try {
+      return Boolean(sessionStorage.getItem("gf_maintenance_cache"));
+    } catch {
+      return false;
+    }
+  });
 
   const checkMaintenanceStatus = async () => {
     if (isOldDomain) {
