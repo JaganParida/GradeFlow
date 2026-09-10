@@ -330,6 +330,7 @@ module.exports = async function handler(req, res) {
               targetGoal: Math.max(1, Math.min(100, Number(targetGoal) || 75)),
               savedSubjects: cleanSavedSubjects,
               dailyLogs: cleanDailyLogs,
+              dailyLogsCount: Object.keys(cleanDailyLogs).length,
               lastSyncedAt: new Date(),
             },
           },
