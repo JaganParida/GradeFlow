@@ -22,7 +22,7 @@ app.use(
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app"],
+        connectSrc: ["'self'", process.env.FRONTEND_URL || "https://grade-flow-six.vercel.app"],
         objectSrc: ["'none'"],
         frameAncestors: ["'none'"],
       },
@@ -39,6 +39,7 @@ app.use(
 const ALLOWED_ORIGINS = [
   "http://localhost:5173",
   "http://localhost:3000",
+  "https://grade-flow-six.vercel.app",
   "https://grade-flow-navy.vercel.app",
   process.env.FRONTEND_URL,
 ].filter(Boolean);

@@ -139,7 +139,7 @@ router.post("/", async (req, res) => {
       email: cleanEmail,
       password: String(password),
       assignedModules: sanitizedPermissions.routes,
-      loginUrl: process.env.CLIENT_URL ? `${process.env.CLIENT_URL}/admin` : "https://grade-flow-navy.vercel.app/admin",
+      loginUrl: process.env.CLIENT_URL ? `${process.env.CLIENT_URL}/admin` : "https://grade-flow-six.vercel.app/admin",
     }).catch((emailErr) => {
       console.warn("Sub-Admin welcome email notice:", emailErr.message);
     });

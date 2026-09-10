@@ -11,13 +11,13 @@ function generateBacklogEmailHtml({
   branch = "N/A",
   section = "N/A",
   developerWhatsapp = "919124540575",
-  frontendUrl = "https://grade-flow-navy.vercel.app/"
+  frontendUrl = "https://grade-flow-six.vercel.app/"
 }) {
   const cleanRegNo = String(regNo || "").trim();
   const cleanName = String(studentName || "Student").trim();
   const formattedCgpa = typeof cgpa === "number" ? cgpa.toFixed(2) : cgpa || "0.00";
   const numBacklogs = Number(totalBacklogs) || backlogSubjects.length || 0;
-  const baseUrl = String(frontendUrl || "https://grade-flow-navy.vercel.app/").replace(/\/$/, "");
+  const baseUrl = String(frontendUrl || "https://grade-flow-six.vercel.app/").replace(/\/$/, "");
 
   // WhatsApp Link
   const waRawMessage = `Hello GradeFlow Developer, I am ${cleanName} with Registration Number ${cleanRegNo}. My backlog/result information needs to be updated. Please help me verify my academic record.`;
@@ -167,7 +167,7 @@ function generateBacklogEmailHtml({
   <div style="margin-bottom: 24px; padding: 14px 18px; background-color: #f0f7ff; border: 1px solid #cce3ff; border-radius: 6px;">
     <p style="margin: 0; font-size: 14px; color: #1e3a8a;">
       <strong>For more details & complete performance breakdown, reach out to our website:</strong><br>
-      <a href="https://grade-flow-navy.vercel.app/" style="color: #2563eb; font-weight: bold; text-decoration: underline; display: inline-block; marginTop: 4px;">https://grade-flow-navy.vercel.app/</a>
+      <a href="https://grade-flow-six.vercel.app/" style="color: #2563eb; font-weight: bold; text-decoration: underline; display: inline-block; marginTop: 4px;">https://grade-flow-six.vercel.app/</a>
     </p>
   </div>
 
@@ -188,7 +188,7 @@ function generateBacklogEmailHtml({
     <p style="margin: 0 0 16px 0; font-size: 13px; color: #475569; line-height: 1.4;">
       Help us improve! Share your feedback, review, or rating about GradeFlow.
     </p>
-    <a href="https://grade-flow-navy.vercel.app/testimonials" style="display: inline-block; padding: 11px 20px; background-color: #2563eb; color: #ffffff; font-weight: bold; font-size: 13.5px; text-decoration: none; border-radius: 6px; box-shadow: 0 2px 4px rgba(37,99,235,0.2); white-space: nowrap;">⭐ Rate Website on GradeFlow</a>
+    <a href="https://grade-flow-six.vercel.app/testimonials" style="display: inline-block; padding: 11px 20px; background-color: #2563eb; color: #ffffff; font-weight: bold; font-size: 13.5px; text-decoration: none; border-radius: 6px; box-shadow: 0 2px 4px rgba(37,99,235,0.2); white-space: nowrap;">⭐ Rate Website on GradeFlow</a>
   </div>
 
   <div style="border-top: 1px solid #e0e0e0; padding-top: 20px; margin-bottom: 24px;">
@@ -243,7 +243,7 @@ Remaining Semesters: ${payload.remainingSemesters || 0}
 ${numBacklogs > 0 ? `You currently have ${numBacklogs} pending backlog(s).\n\nPending Subjects:\n${subjectsListText}` : "You have no active backlogs."}
 
 For more details & complete performance breakdown, reach out to our website:
-https://grade-flow-navy.vercel.app/
+https://grade-flow-six.vercel.app/
 
 Important
 ---------
@@ -254,7 +254,7 @@ Need to update your result?
 Contact Developer on WhatsApp: https://wa.me/919124540575
 
 Rate Your Experience on GradeFlow:
-https://grade-flow-navy.vercel.app/testimonials
+https://grade-flow-six.vercel.app/testimonials
 
 Regards,
 GradeFlow Developer

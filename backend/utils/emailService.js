@@ -107,7 +107,7 @@ async function sendBacklogEmailNotification({
     branch,
     section,
     developerWhatsapp: process.env.DEVELOPER_WHATSAPP || "919124540575",
-    frontendUrl: process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app",
+    frontendUrl: process.env.FRONTEND_URL || "https://grade-flow-six.vercel.app",
   };
 
   const html = generateBacklogEmailHtml(emailPayload);
@@ -170,7 +170,7 @@ async function sendTopperEmailNotification({
     branch,
     section,
     developerWhatsapp: process.env.DEVELOPER_WHATSAPP || "919124540575",
-    frontendUrl: process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app",
+    frontendUrl: process.env.FRONTEND_URL || "https://grade-flow-six.vercel.app",
   };
 
   const html = generateTopperEmailHtml(emailPayload);
@@ -397,7 +397,7 @@ async function sendSubAdminWelcomeEmail({
   email,
   password,
   assignedModules = [],
-  loginUrl = "https://grade-flow-navy.vercel.app/admin",
+  loginUrl = "https://grade-flow-six.vercel.app/admin",
 }) {
   const recipientEmail = String(to || "").trim().toLowerCase();
 
