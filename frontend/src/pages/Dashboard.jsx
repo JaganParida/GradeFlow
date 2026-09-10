@@ -618,22 +618,27 @@ export default function Dashboard() {
     const eagerInternal = studentData?.internalMarksMap ? (studentData.internalMarksMap[String(sem)] || null) : undefined;
     const eagerRanking = studentData?.rankingsMap ? (studentData.rankingsMap[String(sem)] || null) : undefined;
 
-    if (eagerInternal !== undefined || eagerRanking !== undefined) {
+    // Verify ranking object is complete (has totalStudents, deptStudents, etc.) and not a stale partial payload
+    const isCompleteRanking = (rk) => !rk || (rk.totalStudents !== undefined && rk.deptStudents !== undefined);
+
+    if ((eagerInternal !== undefined || eagerRanking !== undefined) && isCompleteRanking(eagerRanking)) {
       const finalInternal = eagerInternal || null;
       const finalRanking = eagerRanking || (sem === studentData?.latestSemester ? studentData?.ranking : null);
 
-      setInternalMarks(finalInternal);
-      setSemesterRanking(finalRanking);
-      semCacheRef.current[sem] = {
-        internal: finalInternal,
-        ranking: finalRanking,
-      };
-      setIsInternalLoading(false);
-      return;
+      if (isCompleteRanking(finalRanking)) {
+        setInternalMarks(finalInternal);
+        setSemesterRanking(finalRanking);
+        semCacheRef.current[sem] = {
+          internal: finalInternal,
+          ranking: finalRanking,
+        };
+        setIsInternalLoading(false);
+        return;
+      }
     }
 
     // 3. Check memory cache for already fetched data
-    if (semCacheRef.current[sem]) {
+    if (semCacheRef.current[sem] && isCompleteRanking(semCacheRef.current[sem].ranking)) {
       const { internal, ranking } = semCacheRef.current[sem];
       setInternalMarks(internal);
       setSemesterRanking(ranking);
@@ -647,7 +652,7 @@ export default function Dashboard() {
       const sessionCached = sessionStorage.getItem(cacheKey);
       if (sessionCached) {
         const parsed = JSON.parse(sessionCached);
-        if (parsed) {
+        if (parsed && isCompleteRanking(parsed.ranking)) {
           if (parsed.semResult) setSemResult(parsed.semResult);
           setInternalMarks(parsed.internal || null);
           setSemesterRanking(parsed.ranking || null);

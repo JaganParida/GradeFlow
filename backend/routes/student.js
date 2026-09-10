@@ -97,12 +97,17 @@ router.get("/:regNo", studentSearchLimiter, validateRegNo, requireStudentOrAdmin
       results,
     );
 
-    const ranking = await Ranking.findOne({
-      regNo,
-      semester: latestResult.semester,
+    const [allRankings, studentProfile] = await Promise.all([
+      Ranking.find({ regNo }).lean(),
+      Student.findOne({ regNo }).lean(),
+    ]);
+
+    const rankingsMap = {};
+    (allRankings || []).forEach((r) => {
+      if (r.semester) rankingsMap[String(r.semester)] = r;
     });
 
-    const studentProfile = await Student.findOne({ regNo });
+    const ranking = rankingsMap[String(latestResult.semester)] || null;
 
     const responseData = {
       regNo,
@@ -127,6 +132,8 @@ router.get("/:regNo", studentSearchLimiter, validateRegNo, requireStudentOrAdmin
       backlogs: backlogs, // Contains subName, subCode, credit, grade, semester
       results,
       ranking: ranking || null,
+      rankingsMap,
+      allRankings: allRankings || [],
     };
 
     setCache(regNo, responseData);
