@@ -146,22 +146,16 @@ module.exports = async function handler(req, res) {
     }
 
     // ─── GET: On-Demand Vercel Quota Intelligence ───────────────────────────
-    // 1. Fetch Today's Metric Record
-    const todayMetric = await VercelQuotaMetric.findOne({ dateStr }).lean();
+    // Parallel fetch all independent data sources for maximum throughput
+    const [todayMetric, monthlyMetrics, totalActiveStudents, pages, rawQueueConfig] = await Promise.all([
+      VercelQuotaMetric.findOne({ dateStr }).lean(),
+      VercelQuotaMetric.find({ monthStr }).lean(),
+      StudentRouteActivity.countDocuments({ regNo: { $ne: EXCLUDED_STUDENT_REG } }),
+      PageAnalytics.find({}).sort({ totalViews: -1 }).lean(),
+      TrafficQueueConfig.findOne({ key: "global_traffic_config" }).lean(),
+    ]);
 
-    // 2. Fetch All Records for the Current Month
-    const monthlyMetrics = await VercelQuotaMetric.find({ monthStr }).lean();
-
-    // 3. Fetch Student Activity count (excluding special student and admin)
-    const totalActiveStudents = await StudentRouteActivity.countDocuments({
-      regNo: { $ne: EXCLUDED_STUDENT_REG },
-    });
-
-    // 4. Fetch PageAnalytics
-    const pages = await PageAnalytics.find({}).sort({ totalViews: -1 }).lean();
-
-    // 5. Fetch Traffic Queue Configuration
-    const queueConfig = (await TrafficQueueConfig.findOne({ key: "global_traffic_config" }).lean()) || {
+    const queueConfig = rawQueueConfig || {
       queueEnabled: false,
       autoTriggerEnabled: true,
       maxActiveCapacity: 200,
