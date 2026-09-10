@@ -713,14 +713,24 @@ export function AppProvider({ children }) {
         setUnreadCount((c) => c + 1);
       });
 
-      // E. Listen for real-time ranking updates across all active students (<1s)
+      // E. Listen for real-time ranking & results updates across all active students (<1s)
       broadcastChannel.subscribe("rankings-updated", (msg) => {
         if (!isMounted || !msg?.data) return;
         const newVer = msg.data.version || msg.data.timestamp || Date.now();
         setRankingsVersion(newVer);
         try {
-          if (cleanReg) sessionStorage.removeItem(`gf_student_profile_${cleanReg}`);
+          if (cleanReg) {
+            sessionStorage.removeItem(`gf_student_profile_${cleanReg}`);
+            Object.keys(sessionStorage).forEach((k) => {
+              if (k.startsWith(`gf_sem_${cleanReg}_`)) {
+                sessionStorage.removeItem(k);
+              }
+            });
+          }
         } catch (_) {}
+        if (cleanReg) {
+          fetchStudent(cleanReg, 1, 500, true).catch(() => {});
+        }
         window.dispatchEvent(new CustomEvent("gradeflow:rankings-updated", { detail: msg.data }));
       });
 
@@ -728,6 +738,18 @@ export function AppProvider({ children }) {
       broadcastChannel.subscribe("delete-broadcast", (msg) => {
         if (!isMounted || !msg?.data?.notificationId) return;
         setNotifications((prev) => prev.filter((n) => n.notificationId !== msg.data.notificationId));
+      });
+
+      // G. Listen for real-time attendance sync across active devices and tabs
+      studentChannel.subscribe("attendance-updated", (msg) => {
+        if (!isMounted) return;
+        try {
+          if (cleanReg) sessionStorage.removeItem(`gf_student_profile_${cleanReg}`);
+        } catch (_) {}
+        if (cleanReg) {
+          fetchStudent(cleanReg, 1, 500, true).catch(() => {});
+        }
+        window.dispatchEvent(new CustomEvent("gradeflow:attendance-updated", { detail: msg?.data }));
       });
     } catch (err) {
       console.warn("[Ably] Realtime connection warning:", err?.message || err);
@@ -1207,6 +1229,21 @@ export function AppProvider({ children }) {
     setError("");
   };
 
+  const updateCachedAttendance = useCallback((attendancePayload) => {
+    if (!attendancePayload) return;
+    setStudentData((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, attendance: attendancePayload };
+      try {
+        const cleanReg = String(prev.regNo || "").trim().toUpperCase();
+        if (cleanReg) {
+          sessionStorage.setItem(`gf_student_profile_${cleanReg}`, JSON.stringify({ data: updated, ts: Date.now() }));
+        }
+      } catch (_) {}
+      return updated;
+    });
+  }, []);
+
   const leaveSession = () => {
     clearStudentData();
     studentLogout();
@@ -1296,6 +1333,7 @@ export function AppProvider({ children }) {
         getAdminAuthHeaders,
         fetchStudent,
         clearStudentData,
+        updateCachedAttendance,
         hasActiveSession,
         leaveSession,
         theme,
