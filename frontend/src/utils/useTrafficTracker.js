@@ -65,17 +65,20 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
 
     if (routeBufferRef.current.length === 0) return;
 
-    // 2. Cooldown Guard (10-20 Rapid Opens Protection)
-    // If synced recently (< 3 minutes) and total accumulated duration is < 15 seconds, skip
-    try {
-      const lastFlushStr = sessionStorage.getItem("gf_last_traffic_flush");
-      const lastFlushTime = lastFlushStr ? parseInt(lastFlushStr, 10) : 0;
-      const totalAccumulatedSecs = routeBufferRef.current.reduce((acc, r) => acc + (r.durationSeconds || 0), 0);
+    // 2. Micro-session filter: Skip bounce sessions under 10 seconds total duration
+    const totalAccumulatedSecs = routeBufferRef.current.reduce((acc, r) => acc + (r.durationSeconds || 0), 0);
+    if (totalAccumulatedSecs < 10) return;
 
-      if (now - lastFlushTime < 3 * 60 * 1000 && totalAccumulatedSecs < 15) {
-        return; // Suppress micro-visit spam from rapid tab reloads
-      }
-    } catch {}
+    // 3. Cooldown Guard for periodic in-session flushes (minimum 5 minutes cooldown)
+    if (!isBeacon) {
+      try {
+        const lastFlushStr = sessionStorage.getItem("gf_last_traffic_flush");
+        const lastFlushTime = lastFlushStr ? parseInt(lastFlushStr, 10) : 0;
+        if (now - lastFlushTime < 5 * 60 * 1000) {
+          return;
+        }
+      } catch {}
+    }
 
     const routesToSend = [...routeBufferRef.current];
     routeBufferRef.current = []; // Clear in-memory buffer immediately
@@ -107,7 +110,7 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
       isAdmin: false,
     };
 
-    // 3. Dispatch: sendBeacon on tab exit, axios.post for periodic flush
+    // 4. Dispatch: sendBeacon on tab exit, axios.post for periodic flush
     if (isBeacon && typeof navigator !== "undefined" && navigator.sendBeacon) {
       const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
       navigator.sendBeacon(`${API_BASE}/traffic/page-view`, blob);
@@ -151,7 +154,7 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
     routeStartTimeRef.current = now;
   }, [location.pathname, isAuthorizedAdmin, studentSession?.regNo, studentData?.regNo]);
 
-  // ─── Lifecycle Triggers: Tab Exit, Tab Visibility & 5-Min Periodic Flush ───
+  // ─── Lifecycle Triggers: Tab Exit & 10-Min Periodic Flush (Zero Tab-Switch Spam) ───
   useEffect(() => {
     if (isAuthorizedAdmin) return;
 
@@ -159,18 +162,29 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
       flushRouteBuffer(true);
     };
 
+    // Debounced tab switch: Do NOT fire beacon on casual tab switches/minimizes.
+    // Only flush if >= 5 minutes elapsed AND student accumulated >= 60s of active engagement.
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
-        flushRouteBuffer(true);
+        const now = Date.now();
+        let lastFlushTime = 0;
+        try {
+          const lastFlushStr = sessionStorage.getItem("gf_last_traffic_flush");
+          lastFlushTime = lastFlushStr ? parseInt(lastFlushStr, 10) : 0;
+        } catch {}
+        const totalSecs = routeBufferRef.current.reduce((acc, r) => acc + (r.durationSeconds || 0), 0);
+        if (now - lastFlushTime >= 5 * 60 * 1000 && totalSecs >= 60) {
+          flushRouteBuffer(true);
+        }
       }
     };
 
-    // Periodic flush every 5 minutes for long continuous study sessions
+    // Periodic flush every 10 minutes for long continuous study sessions
     const periodicFlushInterval = setInterval(() => {
       if (document.visibilityState === "visible") {
         flushRouteBuffer(false);
       }
-    }, 5 * 60 * 1000);
+    }, 10 * 60 * 1000);
 
     if (typeof window !== "undefined") {
       window.addEventListener("pagehide", handleExitBeacon, { capture: true });

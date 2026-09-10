@@ -484,21 +484,24 @@ module.exports = async function handler(req, res) {
 
         // ─── Batch vs Single Route Activity Processing ───
         if (isBatch && Array.isArray(routes) && routes.length > 0) {
+          const pageOps = [];
           for (const item of routes) {
             const itemRoute = normalizeRoute(item.route || "/");
             const itemTitle = item.pageTitle || getFriendlyPageTitle(itemRoute);
             const itemDur = Math.max(0, parseInt(item.durationSeconds, 10) || 0);
 
-            // Update PageAnalytics for each route in batch
-            await PageAnalytics.findOneAndUpdate(
-              { route: itemRoute },
-              {
-                $setOnInsert: { pageTitle: itemTitle },
-                $inc: { totalViews: 1 },
-                $set: { lastVisitedAt: new Date() },
+            // Queue atomic bulk write operation for each route in batch
+            pageOps.push({
+              updateOne: {
+                filter: { route: itemRoute },
+                update: {
+                  $setOnInsert: { pageTitle: itemTitle },
+                  $inc: { totalViews: 1 },
+                  $set: { lastVisitedAt: new Date() },
+                },
+                upsert: true,
               },
-              { upsert: true }
-            ).catch(() => {});
+            });
 
             studentActivity.totalTimeSpentSeconds = (studentActivity.totalTimeSpentSeconds || 0) + itemDur;
             studentActivity.totalPageViews = (studentActivity.totalPageViews || 0) + 1;
@@ -528,6 +531,10 @@ module.exports = async function handler(req, res) {
                 lastVisitedAt: new Date(),
               });
             }
+          }
+
+          if (pageOps.length > 0) {
+            await PageAnalytics.bulkWrite(pageOps, { ordered: false }).catch(() => {});
           }
         } else if (previousRoute && validTimeSpent >= 5) {
           const normPrev = normalizeRoute(previousRoute);
