@@ -151,6 +151,7 @@ export default function AttendanceTracker() {
     API,
     adminToken,
     openStudentAuthModal,
+    updateCachedAttendance,
   } = useApp();
 
   // Decode regNo from URL, session, or studentData
@@ -793,6 +794,16 @@ export default function AttendanceTracker() {
 
     setSavedSubjects(mergedSaved);
     syncAttendanceToDb(mergedSaved, allDailyLogs, targetGoal);
+    if (updateCachedAttendance) {
+      updateCachedAttendance({
+        section: selectedSection,
+        targetGoal,
+        savedSubjects: mergedSaved,
+        dailyLogs: allDailyLogs,
+        lastSyncedAt: new Date().toISOString(),
+      });
+    }
+    flushAttendanceSync();
 
     // Auto-load the first imported subject into the studio
     if (mergedSaved.length > 0) {
@@ -840,13 +851,16 @@ export default function AttendanceTracker() {
       ) {
         const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
         navigator.sendBeacon(`${API}/student/${regToSync}/attendance`, blob);
+        if (updateCachedAttendance) updateCachedAttendance(payload);
       } else {
-        await axios.post(`${API}/student/${regToSync}/attendance`, payload);
+        const res = await axios.post(`${API}/student/${regToSync}/attendance`, payload);
+        const confirmed = res.data?.attendance || payload;
+        if (updateCachedAttendance) updateCachedAttendance(confirmed);
       }
     } catch (err) {
       console.warn("Background attendance sync to MongoDB:", err?.message || err);
     }
-  }, [API]);
+  }, [API, updateCachedAttendance]);
 
   // Debounced auto-sync with instant optimistic UI (Aggregates rapid clicks into 1 save)
   const syncAttendanceToDb = (
@@ -867,10 +881,16 @@ export default function AttendanceTracker() {
       targetGoal: goal,
       savedSubjects: updatedSaved,
       dailyLogs: updatedAllLogs,
+      lastSyncedAt: new Date().toISOString(),
     };
     pendingSyncRef.current = { regToSync, payload };
 
-    // 3. Debounce: if user clicks 5 subjects in a row, wait until 1000ms pause to send 1 save
+    // 3. Immediately keep in-memory cache and sessionStorage updated (0ms)
+    if (updateCachedAttendance) {
+      updateCachedAttendance(payload);
+    }
+
+    // 4. Debounce: if user clicks 5 subjects in a row, wait until 1000ms pause to send 1 save
     if (syncDebounceTimerRef.current) {
       clearTimeout(syncDebounceTimerRef.current);
     }
@@ -910,6 +930,86 @@ export default function AttendanceTracker() {
     let isMounted = true;
     setPageLoading(true);
 
+    function applyAttendance(att, sData) {
+      if (!att || !isMounted) return;
+      const loadedSubs = Array.isArray(att.savedSubjects) ? att.savedSubjects : [];
+      setSavedSubjects(loadedSubs);
+
+      // Restore saved section from Database, student profile, or saved subject metadata
+      const savedSectionCandidate =
+        att.section ||
+        sData?.section ||
+        sData?.branch ||
+        loadedSubs.find((s) => s.section)?.section;
+
+      if (savedSectionCandidate) {
+        const detected = normalizeSection(savedSectionCandidate, sData?.regNo || targetReg);
+        setSelectedSection(detected);
+        try {
+          localStorage.setItem("gradeflow_selected_section", detected);
+        } catch {}
+      } else if (sData) {
+        const detected = normalizeSection(sData.section || sData.branch, sData.regNo);
+        setSelectedSection(detected);
+        try {
+          localStorage.setItem("gradeflow_selected_section", detected);
+        } catch {}
+      }
+
+      // Check if student has actual non-zero saved attendance data in DB
+      const hasRealAttendance = loadedSubs.length > 0 && loadedSubs.some((s) =>
+        (s.components || []).some((c) => (Number(c.delivered) || 0) > 0)
+      );
+
+      // Auto-route default tab based on whether student has attendance data vs needs the guide
+      if (!hasUserManuallySelectedTabRef.current && !urlTabParam) {
+        if (!hasRealAttendance) {
+          setActiveTab("studio_simulator");
+        } else {
+          setActiveTab("checkin");
+        }
+      }
+
+      if (att.targetGoal) {
+        setTargetGoal(att.targetGoal);
+      }
+      if (att.dailyLogs && typeof att.dailyLogs === "object") {
+        const rawLogs = att.dailyLogs;
+        const cleanDailyLogs = {};
+        Object.keys(rawLogs).forEach((key) => {
+          if (/^\d{4}-\d{2}-\d{2}$/.test(key) && typeof rawLogs[key] === "object") {
+            cleanDailyLogs[key] = rawLogs[key];
+          }
+        });
+        setAllDailyLogs(cleanDailyLogs);
+        const todayLogs = cleanDailyLogs[todayDateKey];
+        if (todayLogs && typeof todayLogs === "object" && Object.keys(todayLogs).length > 0) {
+          setDailyAttendanceLogs(todayLogs);
+        } else {
+          setDailyAttendanceLogs({});
+        }
+
+        // Resolve minimum tracking start date from DB createdAt or earliest logged date
+        let cKey = null;
+        if (att.createdAt) {
+          cKey = getLocalCalendarDateKey(new Date(att.createdAt));
+        }
+        const logDateKeys = Object.keys(cleanDailyLogs).filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
+        const earliestLog = logDateKeys[0];
+        const resolvedMin = cKey && earliestLog ? (cKey < earliestLog ? cKey : earliestLog) : (cKey || earliestLog || defaultMinTrackingDateKey);
+        setMinTrackingDateKey(resolvedMin < defaultMinTrackingDateKey ? resolvedMin : defaultMinTrackingDateKey);
+      } else {
+        setAllDailyLogs({});
+        setDailyAttendanceLogs({});
+        if (att.createdAt) {
+          const cKey = getLocalCalendarDateKey(new Date(att.createdAt));
+          setMinTrackingDateKey(cKey < defaultMinTrackingDateKey ? cKey : defaultMinTrackingDateKey);
+        } else {
+          setMinTrackingDateKey(defaultMinTrackingDateKey);
+        }
+      }
+    }
+
     async function loadAllStudentData() {
       try {
         // 1. Fetch student profile if not already in memory
@@ -918,95 +1018,18 @@ export default function AttendanceTracker() {
           sData = await fetchStudent(targetReg, 2, 800);
         }
 
-        // 2. Hydrate from eager student profile (0 GETs) or fetch from MongoDB Atlas
-        let att = sData?.attendance || null;
-        if (!att) {
-          const res = await axios.get(`${API}/student/${targetReg}/attendance`);
-          if (res.data?.success && res.data.attendance) {
-            att = res.data.attendance;
-          }
+        // 2. Hydrate from eager student profile (0ms instant display)
+        let initialAtt = sData?.attendance || null;
+        if (initialAtt) {
+          applyAttendance(initialAtt, sData);
         }
 
-        if (att && isMounted) {
-          const loadedSubs = Array.isArray(att.savedSubjects) ? att.savedSubjects : [];
-          setSavedSubjects(loadedSubs);
-
-          // Restore saved section from Database, student profile, or saved subject metadata
-          const savedSectionCandidate =
-            att.section ||
-            sData?.section ||
-            sData?.branch ||
-            loadedSubs.find((s) => s.section)?.section;
-
-          if (savedSectionCandidate) {
-            const detected = normalizeSection(savedSectionCandidate, sData?.regNo || targetReg);
-            setSelectedSection(detected);
-            try {
-              localStorage.setItem("gradeflow_selected_section", detected);
-            } catch {}
-          } else if (sData) {
-            const detected = normalizeSection(sData.section || sData.branch, sData.regNo);
-            setSelectedSection(detected);
-            try {
-              localStorage.setItem("gradeflow_selected_section", detected);
-            } catch {}
-          }
-
-          // Check if student has actual non-zero saved attendance data in DB
-          const hasRealAttendance = loadedSubs.length > 0 && loadedSubs.some((s) =>
-            (s.components || []).some((c) => (Number(c.delivered) || 0) > 0)
-          );
-
-          // Auto-route default tab based on whether student has attendance data vs needs the guide
-          if (!hasUserManuallySelectedTabRef.current && !urlTabParam) {
-            if (!hasRealAttendance) {
-              // For new students where the guide is shown (no saved attendance), default to "Edit & What-If" (studio_simulator)
-              setActiveTab("studio_simulator");
-            } else {
-              // For students with saved attendance data, default to "checkin" (Daily Check-In Hub)
-              setActiveTab("checkin");
-            }
-          }
-
-          if (att.targetGoal) {
-            setTargetGoal(att.targetGoal);
-          }
-          if (att.dailyLogs && typeof att.dailyLogs === "object") {
-            const rawLogs = att.dailyLogs;
-            const cleanDailyLogs = {};
-            Object.keys(rawLogs).forEach((key) => {
-              if (/^\d{4}-\d{2}-\d{2}$/.test(key) && typeof rawLogs[key] === "object") {
-                cleanDailyLogs[key] = rawLogs[key];
-              }
-            });
-            setAllDailyLogs(cleanDailyLogs);
-            const todayLogs = cleanDailyLogs[todayDateKey];
-            if (todayLogs && typeof todayLogs === "object" && Object.keys(todayLogs).length > 0) {
-              setDailyAttendanceLogs(todayLogs);
-            } else {
-              setDailyAttendanceLogs({});
-            }
-
-            // Resolve minimum tracking start date from DB createdAt or earliest logged date
-            let cKey = null;
-            if (att.createdAt) {
-              cKey = getLocalCalendarDateKey(new Date(att.createdAt));
-            }
-            const logDateKeys = Object.keys(cleanDailyLogs).filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
-            const earliestLog = logDateKeys[0];
-            const resolvedMin = cKey && earliestLog ? (cKey < earliestLog ? cKey : earliestLog) : (cKey || earliestLog || defaultMinTrackingDateKey);
-            setMinTrackingDateKey(resolvedMin < defaultMinTrackingDateKey ? resolvedMin : defaultMinTrackingDateKey);
-          } else {
-            setAllDailyLogs({});
-            setDailyAttendanceLogs({});
-            if (att.createdAt) {
-              const cKey = getLocalCalendarDateKey(new Date(att.createdAt));
-              setMinTrackingDateKey(cKey < defaultMinTrackingDateKey ? cKey : defaultMinTrackingDateKey);
-            } else {
-              setMinTrackingDateKey(defaultMinTrackingDateKey);
-            }
-          }
-        } else if (isMounted) {
+        // 3. Stale-While-Revalidate: fetch fresh attendance from MongoDB Atlas
+        const res = await axios.get(`${API}/student/${targetReg}/attendance`);
+        if (res.data?.success && res.data.attendance && isMounted) {
+          applyAttendance(res.data.attendance, sData);
+          if (updateCachedAttendance) updateCachedAttendance(res.data.attendance);
+        } else if (!initialAtt && isMounted) {
           setSavedSubjects([]);
           if (!hasUserManuallySelectedTabRef.current && !urlTabParam) {
             setActiveTab("studio_simulator");
@@ -1026,10 +1049,27 @@ export default function AttendanceTracker() {
     }
 
     loadAllStudentData();
+
+    // Listen for live attendance updates from other devices/tabs
+    const handleAttendanceLiveSync = () => {
+      if (!isMounted) return;
+      axios
+        .get(`${API}/student/${targetReg}/attendance`)
+        .then((res) => {
+          if (!isMounted || !res.data?.attendance) return;
+          applyAttendance(res.data.attendance, studentData);
+          if (updateCachedAttendance) updateCachedAttendance(res.data.attendance);
+        })
+        .catch(() => {});
+    };
+
+    window.addEventListener("gradeflow:attendance-updated", handleAttendanceLiveSync);
+
     return () => {
       isMounted = false;
+      window.removeEventListener("gradeflow:attendance-updated", handleAttendanceLiveSync);
     };
-  }, [decodedParam, studentSession?.regNo, API, todayDateKey, defaultMinTrackingDateKey]);
+  }, [decodedParam, studentSession?.regNo, API, todayDateKey, defaultMinTrackingDateKey, updateCachedAttendance]);
 
   // Safety auto-redirect to Edit & What-If if current tab is locked and student has no attendance saved
   useEffect(() => {

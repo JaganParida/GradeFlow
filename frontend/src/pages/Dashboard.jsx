@@ -287,7 +287,7 @@ function getSectionFromRegNo(regNo) {
 export default function Dashboard() {
   const { regNo: urlParam } = useParams();
   const regNo = decodeStudentId(urlParam);
-  const { studentData, fetchStudent, loading, error, API } = useApp();
+  const { studentData, fetchStudent, loading, error, API, rankingsVersion } = useApp();
   const navigate = useNavigate();
 
   // Normalize URL to obfuscated token if raw registration number is provided
@@ -741,6 +741,28 @@ export default function Dashboard() {
       }
     }
   }, [tab, selectedSem]);
+
+  // Real-time synchronization when rankings or academic results are updated in DB
+  useEffect(() => {
+    if (!rankingsVersion) return;
+    // 1. Clear in-memory semester cache
+    semCacheRef.current = {};
+    // 2. Clear all gf_sem_ keys in sessionStorage for this student
+    try {
+      const cleanReg = regNo || studentData?.regNo;
+      if (cleanReg) {
+        Object.keys(sessionStorage).forEach((key) => {
+          if (key.startsWith(`gf_sem_${cleanReg}_`)) {
+            sessionStorage.removeItem(key);
+          }
+        });
+      }
+    } catch (_) {}
+    // 3. Re-fetch active semester details with fresh database data
+    if (selectedSem) {
+      loadSemester(selectedSem);
+    }
+  }, [rankingsVersion, selectedSem]);
 
   if (loading || (!studentData && !error)) {
     return (

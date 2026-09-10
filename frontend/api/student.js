@@ -10,7 +10,7 @@ const SubAdminSession = require("./_lib/models/SubAdminSession");
 const Feedback = require("./_lib/models/Feedback");
 const { isSessionValid, touchSession, isAdminSessionValid } = require("./_lib/sessionManager");
 const { globalDbQueue } = require("./_lib/dbProtection");
-const { publishAdminRealtimeEvent } = require("./_lib/ablyService");
+const { publishAdminRealtimeEvent, publishStudentRealtimeEvent } = require("./_lib/ablyService");
 const {
   calculateBacklogs,
   calculateCGPA,
@@ -337,7 +337,10 @@ module.exports = async function handler(req, res) {
         );
 
         try {
-          await publishAdminRealtimeEvent("attendance-updated", { regNo: cleanRegNo, timestamp: Date.now() });
+          await Promise.allSettled([
+            publishAdminRealtimeEvent("attendance-updated", { regNo: cleanRegNo, timestamp: Date.now() }),
+            publishStudentRealtimeEvent(cleanRegNo, "attendance-updated", { regNo: cleanRegNo, timestamp: Date.now() }),
+          ]);
         } catch (e) {
           console.warn("[Ably] Attendance updated publish warning:", e?.message || e);
         }
