@@ -149,7 +149,7 @@ module.exports = async (req, res) => {
         ),
         globalDbQueue.run(() =>
           StudentSession.find({ regNo: rawReg })
-            .select("sessionId isActive expiresAt deviceInfo loggedInAt lastActiveAt updatedAt")
+            .select("sessionId isActive expiresAt deviceInfo loggedInAt lastActiveAt updatedAt loggedOutAt revokedAt logoutType revokeReason")
             .sort({ lastActiveAt: -1, updatedAt: -1 })
             .limit(10)
             .lean()
