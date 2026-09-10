@@ -206,48 +206,125 @@ async function syncRankingsMetadataAndBroadcast(semester = null) {
   }
 }
 
-async function generateRankingForSemester(semester, preloadedResults = null, shouldBroadcast = true) {
-  const semResults = preloadedResults || (await SemesterResult.find({ semester: Number(semester) }).lean());
-  if (!semResults || semResults.length === 0) return;
+async function generateRankingForSemester(semester, preloadedAllResults = null, shouldBroadcast = true) {
+  const semNum = Number(semester);
+  const allResults = preloadedAllResults || (await SemesterResult.find({}).lean());
+  const semResults = allResults.filter((r) => Number(r.semester) === semNum);
+  if (!semResults.length) return;
 
-  const validResults = semResults.filter((r) => Number(r.semester) === Number(semester));
-  const uniqueRegNos = [...new Set(validResults.map((r) => r.regNo))];
-  const allStudentRecords = await SemesterResult.find({ regNo: { $in: uniqueRegNos } }).lean();
+  const resultsByRegNo = new Map();
+  for (const r of allResults) {
+    const regNo = String(r.regNo || "").trim();
+    if (!regNo) continue;
+    if (!resultsByRegNo.has(regNo)) {
+      resultsByRegNo.set(regNo, []);
+    }
+    resultsByRegNo.get(regNo).push(r);
+  }
 
-  const studentAllSemsMap = new Map();
-  allStudentRecords.forEach((r) => {
-    if (!studentAllSemsMap.has(r.regNo)) studentAllSemsMap.set(r.regNo, []);
-    studentAllSemsMap.get(r.regNo).push(r);
-  });
+  for (const list of resultsByRegNo.values()) {
+    list.sort((a, b) => Number(a.semester) - Number(b.semester));
+  }
 
-  const studentDataList = validResults.map((r) => {
-    const history = studentAllSemsMap.get(r.regNo) || [r];
-    const liveSGPA = calculateSGPA(r.subjects, r.semester);
-    const liveCGPA = calculateCGPA(history, r.semester);
-    return {
-      regNo: r.regNo,
-      studentName: r.studentName,
-      branch: r.branch,
-      batch: r.batch,
-      section: getSectionFromRegNo(r.regNo),
-      semester: Number(r.semester),
-      sgpa: liveSGPA,
-      cgpa: liveCGPA,
-    };
-  });
+  const batches = [...new Set(semResults.map((r) => r.batch || ""))];
+  for (const batch of batches) {
+    const batchResults = semResults.filter((r) => (r.batch || "") === batch);
+    const studentData = [];
+    const semBulkOps = [];
 
-  const rankedData = assignCompetitionRanks(sortByScore(studentDataList, "cgpa", "sgpa"));
+    for (const r of batchResults) {
+      const regNo = String(r.regNo || "").trim();
+      const studentAllResults = resultsByRegNo.get(regNo) || [];
+      const liveSGPA = calculateSGPA(r.subjects, semNum);
+      const cgpa = calculateCGPA(studentAllResults, semNum);
+      const { totalCredits, creditsCleared } = calculateSemesterMetrics(r.subjects, semNum);
 
-  const bulkOps = rankedData.map((d) => ({
-    updateOne: {
-      filter: { regNo: d.regNo, semester: d.semester },
-      update: { $set: d },
-      upsert: true,
-    },
-  }));
+      studentData.push({
+        regNo: r.regNo,
+        studentName: r.studentName,
+        branch: r.branch,
+        batch: r.batch,
+        section: getSectionFromRegNo(r.regNo),
+        semester: semNum,
+        sgpa: liveSGPA,
+        cgpa,
+      });
 
-  if (bulkOps.length > 0) {
-    await Ranking.bulkWrite(bulkOps);
+      semBulkOps.push({
+        updateOne: {
+          filter: { regNo: r.regNo, semester: semNum },
+          update: {
+            $set: {
+              sgpa: liveSGPA,
+              cgpa: cgpa,
+              totalCredits,
+              creditsCleared,
+            },
+          },
+        },
+      });
+    }
+
+    if (semBulkOps.length > 0) {
+      await SemesterResult.bulkWrite(semBulkOps);
+    }
+
+    sortByScore(studentData, "cgpa", "sgpa");
+    assignCompetitionRanks(studentData, "cgpa", "cgpaRank");
+    sortByScore(studentData, "sgpa", "cgpa");
+    assignCompetitionRanks(studentData, "sgpa", "sgpaRank");
+
+    studentData.forEach((s) => {
+      s.universityRank = s.sgpaRank;
+      s.totalStudents = studentData.length;
+      s.percentile = parseFloat(
+        ((1 - (s.sgpaRank - 1) / studentData.length) * 100).toFixed(1),
+      );
+    });
+
+    const byBranch = {};
+    const bySection = {};
+    studentData.forEach((s) => {
+      if (!byBranch[s.branch]) byBranch[s.branch] = [];
+      byBranch[s.branch].push(s);
+
+      if (s.branch === "CSE") {
+        const sec = getSectionFromRegNo(s.regNo);
+        if (!bySection[sec]) bySection[sec] = [];
+        bySection[sec].push(s);
+      }
+    });
+
+    Object.values(byBranch).forEach((group) => {
+      sortByScore(group, "sgpa", "cgpa");
+      assignCompetitionRanks(group, "sgpa", "deptRank");
+      
+      sortByScore(group, "cgpa", "sgpa");
+      assignCompetitionRanks(group, "cgpa", "deptCgpaRank");
+
+      group.forEach((s) => (s.deptStudents = group.length));
+    });
+
+    Object.values(bySection).forEach((group) => {
+      sortByScore(group, "sgpa", "cgpa");
+      assignCompetitionRanks(group, "sgpa", "sectionSgpaRank");
+
+      sortByScore(group, "cgpa", "sgpa");
+      assignCompetitionRanks(group, "cgpa", "sectionCgpaRank");
+
+      group.forEach((s) => (s.sectionStudents = group.length));
+    });
+
+    if (studentData.length > 0) {
+      const bulkOps = studentData.map((s) => ({
+        updateOne: {
+          filter: { regNo: s.regNo, semester: semNum },
+          update: { $set: s },
+          upsert: true,
+        },
+      }));
+      await Ranking.bulkWrite(bulkOps);
+    }
   }
 
   if (shouldBroadcast) {
