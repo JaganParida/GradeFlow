@@ -32,12 +32,7 @@ export default function MigrationOverlayModal() {
       const fullTarget = `${NEW_ORIGIN}${window.location.pathname}${window.location.search}${window.location.hash}`;
       setTargetUrl(fullTarget);
 
-      // Instant auto-bounce ONLY on real old domains (never during preview)
-      if (isOld) {
-        try {
-          window.location.replace(fullTarget);
-        } catch {}
-      }
+      // Modal stays permanently on screen until the student clicks the action button
 
       // Bulletproof mobile & desktop background scroll lock
       const origBodyOverflow = document.body.style.overflow;
