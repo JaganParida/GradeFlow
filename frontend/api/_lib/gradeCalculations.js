@@ -151,22 +151,6 @@ function calculateBacklogs(results = []) {
   );
 }
 
-function calculateBacklogs(results = []) {
-  return (results || []).flatMap((result) =>
-    (result.subjects || [])
-      .filter((subject) => {
-        if (isSem5ProjectException(subject, result.semester)) return false;
-        return NON_PASSING_GRADES.includes(normalizeGrade(subject.grade));
-      })
-      .map((subject) => ({
-        subName: subject.subName,
-        subCode: subject.subCode,
-        credit: subject.credit,
-        grade: normalizeGrade(subject.grade),
-        semester: result.semester,
-      })),
-  );
-}
 
 function sortByScore(records, primaryKey, secondaryKey) {
   records.sort((a, b) => {
