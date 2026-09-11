@@ -296,13 +296,20 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
       studentAccount.failedPasswordAttempts = 0;
       studentAccount.lockedUntil = null;
       studentAccount.lastFailedPasswordAt = null;
-      await studentAccount.save();
+      await Student.updateOne(
+        { _id: studentAccount._id },
+        { $set: { failedPasswordAttempts: 0, lockedUntil: null, lastFailedPasswordAt: null } }
+      );
     }
 
     // If already at or above 3 failed attempts without future timestamp, lock for 15 minutes now
     if ((studentAccount.failedPasswordAttempts || 0) >= 3) {
-      studentAccount.lockedUntil = new Date(Date.now() + 15 * 60 * 1000);
-      await studentAccount.save();
+      const lockoutDate = new Date(Date.now() + 15 * 60 * 1000);
+      studentAccount.lockedUntil = lockoutDate;
+      await Student.updateOne(
+        { _id: studentAccount._id },
+        { $set: { lockedUntil: lockoutDate } }
+      );
       return res.status(429).json({
         success: false,
         code: "ACCOUNT_TEMPORARILY_LOCKED",
@@ -324,7 +331,10 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
       studentAccount.failedPasswordAttempts = 0;
       studentAccount.lastFailedPasswordAt = null;
       studentAccount.lockedUntil = null;
-      await studentAccount.save();
+      await Student.updateOne(
+        { _id: studentAccount._id },
+        { $set: { failedPasswordAttempts: 0, lastFailedPasswordAt: null, lockedUntil: null } }
+      );
 
       // Check if current requesting device already has an active session
       let incomingToken = req.cookies?.student_jwt;
@@ -471,9 +481,29 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
     studentAccount.failedPasswordAttempts = (studentAccount.failedPasswordAttempts || 0) + 1;
     studentAccount.lastFailedPasswordAt = new Date();
     if (studentAccount.failedPasswordAttempts >= 3) {
-      studentAccount.lockedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15-minute temporary lockout
+      const lockoutDate = new Date(Date.now() + 15 * 60 * 1000); // 15-minute temporary lockout
+      studentAccount.lockedUntil = lockoutDate;
+      await Student.updateOne(
+        { _id: studentAccount._id },
+        {
+          $set: {
+            failedPasswordAttempts: studentAccount.failedPasswordAttempts,
+            lastFailedPasswordAt: studentAccount.lastFailedPasswordAt,
+            lockedUntil: lockoutDate,
+          },
+        }
+      );
+    } else {
+      await Student.updateOne(
+        { _id: studentAccount._id },
+        {
+          $set: {
+            failedPasswordAttempts: studentAccount.failedPasswordAttempts,
+            lastFailedPasswordAt: studentAccount.lastFailedPasswordAt,
+          },
+        }
+      );
     }
-    await studentAccount.save();
 
     const currentAttempts = studentAccount.failedPasswordAttempts;
 
@@ -1340,6 +1370,7 @@ router.get("/bootstrap", async (req, res) => {
                   adminType: "subadmin",
                   name: subAdmin.name || decoded.name,
                   email: subAdmin.email || decoded.email,
+                  sessionId: decoded.sessionId,
                   permissions: subAdmin.permissions || { routes: [], sections: [], actions: [] },
                 };
               }
@@ -1354,6 +1385,7 @@ router.get("/bootstrap", async (req, res) => {
                 adminType: "main",
                 name: "Main Administrator",
                 email: decoded.email || process.env.ADMIN_EMAIL,
+                sessionId: decoded.sessionId,
                 permissions: { routes: ["*"], sections: ["*"], actions: ["*"] },
               };
             }
@@ -1373,15 +1405,13 @@ router.get("/bootstrap", async (req, res) => {
       try {
         const orphanedSession = await AdminSession.findOneAndUpdate(
           { sessionId: clientLastSession, isActive: true },
-          {
-            $set: {
-              isActive: false,
-              revokedAt: new Date(),
-              revokeReason: "COOKIE_CLEARED_BY_CLIENT",
-            },
-          }
+          { $set: { isActive: false, revokedAt: new Date(), revokeReason: "COOKIE_CLEARED_ON_CLIENT" } }
         );
-        if (orphanedSession) {
+        const orphanedSubSession = await SubAdminSession.findOneAndUpdate(
+          { sessionId: clientLastSession, isActive: true },
+          { $set: { isActive: false, revokedAt: new Date(), revokeReason: "COOKIE_CLEARED_ON_CLIENT" } }
+        );
+        if (orphanedSession || orphanedSubSession) {
           sessionWasRevoked = true;
         }
       } catch {}
@@ -1472,6 +1502,10 @@ router.post("/student/logout", async (req, res) => {
       } catch {}
     }
 
+    if (!sessionId) {
+      sessionId = req.headers["x-student-session"] || req.body?.sessionId || null;
+    }
+
     const targetReg = String(decodedRegNo || regNoFromBody || "").toUpperCase().trim();
     const now = new Date();
 
@@ -1490,19 +1524,28 @@ router.post("/student/logout", async (req, res) => {
         }
       );
     } else if (targetReg) {
-      await StudentSession.updateMany(
-        { regNo: targetReg, isActive: true },
-        {
-          $set: {
-            isActive: false,
-            loggedOutAt: now,
-            lastActiveAt: now,
-            logoutType: "student_manual",
-            revokedAt: now,
-            revokeReason: "Signed out manually by student",
-          },
-        }
-      );
+      const clientInfo = extractRequestDeviceInfo(req);
+      const match = await StudentSession.findOne({
+        regNo: targetReg,
+        isActive: true,
+        "deviceInfo.userAgent": clientInfo.userAgent,
+      }).sort({ lastActiveAt: -1 });
+
+      if (match) {
+        await StudentSession.updateOne(
+          { _id: match._id },
+          {
+            $set: {
+              isActive: false,
+              loggedOutAt: now,
+              lastActiveAt: now,
+              logoutType: "student_manual",
+              revokedAt: now,
+              revokeReason: "Signed out manually by student",
+            },
+          }
+        );
+      }
     }
 
     res.clearCookie("student_jwt", getCookieOptions(req, new Date(0)));
@@ -1856,8 +1899,8 @@ const handleAdminPasswordLogin = async (req, res) => {
       });
     } catch (emailErr) {
       console.error("Admin OTP email dispatch error:", emailErr.message);
-      return res.status(500).json({
-        message: "Failed to dispatch verification code to administrative email. Please try again.",
+      return res.status(503).json({
+        message: "Failed to dispatch verification code to administrative email. Please wait a moment and try again.",
         code: "EMAIL_DISPATCH_FAILED",
       });
     }
@@ -2360,17 +2403,14 @@ const handleAdminLogout = async (req, res) => {
 
     if (targetSessionId) {
       try {
-        if (isAdminTypeSub) {
-          await SubAdminSession.updateOne(
-            { sessionId: targetSessionId },
-            { $set: { isActive: false, revokedAt: new Date(), revokeReason: "Admin manual logout" } }
-          );
-        } else {
-          await AdminSession.updateOne(
-            { sessionId: targetSessionId },
-            { $set: { isActive: false, revokedAt: new Date(), revokeReason: "Admin manual logout" } }
-          );
-        }
+        await AdminSession.updateOne(
+          { sessionId: targetSessionId },
+          { $set: { isActive: false, revokedAt: new Date(), revokeReason: "Admin manual logout" } }
+        );
+        await SubAdminSession.updateOne(
+          { sessionId: targetSessionId },
+          { $set: { isActive: false, revokedAt: new Date(), revokeReason: "Admin manual logout" } }
+        );
       } catch {}
     }
 
@@ -2509,6 +2549,10 @@ const handleStudentLogout = async (req, res) => {
         sessionId = decoded?.sessionId;
         decodedRegNo = decoded?.regNo;
       } catch {}
+    }
+
+    if (!sessionId) {
+      sessionId = req.headers["x-student-session"] || req.body?.sessionId || null;
     }
 
     const targetReg = String(decodedRegNo || req.body?.regNo || "").toUpperCase().trim();

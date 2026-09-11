@@ -552,7 +552,7 @@ async function cleanExpiredAdminSessions(AdminSession) {
   });
 }
 
-const ADMIN_ACTIVITY_TTL_MS = 3 * 60 * 1000; // 3 minutes active presence window
+const ADMIN_ACTIVITY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours rolling session window
 
 async function getActiveAdminSessions(AdminSession) {
   const activeCutoff = new Date(Date.now() - ADMIN_ACTIVITY_TTL_MS);
