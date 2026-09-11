@@ -109,7 +109,9 @@ export function AppProvider({ children }) {
   const checkAdminStatus = async () => {
     if (isOldDomain) return null;
     try {
-      const lastAdminSession = typeof window !== "undefined" ? localStorage.getItem("gf_admin_last_session") || "" : "";
+      const lastAdminSession = typeof window !== "undefined"
+        ? localStorage.getItem("gf_admin_active_session") || localStorage.getItem("gf_admin_last_session") || ""
+        : "";
       const res = await axios.get(`${API_BASE}/auth/admin/check-status`, {
         withCredentials: true,
         timeout: 4000,
@@ -243,7 +245,13 @@ export function AppProvider({ children }) {
           sessionStorage.removeItem("gf_bootstrap_cache");
         } catch (_) {}
 
-        const lastAdminSession = typeof window !== "undefined" ? localStorage.getItem("gf_admin_last_session") || "" : "";
+        const lastAdminSession = typeof window !== "undefined"
+          ? localStorage.getItem("gf_admin_active_session") || localStorage.getItem("gf_admin_last_session") || ""
+          : "";
+        const wasAdminLoggedIn = typeof window !== "undefined"
+          ? localStorage.getItem("gf_admin_logged_in") === "true"
+          : false;
+
         const res = await axios.get(`${API_BASE}/auth/bootstrap`, {
           withCredentials: true,
           // Serverless cold starts and slow mobile networks can take longer than
@@ -286,14 +294,41 @@ export function AppProvider({ children }) {
             setAdminProfile(admin);
             setAdminAuthStatus("AUTHENTICATED");
             if (admin.sessionId) {
-              localStorage.setItem("gf_admin_last_session", admin.sessionId);
+              try {
+                localStorage.setItem("gf_admin_last_session", admin.sessionId);
+                localStorage.setItem("gf_admin_active_session", admin.sessionId);
+                localStorage.setItem("gf_admin_logged_in", "true");
+              } catch (_) {}
             }
           } else {
             setAdminToken(false);
             setAdminProfile(null);
             setAdminAuthStatus("UNAUTHENTICATED");
+
+            // If this browser was previously an active admin session, but cookies were cleared:
+            if (wasAdminLoggedIn && lastAdminSession) {
+              axios
+                .post(
+                  `${API_BASE}/auth/admin/release-session`,
+                  { sessionId: lastAdminSession },
+                  { withCredentials: true, timeout: 5000 }
+                )
+                .then((relRes) => {
+                  if (relRes?.data?.success) {
+                    if (typeof relRes.data.activeDeviceCount === "number") {
+                      setAdminDeviceCount(relRes.data.activeDeviceCount);
+                    }
+                    if (typeof relRes.data.isAdminButtonVisible === "boolean") {
+                      setIsAdminButtonVisible(relRes.data.isAdminButtonVisible);
+                    }
+                  }
+                })
+                .catch(() => {});
+            }
+
             try {
-              localStorage.removeItem("gf_admin_last_session");
+              localStorage.removeItem("gf_admin_active_session");
+              localStorage.removeItem("gf_admin_logged_in");
             } catch (_) {}
           }
 
@@ -409,10 +444,15 @@ export function AppProvider({ children }) {
         localStorage.removeItem(key);
         sessionStorage.removeItem(key);
       });
+      const lastSessionId = typeof window !== "undefined"
+        ? localStorage.getItem("gf_admin_active_session") || localStorage.getItem("gf_admin_last_session") || ""
+        : "";
       try {
         localStorage.removeItem("gf_admin_last_session");
+        localStorage.removeItem("gf_admin_active_session");
+        localStorage.removeItem("gf_admin_logged_in");
       } catch (_) {}
-      await axios.post(`${API_BASE}/auth/admin/logout`, {}, { withCredentials: true });
+      await axios.post(`${API_BASE}/auth/admin/logout`, { sessionId: lastSessionId }, { withCredentials: true });
     } catch (err) {
       console.warn("Logout error:", err.message);
     } finally {
@@ -425,7 +465,7 @@ export function AppProvider({ children }) {
 
   const logoutAdmin = adminLogout;
 
-  // ─── Active Admin Ably Realtime Handover (0 Polling, 0 Vercel Reqs) ────
+  // ─── Active Admin Ably Realtime Handover & Liveness Heartbeat ────
   const lastAdminSyncRef = useRef(Date.now());
 
   useEffect(() => {
@@ -433,6 +473,26 @@ export function AppProvider({ children }) {
 
     let adminAbly = null;
     let adminChannel = null;
+
+    // Active admin heartbeat to MongoDB (refreshes lastActiveAt every 30s)
+    const sendHeartbeat = async () => {
+      try {
+        const hRes = await axios.get(`${API_BASE}/auth/admin/heartbeat`, {
+          withCredentials: true,
+          timeout: 4000,
+        });
+        if (hRes.data && hRes.data.alive === false) {
+          adminLogout();
+        }
+      } catch (err) {
+        if (err.response?.status === 401) {
+          // Cookies were deleted in DevTools while tab was open!
+          adminLogout();
+        }
+      }
+    };
+
+    const heartbeatInterval = setInterval(sendHeartbeat, 30000);
 
     try {
       adminAbly = createAdminAblyRealtime();
@@ -478,20 +538,14 @@ export function AppProvider({ children }) {
       console.warn("[AdminAbly] Connection init warning:", err?.message || err);
     }
 
-    // Tab Visibility: Ensure WebSocket connection remains live on visible
+    // Tab Visibility: Ensure WebSocket connection remains live & touch session immediately
     const handleAdminVisibility = () => {
-      if (!adminAbly) return;
       if (document.visibilityState === "visible") {
-        if (adminAbly.connection.state !== "connected") {
+        sendHeartbeat();
+        if (adminAbly && adminAbly.connection.state !== "connected") {
           try {
             adminAbly.connection.connect();
           } catch {}
-        }
-        // Only verify session via HTTP if tab was hidden for >30 minutes
-        const now = Date.now();
-        if (now - lastAdminSyncRef.current > 30 * 60 * 1000) {
-          lastAdminSyncRef.current = now;
-          axios.get(`${API_BASE}/auth/admin/me`, { withCredentials: true, timeout: 3500 }).catch(() => {});
         }
       }
     };
@@ -499,6 +553,7 @@ export function AppProvider({ children }) {
     document.addEventListener("visibilitychange", handleAdminVisibility);
 
     return () => {
+      clearInterval(heartbeatInterval);
       document.removeEventListener("visibilitychange", handleAdminVisibility);
       if (adminChannel) adminChannel.unsubscribe();
       if (adminAbly) adminAbly.close();
@@ -660,6 +715,53 @@ export function AppProvider({ children }) {
       );
     } catch {}
   };
+
+  // ─── Global Realtime Broadcasts (All Visitors, Guests, Students, Admins) ────────
+  useEffect(() => {
+    let isMounted = true;
+    let globalAbly = null;
+    let globalBroadcastChannel = null;
+
+    try {
+      globalAbly = createAblyRealtime();
+      globalBroadcastChannel = globalAbly.channels.get("broadcasts-all");
+
+      globalBroadcastChannel.subscribe("admin-availability-updated", (msg) => {
+        if (!isMounted || !msg?.data) return;
+        const { activeDeviceCount: newDevCount, isAdminButtonVisible: newBtnVis } = msg.data;
+        if (typeof newDevCount === "number") {
+          setAdminDeviceCount(newDevCount);
+        }
+        if (typeof newBtnVis === "boolean") {
+          setIsAdminButtonVisible(newBtnVis);
+        }
+      });
+
+      globalBroadcastChannel.subscribe("timetable-updated", (msg) => {
+        if (!isMounted) return;
+        try {
+          sessionStorage.removeItem("gf_schedules_cache");
+        } catch (_) {}
+        window.dispatchEvent(new CustomEvent("gradeflow:timetable-updated", { detail: msg?.data }));
+      });
+    } catch (err) {
+      console.warn("[GlobalAbly] Setup warning:", err?.message || err);
+    }
+
+    return () => {
+      isMounted = false;
+      if (globalBroadcastChannel) {
+        try {
+          globalBroadcastChannel.unsubscribe();
+        } catch (_) {}
+      }
+      if (globalAbly) {
+        try {
+          globalAbly.close();
+        } catch (_) {}
+      }
+    };
+  }, []);
 
   // ─── Dual-Ably Realtime Handover & Notification Sync (0 Polling, 0 Extra CPU) ───
   useEffect(() => {
@@ -1167,6 +1269,8 @@ export function AppProvider({ children }) {
         if (res.data?.sessionId) {
           try {
             localStorage.setItem("gf_admin_last_session", res.data.sessionId);
+            localStorage.setItem("gf_admin_active_session", res.data.sessionId);
+            localStorage.setItem("gf_admin_logged_in", "true");
           } catch (_) {}
         }
         return { success: true };
