@@ -3794,7 +3794,15 @@ export default function AdminDashboard({ defaultTab = null }) {
       navigate("/admin");
       return;
     }
-    fetchAdminProfile();
+    if (adminProfile && adminProfile.permissions) {
+      const isMain = adminProfile.adminType === "main" || !adminProfile.adminType;
+      const permittedRoutes = adminProfile.permissions?.routes || [];
+      if (!isMain && permittedRoutes.length > 0 && !permittedRoutes.includes(tab)) {
+        setTab(permittedRoutes[0]);
+      }
+    } else {
+      fetchAdminProfile();
+    }
     fetchStats();
   }, [adminToken, authChecking]);
 

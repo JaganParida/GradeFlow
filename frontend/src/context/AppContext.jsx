@@ -88,7 +88,7 @@ export function AppProvider({ children }) {
   const [adminToken, setAdminToken] = useState(false);
   const [adminProfile, setAdminProfile] = useState(null);
   const [adminDeviceCount, setAdminDeviceCount] = useState(0);
-  const [isAdminButtonVisible, setIsAdminButtonVisible] = useState(true);
+  const [isAdminButtonVisible, setIsAdminButtonVisible] = useState(false);
   const [adminButtonConfig, setAdminButtonConfig] = useState(() => ({
     mode: "AUTO",
     allowedRoles: {
@@ -122,7 +122,7 @@ export function AppProvider({ children }) {
         if (typeof res.data.isAdminButtonVisible === "boolean") {
           setIsAdminButtonVisible(res.data.isAdminButtonVisible);
         } else {
-          setIsAdminButtonVisible(count < 2);
+          setIsAdminButtonVisible(false);
         }
         return res.data;
       }
@@ -294,7 +294,7 @@ export function AppProvider({ children }) {
             if (typeof btnVis === "boolean") {
               setIsAdminButtonVisible(btnVis);
             } else {
-              setIsAdminButtonVisible(devCount < 2);
+              setIsAdminButtonVisible(false);
             }
           }
 
@@ -403,6 +403,7 @@ export function AppProvider({ children }) {
     } finally {
       setAdminToken(false);
       setAdminProfile(null);
+      setIsAdminButtonVisible(false);
       navigate("/admin");
     }
   }, [navigate]);
@@ -1085,13 +1086,12 @@ export function AppProvider({ children }) {
 
     // 2. Clear session on server
     try {
-      const reg = studentProfile?.regNo || "";
+      const reg = studentSession?.regNo || studentData?.regNo || "";
       await axios.post(
         `${API_BASE}/auth/student/logout`,
         { regNo: reg },
         {
           withCredentials: true,
-          headers: studentToken ? { "x-student-token": studentToken } : {},
         }
       );
     } catch (err) {
@@ -1108,11 +1108,6 @@ export function AppProvider({ children }) {
     setError("");
     try {
       const res = await axios.post(`${API_BASE}/auth/admin/login-password`, { password }, { withCredentials: true });
-      if (res.data?.alreadyLoggedIn) {
-        setAdminToken(true);
-        setAdminProfile(res.data);
-        return { success: true, alreadyLoggedIn: true };
-      }
       if (res.data?.step === "OTP_REQUIRED") {
         return {
           success: true,
@@ -1141,6 +1136,7 @@ export function AppProvider({ children }) {
       if (res.data?.success && res.data?.authenticated) {
         setAdminToken(true);
         setAdminProfile(res.data);
+        setIsAdminButtonVisible(true);
         return { success: true };
       }
       const msg = res.data?.message || "OTP verification failed.";
