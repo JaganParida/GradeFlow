@@ -170,48 +170,14 @@ router.get("/student/check-status", async (req, res) => {
     // If another device is active for normal student: OTP is strictly blocked.
     // If 0 devices active: OTP fallback is allowed.
     let otpAllowed = true;
-    let otpFallbackAllowed = false;
+    let otpFallbackAllowed = true;
     let isBlocked = false;
     let blockReason = null;
     let blockMessage = null;
 
-    if (hasPassword) {
-      if (failedPasswordAttempts >= 3) {
-        if (maxAllowedDevices === 1 && activeSessions.length >= 1 && !isCurrentDevice) {
-          // Another device active -> NO OTP! BLOCK NEW DEVICE!
-          otpAllowed = false;
-          isBlocked = true;
-          blockReason = "PASSWORD_FAILED_DEVICE_ACTIVE";
-          blockMessage = `Maximum password attempts exceeded (3/3). Registration number ${rawReg} is currently logged in on another device. Single-device security policy: OTP recovery is blocked while your authorized device slot is occupied.`;
-        } else if (maxAllowedDevices > 1 && activeSessions.length >= maxAllowedDevices && !isCurrentDevice) {
-          otpAllowed = false;
-          isBlocked = true;
-          blockReason = "DEVICE_LIMIT_REACHED";
-          blockMessage = `Account ${rawReg} has reached the maximum allowed active devices (${maxAllowedDevices}). Please log out from another device.`;
-        } else {
-          // No active device or slot available -> OTP recovery allowed
-          otpFallbackAllowed = true;
-          otpAllowed = !isDailyLimitReached && !isCooldownActive;
-        }
-      } else {
-        // Allow forgot password OTP recovery if 0 devices active
-        otpFallbackAllowed = activeSessions.length === 0;
-        otpAllowed = otpFallbackAllowed && !isDailyLimitReached && !isCooldownActive;
-        if (maxAllowedDevices > 1 && activeSessions.length >= maxAllowedDevices && !isCurrentDevice) {
-          isBlocked = true;
-          blockReason = "DEVICE_LIMIT_REACHED";
-          blockMessage = `Account ${rawReg} is already actively logged in on ${maxAllowedDevices} devices (maximum ${maxAllowedDevices} allowed). Please log out from one device before signing in on a new device.`;
-        }
-        otpAllowed = false;
-      }
-    } else {
+    if (!hasPassword) {
       // New student (no password) -> OTP is mandatory
-      if (isCapacityFull) {
-        isBlocked = true;
-        otpAllowed = false;
-        blockReason = "DEVICE_LIMIT_REACHED";
-        blockMessage = `Registration number ${rawReg} is already logged in on an active device. Please log out from that device first.`;
-      } else if (isDailyLimitReached) {
+      if (isDailyLimitReached) {
         isBlocked = true;
         otpAllowed = false;
         blockReason = "DAILY_LIMIT_EXCEEDED";
@@ -499,25 +465,21 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
           },
         });
       } else {
-        // 2-Device Account (Special Student 230301120327): Max = 2 active devices
+        // 2-Device Account (Special Student 230301120327): FIFO Session Rotation
         if (activeSessions.length >= maxAllowedDevices) {
-          const sanitizedDevices = activeSessions.map((s, idx) => ({
-            deviceIndex: idx + 1,
-            platform: s.deviceInfo?.platform || "Unknown",
-            userAgent: s.deviceInfo?.userAgent || "Unknown",
-            loggedInAt: s.loggedInAt,
-            lastActiveAt: s.lastActiveAt,
-            status: "ACTIVE",
-          }));
-
-          return res.status(403).json({
-            success: false,
-            code: "DEVICE_LIMIT_REACHED",
-            message: `Account ${rawReg} is currently active on ${activeSessions.length} devices (maximum limit: ${maxAllowedDevices}). Please log out from another device before logging in on a new device.`,
-            activeDeviceCount: activeSessions.length,
-            maxAllowedDevices,
-            activeDevices: sanitizedDevices,
-          });
+          const sorted = activeSessions.sort((a, b) => new Date(a.lastActiveAt || a.loggedInAt) - new Date(b.lastActiveAt || b.loggedInAt));
+          const oldest = sorted[0];
+          if (oldest) {
+            oldest.isActive = false;
+            oldest.revokedAt = new Date();
+            oldest.revokeReason = "REPLACED_BY_NEW_DEVICE";
+            await oldest.save();
+            publishStudentRealtimeEvent(rawReg, "session-revoked", {
+              sessionId: oldest.sessionId,
+              reason: "REPLACED_BY_NEW_DEVICE",
+              message: "Your session was terminated because this account was logged into on another device.",
+            }).catch(() => {});
+          }
         }
 
         const sessionId = crypto.randomUUID();
@@ -1606,7 +1568,7 @@ router.get("/admin/check-status", async (req, res) => {
       } catch {}
     }
 
-    const isBlocked = activeSessions.length >= MAX_ADMIN_DEVICES && !isCurrentDevice;
+    const isBlocked = false;
     const sanitizedDevices = activeSessions.map((s, idx) => ({
       deviceIndex: idx + 1,
       deviceType: s.deviceInfo?.deviceType || "Desktop",
@@ -1624,10 +1586,10 @@ router.get("/admin/check-status", async (req, res) => {
       isCurrentDevice,
       activeDeviceCount: activeSessions.length,
       maxAllowedDevices: MAX_ADMIN_DEVICES,
-      isBlocked,
-      otpAllowed: !isBlocked,
-      loginAllowed: !isBlocked,
-      blockReason: isBlocked ? "ADMIN_DEVICE_LIMIT_REACHED" : null,
+      isBlocked: false,
+      otpAllowed: true,
+      loginAllowed: true,
+      blockReason: null,
       activeDevices: sanitizedDevices,
     });
   } catch (err) {
@@ -1711,27 +1673,6 @@ const handleAdminPasswordLogin = async (req, res) => {
           }
         }
       } catch {}
-    }
-
-    if (activeSessions.length >= MAX_ADMIN_DEVICES && !isCurrentDevice) {
-      const sanitizedDevices = activeSessions.map((s, idx) => ({
-        deviceIndex: idx + 1,
-        deviceType: s.deviceInfo?.deviceType || "Desktop",
-        os: s.deviceInfo?.os || "Windows",
-        browser: s.deviceInfo?.browser || "Chrome",
-        platform: s.deviceInfo?.platform || `${s.deviceInfo?.os || "Windows"} • ${s.deviceInfo?.browser || "Chrome"}`,
-        userAgent: s.deviceInfo?.userAgent || "Standard Browser",
-        loggedInAt: s.loggedInAt,
-        lastActiveAt: s.lastActiveAt,
-        status: "ACTIVE",
-      }));
-      return res.status(403).json({
-        message: `Admin portal is active on ${activeSessions.length} devices (maximum limit: ${MAX_ADMIN_DEVICES}). Please log out from another device first.`,
-        code: "ADMIN_DEVICE_LIMIT_REACHED",
-        activeDeviceCount: activeSessions.length,
-        maxAllowedDevices: MAX_ADMIN_DEVICES,
-        activeDevices: sanitizedDevices,
-      });
     }
 
     // Generate secure 6-digit OTP code
@@ -1943,25 +1884,6 @@ router.post("/subadmin/login", async (req, res) => {
           }
         }
       } catch {}
-    }
-
-    if (activeSessions.length >= MAX_SUBADMIN_DEVICES && !isCurrentDevice) {
-      const sanitizedDevices = activeSessions.map((s, idx) => ({
-        deviceIndex: idx + 1,
-        platform: s.deviceInfo?.platform || "Unknown",
-        userAgent: s.deviceInfo?.userAgent || "Unknown",
-        loggedInAt: s.loggedInAt,
-        lastActiveAt: s.lastActiveAt,
-        status: "ACTIVE",
-      }));
-      return res.status(403).json({
-        success: false,
-        message: `Sub-Admin portal is currently active on ${activeSessions.length} devices (maximum limit: ${MAX_SUBADMIN_DEVICES}). Please log out from another device before logging in here.`,
-        code: "SUBADMIN_DEVICE_LIMIT_REACHED",
-        activeDeviceCount: activeSessions.length,
-        maxAllowedDevices: MAX_SUBADMIN_DEVICES,
-        activeDevices: sanitizedDevices,
-      });
     }
 
     // Generate secure 6-digit OTP code
