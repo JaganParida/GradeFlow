@@ -517,16 +517,25 @@ function isSessionValid(session) {
  * Rolls expiration by 60 days if expiring within 30 days.
  */
 async function touchSession(session) {
+  if (!session || !session.isActive || !session._id) return session;
   const now = Date.now();
   if (session.lastActiveAt && (now - new Date(session.lastActiveAt).getTime()) < 15 * 60 * 1000) {
     return session;
   }
-  session.lastActiveAt = new Date(now);
+  const update = {
+    $set: {
+      lastActiveAt: new Date(now),
+    },
+  };
   const thirtyDaysFromNow = now + 30 * 24 * 60 * 60 * 1000;
   if (!session.expiresAt || new Date(session.expiresAt).getTime() < thirtyDaysFromNow) {
-    session.expiresAt = new Date(now + DEFAULT_SESSION_TTL_MS);
+    update.$set.expiresAt = new Date(now + DEFAULT_SESSION_TTL_MS);
   }
-  return session.save();
+  // Atomic query: update only if isActive is still true, preventing resurrection of revoked sessions
+  await session.constructor.updateOne({ _id: session._id, isActive: true }, update);
+  session.lastActiveAt = update.$set.lastActiveAt;
+  if (update.$set.expiresAt) session.expiresAt = update.$set.expiresAt;
+  return session;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -556,16 +565,25 @@ function isAdminSessionValid(session) {
 }
 
 async function touchAdminSession(session) {
+  if (!session || !session.isActive || !session._id) return session;
   const now = Date.now();
   if (session.lastActiveAt && (now - new Date(session.lastActiveAt).getTime()) < 15 * 60 * 1000) {
     return session;
   }
-  session.lastActiveAt = new Date(now);
+  const update = {
+    $set: {
+      lastActiveAt: new Date(now),
+    },
+  };
   const thirtyDaysFromNow = now + 30 * 24 * 60 * 60 * 1000;
   if (!session.expiresAt || new Date(session.expiresAt).getTime() < thirtyDaysFromNow) {
-    session.expiresAt = new Date(now + DEFAULT_SESSION_TTL_MS);
+    update.$set.expiresAt = new Date(now + DEFAULT_SESSION_TTL_MS);
   }
-  return session.save();
+  // Atomic query: update only if isActive is still true, preventing resurrection of revoked sessions
+  await session.constructor.updateOne({ _id: session._id, isActive: true }, update);
+  session.lastActiveAt = update.$set.lastActiveAt;
+  if (update.$set.expiresAt) session.expiresAt = update.$set.expiresAt;
+  return session;
 }
 
 async function cleanExpiredSubAdminSessions(SubAdminSession, subAdminId = null) {

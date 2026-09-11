@@ -349,17 +349,11 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
       }
 
       if (isCurrentDevice && matchedSession) {
-        await touchSession(matchedSession);
-        return res.json({
-          success: true,
-          message: "Login successful.",
-          alreadyLoggedIn: true,
-          student: {
-            regNo: rawReg,
-            studentName,
-            sessionId: matchedSession.sessionId,
-          },
-        });
+        // Session rotation on re-authentication: atomically retire old session to issue a fresh one
+        matchedSession.isActive = false;
+        matchedSession.revokedAt = new Date();
+        matchedSession.revokeReason = "SESSION_ROTATED_ON_RELOGIN";
+        await matchedSession.save();
       }
 
       // CASE B: New Device
@@ -2186,9 +2180,15 @@ const handleAdminLogout = async (req, res) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
         if (decoded?.sessionId) {
           if (decoded.adminType === "subadmin") {
-            await SubAdminSession.deleteOne({ sessionId: decoded.sessionId });
+            await SubAdminSession.updateOne(
+              { sessionId: decoded.sessionId },
+              { $set: { isActive: false, revokedAt: new Date(), revokeReason: "Admin manual logout" } }
+            );
           } else {
-            await AdminSession.deleteOne({ sessionId: decoded.sessionId });
+            await AdminSession.updateOne(
+              { sessionId: decoded.sessionId },
+              { $set: { isActive: false, revokedAt: new Date(), revokeReason: "Admin manual logout" } }
+            );
           }
         }
       } catch {}
@@ -2204,6 +2204,80 @@ const handleAdminLogout = async (req, res) => {
 
 router.post("/logout", handleAdminLogout);
 router.post("/admin/logout", handleAdminLogout);
+
+// 6. Student Logout (/api/auth/student/logout or /api/auth/logout-student)
+const handleStudentLogout = async (req, res) => {
+  try {
+    let token = req.cookies?.student_jwt;
+    if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+      token = req.headers.authorization.split(" ")[1];
+    } else if (!token && req.headers["x-student-token"]) {
+      token = req.headers["x-student-token"];
+    }
+
+    let sessionId = null;
+    let decodedRegNo = null;
+
+    if (token && token !== "none") {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        sessionId = decoded?.sessionId;
+        decodedRegNo = decoded?.regNo;
+      } catch {}
+    }
+
+    const targetReg = String(decodedRegNo || req.body?.regNo || "").toUpperCase().trim();
+    const now = new Date();
+
+    if (sessionId) {
+      await StudentSession.updateOne(
+        { sessionId },
+        {
+          $set: {
+            isActive: false,
+            loggedOutAt: now,
+            lastActiveAt: now,
+            logoutType: "student_manual",
+            revokedAt: now,
+            revokeReason: "Signed out manually by student",
+          },
+        }
+      );
+    } else if (targetReg) {
+      const clientInfo = extractRequestDeviceInfo(req);
+      const match = await StudentSession.findOne({
+        regNo: targetReg,
+        isActive: true,
+        "deviceInfo.userAgent": clientInfo.userAgent,
+      }).sort({ lastActiveAt: -1 });
+
+      if (match) {
+        await StudentSession.updateOne(
+          { _id: match._id },
+          {
+            $set: {
+              isActive: false,
+              loggedOutAt: now,
+              lastActiveAt: now,
+              logoutType: "student_manual",
+              revokedAt: now,
+              revokeReason: "Signed out manually by student",
+            },
+          }
+        );
+      }
+    }
+
+    res.clearCookie("student_jwt", getCookieOptions(req, new Date(0)));
+    return res.status(200).json({ success: true, message: "Logged out successfully from this device." });
+  } catch (err) {
+    console.error("Student logout error:", err);
+    return res.status(500).json({ success: false, message: "Server error during student logout." });
+  }
+};
+
+router.post("/student/logout", handleStudentLogout);
+router.post("/logout-student", handleStudentLogout);
 
 // Realtime Token Route (Dev/Fallback)
 router.all("/realtime-token", async (req, res) => {

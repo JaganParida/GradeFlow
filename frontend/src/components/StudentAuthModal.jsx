@@ -607,11 +607,6 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       return;
     }
 
-    if (status?.isCurrentDevice && status?.hasPassword) {
-      navigateToDestination(cleanReg);
-      return;
-    }
-
     setErrorMsg("");
     setErrorCode("");
 
@@ -636,10 +631,6 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     setLoading(false);
 
     if (result.success) {
-      if (result.data?.alreadyLoggedIn && deviceStatus?.hasPassword) {
-        navigateToDestination(cleanReg);
-        return;
-      }
       setMaskedEmail(result.data?.maskedEmail || `${cleanReg.toLowerCase()}@centurionuniv.edu.in`);
       setStudentName(result.data?.studentName || "Student");
       setAttemptsUsed(result.data?.attemptsUsedToday ?? 1);
