@@ -474,38 +474,32 @@ export default function AccessDeniedPage() {
           transition={{ duration: 0.3, delay: 0.3 }}
           className="gf-403-actions"
         >
-          {isAdminRoute && !adminToken ? (
-            <Link
-              to="/admin/login"
-              className="gf-403-btn gf-403-btn-primary gf-403-btn-admin"
-            >
-              <Lock size={15} />
-              <span>Admin Portal Login</span>
-              <ArrowRight size={14} />
-            </Link>
-          ) : hasActiveSession ? (
-            <Link
-              to={`/dashboard/${encodeStudentId(currentRegNo)}`}
-              className="gf-403-btn gf-403-btn-primary"
-            >
-              <GraduationCap size={15} />
-              <span>Go to Student Dashboard</span>
-              <ArrowRight size={14} />
-            </Link>
-          ) : (
-            <button
-              onClick={() => openStudentAuthModal()}
-              className="gf-403-btn gf-403-btn-primary"
-            >
-              <GraduationCap size={15} />
-              <span>Student Portal Login</span>
-              <ArrowRight size={14} />
-            </button>
+          {!isAdminRoute && (
+            hasActiveSession ? (
+              <Link
+                to={`/dashboard/${encodeStudentId(currentRegNo)}`}
+                className="gf-403-btn gf-403-btn-primary"
+              >
+                <GraduationCap size={15} />
+                <span>Go to Student Dashboard</span>
+                <ArrowRight size={14} />
+              </Link>
+            ) : (
+              <button
+                onClick={() => openStudentAuthModal()}
+                className="gf-403-btn gf-403-btn-primary"
+              >
+                <GraduationCap size={15} />
+                <span>Student Portal Login</span>
+                <ArrowRight size={14} />
+              </button>
+            )
           )}
 
           <Link
             to="/"
             className="gf-403-btn gf-403-btn-secondary"
+            style={isAdminRoute ? { minWidth: "200px" } : {}}
           >
             <HomeIcon size={15} />
             <span>Return to Home</span>

@@ -196,14 +196,26 @@ function ProtectedRoute({ children }) {
 }
 
 function AdminRouteGuard({ children, allowGate = false }) {
-  const { adminToken, authChecking, adminAuthStatus } = useApp();
+  const { adminToken, authChecking, adminAuthStatus, isAdminButtonVisible } = useApp();
 
   if (authChecking || adminAuthStatus === "AUTH_ERROR") {
     return <DashboardSkeleton />;
   }
 
-  // For /admin/dashboard: strictly requires active admin authorization
+  // If already authenticated as admin:
+  // Visiting the login gate (/admin, /admin/login) redirects straight to the dashboard
+  if (adminToken && allowGate) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  // For protected admin pages (/admin/dashboard, /admin/traffic, etc.): strictly requires active admin authorization
   if (!allowGate && !adminToken) {
+    return <UnauthorizedState />;
+  }
+
+  // For the login gate (/admin, /admin/login):
+  // If 2 devices are already logged in (button hidden), unauthorized users cannot access login
+  if (allowGate && !adminToken && !isAdminButtonVisible) {
     return <UnauthorizedState />;
   }
 

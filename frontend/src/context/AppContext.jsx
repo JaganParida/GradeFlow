@@ -444,15 +444,26 @@ export function AppProvider({ children }) {
         localStorage.removeItem(key);
         sessionStorage.removeItem(key);
       });
-      const lastSessionId = typeof window !== "undefined"
-        ? localStorage.getItem("gf_admin_active_session") || localStorage.getItem("gf_admin_last_session") || ""
-        : "";
+      const activeSessionId = adminProfile?.sessionId || (
+        typeof window !== "undefined"
+          ? localStorage.getItem("gf_admin_active_session") || localStorage.getItem("gf_admin_last_session") || ""
+          : ""
+      );
       try {
         localStorage.removeItem("gf_admin_last_session");
         localStorage.removeItem("gf_admin_active_session");
         localStorage.removeItem("gf_admin_logged_in");
       } catch (_) {}
-      await axios.post(`${API_BASE}/auth/admin/logout`, { sessionId: lastSessionId }, { withCredentials: true });
+      await axios.post(
+        `${API_BASE}/auth/admin/logout`,
+        { sessionId: activeSessionId },
+        {
+          headers: {
+            "x-admin-last-session": activeSessionId,
+          },
+          withCredentials: true,
+        }
+      );
     } catch (err) {
       console.warn("Logout error:", err.message);
     } finally {
@@ -461,50 +472,31 @@ export function AppProvider({ children }) {
       setIsAdminButtonVisible(true);
       navigate("/admin");
     }
-  }, [navigate]);
+  }, [adminProfile, navigate]);
 
   const logoutAdmin = adminLogout;
 
-  // ─── Active Admin Ably Realtime Handover & Liveness Heartbeat ────
-  const lastAdminSyncRef = useRef(Date.now());
-
+  // ─── Active Admin Ably Realtime Event Subscriptions (Zero Polling) ────
   useEffect(() => {
     if (!adminToken) return;
 
     let adminAbly = null;
     let adminChannel = null;
 
-    // Active admin heartbeat to MongoDB (refreshes lastActiveAt every 30s)
-    const sendHeartbeat = async () => {
-      try {
-        const hRes = await axios.get(`${API_BASE}/auth/admin/heartbeat`, {
-          withCredentials: true,
-          timeout: 4000,
-        });
-        if (hRes.data && hRes.data.alive === false) {
-          adminLogout();
-        }
-      } catch (err) {
-        if (err.response?.status === 401) {
-          // Cookies were deleted in DevTools while tab was open!
-          adminLogout();
-        }
-      }
-    };
-
-    const heartbeatInterval = setInterval(sendHeartbeat, 30000);
-
     try {
       adminAbly = createAdminAblyRealtime();
       adminChannel = adminAbly.channels.get("admin-control");
 
+      // Targeted session revocation: only log out if this specific session was revoked
       adminChannel.subscribe("session-revoked", (msg) => {
-        console.warn("[AdminAbly] Received session-revoked event:", msg?.data);
-        adminLogout();
-      });
-
-      adminChannel.subscribe("admin-logout", () => {
-        adminLogout();
+        const mySessionId = adminProfile?.sessionId || (
+          typeof window !== "undefined" ? localStorage.getItem("gf_admin_active_session") : null
+        );
+        const targetRevoked = msg?.data?.sessionId || msg?.data?.revokedSessionId;
+        if (targetRevoked && mySessionId && targetRevoked === mySessionId) {
+          console.warn("[AdminAbly] This device session was revoked:", msg?.data);
+          adminLogout();
+        }
       });
 
       // ── Realtime Event-Driven Cache Invalidation Subscriptions ──
@@ -538,27 +530,11 @@ export function AppProvider({ children }) {
       console.warn("[AdminAbly] Connection init warning:", err?.message || err);
     }
 
-    // Tab Visibility: Ensure WebSocket connection remains live & touch session immediately
-    const handleAdminVisibility = () => {
-      if (document.visibilityState === "visible") {
-        sendHeartbeat();
-        if (adminAbly && adminAbly.connection.state !== "connected") {
-          try {
-            adminAbly.connection.connect();
-          } catch {}
-        }
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleAdminVisibility);
-
     return () => {
-      clearInterval(heartbeatInterval);
-      document.removeEventListener("visibilitychange", handleAdminVisibility);
       if (adminChannel) adminChannel.unsubscribe();
       if (adminAbly) adminAbly.close();
     };
-  }, [adminToken, adminLogout]);
+  }, [adminToken, adminProfile, adminLogout]);
 
   // ─── Student In-App Notifications & Realtime SSE Stream ──────────
   const [notifications, setNotifications] = useState([]);
@@ -824,10 +800,10 @@ export function AppProvider({ children }) {
       // C. Listen for session revocation (when another device is approved)
       studentChannel.subscribe("session-revoked", (msg) => {
         if (!isMounted || !msg?.data) return;
-        const { revokedSessionId, message } = msg.data;
-        if (!revokedSessionId || revokedSessionId === studentSession.sessionId) {
+        const targetRevokedId = msg.data.revokedSessionId || msg.data.sessionId;
+        if (targetRevokedId && studentSession?.sessionId && targetRevokedId === studentSession.sessionId) {
           setSessionRevokedNotice(
-            message || "Your session ended because your account was approved on another device."
+            msg.data.message || "Your session ended because your account was approved on another device."
           );
           setStudentSession(null);
           setStudentData(null);
@@ -1033,7 +1009,10 @@ export function AppProvider({ children }) {
       }
       return { success: false, error: res.data?.message || "Verification failed." };
     } catch (err) {
-      const msg = err.response?.data?.message || "Invalid or expired OTP. Please try again.";
+      let msg = err.response?.data?.message || "Invalid or expired OTP. Please try again.";
+      if (err.response?.status >= 500 || String(msg).toLowerCase().includes("internal server error")) {
+        msg = "Authentication service temporarily busy. Please try again.";
+      }
       const code = err.response?.data?.code || "VERIFY_ERROR";
       const details = err.response?.data || {};
       setError(msg);
@@ -1083,7 +1062,10 @@ export function AppProvider({ children }) {
       }
       return { success: false, error: res.data?.message || "Login failed." };
     } catch (err) {
-      const msg = err.response?.data?.message || "Incorrect password. Please try again.";
+      let msg = err.response?.data?.message || err.response?.data?.error;
+      if (!msg || err.response?.status >= 500 || String(msg).toLowerCase().includes("internal server error")) {
+        msg = "Authentication service temporarily busy. Please try again.";
+      }
       const code = err.response?.data?.code || "AUTH_ERROR";
       const details = err.response?.data || {};
       setError(msg);
@@ -1197,7 +1179,10 @@ export function AppProvider({ children }) {
   const studentLogout = async () => {
     setIsLoggingOut(true);
 
-    // 1. Immediately wipe in-memory state
+    const activeSessionId = studentSession?.sessionId || "";
+    const reg = studentSession?.regNo || studentData?.regNo || "";
+
+    // 1. Immediately wipe in-memory state for this device
     setStudentSession(null);
     setStudentData(null);
     setNotifications([]);
@@ -1213,13 +1198,15 @@ export function AppProvider({ children }) {
       });
     } catch {}
 
-    // 2. Clear session on server
+    // 2. Clear ONLY this device's session on server
     try {
-      const reg = studentSession?.regNo || studentData?.regNo || "";
       await axios.post(
         `${API_BASE}/auth/student/logout`,
-        { regNo: reg },
+        { regNo: reg, sessionId: activeSessionId },
         {
+          headers: {
+            "x-student-session": activeSessionId,
+          },
           withCredentials: true,
         }
       );
@@ -1247,7 +1234,10 @@ export function AppProvider({ children }) {
       }
       return { success: true };
     } catch (err) {
-      const msg = err.response?.data?.message || "Invalid administrative password. Access denied.";
+      let msg = err.response?.data?.message || err.response?.data?.error;
+      if (!msg || err.response?.status >= 500 || String(msg).toLowerCase().includes("internal server error")) {
+        msg = "Authentication service temporarily busy. Please try again.";
+      }
       const code = err.response?.data?.code || "AUTH_ERROR";
       const details = err.response?.data || {};
       setError(msg);
@@ -1279,7 +1269,10 @@ export function AppProvider({ children }) {
       setError(msg);
       return { success: false, error: msg };
     } catch (err) {
-      const msg = err.response?.data?.message || "Invalid or expired verification code.";
+      let msg = err.response?.data?.message || "Invalid or expired verification code.";
+      if (err.response?.status >= 500 || String(msg).toLowerCase().includes("internal server error")) {
+        msg = "Authentication service temporarily busy. Please try again.";
+      }
       const code = err.response?.data?.code || "VERIFY_ERROR";
       setError(msg);
       return { success: false, error: msg, code };
@@ -1302,6 +1295,12 @@ export function AppProvider({ children }) {
       if (res.data?.alreadyLoggedIn) {
         setAdminToken(true);
         setAdminProfile(res.data);
+        if (res.data?.sessionId && typeof window !== "undefined") {
+          try {
+            localStorage.setItem("gf_admin_active_session", res.data.sessionId);
+            localStorage.setItem("gf_admin_logged_in", "true");
+          } catch (_) {}
+        }
         return { success: true, alreadyLoggedIn: true, subAdmin: res.data };
       }
       if (res.data?.step === "OTP_REQUIRED") {
@@ -1318,11 +1317,20 @@ export function AppProvider({ children }) {
       if (res.data?.success && res.data?.authenticated) {
         setAdminToken(true);
         setAdminProfile(res.data);
+        if (res.data?.sessionId && typeof window !== "undefined") {
+          try {
+            localStorage.setItem("gf_admin_active_session", res.data.sessionId);
+            localStorage.setItem("gf_admin_logged_in", "true");
+          } catch (_) {}
+        }
         return { success: true, subAdmin: res.data };
       }
       return { success: false, message: res.data?.message || "Sub-Admin login failed" };
     } catch (err) {
-      const msg = err.response?.data?.message || "Invalid Sub-Admin credentials.";
+      let msg = err.response?.data?.message || err.response?.data?.error;
+      if (!msg || err.response?.status >= 500 || String(msg).toLowerCase().includes("internal server error")) {
+        msg = "Authentication service temporarily busy. Please try again.";
+      }
       const code = err.response?.data?.code || "SUBADMIN_AUTH_ERROR";
       const details = err.response?.data || {};
       setError(msg);
@@ -1340,13 +1348,22 @@ export function AppProvider({ children }) {
       if (res.data?.success && res.data?.authenticated) {
         setAdminToken(true);
         setAdminProfile(res.data);
+        if (res.data?.sessionId && typeof window !== "undefined") {
+          try {
+            localStorage.setItem("gf_admin_active_session", res.data.sessionId);
+            localStorage.setItem("gf_admin_logged_in", "true");
+          } catch (_) {}
+        }
         return { success: true, subAdmin: res.data };
       }
       const msg = res.data?.message || "Sub-Admin OTP verification failed.";
       setError(msg);
       return { success: false, error: msg };
     } catch (err) {
-      const msg = err.response?.data?.message || "Invalid or expired verification code.";
+      let msg = err.response?.data?.message || "Invalid or expired verification code.";
+      if (err.response?.status >= 500 || String(msg).toLowerCase().includes("internal server error")) {
+        msg = "Authentication service temporarily busy. Please try again.";
+      }
       const code = err.response?.data?.code || "VERIFY_ERROR";
       const remainingAttempts = err.response?.data?.remainingAttempts;
       setError(msg);

@@ -962,13 +962,20 @@ module.exports = async function handler(req, res) {
         studentAccount.failedPasswordAttempts = 0;
         studentAccount.lockedUntil = null;
         studentAccount.lastFailedPasswordAt = null;
-        await studentAccount.save();
+        await Student.updateOne(
+          { _id: studentAccount._id },
+          { $set: { failedPasswordAttempts: 0, lockedUntil: null, lastFailedPasswordAt: null } }
+        );
       }
 
       // If already at or above 3 failed attempts without future timestamp, lock for 15 minutes now
       if ((studentAccount.failedPasswordAttempts || 0) >= 3) {
-        studentAccount.lockedUntil = new Date(Date.now() + 15 * 60 * 1000);
-        await studentAccount.save();
+        const lockoutDate = new Date(Date.now() + 15 * 60 * 1000);
+        studentAccount.lockedUntil = lockoutDate;
+        await Student.updateOne(
+          { _id: studentAccount._id },
+          { $set: { lockedUntil: lockoutDate } }
+        );
         return res.status(429).json({
           success: false,
           code: "ACCOUNT_TEMPORARILY_LOCKED",
@@ -988,7 +995,10 @@ module.exports = async function handler(req, res) {
         studentAccount.failedPasswordAttempts = 0;
         studentAccount.lastFailedPasswordAt = null;
         studentAccount.lockedUntil = null;
-        await studentAccount.save();
+        await Student.updateOne(
+          { _id: studentAccount._id },
+          { $set: { failedPasswordAttempts: 0, lastFailedPasswordAt: null, lockedUntil: null } }
+        );
 
         let incomingToken = req.headers["x-student-token"] || cookies.student_jwt;
         if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
@@ -1075,6 +1085,7 @@ module.exports = async function handler(req, res) {
               await oldest.save();
               publishStudentRealtimeEvent(rawReg, "session-revoked", {
                 sessionId: oldest.sessionId,
+                revokedSessionId: oldest.sessionId,
                 reason: "REPLACED_BY_NEW_DEVICE",
                 message: "Your session was terminated because this account was logged into on another device.",
               }).catch(() => {});
@@ -1117,8 +1128,18 @@ module.exports = async function handler(req, res) {
       studentAccount.lastFailedPasswordAt = new Date();
 
       if (studentAccount.failedPasswordAttempts >= 3) {
-        studentAccount.lockedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15-minute temporary lockout
-        await studentAccount.save();
+        const lockoutDate = new Date(Date.now() + 15 * 60 * 1000); // 15-minute temporary lockout
+        studentAccount.lockedUntil = lockoutDate;
+        await Student.updateOne(
+          { _id: studentAccount._id },
+          {
+            $set: {
+              failedPasswordAttempts: studentAccount.failedPasswordAttempts,
+              lastFailedPasswordAt: studentAccount.lastFailedPasswordAt,
+              lockedUntil: lockoutDate,
+            },
+          }
+        );
 
         return res.status(429).json({
           success: false,
@@ -1131,7 +1152,15 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      await studentAccount.save();
+      await Student.updateOne(
+        { _id: studentAccount._id },
+        {
+          $set: {
+            failedPasswordAttempts: studentAccount.failedPasswordAttempts,
+            lastFailedPasswordAt: studentAccount.lastFailedPasswordAt,
+          },
+        }
+      );
       const remainingAttempts = Math.max(0, 3 - studentAccount.failedPasswordAttempts);
 
       return res.status(401).json({
@@ -1444,6 +1473,7 @@ module.exports = async function handler(req, res) {
                     adminType: "subadmin",
                     name: subAdmin.name || decoded.name,
                     email: subAdmin.email || decoded.email,
+                    sessionId: decoded.sessionId,
                     permissions: subAdmin.permissions || { routes: [], sections: [], actions: [] },
                   };
                 }
@@ -1458,6 +1488,7 @@ module.exports = async function handler(req, res) {
                   adminType: "main",
                   name: "Main Administrator",
                   email: decoded.email || process.env.ADMIN_EMAIL,
+                  sessionId: decoded.sessionId,
                   permissions: { routes: ["*"], sections: ["*"], actions: ["*"] },
                 };
               }
@@ -1495,7 +1526,17 @@ module.exports = async function handler(req, res) {
               },
             }
           );
-          if (orphanedSession) {
+          const orphanedSubSession = await SubAdminSession.findOneAndUpdate(
+            { sessionId: clientLastSession, isActive: true },
+            {
+              $set: {
+                isActive: false,
+                revokedAt: new Date(),
+                revokeReason: "COOKIE_CLEARED_BY_CLIENT",
+              },
+            }
+          );
+          if (orphanedSession || orphanedSubSession) {
             sessionWasRevoked = true;
           }
         } catch (_) {}
@@ -1636,6 +1677,10 @@ module.exports = async function handler(req, res) {
           sessionId = decoded?.sessionId;
           decodedRegNo = decoded?.regNo;
         } catch {}
+      }
+
+      if (!sessionId) {
+        sessionId = req.headers["x-student-session"] || req.body?.sessionId || null;
       }
 
       const targetReg = String(decodedRegNo || regNoFromBody || "").toUpperCase().trim();
@@ -1920,7 +1965,16 @@ module.exports = async function handler(req, res) {
       await AdminOtpVerification.create({ otpHash, expiresAt, attempts: 0 });
 
       const recipientEmail = targetRecipientEmail || matchedAdminDoc?.email || process.env.ADMIN_EMAIL || "jaganparida35@gmail.com";
-      await sendAdminOtpEmail({ to: recipientEmail, otp, expiresInMinutes: 5 });
+      try {
+        await sendAdminOtpEmail({ to: recipientEmail, otp, expiresInMinutes: 5 });
+      } catch (emailErr) {
+        console.error("Admin OTP email send failure:", emailErr?.message || emailErr);
+        return res.status(503).json({
+          success: false,
+          code: "EMAIL_SERVICE_UNAVAILABLE",
+          message: "Unable to dispatch verification email at this moment. Please wait a few seconds and try again.",
+        });
+      }
 
       return res.json({
         success: true,
@@ -2075,7 +2129,16 @@ module.exports = async function handler(req, res) {
       await SubAdminOtpVerification.deleteMany({ email: subAdmin.email });
       await SubAdminOtpVerification.create({ email: subAdmin.email, otpHash, expiresAt, attempts: 0 });
 
-      await sendSubAdminOtpEmail({ to: subAdmin.email, name: subAdmin.name, otp, expiresInMinutes: 5 });
+      try {
+        await sendSubAdminOtpEmail({ to: subAdmin.email, name: subAdmin.name, otp, expiresInMinutes: 5 });
+      } catch (emailErr) {
+        console.error("Sub-Admin OTP email send failure:", emailErr?.message || emailErr);
+        return res.status(503).json({
+          success: false,
+          code: "EMAIL_SERVICE_UNAVAILABLE",
+          message: "Unable to dispatch verification email at this moment. Please wait a few seconds and try again.",
+        });
+      }
 
       return res.json({
         success: true,
@@ -2249,17 +2312,14 @@ module.exports = async function handler(req, res) {
 
       if (targetSessionId) {
         try {
-          if (isAdminTypeSub) {
-            await SubAdminSession.updateOne(
-              { sessionId: targetSessionId },
-              { $set: { isActive: false, revokedAt: new Date(), revokeReason: "Admin manual logout" } }
-            );
-          } else {
-            await AdminSession.updateOne(
-              { sessionId: targetSessionId },
-              { $set: { isActive: false, revokedAt: new Date(), revokeReason: "Admin manual logout" } }
-            );
-          }
+          await AdminSession.updateOne(
+            { sessionId: targetSessionId },
+            { $set: { isActive: false, revokedAt: new Date(), revokeReason: "Admin manual logout" } }
+          );
+          await SubAdminSession.updateOne(
+            { sessionId: targetSessionId },
+            { $set: { isActive: false, revokedAt: new Date(), revokeReason: "Admin manual logout" } }
+          );
         } catch {}
       }
 

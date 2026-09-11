@@ -14,10 +14,10 @@ const studentSchema = new mongoose.Schema(
     lastFailedPasswordAt: { type: Date, default: null },
     lockedUntil: { type: Date, default: null },
     lastEmailSentAt: { type: Date },
-    lastEmailStatus: { type: String, enum: ['SUCCESS', 'FAILED'] },
+    lastEmailStatus: { type: String, default: null },
     lastEmailError: { type: String },
     lastTopperEmailSentAt: { type: Date },
-    lastTopperEmailStatus: { type: String, enum: ['SUCCESS', 'FAILED'] },
+    lastTopperEmailStatus: { type: String, default: null },
     lastTopperEmailError: { type: String }
   },
   { timestamps: true }
