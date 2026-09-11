@@ -122,12 +122,31 @@ async function publishAdminRealtimeEvent(eventName, payload) {
   await Promise.allSettled([p1, p2]);
 }
 
+/**
+ * Creates a signed Ably TokenRequest with scoped capabilities.
+ * Eliminates the need to expose root API keys to client browsers.
+ */
+async function createRealtimeTokenRequest(options = {}) {
+  const { clientId = "anonymous", capabilities = {}, regNo = null } = options;
+  const client = regNo ? getClientForRegNo(regNo) : getClient1();
+  if (!client) {
+    throw new Error("Ably client not available");
+  }
+
+  return client.auth.createTokenRequest({
+    clientId: String(clientId),
+    capability: JSON.stringify(capabilities),
+    ttl: 3600 * 1000, // 1 hour token lifetime
+  });
+}
+
 module.exports = {
   getClientForRegNo,
   publishStudentRealtimeEvent,
   publishApprovalRealtimeEvent,
   broadcastRealtimeEvent,
   publishAdminRealtimeEvent,
+  createRealtimeTokenRequest,
   ABLY_KEY_1,
   ABLY_KEY_2,
 };

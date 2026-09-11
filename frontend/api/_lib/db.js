@@ -19,8 +19,10 @@ async function connectToDatabase() {
     const opts = {
       bufferCommands: false,
       maxPoolSize: 10,
+      minPoolSize: 0,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
+      heartbeatFrequencyMS: 10000,
     };
     cached.promise = mongoose.connect(MONGO_URI, opts).then((mongooseInstance) => {
       return mongooseInstance;
@@ -31,6 +33,7 @@ async function connectToDatabase() {
     cached.conn = await cached.promise;
   } catch (e) {
     cached.promise = null;
+    cached.conn = null;
     throw e;
   }
 

@@ -360,6 +360,14 @@
       "destination": "/api/auth.js?action=student-transfer-session"
     },
     {
+      "source": "/api/auth/student/complete-approval",
+      "destination": "/api/auth.js?action=student-complete-approval"
+    },
+    {
+      "source": "/api/auth/realtime-token",
+      "destination": "/api/auth.js?action=realtime-token"
+    },
+    {
       "source": "/api/auth/student/approval-status/:id",
       "destination": "/api/auth.js?action=student-approval-status&id=:id"
     },

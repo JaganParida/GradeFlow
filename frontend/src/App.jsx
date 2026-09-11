@@ -221,6 +221,7 @@ export default function App() {
     studentSession,
     studentData,
     adminToken,
+    adminLogout,
   } = useApp();
 
   const { queueState, leaveQueue, isAuthorizedAdmin } = useTrafficTracker({
@@ -243,6 +244,8 @@ export default function App() {
           url.includes("/auth/student") ||
           url.includes("student-send-otp") ||
           url.includes("student-verify-otp") ||
+          url.includes("student-login-password") ||
+          url.includes("student-create-password") ||
           url.includes("student-me");
 
         if (error.response && error.response.status === 429 && !isStudentAuthRoute) {
@@ -252,17 +255,37 @@ export default function App() {
           );
         }
 
-        // Gracefully handle 401 Session Revocation / Termination on any student route
-        if (error.response && error.response.status === 401 && !isStudentAuthRoute) {
-          const code = error.response.data?.code;
-          const msg = error.response.data?.message || "";
-          if (code === "SESSION_TERMINATED" || msg.includes("logged out") || msg.includes("Session ended")) {
-            setStudentSession(null);
-            setStudentData(null);
-            setSessionRevokedNotice(
-              "Your session ended because your account was logged in or transferred to another device."
-            );
-            navigate("/", { replace: true });
+        // Distinct handling for Admin vs Student 401 errors
+        if (error.response && error.response.status === 401) {
+          const isAdminRoute = url.includes("/admin") || url.includes("/subadmin");
+          const isStudentRoute =
+            url.includes("/student") ||
+            url.includes("/attendance") ||
+            url.includes("/timetable") ||
+            url.includes("/results");
+
+          if (isAdminRoute) {
+            // Admin 401: clear admin session without evicting student state
+            if (typeof adminLogout === "function") {
+              adminLogout();
+            }
+          } else if (isStudentRoute && !isStudentAuthRoute) {
+            // Student 401: evict student state only when confirmed student route
+            const code = error.response.data?.code;
+            const msg = error.response.data?.message || "";
+            if (
+              code === "SESSION_TERMINATED" ||
+              msg.includes("logged out") ||
+              msg.includes("Session ended") ||
+              msg.includes("Session expired")
+            ) {
+              setStudentSession(null);
+              setStudentData(null);
+              setSessionRevokedNotice(
+                "Your session ended because your account was logged in or transferred to another device."
+              );
+              navigate("/", { replace: true });
+            }
           }
         }
 
@@ -273,7 +296,7 @@ export default function App() {
     return () => {
       axios.interceptors.response.eject(interceptor);
     };
-  }, [setSessionRevokedNotice, setStudentSession, setStudentData, navigate]);
+  }, [setSessionRevokedNotice, setStudentSession, setStudentData, adminLogout, navigate]);
 
   return (
     <ErrorBoundary>

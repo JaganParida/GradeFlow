@@ -30,6 +30,8 @@ const studentSessionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-studentSessionSchema.index({ regNo: 1, isActive: 1 });
+studentSessionSchema.index({ regNo: 1, isActive: 1, expiresAt: 1 });
+studentSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+studentSessionSchema.index({ revokedAt: 1 }, { expireAfterSeconds: 30 * 24 * 3600, sparse: true });
 
 module.exports = mongoose.models.StudentSession || mongoose.model("StudentSession", studentSessionSchema);

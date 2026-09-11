@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useApp, API_BASE } from "../context/AppContext";
 import axios from "axios";
 import { encodeStudentId } from "../utils/studentIdEncoder";
-import { createAblyRealtime } from "../services/ablyClient";
+import { createAblyRealtime, createApprovalAblyRealtime } from "../services/ablyClient";
 import {
   GraduationCap,
   Mail,
@@ -30,6 +30,7 @@ import {
   Check,
   ShieldAlert,
   Shield,
+  ArrowRightLeft,
 } from "lucide-react";
 import BlockedLoginDeviceModal from "./BlockedLoginDeviceModal";
 
@@ -41,6 +42,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     studentLoginPassword,
     studentCreatePassword,
     studentTransferSession,
+    studentCompleteApproval,
     checkApprovalStatus,
     cancelApprovalRequest,
     studentData,
@@ -145,6 +147,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
   // Approval Request States
   const [approvalRequestId, setApprovalRequestId] = useState("");
+  const [approvalExchangeSecret, setApprovalExchangeSecret] = useState("");
   const [approvalActiveDevice, setApprovalActiveDevice] = useState(null);
   const [approvalTimerSeconds, setApprovalTimerSeconds] = useState(180);
 
@@ -443,17 +446,24 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         clearInterval(timerInterval);
         clearInterval(pollInterval);
         setStatusNotice("Approval granted! Setting up your session...");
-        const res = await checkApprovalStatus(approvalRequestId);
+        let res = null;
+        if (approvalExchangeSecret) {
+          res = await studentCompleteApproval(approvalRequestId, approvalExchangeSecret);
+        } else {
+          res = await checkApprovalStatus(approvalRequestId);
+        }
         if (res?.success) {
           setTimeout(() => {
             navigateToDestination(cleanReg);
           }, 350);
+        } else {
+          setErrorMsg(res?.error || res?.message || "Failed to finalize session.");
         }
       };
 
-      // 2. Connect to Ably Realtime using student's deterministic partition
+      // 2. Connect to Ably Realtime using scoped approval token request
       try {
-        ably = createAblyRealtime(cleanReg);
+        ably = createApprovalAblyRealtime(approvalRequestId);
         approvalChannel = ably.channels.get(`approval-${approvalRequestId}`);
 
         approvalChannel.subscribe("approval-status", (msg) => {
@@ -478,9 +488,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         console.warn("[Ably] Fallback to poll:", err?.message || err);
       }
 
-      // 3. Ultra-relaxed fallback poll (12s instead of 1.5s) in case of socket drop
+      // 3. Fallback poll in case of socket disconnect
       const pollStatus = async () => {
-        const res = await checkApprovalStatus(approvalRequestId);
+        const res = await checkApprovalStatus(approvalRequestId, approvalExchangeSecret);
         if (res?.status === "APPROVED" && res?.success) {
           handleApprovalComplete();
         } else if (res?.status === "DENIED") {
@@ -496,7 +506,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         }
       };
 
-      pollInterval = setInterval(pollStatus, 12000);
+      pollInterval = setInterval(pollStatus, 10000);
 
       // 4. Immediate sync on tab resume / visibility change (keep socket alive in background)
       const handleVisibilityChange = () => {
@@ -670,6 +680,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     if (result.step === "APPROVAL_PENDING") {
       // Normal student on 2nd device: Device Approval Request Triggered! (Section 11-13)
       setApprovalRequestId(result.requestId);
+      setApprovalExchangeSecret(result.exchangeSecret || "");
       setApprovalActiveDevice(result.activeDevice);
       setApprovalTimerSeconds(result.expiresInSeconds || 180);
       setStep("APPROVAL_PENDING");
@@ -703,6 +714,30 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         setBlockedDevicesData(devs);
         setIsBlockedModalOpen(true);
       }
+    }
+  };
+
+  const handleSessionTakeover = async () => {
+    if (!password) {
+      setStep("PASSWORD");
+      setErrorMsg("Please enter your password to take over the session.");
+      return;
+    }
+    setLoading(true);
+    setErrorMsg("");
+    setErrorCode("");
+    try {
+      const result = await studentTransferSession(cleanReg, password);
+      setLoading(false);
+      if (result.success) {
+        navigateToDestination(cleanReg);
+      } else {
+        setErrorMsg(result.error || "Failed to transfer session to this device.");
+        setErrorCode(result.code || "TRANSFER_FAILED");
+      }
+    } catch (err) {
+      setLoading(false);
+      setErrorMsg("An error occurred during session takeover.");
     }
   };
 
@@ -1564,6 +1599,31 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   </div>
                 </>
               )}
+
+              <button
+                type="button"
+                onClick={handleSessionTakeover}
+                disabled={loading}
+                style={{
+                  background: "#2563eb",
+                  border: "none",
+                  borderRadius: 10,
+                  padding: "11px 16px",
+                  color: "#ffffff",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: loading ? "not-allowed" : "pointer",
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  boxShadow: "0 2px 4px rgba(37, 99, 235, 0.2)",
+                }}
+              >
+                {loading ? <Loader2 size={15} className="spin" /> : <ArrowRightLeft size={15} />}
+                <span>Take Over Session & Log In on this Device</span>
+              </button>
 
               <button
                 type="button"

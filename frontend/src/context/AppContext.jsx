@@ -925,6 +925,7 @@ export function AppProvider({ children }) {
           requestId: res.data.requestId,
           activeDevice: res.data.activeDevice,
           expiresInSeconds: res.data.expiresInSeconds || 180,
+          exchangeSecret: res.data.exchangeSecret,
           message: res.data.message,
           student: res.data.student,
         };
@@ -962,9 +963,11 @@ export function AppProvider({ children }) {
     }
   };
 
-  const checkApprovalStatus = async (requestId) => {
+  const checkApprovalStatus = async (requestId, exchangeSecret = null) => {
     try {
+      const params = exchangeSecret ? { exchangeSecret } : {};
       const res = await axios.get(`${API_BASE}/auth/student/approval-status/${requestId}`, {
+        params,
         withCredentials: true,
       });
       if (res.data?.success && res.data?.status === "APPROVED" && res.data?.student) {
@@ -978,6 +981,28 @@ export function AppProvider({ children }) {
         success: false,
         status: "ERROR",
         message: err.response?.data?.message || "Failed to check approval status.",
+      };
+    }
+  };
+
+  const studentCompleteApproval = async (requestId, exchangeSecret) => {
+    try {
+      const res = await axios.post(
+        `${API_BASE}/auth/student/complete-approval`,
+        { requestId, exchangeSecret },
+        { withCredentials: true }
+      );
+      if (res.data?.success && res.data?.student) {
+        setStudentSession(res.data.student);
+        await fetchStudent(res.data.student.regNo, 3, 500, true);
+        return { success: true, status: "COMPLETED", student: res.data.student };
+      }
+      return res.data;
+    } catch (err) {
+      return {
+        success: false,
+        error: err.response?.data?.message || "Failed to complete device approval.",
+        code: err.response?.data?.code || "COMPLETE_APPROVAL_ERROR",
       };
     }
   };
@@ -1432,6 +1457,7 @@ export function AppProvider({ children }) {
         markNotificationsRead,
         handleNotificationAction,
         checkApprovalStatus,
+        studentCompleteApproval,
         cancelApprovalRequest,
         sessionRevokedNotice,
         setSessionRevokedNotice,
