@@ -235,6 +235,9 @@ module.exports = async function handler(req, res) {
       else if (cleanUrl.includes("realtime-token")) action = "realtime-token";
       else if (cleanUrl.includes("subadmin/verify-otp")) action = "subadmin-verify-otp";
       else if (cleanUrl.includes("subadmin/login")) action = "subadmin-login";
+      else if (cleanUrl.includes("bootstrap")) action = "bootstrap";
+      else if (cleanUrl.includes("admin/release-session") || cleanUrl.includes("release-session")) action = "admin-release-session";
+      else if (cleanUrl.includes("admin/heartbeat") || cleanUrl.includes("heartbeat")) action = "admin-heartbeat";
       else if (cleanUrl.includes("admin/login-password") || cleanUrl.endsWith("/login")) action = "admin-login-password";
       else if (cleanUrl.includes("admin/verify-otp")) action = "admin-verify-otp";
       else if (cleanUrl.includes("admin/check-status")) action = "admin-check-status";
@@ -331,7 +334,19 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      return res.status(401).json({ success: false, message: "Unauthorized for realtime connection." });
+      // 4. Anonymous / Public Guest Client (Broadcast announcements & admin button status only)
+      try {
+        const { createRealtimeTokenRequest } = require("./_lib/ablyService");
+        const tokenRequest = await createRealtimeTokenRequest({
+          clientId: "guest-" + crypto.randomUUID().slice(0, 8),
+          capabilities: {
+            "broadcasts-all": ["subscribe"],
+          },
+        });
+        return res.json(tokenRequest);
+      } catch (err) {
+        return res.status(500).json({ success: false, message: "Realtime token generation failed." });
+      }
     }
 
     /* ═══════════════════════════════════════════════════════════════════
@@ -1465,9 +1480,30 @@ module.exports = async function handler(req, res) {
         },
       };
 
+      // Check if client previously had an admin session on this device but cookies were cleared
+      const clientLastSession = req.headers["x-admin-last-session"] || req.query?.lastAdminSession;
+      let sessionWasRevoked = false;
+      if (clientLastSession && !adminAuth) {
+        try {
+          const orphanedSession = await AdminSession.findOneAndUpdate(
+            { sessionId: clientLastSession, isActive: true },
+            {
+              $set: {
+                isActive: false,
+                revokedAt: new Date(),
+                revokeReason: "COOKIE_CLEARED_BY_CLIENT",
+              },
+            }
+          );
+          if (orphanedSession) {
+            sessionWasRevoked = true;
+          }
+        } catch (_) {}
+      }
+
       try {
         const [activeAdminSessions, config, vConfigDoc] = await Promise.all([
-          AdminSession.find({ isActive: true, expiresAt: { $gt: new Date() } }).select("_id").lean(),
+          getActiveAdminSessions(AdminSession),
           SystemConfig.findOne({ key: "maintenance" }).select("maintenance").lean(),
           SystemConfig.findOne({ key: "admin_button_config" }).select("adminButtonVisibility").lean(),
         ]);
@@ -1482,27 +1518,21 @@ module.exports = async function handler(req, res) {
         if (vConfigDoc?.adminButtonVisibility) {
           buttonVisibilityConfig = vConfigDoc.adminButtonVisibility;
         }
-      } catch {}
 
-      // Cleanup orphaned session if client previously had a session on this device but cookies were cleared
-      const clientLastSession = req.headers["x-admin-last-session"];
-      if (clientLastSession && !adminAuth) {
-        try {
-          const orphanedSession = await AdminSession.findOneAndUpdate(
-            { sessionId: clientLastSession, isActive: true },
-            {
-              $set: {
-                isActive: false,
-                revokedAt: new Date(),
-                revokeReason: "COOKIE_CLEARED_BY_CLIENT",
-              },
-            }
-          );
-          if (orphanedSession && activeAdminCount > 0) {
-            activeAdminCount = Math.max(0, activeAdminCount - 1);
+        if (sessionWasRevoked) {
+          broadcastRealtimeEvent("admin-availability-updated", {
+            activeDeviceCount: activeAdminCount,
+            isAdminButtonVisible: activeAdminCount < 2,
+          }).catch(() => {});
+        }
+
+        if (adminAuth && adminAuth.sessionId) {
+          const matchedSession = activeAdminSessions?.find((s) => s.sessionId === adminAuth.sessionId);
+          if (matchedSession) {
+            touchAdminSession(matchedSession).catch(() => {});
           }
-        } catch {}
-      }
+        }
+      } catch {}
 
       // Calculate resolved visibility (Manual override vs Automatic system logic)
       // Automatic rule: Visible to all when active devices < 2; hidden everywhere when active devices >= 2
@@ -1658,23 +1688,56 @@ module.exports = async function handler(req, res) {
        10. ADMIN STATUS CHECK (/admin/check-status)
     ═══════════════════════════════════════════════════════════════════ */
     if ((action === "admin-check-status" || action === "check-admin-status") && req.method === "GET") {
-      const activeSessions = await getActiveAdminSessions(AdminSession);
+      const clientLastSession = req.headers["x-admin-last-session"] || req.query?.lastAdminSession;
 
       let incomingToken = cookies.jwt || req.headers["x-admin-token"];
       if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
         incomingToken = req.headers.authorization.split(" ")[1];
       }
 
-      let isCurrentDevice = false;
+      let decodedAdmin = null;
       if (incomingToken && incomingToken !== "none") {
         try {
-          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
-          if (decoded.role === "admin" && decoded.sessionId) {
-            if (activeSessions.some((s) => s.sessionId === decoded.sessionId)) {
-              isCurrentDevice = true;
-            }
-          }
+          decodedAdmin = jwt.verify(incomingToken, process.env.JWT_SECRET);
         } catch {}
+      }
+
+      // If client reports an admin session on this device, but there is no valid admin token matching it:
+      let revokedOrphan = false;
+      if (clientLastSession && (!decodedAdmin || decodedAdmin.sessionId !== clientLastSession)) {
+        try {
+          const resRevoke = await AdminSession.findOneAndUpdate(
+            { sessionId: clientLastSession, isActive: true },
+            {
+              $set: {
+                isActive: false,
+                revokedAt: new Date(),
+                revokeReason: "COOKIE_CLEARED_BY_CLIENT",
+              },
+            }
+          );
+          if (resRevoke) revokedOrphan = true;
+        } catch {}
+      }
+
+      const activeSessions = await getActiveAdminSessions(AdminSession);
+
+      if (revokedOrphan) {
+        try {
+          await broadcastRealtimeEvent("admin-availability-updated", {
+            activeDeviceCount: activeSessions.length,
+            isAdminButtonVisible: activeSessions.length < MAX_ADMIN_DEVICES,
+          });
+        } catch {}
+      }
+
+      let isCurrentDevice = false;
+      if (decodedAdmin && decodedAdmin.role === "admin" && decodedAdmin.sessionId) {
+        const matching = activeSessions.find((s) => s.sessionId === decodedAdmin.sessionId);
+        if (matching) {
+          isCurrentDevice = true;
+          touchAdminSession(matching).catch(() => {});
+        }
       }
 
       const isBlocked = false;
@@ -1707,23 +1770,6 @@ module.exports = async function handler(req, res) {
           buttonVisibilityConfig = vConfigDoc.adminButtonVisibility;
         }
       } catch {}
-
-      // Cleanup orphaned session if client previously had a session on this device but cookies were cleared
-      const clientLastSession = req.headers["x-admin-last-session"];
-      if (clientLastSession && !isCurrentDevice) {
-        try {
-          await AdminSession.updateOne(
-            { sessionId: clientLastSession, isActive: true },
-            {
-              $set: {
-                isActive: false,
-                revokedAt: new Date(),
-                revokeReason: "COOKIE_CLEARED_BY_CLIENT",
-              },
-            }
-          );
-        } catch {}
-      }
 
       let resolvedButtonVisible = activeSessions.length < MAX_ADMIN_DEVICES;
       if (buttonVisibilityConfig && buttonVisibilityConfig.mode === "MANUAL") {
@@ -1968,14 +2014,13 @@ module.exports = async function handler(req, res) {
       setAdminCookie(res, token);
 
       // Broadcast live availability to all clients
+      let liveAdminCount = 1;
       try {
-        const remainingAdminCount = await AdminSession.countDocuments({
-          isActive: true,
-          expiresAt: { $gt: new Date() },
-        });
+        const liveActive = await getActiveAdminSessions(AdminSession);
+        liveAdminCount = liveActive.length;
         await broadcastRealtimeEvent("admin-availability-updated", {
-          activeDeviceCount: remainingAdminCount,
-          isAdminButtonVisible: remainingAdminCount < 2,
+          activeDeviceCount: liveAdminCount,
+          isAdminButtonVisible: liveAdminCount < MAX_ADMIN_DEVICES,
         });
       } catch {}
 
@@ -1985,6 +2030,8 @@ module.exports = async function handler(req, res) {
         role: "admin",
         adminType: "main",
         sessionId,
+        activeDeviceCount: liveAdminCount,
+        isAdminButtonVisible: liveAdminCount < MAX_ADMIN_DEVICES,
         message: "Admin authenticated successfully.",
       });
     }
@@ -2219,18 +2266,100 @@ module.exports = async function handler(req, res) {
       clearAdminCookie(res);
 
       // Broadcast live availability to all clients
+      let remainingAdminCount = 0;
       try {
-        const remainingAdminCount = await AdminSession.countDocuments({
-          isActive: true,
-          expiresAt: { $gt: new Date() },
-        });
+        const remainingSessions = await getActiveAdminSessions(AdminSession);
+        remainingAdminCount = remainingSessions.length;
         await broadcastRealtimeEvent("admin-availability-updated", {
           activeDeviceCount: remainingAdminCount,
-          isAdminButtonVisible: remainingAdminCount < 2,
+          isAdminButtonVisible: remainingAdminCount < MAX_ADMIN_DEVICES,
         });
       } catch {}
 
-      return res.status(200).json({ success: true, message: "Logged out successfully." });
+      return res.status(200).json({
+        success: true,
+        message: "Logged out successfully.",
+        activeDeviceCount: remainingAdminCount,
+        isAdminButtonVisible: remainingAdminCount < MAX_ADMIN_DEVICES,
+      });
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       18. ADMIN EXPLICIT RELEASE SESSION (/admin/release-session)
+    ═══════════════════════════════════════════════════════════════════ */
+    if ((action === "admin-release-session" || action === "release-session") && req.method === "POST") {
+      let targetSessionId = req.body?.sessionId || req.headers["x-admin-last-session"] || null;
+      if (!targetSessionId) {
+        let token = cookies.jwt || req.headers["x-admin-token"];
+        if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+          token = req.headers.authorization.split(" ")[1];
+        }
+        if (token && token !== "none") {
+          try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            targetSessionId = decoded?.sessionId;
+          } catch {}
+        }
+      }
+
+      if (targetSessionId) {
+        try {
+          await AdminSession.updateOne(
+            { sessionId: targetSessionId, isActive: true },
+            {
+              $set: {
+                isActive: false,
+                revokedAt: new Date(),
+                revokeReason: "EXPLICIT_CLIENT_RELEASE",
+              },
+            }
+          );
+        } catch {}
+      }
+
+      clearAdminCookie(res);
+
+      let remainingCount = 0;
+      try {
+        const activeSessions = await getActiveAdminSessions(AdminSession);
+        remainingCount = activeSessions.length;
+        await broadcastRealtimeEvent("admin-availability-updated", {
+          activeDeviceCount: remainingCount,
+          isAdminButtonVisible: remainingCount < MAX_ADMIN_DEVICES,
+        });
+      } catch {}
+
+      return res.status(200).json({
+        success: true,
+        message: "Admin session released.",
+        activeDeviceCount: remainingCount,
+        isAdminButtonVisible: remainingCount < MAX_ADMIN_DEVICES,
+      });
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       19. ADMIN HEARTBEAT LIVENESS (/admin/heartbeat)
+    ═══════════════════════════════════════════════════════════════════ */
+    if ((action === "admin-heartbeat" || action === "heartbeat") && (req.method === "GET" || req.method === "POST")) {
+      let incomingToken = cookies.jwt || req.headers["x-admin-token"];
+      if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+        incomingToken = req.headers.authorization.split(" ")[1];
+      }
+
+      if (incomingToken && incomingToken !== "none") {
+        try {
+          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+          if (decoded.role === "admin" && decoded.sessionId) {
+            const session = await AdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+            if (session) {
+              await touchAdminSession(session);
+              return res.json({ success: true, alive: true, lastActiveAt: session.lastActiveAt });
+            }
+          }
+        } catch {}
+      }
+
+      return res.status(401).json({ success: false, alive: false, message: "No active admin session found for heartbeat." });
     }
 
     return res.status(404).json({ message: `Unknown auth action: ${action}` });

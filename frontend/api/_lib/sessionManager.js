@@ -7,6 +7,7 @@ const StudentNotification = require("./models/StudentNotification");
 const {
   publishStudentRealtimeEvent,
   publishApprovalRealtimeEvent,
+  broadcastRealtimeEvent,
 } = require("./ablyService");
 
 const DEFAULT_SESSION_TTL_MS = 60 * 24 * 60 * 60 * 1000; // 60 days rolling session TTL
@@ -551,11 +552,53 @@ async function cleanExpiredAdminSessions(AdminSession) {
   });
 }
 
+const ADMIN_ACTIVITY_TTL_MS = 3 * 60 * 1000; // 3 minutes active presence window
+
 async function getActiveAdminSessions(AdminSession) {
+  const activeCutoff = new Date(Date.now() - ADMIN_ACTIVITY_TTL_MS);
+
+  // Automatically mark stale zombie sessions (inactive > 3m or null lastActiveAt) as dormant
+  try {
+    const pruneRes = await AdminSession.updateMany(
+      {
+        isActive: true,
+        $or: [
+          { lastActiveAt: { $lt: activeCutoff } },
+          { lastActiveAt: null },
+          { lastActiveAt: { $exists: false } },
+        ],
+      },
+      {
+        $set: {
+          isActive: false,
+          revokedAt: new Date(),
+          revokeReason: "INACTIVITY_OR_COOKIE_LOSS",
+        },
+      }
+    );
+
+    if ((pruneRes?.modifiedCount || pruneRes?.nModified || 0) > 0) {
+      try {
+        const remainingCount = await AdminSession.countDocuments({
+          isActive: true,
+          expiresAt: { $gt: new Date() },
+          lastActiveAt: { $gte: activeCutoff },
+        });
+        if (typeof broadcastRealtimeEvent === "function") {
+          broadcastRealtimeEvent("admin-availability-updated", {
+            activeDeviceCount: remainingCount,
+            isAdminButtonVisible: remainingCount < MAX_ADMIN_DEVICES,
+          }).catch(() => {});
+        }
+      } catch (_) {}
+    }
+  } catch (_) {}
+
   return AdminSession.find({
     isActive: true,
     expiresAt: { $gt: new Date() },
-  }).sort({ loggedInAt: -1 });
+    lastActiveAt: { $gte: activeCutoff },
+  }).sort({ lastActiveAt: -1 });
 }
 
 function isAdminSessionValid(session) {
@@ -567,7 +610,8 @@ function isAdminSessionValid(session) {
 async function touchAdminSession(session) {
   if (!session || !session.isActive || !session._id) return session;
   const now = Date.now();
-  if (session.lastActiveAt && (now - new Date(session.lastActiveAt).getTime()) < 15 * 60 * 1000) {
+  // Throttled to 15 seconds to support live 30s heartbeats efficiently
+  if (session.lastActiveAt && (now - new Date(session.lastActiveAt).getTime()) < 15 * 1000) {
     return session;
   }
   const update = {

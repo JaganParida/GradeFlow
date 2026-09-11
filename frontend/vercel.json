@@ -332,6 +332,14 @@
       "destination": "/api/auth.js?action=admin-logout"
     },
     {
+      "source": "/api/auth/admin/release-session",
+      "destination": "/api/auth.js?action=admin-release-session"
+    },
+    {
+      "source": "/api/auth/admin/heartbeat",
+      "destination": "/api/auth.js?action=admin-heartbeat"
+    },
+    {
       "source": "/api/auth/student/send-otp",
       "destination": "/api/auth.js?action=student-send-otp"
     },
