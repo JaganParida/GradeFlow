@@ -24,7 +24,8 @@ const subAdminSessionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-subAdminSessionSchema.index({ subAdminId: 1, isActive: 1 });
+subAdminSessionSchema.index({ subAdminId: 1, isActive: 1, expiresAt: 1 });
+subAdminSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 module.exports = mongoose.models.SubAdminSession || mongoose.model("SubAdminSession", subAdminSessionSchema);
 

@@ -23,6 +23,7 @@ const { sendStudentOtpEmail, sendAdminOtpEmail, sendSubAdminOtpEmail } = require
 const { globalDbQueue } = require("./_lib/dbProtection");
 const {
   PERMANENT_SESSION_MS,
+  DEFAULT_SESSION_TTL_MS,
   MAX_ADMIN_DEVICES,
   getMaxAllowedDevices,
   cleanExpiredSessions,
@@ -32,6 +33,7 @@ const {
   replaceStudentSession,
   createDeviceApprovalRequest,
   respondDeviceApproval,
+  completeDeviceApproval,
   getDeviceApprovalStatus,
   cleanExpiredAdminSessions,
   getActiveAdminSessions,
@@ -57,7 +59,7 @@ function parseCookies(cookieHeader) {
 }
 
 function setStudentCookie(res, token, customMaxAge = null) {
-  const maxAge = customMaxAge !== null ? customMaxAge : 100 * 365 * 24 * 60 * 60;
+  const maxAge = customMaxAge !== null ? customMaxAge : 60 * 24 * 60 * 60; // 60 days
   const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
   const secureFlag = isProd ? " Secure;" : "";
   res.setHeader(
@@ -210,10 +212,12 @@ module.exports = async function handler(req, res) {
       else if (cleanUrl.includes("student/create-password")) action = "student-create-password";
       else if (cleanUrl.includes("student/login-password")) action = "student-login-password";
       else if (cleanUrl.includes("student/transfer-session")) action = "student-transfer-session";
+      else if (cleanUrl.includes("student/complete-approval")) action = "student-complete-approval";
       else if (cleanUrl.includes("student/approval-status")) action = "student-approval-status";
       else if (cleanUrl.includes("student/cancel-approval")) action = "student-cancel-approval";
       else if (cleanUrl.includes("student/me")) action = "student-me";
       else if (cleanUrl.includes("student/logout")) action = "student-logout";
+      else if (cleanUrl.includes("realtime-token")) action = "realtime-token";
       else if (cleanUrl.includes("subadmin/verify-otp")) action = "subadmin-verify-otp";
       else if (cleanUrl.includes("subadmin/login")) action = "subadmin-login";
       else if (cleanUrl.includes("admin/login-password") || cleanUrl.endsWith("/login")) action = "admin-login-password";
@@ -223,6 +227,97 @@ module.exports = async function handler(req, res) {
       else if (cleanUrl.includes("admin/logout") || cleanUrl.endsWith("/logout")) action = "admin-logout";
     }
     const cookies = parseCookies(req.headers.cookie);
+
+    /* ═══════════════════════════════════════════════════════════════════
+       REALTIME ABLY TOKEN GENERATION (TOKEN AUTHENTICATION)
+    ═══════════════════════════════════════════════════════════════════ */
+    if (action === "realtime-token") {
+      let incomingToken = req.headers["x-student-token"] || cookies.student_jwt;
+      let adminToken = req.headers["x-admin-token"] || cookies.jwt;
+      if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+        const bearer = req.headers.authorization.split(" ")[1];
+        if (!incomingToken) incomingToken = bearer;
+        if (!adminToken) adminToken = bearer;
+      }
+
+      // 1. Authenticated Student Token Request
+      if (incomingToken && incomingToken !== "none") {
+        try {
+          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+          if (decoded.role === "student" && decoded.regNo && decoded.sessionId) {
+            const cleanReg = String(decoded.regNo).trim().toUpperCase();
+            const session = await StudentSession.findOne({
+              regNo: cleanReg,
+              sessionId: decoded.sessionId,
+              isActive: true,
+              expiresAt: { $gt: new Date() },
+            });
+            if (session) {
+              const { createRealtimeTokenRequest } = require("./_lib/ablyService");
+              const tokenRequest = await createRealtimeTokenRequest({
+                clientId: cleanReg,
+                regNo: cleanReg,
+                capabilities: {
+                  [`student-${cleanReg}`]: ["subscribe"],
+                  "broadcasts-all": ["subscribe"],
+                },
+              });
+              return res.json(tokenRequest);
+            }
+          }
+        } catch {}
+      }
+
+      // 2. Authenticated Admin Token Request
+      if (adminToken && adminToken !== "none") {
+        try {
+          const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
+          if (decoded.role === "admin" && decoded.sessionId) {
+            const session = await AdminSession.findOne({
+              sessionId: decoded.sessionId,
+              isActive: true,
+              expiresAt: { $gt: new Date() },
+            });
+            if (session) {
+              const { createRealtimeTokenRequest } = require("./_lib/ablyService");
+              const tokenRequest = await createRealtimeTokenRequest({
+                clientId: "admin",
+                capabilities: {
+                  "admin-control": ["subscribe", "publish"],
+                  "broadcasts-all": ["subscribe", "publish"],
+                  "*": ["subscribe"],
+                },
+              });
+              return res.json(tokenRequest);
+            }
+          }
+        } catch {}
+      }
+
+      // 3. Device Approval Waiting Client (Pending Request ID)
+      const reqId = req.query?.requestId || req.body?.requestId || req.headers["x-approval-request-id"];
+      if (reqId) {
+        const cleanReqId = String(reqId).trim();
+        const pendingApproval = await DeviceApprovalRequest.findOne({
+          requestId: cleanReqId,
+          status: { $in: ["PENDING", "APPROVED"] },
+          expiresAt: { $gt: new Date() },
+        });
+        if (pendingApproval) {
+          const { createRealtimeTokenRequest } = require("./_lib/ablyService");
+          const tokenRequest = await createRealtimeTokenRequest({
+            clientId: `approval-${cleanReqId}`,
+            regNo: pendingApproval.regNo,
+            capabilities: {
+              [`approval-${cleanReqId}`]: ["subscribe"],
+            },
+          });
+          return res.json(tokenRequest);
+        }
+      }
+
+      return res.status(401).json({ success: false, message: "Unauthorized for realtime connection." });
+    }
 
     /* ═══════════════════════════════════════════════════════════════════
        0. STUDENT LIVE STATUS & DEVICE LIMIT PRE-CHECK
@@ -349,6 +444,13 @@ module.exports = async function handler(req, res) {
 
       const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
       if (!studentRecord) {
+        if (req.body.isForgotPassword) {
+          return res.json({
+            success: true,
+            isForgotPassword: true,
+            message: "If an account exists for this registration number, a verification code has been dispatched to the registered university email.",
+          });
+        }
         return res.status(404).json({
           message: "No student records found for this registration number. Please check and try again.",
         });
@@ -588,14 +690,16 @@ module.exports = async function handler(req, res) {
       const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
       const studentName = studentRecord?.studentName || "Student";
 
-      // ── CRITICAL MANDATORY RULE: If account has NO password OR user is resetting password, return CREATE_PASSWORD token ──
+      // ── CRITICAL MANDATORY RULE: If account has NO password OR user is resetting password, return single-use CREATE_PASSWORD token ──
       const isResetFlow = Boolean(req.body.isForgotPassword || req.body.resetPassword || !studentAccount.passwordHash);
       if (isResetFlow) {
-        const setupPasswordToken = jwt.sign(
-          { regNo: rawReg, purpose: "SETUP_PASSWORD" },
-          process.env.JWT_SECRET,
-          { expiresIn: "10m" }
-        );
+        const setupPasswordToken = crypto.randomUUID();
+        const tokenHash = crypto.createHash("sha256").update(setupPasswordToken).digest("hex");
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        studentAccount.passwordResetTokenHash = tokenHash;
+        studentAccount.passwordResetExpiresAt = expiresAt;
+        await studentAccount.save();
 
         return res.json({
           success: true,
@@ -702,10 +806,10 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ success: false, message: "Invalid registration number format." });
       }
 
-      if (!newPassword || newPassword.length < 8) {
+      if (!newPassword || newPassword.length < 8 || newPassword.length > 72) {
         return res.status(400).json({
           success: false,
-          message: "Password must be at least 8 characters long.",
+          message: "Password must be between 8 and 72 characters long.",
           code: "WEAK_PASSWORD",
         });
       }
@@ -718,23 +822,33 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      let decoded = null;
-      try {
-        decoded = jwt.verify(setupToken, process.env.JWT_SECRET);
-        if (decoded.regNo !== rawReg || decoded.purpose !== "SETUP_PASSWORD") {
-          throw new Error("Invalid token payload");
-        }
-      } catch {
+      const tokenHash = crypto.createHash("sha256").update(setupToken.trim()).digest("hex");
+
+      // Atomically verify and consume the reset token in a single DB operation
+      const studentAccount = await Student.findOneAndUpdate(
+        {
+          regNo: rawReg,
+          passwordResetTokenHash: tokenHash,
+          passwordResetExpiresAt: { $gt: new Date() },
+        },
+        {
+          $set: {
+            passwordResetTokenHash: null,
+            passwordResetExpiresAt: null,
+            failedPasswordAttempts: 0,
+            lastFailedPasswordAt: null,
+            lockedUntil: null,
+          },
+        },
+        { new: true }
+      );
+
+      if (!studentAccount) {
         return res.status(401).json({
           success: false,
-          message: "Password setup session expired or invalid. Please verify OTP again.",
+          message: "Password setup session expired or already used. Please verify OTP again.",
           code: "INVALID_SETUP_TOKEN",
         });
-      }
-
-      let studentAccount = await Student.findOne({ regNo: rawReg });
-      if (!studentAccount) {
-        studentAccount = new Student({ regNo: rawReg });
       }
 
       await studentAccount.setPassword(newPassword);
@@ -751,7 +865,7 @@ module.exports = async function handler(req, res) {
       const studentToken = jwt.sign(
         { regNo: rawReg, sessionId: newSession.sessionId, role: "student" },
         process.env.JWT_SECRET,
-        { expiresIn: "36500d" }
+        { expiresIn: "60d" }
       );
 
       setStudentCookie(res, studentToken);
@@ -876,80 +990,29 @@ module.exports = async function handler(req, res) {
         // New Device Login Logic:
         if (maxAllowedDevices === 1) {
           if (activeSessions.length === 0) {
-            const dateKey = getIstDateKey();
-            let dailyLimit = await StudentDailyLimit.findOne({ regNo: rawReg, dateKey });
-            const isUnlimited = rawReg === "230301120327";
-            const maxDailyLimit = isUnlimited ? 99 : 3;
-
-            if (!isUnlimited && dailyLimit && dailyLimit.otpSendCount >= maxDailyLimit) {
-              const nextMidnight = new Date();
-              nextMidnight.setHours(24, 0, 0, 0);
-              const remainingMs = nextMidnight.getTime() - Date.now();
-              const hours = Math.floor(remainingMs / (1000 * 60 * 60));
-              const mins = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
-
-              return res.status(429).json({
-                success: false,
-                code: "DAILY_LIMIT_EXCEEDED",
-                message: `Daily OTP limit reached (maximum ${maxDailyLimit} requests per calendar day). Login for ${rawReg} is locked for today. It will reset at midnight (in ${hours}h ${mins}m).`,
-              });
-            }
-
-            const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
-            const otp = crypto.randomInt(100000, 1000000).toString();
-            const otpHash = await bcrypt.hash(otp, 10);
-            const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-
-            await OtpVerification.deleteMany({ regNo: rawReg });
-            await OtpVerification.create({
-              regNo: rawReg,
-              email: studentEmail,
-              otpHash,
-              expiresAt,
-              attempts: 0,
+            // Existing student with correct password and 0 active sessions -> Direct login without OTP!
+            const { newSession } = await replaceStudentSession(StudentSession, rawReg, {
+              deviceInfo: extractRequestDeviceInfo(req),
             });
 
-            if (!dailyLimit) {
-              dailyLimit = new StudentDailyLimit({ regNo: rawReg, dateKey, otpSendCount: 0 });
-            }
-            dailyLimit.otpSendCount += 1;
-            dailyLimit.lastOtpSentAt = new Date();
-            await dailyLimit.save();
+            const studentToken = jwt.sign(
+              { regNo: rawReg, sessionId: newSession.sessionId, role: "student" },
+              process.env.JWT_SECRET,
+              { expiresIn: "60d" }
+            );
 
-            try {
-              await sendStudentOtpEmail({
-                to: studentEmail,
-                studentName,
-                regNo: rawReg,
-                otp,
-                expiresInMinutes: 5,
-              });
-            } catch (emailErr) {
-              console.error("Auto OTP dispatch error in serverless auth:", emailErr);
-              return res.status(500).json({
-                success: false,
-                message: "Failed to dispatch verification code to university email.",
-              });
-            }
-
-            const parts = studentEmail.split("@");
-            const maskedUser = parts[0].length > 4 ? `${parts[0].slice(0, 3)}***${parts[0].slice(-2)}` : `${parts[0].slice(0, 1)}***`;
-            const maskedEmail = `${maskedUser}@${parts[1]}`;
+            setStudentCookie(res, studentToken);
 
             return res.json({
               success: true,
-              step: "OTP",
-              otpSent: true,
-              maskedEmail,
-              expiresInSeconds: 300,
-              message: `A 6-digit verification code has been dispatched to ${maskedEmail}.`,
-              student: { regNo: rawReg, studentName },
+              message: "Login successful.",
+              student: { regNo: rawReg, studentName, sessionId: newSession.sessionId },
             });
           }
 
-          // Single device student with 1 active device -> IN-APP APPROVAL FLOW!
+          // Single device student with 1 active device -> IN-APP APPROVAL FLOW
           const activeDev = activeSessions[0];
-          const { approvalRequest } = await createDeviceApprovalRequest(
+          const { approvalRequest, exchangeSecret } = await createDeviceApprovalRequest(
             rawReg,
             extractRequestDeviceInfo(req),
             activeDev.sessionId
@@ -959,6 +1022,7 @@ module.exports = async function handler(req, res) {
             success: true,
             step: "APPROVAL_PENDING",
             requestId: approvalRequest.requestId,
+            exchangeSecret,
             expiresInSeconds: 180,
             message: "Approval required from your currently active device.",
             student: { regNo: rawReg, studentName },
@@ -1007,7 +1071,7 @@ module.exports = async function handler(req, res) {
           const studentToken = jwt.sign(
             { regNo: rawReg, sessionId, role: "student" },
             process.env.JWT_SECRET,
-            { expiresIn: "36500d" }
+            { expiresIn: "60d" }
           );
 
           setStudentCookie(res, studentToken);
@@ -1089,7 +1153,13 @@ module.exports = async function handler(req, res) {
       const studentToken = jwt.sign(
         { regNo: rawReg, sessionId: newSession.sessionId, role: "student" },
         process.env.JWT_SECRET,
-        { expiresIn: "36500d" }
+        { expiresIn: "60d" }
+      );
+
+      // Invalidate any existing pending approval requests for this student
+      await DeviceApprovalRequest.updateMany(
+        { regNo: rawReg, status: "PENDING" },
+        { $set: { status: "EXPIRED" } }
       );
 
       setStudentCookie(res, studentToken);
@@ -1098,6 +1168,42 @@ module.exports = async function handler(req, res) {
         success: true,
         message: wasReplaced ? "Session successfully transferred to this device." : "Logged in successfully.",
         student: { regNo: rawReg, studentName, sessionId: newSession.sessionId },
+      });
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       5b. STUDENT COMPLETE DEVICE APPROVAL (EXCHANGE SECRET -> JWT)
+    ═══════════════════════════════════════════════════════════════════ */
+    if ((action === "student-complete-approval" || action === "complete-approval") && req.method === "POST") {
+      const requestId = String(req.body?.requestId || req.query?.requestId || "").trim();
+      const exchangeSecret = String(req.body?.exchangeSecret || req.query?.exchangeSecret || "").trim();
+
+      if (!requestId || !exchangeSecret) {
+        return res.status(400).json({
+          success: false,
+          code: "MISSING_PARAMS",
+          message: "Request ID and exchange secret are required to complete device approval.",
+        });
+      }
+
+      const result = await completeDeviceApproval(StudentSession, requestId, exchangeSecret, req);
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      setStudentCookie(res, result.token);
+
+      const studentRecord = await SemesterResult.findOne({ regNo: result.regNo }).sort({ semester: -1 });
+
+      return res.json({
+        success: true,
+        status: "COMPLETED",
+        message: "Device approval completed successfully. You are now logged in.",
+        student: {
+          regNo: result.regNo,
+          studentName: studentRecord?.studentName || "Student",
+          sessionId: result.sessionId,
+        },
       });
     }
 
@@ -1193,19 +1299,25 @@ module.exports = async function handler(req, res) {
         return res.status(404).json(statusData || { success: false, message: "Approval request not found." });
       }
 
-      if (statusData.status === "APPROVED" && statusData.approvedToken) {
-        setStudentCookie(res, statusData.approvedToken);
-        const studentRecord = await SemesterResult.findOne({ regNo: statusData.regNo }).sort({ semester: -1 });
-        return res.json({
-          success: true,
-          status: "APPROVED",
-          message: "Login request approved! Logging you in...",
-          student: {
-            regNo: statusData.regNo,
-            studentName: studentRecord?.studentName || "Student",
-            sessionId: statusData.approvedSessionId,
-          },
-        });
+      // If approved, check if client supplied exchangeSecret to complete immediately in one round-trip
+      const exchangeSecret = String(req.query.exchangeSecret || req.headers["x-exchange-secret"] || "").trim();
+      if (statusData.status === "APPROVED" && exchangeSecret) {
+        const result = await completeDeviceApproval(StudentSession, requestId, exchangeSecret, req);
+        if (result.success) {
+          setStudentCookie(res, result.token);
+          const studentRecord = await SemesterResult.findOne({ regNo: result.regNo }).sort({ semester: -1 });
+          return res.json({
+            success: true,
+            status: "APPROVED",
+            completed: true,
+            message: "Login request approved! Logging you in...",
+            student: {
+              regNo: result.regNo,
+              studentName: studentRecord?.studentName || "Student",
+              sessionId: result.sessionId,
+            },
+          });
+        }
       }
 
       if (statusData.status === "DENIED") {
@@ -1698,14 +1810,13 @@ module.exports = async function handler(req, res) {
 
       const activeSessions = await getActiveAdminSessions(AdminSession);
       if (activeSessions.length >= MAX_ADMIN_DEVICES) {
-        const sorted = activeSessions.sort((a, b) => new Date(a.lastActiveAt || a.loggedInAt) - new Date(b.lastActiveAt || b.loggedInAt));
-        const oldest = sorted[0];
-        if (oldest) {
-          oldest.isActive = false;
-          oldest.revokedAt = new Date();
-          oldest.revokeReason = "REPLACED_BY_NEW_DEVICE";
-          await oldest.save();
-        }
+        return res.status(403).json({
+          success: false,
+          code: "DEVICE_LIMIT_REACHED",
+          message: `Administrative device limit reached (${MAX_ADMIN_DEVICES}/${MAX_ADMIN_DEVICES} devices active). Please log out from an existing authorized device before signing in on a new device.`,
+          activeDevicesCount: activeSessions.length,
+          maxAllowedDevices: MAX_ADMIN_DEVICES,
+        });
       }
 
       const sessionId = crypto.randomUUID();
@@ -1724,7 +1835,7 @@ module.exports = async function handler(req, res) {
       const token = jwt.sign(
         { role: "admin", sessionId, loggedInAt: now },
         process.env.JWT_SECRET,
-        { expiresIn: "36500d" }
+        { expiresIn: "60d" }
       );
 
       setAdminCookie(res, token);

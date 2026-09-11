@@ -7,6 +7,8 @@ const studentSchema = new mongoose.Schema(
     passwordHash: { type: String, default: null },
     passwordCreatedAt: { type: Date, default: null },
     role: { type: String, default: "student" },
+    passwordResetTokenHash: { type: String, default: null, index: true },
+    passwordResetExpiresAt: { type: Date, default: null },
     failedPasswordAttempts: { type: Number, default: 0 },
     lastFailedPasswordAt: { type: Date, default: null },
     lockedUntil: { type: Date, default: null },

@@ -30,7 +30,7 @@ const DeviceApprovalRequestSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["PENDING", "APPROVED", "DENIED", "EXPIRED"],
+      enum: ["PENDING", "APPROVED", "COMPLETED", "DENIED", "EXPIRED"],
       default: "PENDING",
       index: true,
     },
@@ -38,7 +38,7 @@ const DeviceApprovalRequestSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-    approvedToken: {
+    exchangeHash: {
       type: String,
       default: null,
     },
@@ -49,7 +49,7 @@ const DeviceApprovalRequestSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       required: true,
-      index: true,
+      index: { expires: 3600 },
     },
     respondedAt: {
       type: Date,

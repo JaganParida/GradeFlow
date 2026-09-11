@@ -9,7 +9,8 @@ const {
   publishApprovalRealtimeEvent,
 } = require("./ablyService");
 
-const PERMANENT_SESSION_MS = 100 * 365 * 24 * 60 * 60 * 1000; // 100 years (Permanent sessions until explicit logout)
+const DEFAULT_SESSION_TTL_MS = 60 * 24 * 60 * 60 * 1000; // 60 days rolling session TTL
+const PERMANENT_SESSION_MS = DEFAULT_SESSION_TTL_MS;
 const MAX_ADMIN_DEVICES = 2; // Maximum simultaneous active devices for Admin
 const MAX_SUBADMIN_DEVICES = 2; // Maximum simultaneous active devices for Sub-Admin
 const APPROVAL_TTL_MS = 3 * 60 * 1000; // 3 minutes TTL for device approval requests
@@ -47,11 +48,10 @@ async function cleanExpiredSessions(StudentSession, regNo = null) {
 
 /**
  * Single Authoritative Server-Side Function: Returns all genuinely valid active sessions.
- * Reconciles stale/expired records so they never count toward device limits.
+ * Queries active, unexpired sessions without write-on-read locks.
  */
 async function getValidActiveSessions(StudentSession, regNo) {
   const clean = String(regNo || "").trim().toUpperCase();
-  await cleanExpiredSessions(StudentSession, clean);
 
   return StudentSession.find({
     regNo: clean,
@@ -139,6 +139,10 @@ async function createDeviceApprovalRequest(regNo, requestingDeviceInfo, targetSe
   const notificationId = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + APPROVAL_TTL_MS);
 
+  // Generate single-use cryptographic exchange secret (PKCE-style)
+  const exchangeSecret = crypto.randomBytes(32).toString("hex");
+  const exchangeHash = crypto.createHash("sha256").update(exchangeSecret).digest("hex");
+
   // Invalidate any existing pending requests for this student
   await DeviceApprovalRequest.updateMany(
     { regNo: clean, status: "PENDING" },
@@ -150,6 +154,7 @@ async function createDeviceApprovalRequest(regNo, requestingDeviceInfo, targetSe
     regNo: clean,
     requestingDeviceInfo,
     targetSessionId,
+    exchangeHash,
     status: "PENDING",
     expiresAt,
   });
@@ -191,6 +196,7 @@ async function createDeviceApprovalRequest(regNo, requestingDeviceInfo, targetSe
   try {
     const plainNotif = notification && notification.toObject ? notification.toObject() : JSON.parse(JSON.stringify(notification));
     const plainApproval = approvalRequest && approvalRequest.toObject ? approvalRequest.toObject() : JSON.parse(JSON.stringify(approvalRequest));
+    delete plainApproval.exchangeHash; // Never expose exchange hash in realtime payloads
     await publishStudentRealtimeEvent(clean, "new-notification", {
       type: "NEW_NOTIFICATION",
       notification: plainNotif,
@@ -200,12 +206,13 @@ async function createDeviceApprovalRequest(regNo, requestingDeviceInfo, targetSe
     console.warn("[Ably] Device approval publish warning:", e?.message || e);
   }
 
-  return { approvalRequest, notification };
+  return { approvalRequest, notification, exchangeSecret };
 }
 
 /**
  * Handles device approval response (ALLOW or DENY) from the active authenticated device.
- * Guarantees atomic session replacement on ALLOW and double-click protection.
+ * Guarantees atomic session revocation on ALLOW and double-click protection.
+ * Zero plaintext JWTs are created or stored in MongoDB or SSE.
  */
 async function respondDeviceApproval(StudentSession, requestId, respondingSessionId, action) {
   const cleanAction = String(action || "").toUpperCase();
@@ -315,32 +322,8 @@ async function respondDeviceApproval(StudentSession, requestId, respondingSessio
         );
       }
 
-      // 2. Create the new session for the requesting device
-      const newSessionId = crypto.randomUUID();
-      const expiresAt = new Date(Date.now() + PERMANENT_SESSION_MS);
-
-      const newSession = await StudentSession.create({
-        regNo: cleanReg,
-        sessionId: newSessionId,
-        deviceId: crypto.randomUUID(),
-        deviceInfo: freshReq.requestingDeviceInfo || {},
-        loggedInAt: new Date(),
-        lastActiveAt: new Date(),
-        expiresAt,
-        isActive: true,
-      });
-
-      // 3. Generate secure student JWT token for the approved session
-      const token = jwt.sign(
-        { regNo: cleanReg, sessionId: newSessionId, role: "student" },
-        process.env.JWT_SECRET,
-        { expiresIn: "36500d" }
-      );
-
-      // 4. Update approval record
+      // 2. Mark approval record as APPROVED (NO JWT in DB - waiting device will exchange its secret)
       freshReq.status = "APPROVED";
-      freshReq.approvedSessionId = newSessionId;
-      freshReq.approvedToken = token;
       freshReq.respondedAt = new Date();
       freshReq.respondedBySessionId = respondingSessionId;
       await freshReq.save();
@@ -361,23 +344,21 @@ async function respondDeviceApproval(StudentSession, requestId, respondingSessio
         status: "APPROVED",
       });
 
-      // 5. Notify the old device that its session is revoked
+      // 3. Notify the old device that its session is revoked
       authEventBus.emit(`session_revoked:${cleanReg}`, {
         revokedSessionId: targetSessionId,
         reason: "APPROVED_ON_NEW_DEVICE",
         message: "Your session ended because your account was approved on another device.",
       });
 
-      // 6. Notify the waiting new device that approval is complete (NO raw token in SSE)
+      // 4. Notify waiting new device that request is APPROVED (it will exchange secret for session)
       authEventBus.emit(`approval:${requestId}`, {
         status: "APPROVED",
-        student: {
-          regNo: cleanReg,
-          sessionId: newSessionId,
-        },
+        requestId,
+        regNo: cleanReg,
       });
 
-      // 7. Publish instant Ably WebSocket events (<0.1s latency)
+      // 5. Publish instant Ably WebSocket events (<0.1s latency)
       try {
         await Promise.allSettled([
           publishStudentRealtimeEvent(cleanReg, "notification-updated", {
@@ -391,10 +372,8 @@ async function respondDeviceApproval(StudentSession, requestId, respondingSessio
           }),
           publishApprovalRealtimeEvent(requestId, cleanReg, "approval-status", {
             status: "APPROVED",
-            student: {
-              regNo: cleanReg,
-              sessionId: newSessionId,
-            },
+            requestId,
+            regNo: cleanReg,
           }),
         ]);
       } catch (e) {
@@ -409,6 +388,93 @@ async function respondDeviceApproval(StudentSession, requestId, respondingSessio
     }
 
     return { success: false, message: "Invalid action specified." };
+  });
+}
+
+/**
+ * Atomically completes device approval exchange using single-use exchange secret.
+ * Generates JWT and new StudentSession only upon valid cryptographic secret presentation.
+ */
+async function completeDeviceApproval(StudentSession, requestId, exchangeSecret, req = {}) {
+  if (!requestId || !exchangeSecret) {
+    return { success: false, code: "MISSING_PARAMS", message: "Request ID and exchange secret are required." };
+  }
+
+  const exchangeHash = crypto.createHash("sha256").update(String(exchangeSecret).trim()).digest("hex");
+
+  const reqDoc = await DeviceApprovalRequest.findOne({ requestId });
+  if (!reqDoc) {
+    return { success: false, code: "REQUEST_NOT_FOUND", message: "Approval request not found." };
+  }
+
+  const cleanReg = reqDoc.regNo;
+
+  return withUserLock(`student_session_${cleanReg}`, async () => {
+    const freshReq = await DeviceApprovalRequest.findOne({ requestId });
+    if (!freshReq) {
+      return { success: false, code: "REQUEST_NOT_FOUND", message: "Approval request not found." };
+    }
+
+    if (freshReq.status === "COMPLETED") {
+      return { success: false, code: "ALREADY_COMPLETED", message: "This approval has already been completed." };
+    }
+
+    if (freshReq.status !== "APPROVED") {
+      return {
+        success: false,
+        code: "NOT_APPROVED",
+        message: `Approval request is not approved yet (current status: ${freshReq.status}).`,
+        status: freshReq.status,
+      };
+    }
+
+    if (new Date() > new Date(freshReq.expiresAt)) {
+      freshReq.status = "EXPIRED";
+      await freshReq.save();
+      return { success: false, code: "REQUEST_EXPIRED", message: "This approval request has expired." };
+    }
+
+    if (!freshReq.exchangeHash || freshReq.exchangeHash !== exchangeHash) {
+      return { success: false, code: "INVALID_EXCHANGE_SECRET", message: "Invalid approval exchange secret." };
+    }
+
+    // 1. Create new active session for the approved device
+    const newSessionId = crypto.randomUUID();
+    const newDeviceId = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + DEFAULT_SESSION_TTL_MS);
+
+    const newSession = await StudentSession.create({
+      regNo: cleanReg,
+      sessionId: newSessionId,
+      deviceId: newDeviceId,
+      deviceInfo: freshReq.requestingDeviceInfo || {},
+      loggedInAt: new Date(),
+      lastActiveAt: new Date(),
+      expiresAt,
+      isActive: true,
+    });
+
+    // 2. Mark request as COMPLETED to prevent replay attacks
+    freshReq.status = "COMPLETED";
+    freshReq.exchangeHash = null;
+    freshReq.approvedSessionId = newSessionId;
+    freshReq.completedAt = new Date();
+    await freshReq.save();
+
+    // 3. Issue signed JWT (60 days)
+    const token = jwt.sign(
+      { regNo: cleanReg, sessionId: newSessionId, role: "student" },
+      process.env.JWT_SECRET,
+      { expiresIn: "60d" }
+    );
+
+    return {
+      success: true,
+      token,
+      session: newSession,
+      regNo: cleanReg,
+      sessionId: newSessionId,
+    };
   });
 }
 
@@ -432,8 +498,6 @@ async function getDeviceApprovalStatus(requestId) {
     status: reqDoc.status,
     requestId: reqDoc.requestId,
     regNo: reqDoc.regNo,
-    approvedToken: reqDoc.status === "APPROVED" ? reqDoc.approvedToken : null,
-    approvedSessionId: reqDoc.status === "APPROVED" ? reqDoc.approvedSessionId : null,
     expiresAt: reqDoc.expiresAt,
   };
 }
@@ -449,16 +513,18 @@ function isSessionValid(session) {
 
 /**
  * Updates the last active timestamp for audit logging without expiring the session.
- * Throttled to 5 minutes to avoid redundant MongoDB write locks on high-traffic reads.
+ * Throttled to 15 minutes to eliminate redundant MongoDB write locks on high-traffic reads.
+ * Rolls expiration by 60 days if expiring within 30 days.
  */
 async function touchSession(session) {
   const now = Date.now();
-  if (session.lastActiveAt && (now - new Date(session.lastActiveAt).getTime()) < 5 * 60 * 1000) {
+  if (session.lastActiveAt && (now - new Date(session.lastActiveAt).getTime()) < 15 * 60 * 1000) {
     return session;
   }
   session.lastActiveAt = new Date(now);
-  if (!session.expiresAt || new Date(session.expiresAt).getFullYear() < 2050) {
-    session.expiresAt = new Date(now + PERMANENT_SESSION_MS);
+  const thirtyDaysFromNow = now + 30 * 24 * 60 * 60 * 1000;
+  if (!session.expiresAt || new Date(session.expiresAt).getTime() < thirtyDaysFromNow) {
+    session.expiresAt = new Date(now + DEFAULT_SESSION_TTL_MS);
   }
   return session.save();
 }
@@ -477,8 +543,6 @@ async function cleanExpiredAdminSessions(AdminSession) {
 }
 
 async function getActiveAdminSessions(AdminSession) {
-  await cleanExpiredAdminSessions(AdminSession);
-
   return AdminSession.find({
     isActive: true,
     expiresAt: { $gt: new Date() },
@@ -493,12 +557,13 @@ function isAdminSessionValid(session) {
 
 async function touchAdminSession(session) {
   const now = Date.now();
-  if (session.lastActiveAt && (now - new Date(session.lastActiveAt).getTime()) < 5 * 60 * 1000) {
+  if (session.lastActiveAt && (now - new Date(session.lastActiveAt).getTime()) < 15 * 60 * 1000) {
     return session;
   }
   session.lastActiveAt = new Date(now);
-  if (!session.expiresAt || new Date(session.expiresAt).getFullYear() < 2050) {
-    session.expiresAt = new Date(now + PERMANENT_SESSION_MS);
+  const thirtyDaysFromNow = now + 30 * 24 * 60 * 60 * 1000;
+  if (!session.expiresAt || new Date(session.expiresAt).getTime() < thirtyDaysFromNow) {
+    session.expiresAt = new Date(now + DEFAULT_SESSION_TTL_MS);
   }
   return session.save();
 }
@@ -517,8 +582,6 @@ async function cleanExpiredSubAdminSessions(SubAdminSession, subAdminId = null) 
 }
 
 async function getActiveSubAdminSessions(SubAdminSession, subAdminId) {
-  await cleanExpiredSubAdminSessions(SubAdminSession, subAdminId);
-
   return SubAdminSession.find({
     subAdminId,
     isActive: true,
@@ -527,6 +590,7 @@ async function getActiveSubAdminSessions(SubAdminSession, subAdminId) {
 }
 
 module.exports = {
+  DEFAULT_SESSION_TTL_MS,
   PERMANENT_SESSION_MS,
   MAX_ADMIN_DEVICES,
   MAX_SUBADMIN_DEVICES,
@@ -539,6 +603,7 @@ module.exports = {
   replaceStudentSession,
   createDeviceApprovalRequest,
   respondDeviceApproval,
+  completeDeviceApproval,
   getDeviceApprovalStatus,
   isSessionValid,
   touchSession,
