@@ -103,8 +103,8 @@ export default function AdminLogin() {
     e.preventDefault();
     if (lockCountdown > 0) return;
 
-    const cleanPassword = String(password || "").trim();
-    if (!cleanPassword) {
+    const rawPassword = String(password || "");
+    if (!rawPassword.trim()) {
       setErrorInfo({
         title: "Password Required",
         message: "Please enter your administrative master password.",
@@ -119,7 +119,7 @@ export default function AdminLogin() {
     setStatusNotice("");
 
     try {
-      const res = await adminLoginPassword(cleanPassword);
+      const res = await adminLoginPassword(rawPassword);
       if (res && res.alreadyLoggedIn) {
         navigate("/admin/dashboard", { replace: true });
         return;

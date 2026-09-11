@@ -201,6 +201,20 @@ function getTimeUntilIstMidnight() {
 module.exports = async function handler(req, res) {
   if (applyCors(req, res, "GET,POST,OPTIONS")) return;
 
+  // Safe body parsing guard for serverless runtimes
+  if (typeof req.body === "string") {
+    try {
+      req.body = JSON.parse(req.body);
+    } catch (_) {}
+  } else if (Buffer.isBuffer(req.body)) {
+    try {
+      req.body = JSON.parse(req.body.toString("utf8"));
+    } catch (_) {}
+  }
+  if (!req.body || typeof req.body !== "object") {
+    req.body = {};
+  }
+
   try {
     await connectToDatabase();
     let action = req.query?.action;
@@ -1740,40 +1754,110 @@ module.exports = async function handler(req, res) {
        11. ADMIN PASSWORD LOGIN -> SEND OTP
     ═══════════════════════════════════════════════════════════════════ */
     if ((action === "admin-login-password" || action === "login") && req.method === "POST") {
-      let adminEmail = process.env.ADMIN_EMAIL;
-      let adminPassword = process.env.ADMIN_PASSWORD;
-
-      let adminDoc = null;
-      if (!adminEmail || !adminPassword) {
-        adminDoc = await Admin.findOne().sort({ createdAt: -1 });
-        if (adminDoc && !adminEmail) adminEmail = adminDoc.email;
-      } else {
-        adminDoc = await Admin.findOne({ email: adminEmail });
-      }
-
-      if (!adminEmail && !adminDoc) {
-        return res.status(500).json({
-          message: "Admin authentication is temporarily unavailable. Missing ADMIN_EMAIL/ADMIN_PASSWORD.",
-          code: "ADMIN_CONFIG_MISSING",
-        });
-      }
-
-      const candidatePassword = String(req.body.password || "");
-      if (!candidatePassword) {
+      const candidateRaw = String(req.body?.password || "");
+      if (!candidateRaw) {
         return res.status(400).json({ message: "Please enter your administrative password.", code: "PASSWORD_REQUIRED" });
       }
 
+      const candidateTrimmed = candidateRaw.trim();
+      const candidateVariants = [candidateRaw];
+      if (candidateTrimmed !== candidateRaw && candidateTrimmed.length > 0) candidateVariants.push(candidateTrimmed);
+      try {
+        const decoded = decodeURIComponent(candidateRaw);
+        if (!candidateVariants.includes(decoded)) candidateVariants.push(decoded);
+        const decodedTrim = decoded.trim();
+        if (!candidateVariants.includes(decodedTrim)) candidateVariants.push(decodedTrim);
+      } catch (_) {}
+
       let isPasswordCorrect = false;
-      if (adminPassword) {
-        const candidateBuf = Buffer.from(candidatePassword, "utf8");
-        const adminPassBuf = Buffer.from(adminPassword, "utf8");
-        if (candidateBuf.length === adminPassBuf.length) {
-          isPasswordCorrect = crypto.timingSafeEqual(candidateBuf, adminPassBuf);
+      let matchedAdminDoc = null;
+      let targetRecipientEmail = process.env.ADMIN_EMAIL || null;
+
+      // 1. Check against process.env.ADMIN_PASSWORD (clean quotes & newlines)
+      const envAdminPassword = process.env.ADMIN_PASSWORD;
+      if (envAdminPassword) {
+        const cleanEnvPass = String(envAdminPassword).trim().replace(/^["']|["']$/g, "");
+        for (const cand of candidateVariants) {
+          if (!cand) continue;
+          // Plaintext constant-time check against trimmed env var
+          const candBuf = Buffer.from(cand, "utf8");
+          const envBuf = Buffer.from(cleanEnvPass, "utf8");
+          if (candBuf.length === envBuf.length && crypto.timingSafeEqual(candBuf, envBuf)) {
+            isPasswordCorrect = true;
+            break;
+          }
+          // Plaintext check against raw env var
+          const rawEnvBuf = Buffer.from(envAdminPassword, "utf8");
+          if (candBuf.length === rawEnvBuf.length && crypto.timingSafeEqual(candBuf, rawEnvBuf)) {
+            isPasswordCorrect = true;
+            break;
+          }
+          // Bcrypt check if env var is bcrypt hash
+          if (cleanEnvPass.startsWith("$2a$") || cleanEnvPass.startsWith("$2b$") || cleanEnvPass.startsWith("$2y$")) {
+            try {
+              if (await bcrypt.compare(cand, cleanEnvPass)) {
+                isPasswordCorrect = true;
+                break;
+              }
+            } catch (_) {}
+          }
         }
       }
 
-      if (!isPasswordCorrect && adminDoc && typeof adminDoc.comparePassword === "function") {
-        isPasswordCorrect = await adminDoc.comparePassword(candidatePassword);
+      // 2. Check against all MongoDB Admin accounts
+      if (!isPasswordCorrect) {
+        const allAdmins = await Admin.find({});
+        for (const admin of allAdmins) {
+          for (const cand of candidateVariants) {
+            if (!cand) continue;
+            try {
+              if (typeof admin.comparePassword === "function") {
+                if (await admin.comparePassword(cand)) {
+                  isPasswordCorrect = true;
+                  matchedAdminDoc = admin;
+                  targetRecipientEmail = admin.email;
+                  break;
+                }
+              } else if (admin.password) {
+                if (await bcrypt.compare(cand, admin.password)) {
+                  isPasswordCorrect = true;
+                  matchedAdminDoc = admin;
+                  targetRecipientEmail = admin.email;
+                  break;
+                }
+              }
+            } catch (_) {}
+          }
+          if (isPasswordCorrect) break;
+        }
+      }
+
+      // 3. Fallback: Check MongoDB SubAdmin accounts (in case active admin is registered in subadmins)
+      if (!isPasswordCorrect) {
+        const allSubAdmins = await SubAdmin.find({ status: "active" });
+        for (const subAdmin of allSubAdmins) {
+          for (const cand of candidateVariants) {
+            if (!cand) continue;
+            try {
+              if (typeof subAdmin.comparePassword === "function") {
+                if (await subAdmin.comparePassword(cand)) {
+                  isPasswordCorrect = true;
+                  matchedAdminDoc = subAdmin;
+                  targetRecipientEmail = subAdmin.email;
+                  break;
+                }
+              } else if (subAdmin.password) {
+                if (await bcrypt.compare(cand, subAdmin.password)) {
+                  isPasswordCorrect = true;
+                  matchedAdminDoc = subAdmin;
+                  targetRecipientEmail = subAdmin.email;
+                  break;
+                }
+              }
+            } catch (_) {}
+          }
+          if (isPasswordCorrect) break;
+        }
       }
 
       if (!isPasswordCorrect) {
@@ -1789,7 +1873,7 @@ module.exports = async function handler(req, res) {
       await AdminOtpVerification.deleteMany({});
       await AdminOtpVerification.create({ otpHash, expiresAt, attempts: 0 });
 
-      const recipientEmail = adminEmail || adminDoc?.email;
+      const recipientEmail = targetRecipientEmail || matchedAdminDoc?.email || process.env.ADMIN_EMAIL || "jaganparida35@gmail.com";
       await sendAdminOtpEmail({ to: recipientEmail, otp, expiresInMinutes: 5 });
 
       return res.json({
