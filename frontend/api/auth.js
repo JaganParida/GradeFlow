@@ -44,6 +44,7 @@ const {
   getActiveSubAdminSessions,
 } = require("./_lib/sessionManager");
 
+const { broadcastRealtimeEvent } = require("./_lib/ablyService");
 const { applyCors } = require("./_lib/cors");
 
 function parseCookies(cookieHeader) {
@@ -1469,8 +1470,29 @@ module.exports = async function handler(req, res) {
         }
       } catch {}
 
+      // Cleanup orphaned session if client previously had a session on this device but cookies were cleared
+      const clientLastSession = req.headers["x-admin-last-session"];
+      if (clientLastSession && !adminAuth) {
+        try {
+          const orphanedSession = await AdminSession.findOneAndUpdate(
+            { sessionId: clientLastSession, isActive: true },
+            {
+              $set: {
+                isActive: false,
+                revokedAt: new Date(),
+                revokeReason: "COOKIE_CLEARED_BY_CLIENT",
+              },
+            }
+          );
+          if (orphanedSession && activeAdminCount > 0) {
+            activeAdminCount = Math.max(0, activeAdminCount - 1);
+          }
+        } catch {}
+      }
+
       // Calculate resolved visibility (Manual override vs Automatic system logic)
-      let resolvedButtonVisible = Boolean(adminAuth || studentAuth?.regNo === "230301120327");
+      // Automatic rule: Visible to all when active devices < 2; hidden everywhere when active devices >= 2
+      let resolvedButtonVisible = activeAdminCount < 2;
       if (buttonVisibilityConfig && buttonVisibilityConfig.mode === "MANUAL") {
         const roles = buttonVisibilityConfig.allowedRoles || {};
         if (adminAuth) {
@@ -1672,7 +1694,24 @@ module.exports = async function handler(req, res) {
         }
       } catch {}
 
-      let resolvedButtonVisible = isCurrentDevice;
+      // Cleanup orphaned session if client previously had a session on this device but cookies were cleared
+      const clientLastSession = req.headers["x-admin-last-session"];
+      if (clientLastSession && !isCurrentDevice) {
+        try {
+          await AdminSession.updateOne(
+            { sessionId: clientLastSession, isActive: true },
+            {
+              $set: {
+                isActive: false,
+                revokedAt: new Date(),
+                revokeReason: "COOKIE_CLEARED_BY_CLIENT",
+              },
+            }
+          );
+        } catch {}
+      }
+
+      let resolvedButtonVisible = activeSessions.length < MAX_ADMIN_DEVICES;
       if (buttonVisibilityConfig && buttonVisibilityConfig.mode === "MANUAL") {
         const roles = buttonVisibilityConfig.allowedRoles || {};
         if (isCurrentDevice) {
@@ -1791,13 +1830,36 @@ module.exports = async function handler(req, res) {
 
       const activeSessions = await getActiveAdminSessions(AdminSession);
       if (activeSessions.length >= MAX_ADMIN_DEVICES) {
-        return res.status(403).json({
-          success: false,
-          code: "DEVICE_LIMIT_REACHED",
-          message: `Administrative device limit reached (${MAX_ADMIN_DEVICES}/${MAX_ADMIN_DEVICES} devices active). Please log out from an existing authorized device before signing in on a new device.`,
-          activeDevicesCount: activeSessions.length,
-          maxAllowedDevices: MAX_ADMIN_DEVICES,
-        });
+        // Prevent permanent lockout if cookies were cleared on one device or ghost sessions exist
+        const incomingDevice = extractRequestDeviceInfo(req);
+        const sameDeviceSession = activeSessions.find(
+          (s) =>
+            s.deviceInfo?.userAgent === incomingDevice?.userAgent &&
+            s.deviceInfo?.os === incomingDevice?.os &&
+            s.deviceInfo?.browser === incomingDevice?.browser
+        );
+        const sessionToRevoke =
+          sameDeviceSession ||
+          activeSessions.sort(
+            (a, b) =>
+              new Date(a.lastActiveAt || a.loggedInAt) -
+              new Date(b.lastActiveAt || b.loggedInAt)
+          )[0];
+
+        if (sessionToRevoke) {
+          await AdminSession.updateOne(
+            { _id: sessionToRevoke._id },
+            {
+              $set: {
+                isActive: false,
+                revokedAt: new Date(),
+                revokeReason: sameDeviceSession
+                  ? "REPLACED_BY_RELOGIN"
+                  : "REPLACED_BY_NEW_DEVICE",
+              },
+            }
+          );
+        }
       }
 
       const sessionId = crypto.randomUUID();
@@ -1821,11 +1883,24 @@ module.exports = async function handler(req, res) {
 
       setAdminCookie(res, token);
 
+      // Broadcast live availability to all clients
+      try {
+        const remainingAdminCount = await AdminSession.countDocuments({
+          isActive: true,
+          expiresAt: { $gt: new Date() },
+        });
+        await broadcastRealtimeEvent("admin-availability-updated", {
+          activeDeviceCount: remainingAdminCount,
+          isAdminButtonVisible: remainingAdminCount < 2,
+        });
+      } catch {}
+
       return res.json({
         success: true,
         authenticated: true,
         role: "admin",
         adminType: "main",
+        sessionId,
         message: "Admin authenticated successfully.",
       });
     }
@@ -2026,26 +2101,51 @@ module.exports = async function handler(req, res) {
         token = req.headers.authorization.split(" ")[1];
       }
 
+      let targetSessionId = null;
+      let isAdminTypeSub = false;
+
       if (token && token !== "none") {
         try {
           const decoded = jwt.verify(token, process.env.JWT_SECRET);
-          if (decoded?.sessionId) {
-            if (decoded.adminType === "subadmin") {
-              await SubAdminSession.updateOne(
-                { sessionId: decoded.sessionId },
-                { $set: { isActive: false, revokedAt: new Date(), revokeReason: "Admin manual logout" } }
-              );
-            } else {
-              await AdminSession.updateOne(
-                { sessionId: decoded.sessionId },
-                { $set: { isActive: false, revokedAt: new Date(), revokeReason: "Admin manual logout" } }
-              );
-            }
+          targetSessionId = decoded?.sessionId;
+          isAdminTypeSub = decoded?.adminType === "subadmin";
+        } catch {}
+      }
+
+      if (!targetSessionId) {
+        targetSessionId = req.headers["x-admin-last-session"] || req.body?.sessionId || null;
+      }
+
+      if (targetSessionId) {
+        try {
+          if (isAdminTypeSub) {
+            await SubAdminSession.updateOne(
+              { sessionId: targetSessionId },
+              { $set: { isActive: false, revokedAt: new Date(), revokeReason: "Admin manual logout" } }
+            );
+          } else {
+            await AdminSession.updateOne(
+              { sessionId: targetSessionId },
+              { $set: { isActive: false, revokedAt: new Date(), revokeReason: "Admin manual logout" } }
+            );
           }
         } catch {}
       }
 
       clearAdminCookie(res);
+
+      // Broadcast live availability to all clients
+      try {
+        const remainingAdminCount = await AdminSession.countDocuments({
+          isActive: true,
+          expiresAt: { $gt: new Date() },
+        });
+        await broadcastRealtimeEvent("admin-availability-updated", {
+          activeDeviceCount: remainingAdminCount,
+          isAdminButtonVisible: remainingAdminCount < 2,
+        });
+      } catch {}
+
       return res.status(200).json({ success: true, message: "Logged out successfully." });
     }
 

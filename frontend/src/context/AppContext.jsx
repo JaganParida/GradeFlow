@@ -88,7 +88,7 @@ export function AppProvider({ children }) {
   const [adminToken, setAdminToken] = useState(false);
   const [adminProfile, setAdminProfile] = useState(null);
   const [adminDeviceCount, setAdminDeviceCount] = useState(0);
-  const [isAdminButtonVisible, setIsAdminButtonVisible] = useState(false);
+  const [isAdminButtonVisible, setIsAdminButtonVisible] = useState(true);
   const [adminButtonConfig, setAdminButtonConfig] = useState(() => ({
     mode: "AUTO",
     allowedRoles: {
@@ -109,9 +109,11 @@ export function AppProvider({ children }) {
   const checkAdminStatus = async () => {
     if (isOldDomain) return null;
     try {
+      const lastAdminSession = typeof window !== "undefined" ? localStorage.getItem("gf_admin_last_session") || "" : "";
       const res = await axios.get(`${API_BASE}/auth/admin/check-status`, {
         withCredentials: true,
         timeout: 4000,
+        headers: lastAdminSession ? { "x-admin-last-session": lastAdminSession } : {},
       });
       if (res.data && res.data.success) {
         const count = res.data.activeDeviceCount ?? 0;
@@ -122,7 +124,7 @@ export function AppProvider({ children }) {
         if (typeof res.data.isAdminButtonVisible === "boolean") {
           setIsAdminButtonVisible(res.data.isAdminButtonVisible);
         } else {
-          setIsAdminButtonVisible(false);
+          setIsAdminButtonVisible(count < 2);
         }
         return res.data;
       }
@@ -241,13 +243,17 @@ export function AppProvider({ children }) {
           sessionStorage.removeItem("gf_bootstrap_cache");
         } catch (_) {}
 
+        const lastAdminSession = typeof window !== "undefined" ? localStorage.getItem("gf_admin_last_session") || "" : "";
         const res = await axios.get(`${API_BASE}/auth/bootstrap`, {
           withCredentials: true,
           // Serverless cold starts and slow mobile networks can take longer than
           // six seconds. Do not mistake an unfinished cookie validation for a
           // logged-out student.
           timeout: 15000,
-          headers: { "Cache-Control": "no-cache" },
+          headers: {
+            "Cache-Control": "no-cache",
+            ...(lastAdminSession ? { "x-admin-last-session": lastAdminSession } : {}),
+          },
         });
 
         if (res.data && res.data.success) {
@@ -279,10 +285,16 @@ export function AppProvider({ children }) {
             setAdminToken(true);
             setAdminProfile(admin);
             setAdminAuthStatus("AUTHENTICATED");
+            if (admin.sessionId) {
+              localStorage.setItem("gf_admin_last_session", admin.sessionId);
+            }
           } else {
             setAdminToken(false);
             setAdminProfile(null);
             setAdminAuthStatus("UNAUTHENTICATED");
+            try {
+              localStorage.removeItem("gf_admin_last_session");
+            } catch (_) {}
           }
 
           // 3. Hydrate Admin Occupancy & Button Visibility
@@ -294,7 +306,7 @@ export function AppProvider({ children }) {
             if (typeof btnVis === "boolean") {
               setIsAdminButtonVisible(btnVis);
             } else {
-              setIsAdminButtonVisible(false);
+              setIsAdminButtonVisible(devCount < 2);
             }
           }
 
@@ -397,13 +409,16 @@ export function AppProvider({ children }) {
         localStorage.removeItem(key);
         sessionStorage.removeItem(key);
       });
+      try {
+        localStorage.removeItem("gf_admin_last_session");
+      } catch (_) {}
       await axios.post(`${API_BASE}/auth/admin/logout`, {}, { withCredentials: true });
     } catch (err) {
       console.warn("Logout error:", err.message);
     } finally {
       setAdminToken(false);
       setAdminProfile(null);
-      setIsAdminButtonVisible(false);
+      setIsAdminButtonVisible(true);
       navigate("/admin");
     }
   }, [navigate]);
@@ -765,6 +780,18 @@ export function AppProvider({ children }) {
           sessionStorage.removeItem("gf_schedules_cache");
         } catch (_) {}
         window.dispatchEvent(new CustomEvent("gradeflow:timetable-updated", { detail: msg?.data }));
+      });
+
+      // F3. Listen for real-time admin availability updates (<100ms)
+      broadcastChannel.subscribe("admin-availability-updated", (msg) => {
+        if (!isMounted || !msg?.data) return;
+        const { activeDeviceCount: newDevCount, isAdminButtonVisible: newBtnVis } = msg.data;
+        if (typeof newDevCount === "number") {
+          setAdminDeviceCount(newDevCount);
+        }
+        if (typeof newBtnVis === "boolean") {
+          setIsAdminButtonVisible(newBtnVis);
+        }
       });
 
       // G. Listen for real-time attendance sync across active devices and tabs
@@ -1137,6 +1164,11 @@ export function AppProvider({ children }) {
         setAdminToken(true);
         setAdminProfile(res.data);
         setIsAdminButtonVisible(true);
+        if (res.data?.sessionId) {
+          try {
+            localStorage.setItem("gf_admin_last_session", res.data.sessionId);
+          } catch (_) {}
+        }
         return { success: true };
       }
       const msg = res.data?.message || "OTP verification failed.";

@@ -115,36 +115,7 @@ async function sendMailWithFailover(mailOptions) {
   const brevo = getBrevoTransporter();
   const gmail = getGmailTransporter();
 
-  const primaryChoice = (process.env.PRIMARY_EMAIL_PROVIDER || process.env.EMAIL_PROVIDER || "").toLowerCase();
-  const preferGmail = primaryChoice === "gmail" || process.env.EMAIL_SERVICE === "gmail" || process.env.GMAIL_PRIMARY === "true" || Boolean(gmail);
-
-  if (preferGmail && gmail) {
-    // ── Attempt Gmail Primary ──
-    try {
-      const gmailSender = process.env.GMAIL_SMTP_USER || process.env.GMAIL_USER || mailOptions.from;
-      const gmailOptions = {
-        ...mailOptions,
-        from: mailOptions.from || `"GradeFlow" <${gmailSender}>`,
-      };
-      const res = await gmail.sendMail(gmailOptions);
-      return { success: true, provider: "gmail", messageId: res?.messageId };
-    } catch (gmailErr) {
-      const gmailClass = classifySmtpError(gmailErr);
-      console.warn(`[Serverless Email] Gmail primary failed (${gmailClass}): ${gmailErr.message}`);
-      if (brevo) {
-        try {
-          const res = await brevo.sendMail(mailOptions);
-          return { success: true, provider: "brevo_fallback", messageId: res?.messageId, primaryFailureReason: gmailClass };
-        } catch (brevoErr) {
-          throw new EmailProviderError("OTP delivery is temporarily unavailable. Please try again later.", "ALL_PROVIDERS_UNAVAILABLE", brevoErr);
-        }
-      } else {
-        throw new EmailProviderError("OTP delivery is temporarily unavailable. Please try again later.", "ALL_PROVIDERS_UNAVAILABLE", gmailErr);
-      }
-    }
-  }
-
-  // ── Attempt Brevo Primary ──
+  // ── 1. Always Attempt Brevo Primary First ──
   let brevoFailed = false;
   let brevoClassification = "UNKNOWN";
 
@@ -155,12 +126,14 @@ async function sendMailWithFailover(mailOptions) {
     } catch (err) {
       brevoFailed = true;
       brevoClassification = classifySmtpError(err);
-      console.warn(`[Serverless Email] Brevo failed (${brevoClassification}): ${err.message}`);
+      console.warn(`[Serverless Email] Brevo primary failed (${brevoClassification}): ${err.message}`);
     }
   } else {
     brevoFailed = true;
     brevoClassification = "NOT_CONFIGURED";
   }
+
+  // ── 2. Fallback to Google SMTP Only If Brevo Fails ──
 
   if (brevoFailed) {
     if (gmail) {

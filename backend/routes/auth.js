@@ -1366,6 +1366,23 @@ router.get("/bootstrap", async (req, res) => {
     let maintenanceState = { enabled: false, message: "", enabledAt: null };
 
     try {
+      // Cleanup orphaned session if client previously had a session on this device but cookies were cleared
+      const clientLastSession = req.headers["x-admin-last-session"];
+      if (clientLastSession && !adminAuth) {
+        try {
+          await AdminSession.updateOne(
+            { sessionId: clientLastSession, isActive: true },
+            {
+              $set: {
+                isActive: false,
+                revokedAt: new Date(),
+                revokeReason: "COOKIE_CLEARED_BY_CLIENT",
+              },
+            }
+          );
+        } catch {}
+      }
+
       const [activeAdminSessions, config] = await Promise.all([
         AdminSession.find({ isActive: true, expiresAt: { $gt: new Date() } }).lean(),
         SystemConfig.findOne({ key: "maintenance" }).lean(),
@@ -1779,13 +1796,36 @@ router.post("/admin/verify-otp", async (req, res) => {
 
     const activeSessions = await getActiveAdminSessions(AdminSession);
     if (activeSessions.length >= MAX_ADMIN_DEVICES) {
-      return res.status(403).json({
-        success: false,
-        code: "DEVICE_LIMIT_REACHED",
-        message: `Administrative device limit reached (${MAX_ADMIN_DEVICES}/${MAX_ADMIN_DEVICES} devices active). Please log out from an existing authorized device before signing in on a new device.`,
-        activeDevicesCount: activeSessions.length,
-        maxAllowedDevices: MAX_ADMIN_DEVICES,
-      });
+      // Prevent permanent lockout if cookies were cleared on one device or ghost sessions exist
+      const incomingDevice = extractRequestDeviceInfo(req);
+      const sameDeviceSession = activeSessions.find(
+        (s) =>
+          s.deviceInfo?.userAgent === incomingDevice?.userAgent &&
+          s.deviceInfo?.os === incomingDevice?.os &&
+          s.deviceInfo?.browser === incomingDevice?.browser
+      );
+      const sessionToRevoke =
+        sameDeviceSession ||
+        activeSessions.sort(
+          (a, b) =>
+            new Date(a.lastActiveAt || a.loggedInAt) -
+            new Date(b.lastActiveAt || b.loggedInAt)
+        )[0];
+
+      if (sessionToRevoke) {
+        await AdminSession.updateOne(
+          { _id: sessionToRevoke._id },
+          {
+            $set: {
+              isActive: false,
+              revokedAt: new Date(),
+              revokeReason: sameDeviceSession
+                ? "REPLACED_BY_RELOGIN"
+                : "REPLACED_BY_NEW_DEVICE",
+            },
+          }
+        );
+      }
     }
 
     const sessionId = crypto.randomUUID();
@@ -1814,6 +1854,7 @@ router.post("/admin/verify-otp", async (req, res) => {
       authenticated: true,
       role: "admin",
       adminType: "main",
+      sessionId,
       message: "Admin authenticated successfully.",
     });
   } catch (err) {
@@ -2175,21 +2216,33 @@ const handleAdminLogout = async (req, res) => {
       token = req.headers["x-admin-token"];
     }
 
+    let targetSessionId = null;
+    let isAdminTypeSub = false;
+
     if (token && token !== "none") {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
-        if (decoded?.sessionId) {
-          if (decoded.adminType === "subadmin") {
-            await SubAdminSession.updateOne(
-              { sessionId: decoded.sessionId },
-              { $set: { isActive: false, revokedAt: new Date(), revokeReason: "Admin manual logout" } }
-            );
-          } else {
-            await AdminSession.updateOne(
-              { sessionId: decoded.sessionId },
-              { $set: { isActive: false, revokedAt: new Date(), revokeReason: "Admin manual logout" } }
-            );
-          }
+        targetSessionId = decoded?.sessionId;
+        isAdminTypeSub = decoded?.adminType === "subadmin";
+      } catch {}
+    }
+
+    if (!targetSessionId) {
+      targetSessionId = req.headers["x-admin-last-session"] || req.body?.sessionId || null;
+    }
+
+    if (targetSessionId) {
+      try {
+        if (isAdminTypeSub) {
+          await SubAdminSession.updateOne(
+            { sessionId: targetSessionId },
+            { $set: { isActive: false, revokedAt: new Date(), revokeReason: "Admin manual logout" } }
+          );
+        } else {
+          await AdminSession.updateOne(
+            { sessionId: targetSessionId },
+            { $set: { isActive: false, revokedAt: new Date(), revokeReason: "Admin manual logout" } }
+          );
         }
       } catch {}
     }
