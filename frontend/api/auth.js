@@ -203,7 +203,8 @@ module.exports = async function handler(req, res) {
     let action = req.query?.action;
     if (!action && req.url) {
       const cleanUrl = req.url.split("?")[0];
-      if (cleanUrl.includes("student/send-otp")) action = "student-send-otp";
+      if (cleanUrl.includes("student/send-handover-otp")) action = "student-send-handover-otp";
+      else if (cleanUrl.includes("student/send-otp")) action = "student-send-otp";
       else if (cleanUrl.includes("student/verify-otp")) action = "student-verify-otp";
       else if (cleanUrl.includes("student/check-status")) action = "student-check-status";
       else if (cleanUrl.includes("student/create-password")) action = "student-create-password";
@@ -287,39 +288,11 @@ module.exports = async function handler(req, res) {
       let isBlocked = false;
       let blockReason = null;
       let blockMessage = null;
-      let otpFallbackAllowed = failedPasswordAttempts >= 3 || isLocked;
+      let otpFallbackAllowed = true;
 
-      if (hasPassword) {
-        if (failedPasswordAttempts >= 3) {
-          if (maxAllowedDevices === 1 && activeSessions.length >= 1 && !isCurrentDevice) {
-            // Another device is active and user failed 3 password attempts -> OTP bypass blocked to prevent takeover
-            isBlocked = true;
-            blockReason = "PASSWORD_FAILED_DEVICE_ACTIVE";
-            blockMessage = `Maximum password attempts exceeded (3/3). Registration number ${rawReg} is currently logged in on another device. Single-device security policy: OTP recovery is blocked while your authorized device slot is occupied.`;
-          } else if (maxAllowedDevices > 1 && activeSessions.length >= maxAllowedDevices && !isCurrentDevice) {
-            isBlocked = true;
-            blockReason = "DEVICE_LIMIT_REACHED";
-            blockMessage = `Account ${rawReg} has reached the maximum allowed active devices (${maxAllowedDevices}). Please log out from another device.`;
-          } else {
-            // 0 devices active -> allow OTP recovery
-            otpFallbackAllowed = true;
-          }
-        } else {
-          // Allow forgot password if 0 active devices
-          otpFallbackAllowed = activeSessions.length === 0;
-          if (maxAllowedDevices > 1 && activeSessions.length >= maxAllowedDevices && !isCurrentDevice) {
-            isBlocked = true;
-            blockReason = "DEVICE_LIMIT_REACHED";
-            blockMessage = `Account ${rawReg} is already actively logged in on ${maxAllowedDevices} devices (maximum ${maxAllowedDevices} allowed). Please log out from one device before signing in on a new device.`;
-          }
-        }
-      } else {
+      if (!hasPassword) {
         // Brand new student (no password created yet) -> Needs OTP verification to create password
-        if (activeSessions.length >= maxAllowedDevices && !isCurrentDevice) {
-          isBlocked = true;
-          blockReason = "DEVICE_LIMIT_REACHED";
-          blockMessage = `Registration number ${rawReg} is already logged in on an active device. Please log out from that device first.`;
-        } else if (isDailyLimitReached) {
+        if (isDailyLimitReached) {
           isBlocked = true;
           blockReason = "DAILY_LIMIT_EXCEEDED";
           blockMessage = `Daily OTP limit reached (${currentDailyCount}/${maxDailyLimit} attempts used). Login for ${rawReg} is locked for today. It will automatically reset at midnight.`;
@@ -428,41 +401,6 @@ module.exports = async function handler(req, res) {
           code: "PASSWORD_LOGIN_REQUIRED",
           message: "This account is protected by a password. Please sign in with your password.",
           hasPassword: true,
-        });
-      }
-
-      // Device Limit Check
-      if (activeSessions.length >= maxAllowedDevices) {
-        const sanitizedDevices = activeSessions.map((s, idx) => ({
-          deviceIndex: idx + 1,
-          platform: s.deviceInfo?.platform || "Unknown",
-          userAgent: s.deviceInfo?.userAgent || "Unknown",
-          loggedInAt: s.loggedInAt,
-          lastActiveAt: s.lastActiveAt,
-          status: "ACTIVE",
-        }));
-
-        await OtpRequestLog.create({
-          regNo: rawReg,
-          studentName,
-          dateKey: getIstDateKey(),
-          status: "BLOCKED",
-          deliveryStatus: "NOT_SENT",
-          provider: "NONE",
-          reason: rawReg === "230301120327" ? `Blocked: Maximum 2 devices already active` : `Blocked: Single active device limit reached`,
-          deviceInfo: extractRequestDeviceInfo(req),
-        }).catch(() => {});
-
-        return res.status(403).json({
-          success: false,
-          code: "DEVICE_LIMIT_REACHED",
-          message: rawReg === "230301120327"
-            ? `Account 230301120327 is already active on ${activeSessions.length} devices (maximum limit: 2). Please log out from one device before logging in on a new device.`
-            : `Registration number ${rawReg} is already logged in on an active device (maximum limit: 1). Single-device security policy is active. Please log out from your other device before signing in here.`,
-          activeDeviceCount: activeSessions.length,
-          maxAllowedDevices,
-          isBlocked: true,
-          activeDevices: sanitizedDevices,
         });
       }
 
@@ -1034,24 +972,21 @@ module.exports = async function handler(req, res) {
             },
           });
         } else {
-          // 2-Device Account (230301120327)
+          // 2-Device Account (230301120327): FIFO Session Rotation
           if (activeSessions.length >= maxAllowedDevices) {
-            const sanitizedDevices = activeSessions.map((s, idx) => ({
-              deviceIndex: idx + 1,
-              platform: s.deviceInfo?.platform || "Unknown",
-              userAgent: s.deviceInfo?.userAgent || "Unknown",
-              loggedInAt: s.loggedInAt,
-              lastActiveAt: s.lastActiveAt,
-              status: "ACTIVE",
-            }));
-            return res.status(403).json({
-              success: false,
-              code: "DEVICE_LIMIT_REACHED",
-              message: `Account ${rawReg} is currently active on ${activeSessions.length} devices (maximum limit: ${maxAllowedDevices}). Please log out from another device before logging in on a new device.`,
-              activeDeviceCount: activeSessions.length,
-              maxAllowedDevices,
-              activeDevices: sanitizedDevices,
-            });
+            const sorted = activeSessions.sort((a, b) => new Date(a.lastActiveAt || a.loggedInAt) - new Date(b.lastActiveAt || b.loggedInAt));
+            const oldest = sorted[0];
+            if (oldest) {
+              oldest.isActive = false;
+              oldest.revokedAt = new Date();
+              oldest.revokeReason = "REPLACED_BY_NEW_DEVICE";
+              await oldest.save();
+              publishStudentRealtimeEvent(rawReg, "session-revoked", {
+                sessionId: oldest.sessionId,
+                reason: "REPLACED_BY_NEW_DEVICE",
+                message: "Your session was terminated because this account was logged into on another device.",
+              }).catch(() => {});
+            }
           }
 
           const sessionId = crypto.randomUUID();
@@ -1587,7 +1522,7 @@ module.exports = async function handler(req, res) {
         } catch {}
       }
 
-      const isBlocked = activeSessions.length >= MAX_ADMIN_DEVICES && !isCurrentDevice;
+      const isBlocked = false;
       const sanitizedDevices = activeSessions.map((s, idx) => ({
         deviceIndex: idx + 1,
         deviceType: s.deviceInfo?.deviceType || "Desktop",
@@ -1618,7 +1553,7 @@ module.exports = async function handler(req, res) {
         }
       } catch {}
 
-      let resolvedButtonVisible = activeSessions.length < MAX_ADMIN_DEVICES;
+      let resolvedButtonVisible = true;
       if (buttonVisibilityConfig && buttonVisibilityConfig.mode === "MANUAL") {
         const roles = buttonVisibilityConfig.allowedRoles || {};
         if (isCurrentDevice) {
@@ -1633,10 +1568,10 @@ module.exports = async function handler(req, res) {
         isCurrentDevice,
         activeDeviceCount: activeSessions.length,
         maxAllowedDevices: MAX_ADMIN_DEVICES,
-        isBlocked,
-        otpAllowed: !isBlocked,
-        loginAllowed: !isBlocked,
-        blockReason: isBlocked ? "ADMIN_DEVICE_LIMIT_REACHED" : null,
+        isBlocked: false,
+        otpAllowed: true,
+        loginAllowed: true,
+        blockReason: null,
         activeDevices: sanitizedDevices,
         isAdminButtonVisible: resolvedButtonVisible,
         adminButtonConfig: buttonVisibilityConfig,
@@ -1713,27 +1648,6 @@ module.exports = async function handler(req, res) {
             }
           }
         } catch {}
-      }
-
-      if (activeSessions.length >= MAX_ADMIN_DEVICES && !isCurrentDevice) {
-        const sanitizedDevices = activeSessions.map((s, idx) => ({
-          deviceIndex: idx + 1,
-          deviceType: s.deviceInfo?.deviceType || "Desktop",
-          os: s.deviceInfo?.os || "Windows",
-          browser: s.deviceInfo?.browser || "Chrome",
-          platform: s.deviceInfo?.platform || `${s.deviceInfo?.os || "Windows"} • ${s.deviceInfo?.browser || "Chrome"}`,
-          userAgent: s.deviceInfo?.userAgent || "Standard Browser",
-          loggedInAt: s.loggedInAt,
-          lastActiveAt: s.lastActiveAt,
-          status: "ACTIVE",
-        }));
-        return res.status(403).json({
-          message: `Admin portal is active on ${activeSessions.length} devices (maximum limit: ${MAX_ADMIN_DEVICES}). Please log out from another device first.`,
-          code: "ADMIN_DEVICE_LIMIT_REACHED",
-          activeDeviceCount: activeSessions.length,
-          maxAllowedDevices: MAX_ADMIN_DEVICES,
-          activeDevices: sanitizedDevices,
-        });
       }
 
       const otp = crypto.randomInt(100000, 1000000).toString();
@@ -1882,14 +1796,6 @@ module.exports = async function handler(req, res) {
             }
           }
         } catch {}
-      }
-
-      if (activeSessions.length >= (MAX_SUBADMIN_DEVICES || 2) && !isCurrentDevice) {
-        return res.status(403).json({
-          success: false,
-          code: "SUBADMIN_DEVICE_LIMIT_REACHED",
-          message: `Sub-Admin portal is currently active on ${activeSessions.length} devices (maximum limit: ${MAX_SUBADMIN_DEVICES || 2}). Please log out from another device before logging in here.`,
-        });
       }
 
       const otp = crypto.randomInt(100000, 1000000).toString();
