@@ -31,6 +31,9 @@ const OBSOLETE_AUTH_STORAGE_KEYS = [
   "admin_jwt",
   "adminToken",
   "gf_admin_session",
+  "gf_admin_active_session",
+  "gf_admin_last_session",
+  "gf_admin_logged_in",
   "gf_cache_version",
   "jwt",
   "token",
@@ -109,13 +112,9 @@ export function AppProvider({ children }) {
   const checkAdminStatus = async () => {
     if (isOldDomain) return null;
     try {
-      const lastAdminSession = typeof window !== "undefined"
-        ? localStorage.getItem("gf_admin_active_session") || localStorage.getItem("gf_admin_last_session") || ""
-        : "";
       const res = await axios.get(`${API_BASE}/auth/admin/check-status`, {
         withCredentials: true,
         timeout: 4000,
-        headers: lastAdminSession ? { "x-admin-last-session": lastAdminSession } : {},
       });
       if (res.data && res.data.success) {
         const count = res.data.activeDeviceCount ?? 0;
@@ -245,13 +244,6 @@ export function AppProvider({ children }) {
           sessionStorage.removeItem("gf_bootstrap_cache");
         } catch (_) {}
 
-        const lastAdminSession = typeof window !== "undefined"
-          ? localStorage.getItem("gf_admin_active_session") || localStorage.getItem("gf_admin_last_session") || ""
-          : "";
-        const wasAdminLoggedIn = typeof window !== "undefined"
-          ? localStorage.getItem("gf_admin_logged_in") === "true"
-          : false;
-
         const res = await axios.get(`${API_BASE}/auth/bootstrap`, {
           withCredentials: true,
           // Serverless cold starts and slow mobile networks can take longer than
@@ -260,7 +252,6 @@ export function AppProvider({ children }) {
           timeout: 15000,
           headers: {
             "Cache-Control": "no-cache",
-            ...(lastAdminSession ? { "x-admin-last-session": lastAdminSession } : {}),
           },
         });
 
@@ -288,48 +279,15 @@ export function AppProvider({ children }) {
             setAuthStatus("UNAUTHENTICATED");
           }
 
-          // 2. Hydrate Admin Session
+          // 2. Hydrate Admin Session (Pure In-Memory State)
           if (admin && admin.authenticated) {
             setAdminToken(true);
             setAdminProfile(admin);
             setAdminAuthStatus("AUTHENTICATED");
-            if (admin.sessionId) {
-              try {
-                localStorage.setItem("gf_admin_last_session", admin.sessionId);
-                localStorage.setItem("gf_admin_active_session", admin.sessionId);
-                localStorage.setItem("gf_admin_logged_in", "true");
-              } catch (_) {}
-            }
           } else {
             setAdminToken(false);
             setAdminProfile(null);
             setAdminAuthStatus("UNAUTHENTICATED");
-
-            // If this browser was previously an active admin session, but cookies were cleared:
-            if (wasAdminLoggedIn && lastAdminSession) {
-              axios
-                .post(
-                  `${API_BASE}/auth/admin/release-session`,
-                  { sessionId: lastAdminSession },
-                  { withCredentials: true, timeout: 5000 }
-                )
-                .then((relRes) => {
-                  if (relRes?.data?.success) {
-                    if (typeof relRes.data.activeDeviceCount === "number") {
-                      setAdminDeviceCount(relRes.data.activeDeviceCount);
-                    }
-                    if (typeof relRes.data.isAdminButtonVisible === "boolean") {
-                      setIsAdminButtonVisible(relRes.data.isAdminButtonVisible);
-                    }
-                  }
-                })
-                .catch(() => {});
-            }
-
-            try {
-              localStorage.removeItem("gf_admin_active_session");
-              localStorage.removeItem("gf_admin_logged_in");
-            } catch (_) {}
           }
 
           // 3. Hydrate Admin Occupancy & Button Visibility
@@ -444,19 +402,13 @@ export function AppProvider({ children }) {
         localStorage.removeItem(key);
         sessionStorage.removeItem(key);
       });
-      const activeSessionId = adminProfile?.sessionId || (
-        typeof window !== "undefined"
-          ? localStorage.getItem("gf_admin_active_session") || localStorage.getItem("gf_admin_last_session") || ""
-          : ""
-      );
+      const activeSessionId = adminProfile?.sessionId || "";
 
       const res = await axios.post(
         `${API_BASE}/auth/admin/logout`,
         { sessionId: activeSessionId },
         {
-          headers: {
-            "x-admin-last-session": activeSessionId,
-          },
+          headers: activeSessionId ? { "x-admin-last-session": activeSessionId } : {},
           withCredentials: true,
         }
       );
@@ -469,12 +421,6 @@ export function AppProvider({ children }) {
           setAdminDeviceCount(res.data.activeDeviceCount);
         }
       }
-
-      try {
-        localStorage.removeItem("gf_admin_last_session");
-        localStorage.removeItem("gf_admin_active_session");
-        localStorage.removeItem("gf_admin_logged_in");
-      } catch (_) {}
     } catch (err) {
       console.warn("Logout error:", err.message);
     } finally {
@@ -500,9 +446,7 @@ export function AppProvider({ children }) {
 
       // Targeted session revocation: only log out if this specific session was revoked
       adminChannel.subscribe("session-revoked", (msg) => {
-        const mySessionId = adminProfile?.sessionId || (
-          typeof window !== "undefined" ? localStorage.getItem("gf_admin_active_session") : null
-        );
+        const mySessionId = adminProfile?.sessionId;
         const targetRevoked = msg?.data?.sessionId || msg?.data?.revokedSessionId;
         if (targetRevoked && mySessionId && targetRevoked === mySessionId) {
           console.warn("[AdminAbly] This device session was revoked:", msg?.data);
@@ -1267,13 +1211,6 @@ export function AppProvider({ children }) {
         setAdminToken(true);
         setAdminProfile(res.data);
         setIsAdminButtonVisible(true);
-        if (res.data?.sessionId) {
-          try {
-            localStorage.setItem("gf_admin_last_session", res.data.sessionId);
-            localStorage.setItem("gf_admin_active_session", res.data.sessionId);
-            localStorage.setItem("gf_admin_logged_in", "true");
-          } catch (_) {}
-        }
         return { success: true };
       }
       const msg = res.data?.message || "OTP verification failed.";
@@ -1306,12 +1243,6 @@ export function AppProvider({ children }) {
       if (res.data?.alreadyLoggedIn) {
         setAdminToken(true);
         setAdminProfile(res.data);
-        if (res.data?.sessionId && typeof window !== "undefined") {
-          try {
-            localStorage.setItem("gf_admin_active_session", res.data.sessionId);
-            localStorage.setItem("gf_admin_logged_in", "true");
-          } catch (_) {}
-        }
         return { success: true, alreadyLoggedIn: true, subAdmin: res.data };
       }
       if (res.data?.step === "OTP_REQUIRED") {
@@ -1328,12 +1259,6 @@ export function AppProvider({ children }) {
       if (res.data?.success && res.data?.authenticated) {
         setAdminToken(true);
         setAdminProfile(res.data);
-        if (res.data?.sessionId && typeof window !== "undefined") {
-          try {
-            localStorage.setItem("gf_admin_active_session", res.data.sessionId);
-            localStorage.setItem("gf_admin_logged_in", "true");
-          } catch (_) {}
-        }
         return { success: true, subAdmin: res.data };
       }
       return { success: false, message: res.data?.message || "Sub-Admin login failed" };
@@ -1359,12 +1284,6 @@ export function AppProvider({ children }) {
       if (res.data?.success && res.data?.authenticated) {
         setAdminToken(true);
         setAdminProfile(res.data);
-        if (res.data?.sessionId && typeof window !== "undefined") {
-          try {
-            localStorage.setItem("gf_admin_active_session", res.data.sessionId);
-            localStorage.setItem("gf_admin_logged_in", "true");
-          } catch (_) {}
-        }
         return { success: true, subAdmin: res.data };
       }
       const msg = res.data?.message || "Sub-Admin OTP verification failed.";
