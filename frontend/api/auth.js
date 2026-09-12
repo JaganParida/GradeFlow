@@ -1064,22 +1064,25 @@ module.exports = async function handler(req, res) {
             },
           });
         } else {
-          // CASE B: 2-Device Account (Special Student 230301120327): FIFO Session Rotation
+          // CASE B: 2-Device Account (Special Student 230301120327): Strict 2-Device Cap (Device 3 Blocked)
           if (remainingActiveSessions.length >= maxAllowedDevices) {
-            const sorted = remainingActiveSessions.sort((a, b) => new Date(a.lastActiveAt || a.loggedInAt) - new Date(b.lastActiveAt || b.loggedInAt));
-            const oldest = sorted[0];
-            if (oldest) {
-              oldest.isActive = false;
-              oldest.revokedAt = new Date();
-              oldest.revokeReason = "REPLACED_BY_NEW_DEVICE";
-              await oldest.save();
-              publishStudentRealtimeEvent(rawReg, "session-revoked", {
-                sessionId: oldest.sessionId,
-                revokedSessionId: oldest.sessionId,
-                reason: "REPLACED_BY_NEW_DEVICE",
-                message: "Your session was terminated because this account was logged into on another device.",
-              }).catch(() => {});
-            }
+            const sanitizedDevices = remainingActiveSessions.map((s, idx) => ({
+              deviceIndex: idx + 1,
+              platform: s.deviceInfo?.platform || "Unknown",
+              userAgent: s.deviceInfo?.userAgent || "Unknown",
+              loggedInAt: s.loggedInAt,
+              lastActiveAt: s.lastActiveAt,
+              status: "ACTIVE",
+            }));
+
+            return res.status(403).json({
+              success: false,
+              code: "DEVICE_LIMIT_REACHED",
+              message: `Account ${rawReg} is currently active on ${remainingActiveSessions.length} devices (maximum limit: ${maxAllowedDevices}). Please log out from another device before signing in on a new device.`,
+              activeDeviceCount: remainingActiveSessions.length,
+              maxAllowedDevices,
+              activeDevices: sanitizedDevices,
+            });
           }
 
           const sessionId = crypto.randomUUID();
