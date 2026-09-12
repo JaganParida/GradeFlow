@@ -67,5 +67,6 @@ const DeviceApprovalRequestSchema = new mongoose.Schema(
 
 // Compound index for querying pending requests by regNo
 DeviceApprovalRequestSchema.index({ regNo: 1, status: 1, expiresAt: 1 });
+DeviceApprovalRequestSchema.index({ targetSessionId: 1, status: 1 });
 
-module.exports = mongoose.model("DeviceApprovalRequest", DeviceApprovalRequestSchema);
+module.exports = mongoose.models.DeviceApprovalRequest || mongoose.model("DeviceApprovalRequest", DeviceApprovalRequestSchema);

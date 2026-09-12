@@ -526,14 +526,63 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      // Existing student password enforcement
-      if (hasPassword && failedPasswordAttempts < 3 && !isLocked && !req.body.forceOtp && !req.body.isForgotPassword) {
-        return res.status(400).json({
-          success: false,
-          code: "PASSWORD_LOGIN_REQUIRED",
-          message: "This account is protected by a password. Please sign in with your password.",
-          hasPassword: true,
-        });
+      // Existing student password enforcement & 24h recovery limit
+      if (hasPassword) {
+        const isForgotPassword = Boolean(req.body.isForgotPassword || req.body.forceOtp);
+        if (!isForgotPassword) {
+          return res.status(400).json({
+            success: false,
+            code: "PASSWORD_REQUIRED",
+            message: "Your account is secured with a password. Please log in with your password.",
+            hasPassword: true,
+          });
+        }
+
+        // Check 24-hour recovery restriction & 1-attempt policy
+        if (studentAccount.recoveryRestrictedUntil && new Date(studentAccount.recoveryRestrictedUntil) > new Date()) {
+          if ((studentAccount.recoveryOtpCount || 0) >= 1) {
+            const remainingMs = new Date(studentAccount.recoveryRestrictedUntil).getTime() - Date.now();
+            const remainingHours = Math.max(1, Math.ceil(remainingMs / (3600 * 1000)));
+            return res.status(429).json({
+              success: false,
+              code: "RECOVERY_LIMIT_EXCEEDED",
+              message: `Recovery code limit reached (1 attempt allowed per 24-hour restriction window). Please wait ${remainingHours} hour${remainingHours === 1 ? "" : "s"} or contact administrator.`,
+              remainingHours,
+              recoveryRestrictedUntil: studentAccount.recoveryRestrictedUntil,
+            });
+          }
+        }
+
+        // Check active devices for password reset
+        if (maxAllowedDevices === 1 && activeSessions.length >= 1) {
+          return res.status(403).json({
+            success: false,
+            code: "BLOCKED_DEVICE_ACTIVE",
+            message: `Single-device security policy: Password reset is blocked while another device is currently active on account ${rawReg}. Please log out from that device first.`,
+            activeDeviceCount: activeSessions.length,
+            maxAllowedDevices: 1,
+          });
+        }
+
+        if (maxAllowedDevices > 1 && activeSessions.length >= maxAllowedDevices) {
+          return res.status(403).json({
+            success: false,
+            code: "DEVICE_LIMIT_REACHED",
+            message: `Account ${rawReg} is currently active on ${activeSessions.length} devices (maximum limit: ${maxAllowedDevices}). Please log out from another device.`,
+            activeDeviceCount: activeSessions.length,
+            maxAllowedDevices,
+          });
+        }
+      } else {
+        if (activeSessions.length >= maxAllowedDevices) {
+          return res.status(403).json({
+            success: false,
+            code: "DEVICE_LIMIT_REACHED",
+            message: `Account ${rawReg} has reached maximum active device limit (${maxAllowedDevices}).`,
+            activeDeviceCount: activeSessions.length,
+            maxAllowedDevices,
+          });
+        }
       }
 
       // Daily Limit & Cooldown Check
@@ -577,7 +626,7 @@ module.exports = async function handler(req, res) {
 
           return res.json({
             success: true,
-            message: `A single-use recovery code has already been dispatched to ${studentEmail}. It is valid for 10 minutes. Resend is disabled.`,
+            message: `A single-use recovery code has already been dispatched to ${studentEmail}. It is valid for 3 minutes. Resend is disabled.`,
             maskedEmail,
             studentName,
             regNo: rawReg,
@@ -595,7 +644,7 @@ module.exports = async function handler(req, res) {
       const otpHash = await bcrypt.hash(otpCode, otpSalt);
 
       await globalDbQueue.run(() => OtpVerification.deleteMany({ regNo: rawReg }));
-      const otpTtlMinutes = isForgotPassword ? 10 : 3;
+      const otpTtlMinutes = 3; // Exact 3-minute TTL (180 seconds)
       const expiresAt = new Date(Date.now() + otpTtlMinutes * 60 * 1000);
 
       await globalDbQueue.run(() =>
@@ -607,6 +656,12 @@ module.exports = async function handler(req, res) {
           attempts: 0,
         })
       );
+
+      if (isForgotPassword && studentAccount) {
+        studentAccount.recoveryOtpCount = (studentAccount.recoveryOtpCount || 0) + 1;
+        studentAccount.recoveryOtpSentAt = new Date();
+        await studentAccount.save();
+      }
 
       try {
         const emailResult = await sendStudentOtpEmail({
@@ -720,108 +775,31 @@ module.exports = async function handler(req, res) {
       const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
       const studentName = studentRecord?.studentName || "Student";
 
-      // ── CRITICAL MANDATORY RULE: If account has NO password OR user is resetting password, return single-use CREATE_PASSWORD token ──
-      const isResetFlow = Boolean(req.body.isForgotPassword || req.body.resetPassword || !studentAccount.passwordHash);
-      if (isResetFlow) {
-        const setupPasswordToken = crypto.randomUUID();
-        const tokenHash = crypto.createHash("sha256").update(setupPasswordToken).digest("hex");
-        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      // ── CRITICAL MANDATORY RULE: OTP ALONE MUST NEVER BYPASS PASSWORD OR ISSUE A SESSION ──
+      // Every OTP verification strictly issues a single-use setupPasswordToken and returns step: "CREATE_PASSWORD"
+      const setupPasswordToken = crypto.randomUUID();
+      const tokenHash = crypto.createHash("sha256").update(setupPasswordToken).digest("hex");
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-        studentAccount.passwordResetTokenHash = tokenHash;
-        studentAccount.passwordResetExpiresAt = expiresAt;
-        await studentAccount.save();
-
-        return res.json({
-          success: true,
-          verified: true,
-          authenticated: false,
-          passwordRequired: true,
-          step: "CREATE_PASSWORD",
-          setupPasswordToken,
-          message: "Verification successful. Please create a new password for your account.",
-          student: {
-            regNo: rawReg,
-            studentName,
-          },
-        });
-      }
-
-      // ── EXISTING STUDENT OTP RECOVERY LOGIN ──
-      studentAccount.failedPasswordAttempts = 0;
-      studentAccount.lastFailedPasswordAt = null;
-      studentAccount.lockedUntil = null;
+      studentAccount.passwordResetTokenHash = tokenHash;
+      studentAccount.passwordResetExpiresAt = expiresAt;
       await studentAccount.save();
 
-      const maxAllowedDevices = getMaxAllowedDevices(rawReg);
-      const activeSessions = await getActiveSessions(StudentSession, rawReg);
-
-      if (maxAllowedDevices === 1) {
-        const { newSession } = await replaceStudentSession(StudentSession, rawReg, {
-          deviceInfo: extractRequestDeviceInfo(req),
-        });
-
-        const studentToken = jwt.sign(
-          { regNo: rawReg, sessionId: newSession.sessionId, role: "student" },
-          process.env.JWT_SECRET,
-          { expiresIn: "36500d" }
-        );
-
-        setStudentCookie(res, studentToken);
-
-        return res.json({
-          success: true,
-          message: "Authentication successful via OTP recovery.",
-          student: {
-            regNo: rawReg,
-            studentName,
-            sessionId: newSession.sessionId,
-          },
-        });
-      } else {
-        if (activeSessions.length >= maxAllowedDevices) {
-          const sorted = activeSessions.sort((a, b) => new Date(a.lastActiveAt || a.loggedInAt) - new Date(b.lastActiveAt || b.loggedInAt));
-          const oldest = sorted[0];
-          if (oldest) {
-            oldest.isActive = false;
-            oldest.revokedAt = new Date();
-            oldest.revokeReason = "REPLACED_BY_NEW_DEVICE";
-            await oldest.save();
-          }
-        }
-
-        const sessionId = crypto.randomUUID();
-        const now = Date.now();
-        const expiresAt = new Date(now + PERMANENT_SESSION_MS);
-
-        await StudentSession.create({
+      return res.json({
+        success: true,
+        verified: true,
+        authenticated: false,
+        passwordRequired: true,
+        step: "CREATE_PASSWORD",
+        setupPasswordToken,
+        message: studentAccount.passwordHash
+          ? "Identity verified. Please create a new password to access your account."
+          : "Identity verified. Please create a password for your account.",
+        student: {
           regNo: rawReg,
-          sessionId,
-          deviceId: crypto.randomUUID(),
-          deviceInfo: extractRequestDeviceInfo(req),
-          loggedInAt: new Date(now),
-          lastActiveAt: new Date(now),
-          expiresAt,
-          isActive: true,
-        });
-
-        const studentToken = jwt.sign(
-          { regNo: rawReg, sessionId, role: "student" },
-          process.env.JWT_SECRET,
-          { expiresIn: "36500d" }
-        );
-
-        setStudentCookie(res, studentToken);
-
-        return res.json({
-          success: true,
-          message: "Authentication successful via OTP recovery.",
-          student: {
-            regNo: rawReg,
-            studentName,
-            sessionId,
-          },
-        });
-      }
+          studentName,
+        },
+      });
     }
 
     /* ═══════════════════════════════════════════════════════════════════
@@ -945,45 +923,39 @@ module.exports = async function handler(req, res) {
 
       // ── Brute-Force Defense: Verify lockout state BEFORE evaluating password ──
       const now = new Date();
-      if (studentAccount.lockedUntil && new Date(studentAccount.lockedUntil) > now) {
-        const remainingMinutes = Math.max(1, Math.ceil((new Date(studentAccount.lockedUntil).getTime() - now.getTime()) / (60 * 1000)));
+      if (studentAccount.recoveryRestrictedUntil && new Date(studentAccount.recoveryRestrictedUntil) > now) {
+        const remainingMs = new Date(studentAccount.recoveryRestrictedUntil).getTime() - now.getTime();
+        const remainingHours = Math.max(1, Math.ceil(remainingMs / (3600 * 1000)));
         return res.status(429).json({
           success: false,
           code: "ACCOUNT_TEMPORARILY_LOCKED",
-          message: `Account is temporarily locked due to 3 failed password attempts. Please try again in ${remainingMinutes} minute${remainingMinutes === 1 ? "" : "s"} or sign in using email OTP.`,
-          lockedUntil: studentAccount.lockedUntil,
-          remainingMinutes,
-          otpFallbackAllowed: true,
+          message: `Account is restricted for 24 hours due to 3 failed password attempts. Please try again in ${remainingHours} hour${remainingHours === 1 ? "" : "s"} or use email recovery.`,
+          recoveryRestrictedUntil: studentAccount.recoveryRestrictedUntil,
+          remainingHours,
+          otpFallbackAllowed: (studentAccount.recoveryOtpCount || 0) < 1,
         });
       }
 
       // If lockout period has expired, automatically reset attempt counters
-      if (studentAccount.lockedUntil && new Date(studentAccount.lockedUntil) <= now) {
+      if (studentAccount.recoveryRestrictedUntil && new Date(studentAccount.recoveryRestrictedUntil) <= now) {
         studentAccount.failedPasswordAttempts = 0;
-        studentAccount.lockedUntil = null;
+        studentAccount.recoveryRestrictedUntil = null;
+        studentAccount.recoveryOtpCount = 0;
+        studentAccount.recoveryOtpSentAt = null;
         studentAccount.lastFailedPasswordAt = null;
         await Student.updateOne(
           { _id: studentAccount._id },
-          { $set: { failedPasswordAttempts: 0, lockedUntil: null, lastFailedPasswordAt: null } }
+          {
+            $set: {
+              failedPasswordAttempts: 0,
+              recoveryRestrictedUntil: null,
+              recoveryOtpCount: 0,
+              recoveryOtpSentAt: null,
+              lastFailedPasswordAt: null,
+              lockedUntil: null,
+            },
+          }
         );
-      }
-
-      // If already at or above 3 failed attempts without future timestamp, lock for 15 minutes now
-      if ((studentAccount.failedPasswordAttempts || 0) >= 3) {
-        const lockoutDate = new Date(Date.now() + 15 * 60 * 1000);
-        studentAccount.lockedUntil = lockoutDate;
-        await Student.updateOne(
-          { _id: studentAccount._id },
-          { $set: { lockedUntil: lockoutDate } }
-        );
-        return res.status(429).json({
-          success: false,
-          code: "ACCOUNT_TEMPORARILY_LOCKED",
-          message: "Account is temporarily locked for 15 minutes due to 3 consecutive failed password attempts. You can sign in using email OTP.",
-          lockedUntil: studentAccount.lockedUntil,
-          remainingMinutes: 15,
-          otpFallbackAllowed: true,
-        });
       }
 
       const maxAllowedDevices = getMaxAllowedDevices(rawReg);
@@ -992,12 +964,25 @@ module.exports = async function handler(req, res) {
       const isPasswordCorrect = await studentAccount.comparePassword(candidatePassword);
 
       if (isPasswordCorrect) {
+        // Reset failed password attempts and recovery state on successful login
         studentAccount.failedPasswordAttempts = 0;
         studentAccount.lastFailedPasswordAt = null;
+        studentAccount.recoveryRestrictedUntil = null;
+        studentAccount.recoveryOtpCount = 0;
+        studentAccount.recoveryOtpSentAt = null;
         studentAccount.lockedUntil = null;
         await Student.updateOne(
           { _id: studentAccount._id },
-          { $set: { failedPasswordAttempts: 0, lastFailedPasswordAt: null, lockedUntil: null } }
+          {
+            $set: {
+              failedPasswordAttempts: 0,
+              lastFailedPasswordAt: null,
+              recoveryRestrictedUntil: null,
+              recoveryOtpCount: 0,
+              recoveryOtpSentAt: null,
+              lockedUntil: null,
+            },
+          }
         );
 
         let incomingToken = req.headers["x-student-token"] || cookies.student_jwt;
@@ -1025,10 +1010,15 @@ module.exports = async function handler(req, res) {
           await matchedSession.save();
         }
 
-        // New Device Login Logic:
+        // Filter out the session we just rotated to accurately count OTHER active devices (Fixes Bug 1)
+        const remainingActiveSessions = (isCurrentDevice && matchedSession)
+          ? activeSessions.filter((s) => s.sessionId !== matchedSession.sessionId)
+          : activeSessions;
+
+        // CASE A: Normal Single-Device Student (limit = 1)
         if (maxAllowedDevices === 1) {
-          if (activeSessions.length === 0) {
-            // Existing student with correct password and 0 active sessions -> Direct login without OTP!
+          if (remainingActiveSessions.length === 0) {
+            // Direct login! Issue fresh session & JWT
             const { newSession } = await replaceStudentSession(StudentSession, rawReg, {
               deviceInfo: extractRequestDeviceInfo(req),
             });
@@ -1048,8 +1038,8 @@ module.exports = async function handler(req, res) {
             });
           }
 
-          // Single device student with 1 active device -> IN-APP APPROVAL FLOW
-          const activeDev = activeSessions[0];
+          // Single device student with 1 active device on another device -> IN-APP APPROVAL FLOW
+          const activeDev = remainingActiveSessions[0];
           const { approvalRequest, exchangeSecret } = await createDeviceApprovalRequest(
             rawReg,
             extractRequestDeviceInfo(req),
@@ -1074,9 +1064,9 @@ module.exports = async function handler(req, res) {
             },
           });
         } else {
-          // 2-Device Account (230301120327): FIFO Session Rotation
-          if (activeSessions.length >= maxAllowedDevices) {
-            const sorted = activeSessions.sort((a, b) => new Date(a.lastActiveAt || a.loggedInAt) - new Date(b.lastActiveAt || b.loggedInAt));
+          // CASE B: 2-Device Account (Special Student 230301120327): FIFO Session Rotation
+          if (remainingActiveSessions.length >= maxAllowedDevices) {
+            const sorted = remainingActiveSessions.sort((a, b) => new Date(a.lastActiveAt || a.loggedInAt) - new Date(b.lastActiveAt || b.loggedInAt));
             const oldest = sorted[0];
             if (oldest) {
               oldest.isActive = false;
@@ -1128,27 +1118,51 @@ module.exports = async function handler(req, res) {
       studentAccount.lastFailedPasswordAt = new Date();
 
       if (studentAccount.failedPasswordAttempts >= 3) {
-        const lockoutDate = new Date(Date.now() + 15 * 60 * 1000); // 15-minute temporary lockout
-        studentAccount.lockedUntil = lockoutDate;
+        const restrictionDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24-hour restriction window
+        studentAccount.recoveryRestrictedUntil = restrictionDate;
+        studentAccount.recoveryOtpCount = 0;
         await Student.updateOne(
           { _id: studentAccount._id },
           {
             $set: {
               failedPasswordAttempts: studentAccount.failedPasswordAttempts,
               lastFailedPasswordAt: studentAccount.lastFailedPasswordAt,
-              lockedUntil: lockoutDate,
+              recoveryRestrictedUntil: restrictionDate,
+              recoveryOtpCount: 0,
+              lockedUntil: restrictionDate,
             },
           }
         );
 
+        if (maxAllowedDevices === 1 && activeSessions.length >= 1) {
+          const sanitizedDevices = activeSessions.map((s, idx) => ({
+            deviceIndex: idx + 1,
+            platform: s.deviceInfo?.platform || "Unknown",
+            userAgent: s.deviceInfo?.userAgent || "Unknown",
+            loggedInAt: s.loggedInAt,
+            lastActiveAt: s.lastActiveAt,
+            status: "ACTIVE",
+          }));
+
+          return res.status(403).json({
+            success: false,
+            code: "BLOCKED_DEVICE_ACTIVE",
+            message: `Maximum password attempts reached (3/3). Registration number ${rawReg} is currently active on another device. Single-device security policy: OTP recovery is blocked while your account is logged in on another device.`,
+            isBlocked: true,
+            activeDeviceCount: activeSessions.length,
+            maxAllowedDevices: 1,
+            activeDevices: sanitizedDevices,
+          });
+        }
+
         return res.status(429).json({
           success: false,
-          code: "PASSWORD_ATTEMPTS_EXCEEDED",
-          message: "Incorrect password. 3 consecutive attempts failed. Account is temporarily locked for 15 minutes. You can sign in using OTP verification to reset your password.",
-          failedAttempts: studentAccount.failedPasswordAttempts,
-          lockedUntil: studentAccount.lockedUntil,
-          remainingMinutes: 15,
+          code: "ACCOUNT_TEMPORARILY_LOCKED",
+          message: "Maximum password attempts reached (3/3). Account is restricted for 24 hours. You can request a single-use recovery code via email.",
+          recoveryRestrictedUntil: restrictionDate,
+          remainingHours: 24,
           otpFallbackAllowed: true,
+          failedAttempts: 3,
         });
       }
 
@@ -1540,44 +1554,6 @@ module.exports = async function handler(req, res) {
             if (orphanedSession || orphanedSubSession) {
               sessionWasRevoked = true;
             }
-          }
-
-          // DEVICE FINGERPRINT / USER-AGENT FALLBACK:
-          // If the user cleared cookies/storage or closed incognito, no x-admin-last-session header is sent.
-          // Detect any active session created from this exact User-Agent and revoke it since the device has no cookie.
-          const clientInfo = extractRequestDeviceInfo(req);
-          if (clientInfo && clientInfo.userAgent && clientInfo.userAgent.length > 5) {
-            const matchingSession = await AdminSession.findOneAndUpdate(
-              {
-                isActive: true,
-                "deviceInfo.userAgent": clientInfo.userAgent,
-                lastActiveAt: { $gte: new Date(Date.now() - 2 * 60 * 60 * 1000) },
-              },
-              {
-                $set: {
-                  isActive: false,
-                  revokedAt: new Date(),
-                  revokeReason: "COOKIE_CLEARED_ON_CLIENT",
-                },
-              }
-            );
-            if (matchingSession) sessionWasRevoked = true;
-
-            const matchingSubSession = await SubAdminSession.findOneAndUpdate(
-              {
-                isActive: true,
-                "deviceInfo.userAgent": clientInfo.userAgent,
-                lastActiveAt: { $gte: new Date(Date.now() - 2 * 60 * 60 * 1000) },
-              },
-              {
-                $set: {
-                  isActive: false,
-                  revokedAt: new Date(),
-                  revokeReason: "COOKIE_CLEARED_ON_CLIENT",
-                },
-              }
-            );
-            if (matchingSubSession) sessionWasRevoked = true;
           }
         } catch (_) {}
       }
@@ -1997,6 +1973,32 @@ module.exports = async function handler(req, res) {
 
       const activeSessions = await getActiveAdminSessions(AdminSession);
 
+      let incomingToken = cookies.jwt || req.headers["x-admin-token"];
+      if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+        incomingToken = req.headers.authorization.split(" ")[1];
+      }
+      let isCurrentDevice = false;
+      if (incomingToken && incomingToken !== "none") {
+        try {
+          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+          if (decoded.role === "admin" && decoded.sessionId) {
+            const match = activeSessions.find((s) => s.sessionId === decoded.sessionId);
+            if (match) isCurrentDevice = true;
+          }
+        } catch {}
+      }
+
+      // Strict Admin Device Limit: Max 2 devices allowed simultaneously (Device 3 blocked with HTTP 403)
+      if (activeSessions.length >= MAX_ADMIN_DEVICES && !isCurrentDevice) {
+        return res.status(403).json({
+          success: false,
+          code: "DEVICE_LIMIT_REACHED",
+          message: "Maximum active administrator sessions reached (2 devices). Access denied.",
+          activeDeviceCount: activeSessions.length,
+          maxAllowedDevices: MAX_ADMIN_DEVICES,
+        });
+      }
+
       const otp = crypto.randomInt(100000, 1000000).toString();
       const otpHash = await bcrypt.hash(otp, 10);
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
@@ -2052,38 +2054,16 @@ module.exports = async function handler(req, res) {
 
       await AdminOtpVerification.deleteMany({});
 
+      // Enforce strict 2-device limit (Device 3 rejected with HTTP 403; NEVER silently evict Device 1)
       const activeSessions = await getActiveAdminSessions(AdminSession);
       if (activeSessions.length >= MAX_ADMIN_DEVICES) {
-        // Prevent permanent lockout if cookies were cleared on one device or ghost sessions exist
-        const incomingDevice = extractRequestDeviceInfo(req);
-        const sameDeviceSession = activeSessions.find(
-          (s) =>
-            s.deviceInfo?.userAgent === incomingDevice?.userAgent &&
-            s.deviceInfo?.os === incomingDevice?.os &&
-            s.deviceInfo?.browser === incomingDevice?.browser
-        );
-        const sessionToRevoke =
-          sameDeviceSession ||
-          activeSessions.sort(
-            (a, b) =>
-              new Date(a.lastActiveAt || a.loggedInAt) -
-              new Date(b.lastActiveAt || b.loggedInAt)
-          )[0];
-
-        if (sessionToRevoke) {
-          await AdminSession.updateOne(
-            { _id: sessionToRevoke._id },
-            {
-              $set: {
-                isActive: false,
-                revokedAt: new Date(),
-                revokeReason: sameDeviceSession
-                  ? "REPLACED_BY_RELOGIN"
-                  : "REPLACED_BY_NEW_DEVICE",
-              },
-            }
-          );
-        }
+        return res.status(403).json({
+          success: false,
+          code: "DEVICE_LIMIT_REACHED",
+          message: "Maximum active administrator sessions reached (2 devices). Access denied.",
+          activeDeviceCount: activeSessions.length,
+          maxAllowedDevices: MAX_ADMIN_DEVICES,
+        });
       }
 
       const sessionId = crypto.randomUUID();

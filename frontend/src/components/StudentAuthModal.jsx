@@ -421,9 +421,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     return () => clearInterval(interval);
   }, [resendCooldown]);
 
-  // Device Approval Realtime Listener & Countdown (0 Polling, Instant <0.1s Handover)
+  // Device Approval Realtime Listener & Countdown (0 Polling, Instant <0.1s Handover via Ably)
   useEffect(() => {
-    let pollInterval = null;
     let timerInterval = null;
     let ably = null;
     let approvalChannel = null;
@@ -444,7 +443,6 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
       const handleApprovalComplete = async () => {
         clearInterval(timerInterval);
-        clearInterval(pollInterval);
         setStatusNotice("Approval granted! Setting up your session...");
         let res = null;
         if (approvalExchangeSecret) {
@@ -461,7 +459,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         }
       };
 
-      // 2. Connect to Ably Realtime using scoped approval token request
+      // 2. Connect to Ably Realtime using scoped approval token request (Zero Polling)
       try {
         ably = createApprovalAblyRealtime(approvalRequestId);
         approvalChannel = ably.channels.get(`approval-${approvalRequestId}`);
@@ -474,44 +472,21 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             handleApprovalComplete();
           } else if (data.status === "DENIED") {
             clearInterval(timerInterval);
-            clearInterval(pollInterval);
             setErrorMsg("Login request was denied from your active device.");
             setErrorCode("APPROVAL_DENIED");
           } else if (data.status === "EXPIRED") {
             clearInterval(timerInterval);
-            clearInterval(pollInterval);
             setErrorMsg("Approval request timed out. Please try logging in again.");
             setErrorCode("APPROVAL_EXPIRED");
           }
         });
       } catch (err) {
-        console.warn("[Ably] Fallback to poll:", err?.message || err);
+        console.warn("[Ably] Approval channel subscription warning:", err?.message || err);
       }
 
-      // 3. Fallback poll in case of socket disconnect
-      const pollStatus = async () => {
-        const res = await checkApprovalStatus(approvalRequestId, approvalExchangeSecret);
-        if (res?.status === "APPROVED" && res?.success) {
-          handleApprovalComplete();
-        } else if (res?.status === "DENIED") {
-          clearInterval(timerInterval);
-          clearInterval(pollInterval);
-          setErrorMsg("Login request was denied from your active device.");
-          setErrorCode("APPROVAL_DENIED");
-        } else if (res?.status === "EXPIRED") {
-          clearInterval(timerInterval);
-          clearInterval(pollInterval);
-          setErrorMsg("Approval request timed out. Please try logging in again.");
-          setErrorCode("APPROVAL_EXPIRED");
-        }
-      };
-
-      pollInterval = setInterval(pollStatus, 10000);
-
-      // 4. Immediate sync on tab resume / visibility change (keep socket alive in background)
+      // Ensure Ably socket stays connected on visibility change without HTTP polling
       const handleVisibilityChange = () => {
         if (document.visibilityState === "visible") {
-          pollStatus();
           try {
             if (ably && ably.connection.state !== "connected") {
               ably.connection.connect();
@@ -522,7 +497,6 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       document.addEventListener("visibilitychange", handleVisibilityChange);
 
       return () => {
-        clearInterval(pollInterval);
         clearInterval(timerInterval);
         document.removeEventListener("visibilitychange", handleVisibilityChange);
         try {
@@ -533,7 +507,6 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     }
 
     return () => {
-      clearInterval(pollInterval);
       clearInterval(timerInterval);
       try {
         if (approvalChannel) approvalChannel.unsubscribe();
