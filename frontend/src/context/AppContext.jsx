@@ -449,12 +449,8 @@ export function AppProvider({ children }) {
           ? localStorage.getItem("gf_admin_active_session") || localStorage.getItem("gf_admin_last_session") || ""
           : ""
       );
-      try {
-        localStorage.removeItem("gf_admin_last_session");
-        localStorage.removeItem("gf_admin_active_session");
-        localStorage.removeItem("gf_admin_logged_in");
-      } catch (_) {}
-      await axios.post(
+
+      const res = await axios.post(
         `${API_BASE}/auth/admin/logout`,
         { sessionId: activeSessionId },
         {
@@ -464,6 +460,21 @@ export function AppProvider({ children }) {
           withCredentials: true,
         }
       );
+
+      if (res?.data) {
+        if (typeof res.data.isAdminButtonVisible === "boolean") {
+          setIsAdminButtonVisible(res.data.isAdminButtonVisible);
+        }
+        if (typeof res.data.activeDeviceCount === "number") {
+          setAdminDeviceCount(res.data.activeDeviceCount);
+        }
+      }
+
+      try {
+        localStorage.removeItem("gf_admin_last_session");
+        localStorage.removeItem("gf_admin_active_session");
+        localStorage.removeItem("gf_admin_logged_in");
+      } catch (_) {}
     } catch (err) {
       console.warn("Logout error:", err.message);
     } finally {

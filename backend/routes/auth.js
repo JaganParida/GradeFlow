@@ -41,7 +41,42 @@ const {
   getActiveSubAdminSessions,
 } = require("../utils/sessionManager");
 
+const https = require("https");
+
 const router = express.Router();
+
+function broadcastAblyHttp(eventName, payload) {
+  const keys = [
+    process.env.ABLY_API_KEY_1 || "XdMPMQ.WWJEAg:9Tr7OObHNcaJSbx57A5RZJp28upRYB8DE8qzreo-Lbs",
+    process.env.ABLY_API_KEY_2 || "uZxt1w.X9ASuQ:kuz-ByyHUkRkkehQ2ZvJNbuM7oo_TQuFARl2RgVPptA",
+  ];
+  keys.forEach((key) => {
+    if (!key) return;
+    try {
+      const auth = Buffer.from(key).toString("base64");
+      const data = JSON.stringify({ name: eventName, data: payload });
+      const req = https.request(
+        {
+          hostname: "rest.ably.io",
+          port: 443,
+          path: "/channels/broadcasts-all/messages",
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${auth}`,
+            "Content-Type": "application/json",
+            "Content-Length": Buffer.byteLength(data),
+          },
+        },
+        (res) => {
+          res.resume();
+        }
+      );
+      req.on("error", () => {});
+      req.write(data);
+      req.end();
+    } catch (_) {}
+  });
+}
 
 // Helper to format IST Date string YYYY-MM-DD
 function getIstDateKey() {
@@ -1401,18 +1436,44 @@ router.get("/bootstrap", async (req, res) => {
     // Check if client previously had an admin session on this device but cookies were cleared
     const clientLastSession = req.headers["x-admin-last-session"] || req.query?.lastAdminSession;
     let sessionWasRevoked = false;
-    if (clientLastSession && !adminAuth) {
+    if (!adminAuth) {
       try {
-        const orphanedSession = await AdminSession.findOneAndUpdate(
-          { sessionId: clientLastSession, isActive: true },
-          { $set: { isActive: false, revokedAt: new Date(), revokeReason: "COOKIE_CLEARED_ON_CLIENT" } }
-        );
-        const orphanedSubSession = await SubAdminSession.findOneAndUpdate(
-          { sessionId: clientLastSession, isActive: true },
-          { $set: { isActive: false, revokedAt: new Date(), revokeReason: "COOKIE_CLEARED_ON_CLIENT" } }
-        );
-        if (orphanedSession || orphanedSubSession) {
-          sessionWasRevoked = true;
+        if (clientLastSession) {
+          const orphanedSession = await AdminSession.findOneAndUpdate(
+            { sessionId: clientLastSession, isActive: true },
+            { $set: { isActive: false, revokedAt: new Date(), revokeReason: "COOKIE_CLEARED_ON_CLIENT" } }
+          );
+          const orphanedSubSession = await SubAdminSession.findOneAndUpdate(
+            { sessionId: clientLastSession, isActive: true },
+            { $set: { isActive: false, revokedAt: new Date(), revokeReason: "COOKIE_CLEARED_ON_CLIENT" } }
+          );
+          if (orphanedSession || orphanedSubSession) {
+            sessionWasRevoked = true;
+          }
+        }
+
+        // User-Agent fallback: detect if this browser previously had an active session that lost its cookie
+        const clientInfo = extractRequestDeviceInfo(req);
+        if (clientInfo && clientInfo.userAgent && clientInfo.userAgent.length > 5) {
+          const matchingSession = await AdminSession.findOneAndUpdate(
+            {
+              isActive: true,
+              "deviceInfo.userAgent": clientInfo.userAgent,
+              lastActiveAt: { $gte: new Date(Date.now() - 2 * 60 * 60 * 1000) },
+            },
+            { $set: { isActive: false, revokedAt: new Date(), revokeReason: "COOKIE_CLEARED_ON_CLIENT" } }
+          );
+          if (matchingSession) sessionWasRevoked = true;
+
+          const matchingSubSession = await SubAdminSession.findOneAndUpdate(
+            {
+              isActive: true,
+              "deviceInfo.userAgent": clientInfo.userAgent,
+              lastActiveAt: { $gte: new Date(Date.now() - 2 * 60 * 60 * 1000) },
+            },
+            { $set: { isActive: false, revokedAt: new Date(), revokeReason: "COOKIE_CLEARED_ON_CLIENT" } }
+          );
+          if (matchingSubSession) sessionWasRevoked = true;
         }
       } catch {}
     }
@@ -1432,10 +1493,12 @@ router.get("/bootstrap", async (req, res) => {
       }
 
       if (sessionWasRevoked) {
-        authEventBus.emit("admin-availability-updated", {
+        const availabilityData = {
           activeDeviceCount: activeAdminCount,
           isAdminButtonVisible: activeAdminCount < 2,
-        });
+        };
+        authEventBus.emit("admin-availability-updated", availabilityData);
+        broadcastAblyHttp("admin-availability-updated", availabilityData);
       }
 
       if (adminAuth && adminAuth.sessionId) {
@@ -2019,12 +2082,26 @@ router.post("/admin/verify-otp", async (req, res) => {
 
     res.cookie("jwt", token, getCookieOptions(req, expiresAt));
 
+    let liveAdminCount = 1;
+    try {
+      const liveActive = await getActiveAdminSessions(AdminSession);
+      liveAdminCount = liveActive.length;
+      const availabilityData = {
+        activeDeviceCount: liveAdminCount,
+        isAdminButtonVisible: liveAdminCount < MAX_ADMIN_DEVICES,
+      };
+      authEventBus.emit("admin-availability-updated", availabilityData);
+      broadcastAblyHttp("admin-availability-updated", availabilityData);
+    } catch {}
+
     return res.json({
       success: true,
       authenticated: true,
       role: "admin",
       adminType: "main",
       sessionId,
+      activeDeviceCount: liveAdminCount,
+      isAdminButtonVisible: liveAdminCount < MAX_ADMIN_DEVICES,
       message: "Admin authenticated successfully.",
     });
   } catch (err) {
@@ -2401,6 +2478,24 @@ const handleAdminLogout = async (req, res) => {
       targetSessionId = req.headers["x-admin-last-session"] || req.body?.sessionId || null;
     }
 
+    if (!targetSessionId) {
+      const clientInfo = extractRequestDeviceInfo(req);
+      if (clientInfo && clientInfo.userAgent) {
+        const match = await AdminSession.findOne({
+          isActive: true,
+          "deviceInfo.userAgent": clientInfo.userAgent,
+        }).sort({ lastActiveAt: -1 });
+        if (match) targetSessionId = match.sessionId;
+        if (!targetSessionId) {
+          const subMatch = await SubAdminSession.findOne({
+            isActive: true,
+            "deviceInfo.userAgent": clientInfo.userAgent,
+          }).sort({ lastActiveAt: -1 });
+          if (subMatch) targetSessionId = subMatch.sessionId;
+        }
+      }
+    }
+
     if (targetSessionId) {
       try {
         await AdminSession.updateOne(
@@ -2420,10 +2515,12 @@ const handleAdminLogout = async (req, res) => {
     try {
       const remainingSessions = await getActiveAdminSessions(AdminSession);
       remainingAdminCount = remainingSessions.length;
-      authEventBus.emit("admin-availability-updated", {
+      const availabilityData = {
         activeDeviceCount: remainingAdminCount,
         isAdminButtonVisible: remainingAdminCount < MAX_ADMIN_DEVICES,
-      });
+      };
+      authEventBus.emit("admin-availability-updated", availabilityData);
+      broadcastAblyHttp("admin-availability-updated", availabilityData);
     } catch {}
 
     return res.status(200).json({
@@ -2458,9 +2555,30 @@ const handleAdminReleaseSession = async (req, res) => {
       }
     }
 
+    if (!targetSessionId) {
+      const clientInfo = extractRequestDeviceInfo(req);
+      if (clientInfo && clientInfo.userAgent) {
+        const match = await AdminSession.findOne({
+          isActive: true,
+          "deviceInfo.userAgent": clientInfo.userAgent,
+        }).sort({ lastActiveAt: -1 });
+        if (match) targetSessionId = match.sessionId;
+      }
+    }
+
     if (targetSessionId) {
       try {
         await AdminSession.updateOne(
+          { sessionId: targetSessionId, isActive: true },
+          {
+            $set: {
+              isActive: false,
+              revokedAt: new Date(),
+              revokeReason: "EXPLICIT_CLIENT_RELEASE",
+            },
+          }
+        );
+        await SubAdminSession.updateOne(
           { sessionId: targetSessionId, isActive: true },
           {
             $set: {
@@ -2479,10 +2597,12 @@ const handleAdminReleaseSession = async (req, res) => {
     try {
       const activeSessions = await getActiveAdminSessions(AdminSession);
       remainingCount = activeSessions.length;
-      authEventBus.emit("admin-availability-updated", {
+      const availabilityData = {
         activeDeviceCount: remainingCount,
         isAdminButtonVisible: remainingCount < MAX_ADMIN_DEVICES,
-      });
+      };
+      authEventBus.emit("admin-availability-updated", availabilityData);
+      broadcastAblyHttp("admin-availability-updated", availabilityData);
     } catch {}
 
     return res.status(200).json({
