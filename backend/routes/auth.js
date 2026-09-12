@@ -41,6 +41,14 @@ const {
   getActiveSubAdminSessions,
 } = require("../utils/sessionManager");
 
+const {
+  publishStudentRealtimeEvent,
+  publishApprovalRealtimeEvent,
+  broadcastRealtimeEvent,
+  publishAdminRealtimeEvent,
+  createRealtimeTokenRequest,
+} = require("../utils/ablyService");
+
 const https = require("https");
 
 const router = express.Router();
@@ -314,45 +322,39 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
 
     // ── Brute-Force Defense: Verify lockout state BEFORE evaluating password ──
     const now = new Date();
-    if (studentAccount.lockedUntil && new Date(studentAccount.lockedUntil) > now) {
-      const remainingMinutes = Math.max(1, Math.ceil((new Date(studentAccount.lockedUntil).getTime() - now.getTime()) / (60 * 1000)));
+    if (studentAccount.recoveryRestrictedUntil && new Date(studentAccount.recoveryRestrictedUntil) > now) {
+      const remainingMs = new Date(studentAccount.recoveryRestrictedUntil).getTime() - now.getTime();
+      const remainingHours = Math.max(1, Math.ceil(remainingMs / (3600 * 1000)));
       return res.status(429).json({
         success: false,
         code: "ACCOUNT_TEMPORARILY_LOCKED",
-        message: `Account is temporarily locked due to 3 failed password attempts. Please try again in ${remainingMinutes} minute${remainingMinutes === 1 ? "" : "s"} or sign in using email OTP.`,
-        lockedUntil: studentAccount.lockedUntil,
-        remainingMinutes,
-        otpFallbackAllowed: true,
+        message: `Account is restricted for 24 hours due to 3 failed password attempts. Please try again in ${remainingHours} hour${remainingHours === 1 ? "" : "s"} or use email recovery.`,
+        recoveryRestrictedUntil: studentAccount.recoveryRestrictedUntil,
+        remainingHours,
+        otpFallbackAllowed: (studentAccount.recoveryOtpCount || 0) < 1,
       });
     }
 
     // If lockout period has expired, automatically reset attempt counters
-    if (studentAccount.lockedUntil && new Date(studentAccount.lockedUntil) <= now) {
+    if (studentAccount.recoveryRestrictedUntil && new Date(studentAccount.recoveryRestrictedUntil) <= now) {
       studentAccount.failedPasswordAttempts = 0;
-      studentAccount.lockedUntil = null;
+      studentAccount.recoveryRestrictedUntil = null;
+      studentAccount.recoveryOtpCount = 0;
+      studentAccount.recoveryOtpSentAt = null;
       studentAccount.lastFailedPasswordAt = null;
       await Student.updateOne(
         { _id: studentAccount._id },
-        { $set: { failedPasswordAttempts: 0, lockedUntil: null, lastFailedPasswordAt: null } }
+        {
+          $set: {
+            failedPasswordAttempts: 0,
+            recoveryRestrictedUntil: null,
+            recoveryOtpCount: 0,
+            recoveryOtpSentAt: null,
+            lastFailedPasswordAt: null,
+            lockedUntil: null,
+          },
+        }
       );
-    }
-
-    // If already at or above 3 failed attempts without future timestamp, lock for 15 minutes now
-    if ((studentAccount.failedPasswordAttempts || 0) >= 3) {
-      const lockoutDate = new Date(Date.now() + 15 * 60 * 1000);
-      studentAccount.lockedUntil = lockoutDate;
-      await Student.updateOne(
-        { _id: studentAccount._id },
-        { $set: { lockedUntil: lockoutDate } }
-      );
-      return res.status(429).json({
-        success: false,
-        code: "ACCOUNT_TEMPORARILY_LOCKED",
-        message: "Account is temporarily locked for 15 minutes due to 3 consecutive failed password attempts. You can sign in using email OTP.",
-        lockedUntil: studentAccount.lockedUntil,
-        remainingMinutes: 15,
-        otpFallbackAllowed: true,
-      });
     }
 
     const maxAllowedDevices = getMaxAllowedDevices(rawReg);
@@ -362,13 +364,25 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
     const isPasswordCorrect = await studentAccount.comparePassword(candidatePassword);
 
     if (isPasswordCorrect) {
-      // Reset failed password attempts on successful login
+      // Reset failed password attempts and recovery state on successful login
       studentAccount.failedPasswordAttempts = 0;
       studentAccount.lastFailedPasswordAt = null;
+      studentAccount.recoveryRestrictedUntil = null;
+      studentAccount.recoveryOtpCount = 0;
+      studentAccount.recoveryOtpSentAt = null;
       studentAccount.lockedUntil = null;
       await Student.updateOne(
         { _id: studentAccount._id },
-        { $set: { failedPasswordAttempts: 0, lastFailedPasswordAt: null, lockedUntil: null } }
+        {
+          $set: {
+            failedPasswordAttempts: 0,
+            lastFailedPasswordAt: null,
+            recoveryRestrictedUntil: null,
+            recoveryOtpCount: 0,
+            recoveryOtpSentAt: null,
+            lockedUntil: null,
+          },
+        }
       );
 
       // Check if current requesting device already has an active session
@@ -402,10 +416,15 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
         await matchedSession.save();
       }
 
-      // CASE B: New Device
+      // Filter out the session we just rotated to accurately count OTHER active devices (Fixes Bug 1)
+      const remainingActiveSessions = (isCurrentDevice && matchedSession)
+        ? activeSessions.filter((s) => s.sessionId !== matchedSession.sessionId)
+        : activeSessions;
+
+      // CASE A: Normal Single-Device Student (limit = 1)
       if (maxAllowedDevices === 1) {
-        if (activeSessions.length === 0) {
-          // Existing student with correct password and 0 active sessions -> Direct login without OTP!
+        if (remainingActiveSessions.length === 0) {
+          // Direct login! Issue fresh session & JWT
           const { newSession } = await replaceStudentSession(StudentSession, rawReg, {
             deviceInfo: extractRequestDeviceInfo(req),
           });
@@ -429,8 +448,8 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
           });
         }
 
-        // Normal student with 1 active device -> IN-WEBSITE DEVICE APPROVAL FLOW
-        const activeDev = activeSessions[0];
+        // 1 active device exists on another device -> IN-WEBSITE DEVICE APPROVAL FLOW
+        const activeDev = remainingActiveSessions[0];
         const { approvalRequest, exchangeSecret } = await createDeviceApprovalRequest(
           rawReg,
           extractRequestDeviceInfo(req),
@@ -458,22 +477,22 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
           },
         });
       } else {
-        // 2-Device Account (Special Student 230301120327): FIFO Session Rotation
-        if (activeSessions.length >= maxAllowedDevices) {
-          const sorted = activeSessions.sort((a, b) => new Date(a.lastActiveAt || a.loggedInAt) - new Date(b.lastActiveAt || b.loggedInAt));
+        // CASE B: 2-Device Account (Special Student 230301120327): FIFO Session Rotation
+        if (remainingActiveSessions.length >= maxAllowedDevices) {
+          const sorted = remainingActiveSessions.sort((a, b) => new Date(a.lastActiveAt || a.loggedInAt) - new Date(b.lastActiveAt || b.loggedInAt));
           const oldest = sorted[0];
           if (oldest) {
             oldest.isActive = false;
             oldest.revokedAt = new Date();
             oldest.revokeReason = "REPLACED_BY_NEW_DEVICE";
             await oldest.save();
-            if (typeof publishStudentRealtimeEvent === "function") {
-              publishStudentRealtimeEvent(rawReg, "session-revoked", {
-                sessionId: oldest.sessionId,
+            try {
+              await publishStudentRealtimeEvent(rawReg, "session-revoked", {
+                revokedSessionId: oldest.sessionId,
                 reason: "REPLACED_BY_NEW_DEVICE",
                 message: "Your session was terminated because this account was logged into on another device.",
-              }).catch(() => {});
-            }
+              });
+            } catch (_) {}
           }
         }
 
@@ -515,57 +534,25 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
     // IF PASSWORD WRONG:
     studentAccount.failedPasswordAttempts = (studentAccount.failedPasswordAttempts || 0) + 1;
     studentAccount.lastFailedPasswordAt = new Date();
+
     if (studentAccount.failedPasswordAttempts >= 3) {
-      const lockoutDate = new Date(Date.now() + 15 * 60 * 1000); // 15-minute temporary lockout
-      studentAccount.lockedUntil = lockoutDate;
+      const restrictionDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24-hour restriction window
+      studentAccount.recoveryRestrictedUntil = restrictionDate;
+      studentAccount.recoveryOtpCount = 0; // Reset recovery OTP count for the fresh restriction cycle
       await Student.updateOne(
         { _id: studentAccount._id },
         {
           $set: {
             failedPasswordAttempts: studentAccount.failedPasswordAttempts,
             lastFailedPasswordAt: studentAccount.lastFailedPasswordAt,
-            lockedUntil: lockoutDate,
+            recoveryRestrictedUntil: restrictionDate,
+            recoveryOtpCount: 0,
+            lockedUntil: restrictionDate,
           },
         }
       );
-    } else {
-      await Student.updateOne(
-        { _id: studentAccount._id },
-        {
-          $set: {
-            failedPasswordAttempts: studentAccount.failedPasswordAttempts,
-            lastFailedPasswordAt: studentAccount.lastFailedPasswordAt,
-          },
-        }
-      );
-    }
 
-    const currentAttempts = studentAccount.failedPasswordAttempts;
-
-    if (currentAttempts === 1) {
-      return res.status(401).json({
-        success: false,
-        code: "INVALID_PASSWORD",
-        message: "Incorrect password. 2 attempts remaining.",
-        remainingAttempts: 2,
-        failedAttempts: 1,
-      });
-    }
-
-    if (currentAttempts === 2) {
-      return res.status(401).json({
-        success: false,
-        code: "INVALID_PASSWORD",
-        message: "Incorrect password. 1 attempt remaining.",
-        remainingAttempts: 1,
-        failedAttempts: 2,
-      });
-    }
-
-    // FINAL RULE: 3 Failed Attempts reached
-    // Evaluate active sessions server-side
-    if (maxAllowedDevices === 1) {
-      if (activeSessions.length >= 1) {
+      if (maxAllowedDevices === 1 && activeSessions.length >= 1) {
         // CASE A: Another device is logged in -> STRICTLY BLOCK OTP & BLOCK NEW DEVICE!
         const sanitizedDevices = activeSessions.map((s, idx) => ({
           deviceIndex: idx + 1,
@@ -585,36 +572,36 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
           maxAllowedDevices: 1,
           activeDevices: sanitizedDevices,
         });
-      } else {
-        // CASE B: 0 devices active -> OTP fallback is allowed to reset password!
-        return res.status(401).json({
-          success: false,
-          code: "OTP_FALLBACK_ALLOWED",
-          message: "Maximum password attempts reached (3/3). Please verify your identity via email OTP to create a new password.",
-          otpFallbackAllowed: true,
-          failedAttempts: currentAttempts,
-        });
       }
+
+      return res.status(429).json({
+        success: false,
+        code: "ACCOUNT_TEMPORARILY_LOCKED",
+        message: "Maximum password attempts reached (3/3). Account is restricted for 24 hours. You can request a single-use recovery code via email.",
+        recoveryRestrictedUntil: restrictionDate,
+        remainingHours: 24,
+        otpFallbackAllowed: true,
+        failedAttempts: 3,
+      });
     } else {
-      // 2-Device Account
-      if (activeSessions.length < maxAllowedDevices) {
-        return res.status(401).json({
-          success: false,
-          code: "OTP_FALLBACK_ALLOWED",
-          message: "Maximum password attempts reached (2/2). OTP verification is available to log in.",
-          otpFallbackAllowed: true,
-          failedAttempts: currentAttempts,
-        });
-      } else {
-        return res.status(403).json({
-          success: false,
-          code: "DEVICE_LIMIT_REACHED",
-          message: `Maximum password attempts reached (2/2). Account ${rawReg} already has 2 active devices. OTP recovery cannot create a third session.`,
-          isBlocked: true,
-          activeDeviceCount: activeSessions.length,
-          maxAllowedDevices,
-        });
-      }
+      await Student.updateOne(
+        { _id: studentAccount._id },
+        {
+          $set: {
+            failedPasswordAttempts: studentAccount.failedPasswordAttempts,
+            lastFailedPasswordAt: studentAccount.lastFailedPasswordAt,
+          },
+        }
+      );
+
+      const remaining = 3 - studentAccount.failedPasswordAttempts;
+      return res.status(401).json({
+        success: false,
+        code: "INVALID_PASSWORD",
+        message: `Incorrect password. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`,
+        remainingAttempts: remaining,
+        failedAttempts: studentAccount.failedPasswordAttempts,
+      });
     }
   } catch (err) {
     console.error("Student login-password error:", err);
@@ -686,10 +673,10 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
       });
     }
 
-    // RULE 16: OTP MUST NEVER BYPASS DEVICE LIMIT
+    // RULE 16: OTP MUST NEVER BYPASS PASSWORD OR DEVICE LIMIT
     if (hasPassword) {
       const isForgotPassword = Boolean(req.body.isForgotPassword || req.body.forceOtp);
-      if (failedPasswordAttempts < 3 && !isForgotPassword && activeSessions.length > 0) {
+      if (!isForgotPassword) {
         return res.status(400).json({
           success: false,
           code: "PASSWORD_REQUIRED",
@@ -697,7 +684,22 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
         });
       }
 
-      // If failed >= 3 or isForgotPassword: check active devices
+      // Check 24-hour recovery restriction & 1-attempt policy
+      if (studentAccount.recoveryRestrictedUntil && new Date(studentAccount.recoveryRestrictedUntil) > new Date()) {
+        if ((studentAccount.recoveryOtpCount || 0) >= 1) {
+          const remainingMs = new Date(studentAccount.recoveryRestrictedUntil).getTime() - Date.now();
+          const remainingHours = Math.max(1, Math.ceil(remainingMs / (3600 * 1000)));
+          return res.status(429).json({
+            success: false,
+            code: "RECOVERY_LIMIT_EXCEEDED",
+            message: `Recovery code limit reached (1 attempt allowed per 24-hour restriction window). Please wait ${remainingHours} hour${remainingHours === 1 ? "" : "s"} or contact administrator.`,
+            remainingHours,
+            recoveryRestrictedUntil: studentAccount.recoveryRestrictedUntil,
+          });
+        }
+      }
+
+      // Check active devices for password reset
       if (maxAllowedDevices === 1 && activeSessions.length >= 1) {
         return res.status(403).json({
           success: false,
@@ -770,7 +772,7 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
 
         return res.json({
           success: true,
-          message: `A single-use recovery code has already been dispatched to ${studentEmail}. It is valid for 10 minutes. Resend is disabled.`,
+          message: `A single-use recovery code has already been dispatched to ${studentEmail}. It is valid for 3 minutes. Resend is disabled.`,
           maskedEmail,
           studentName,
           regNo: rawReg,
@@ -802,7 +804,7 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
     // Invalidate old unverified OTPs for this regNo
     await globalDbQueue.run(() => OtpVerification.deleteMany({ regNo: rawReg }));
 
-    const otpTtlMinutes = isForgotPassword ? 10 : 3;
+    const otpTtlMinutes = 3; // EXACT 3-MINUTE TTL (180 seconds)
     const expiresAt = new Date(Date.now() + otpTtlMinutes * 60 * 1000);
     await globalDbQueue.run(() =>
       OtpVerification.create({
@@ -813,6 +815,12 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
         attempts: 0,
       })
     );
+
+    if (isForgotPassword && studentAccount) {
+      studentAccount.recoveryOtpCount = (studentAccount.recoveryOtpCount || 0) + 1;
+      studentAccount.recoveryOtpSentAt = new Date();
+      await studentAccount.save();
+    }
 
     // Dispatch Email via Brevo with Gmail Fallback
     try {
@@ -951,108 +959,31 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
     const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
     const studentName = studentRecord?.studentName || "Student";
 
-    // RULE 8: If password does NOT exist OR user is resetting password -> MANDATORY CREATE PASSWORD
-    const isResetFlow = Boolean(req.body.isForgotPassword || req.body.resetPassword || !studentAccount.passwordHash);
-    if (isResetFlow) {
-      const setupPasswordToken = crypto.randomUUID();
-      const tokenHash = crypto.createHash("sha256").update(setupPasswordToken).digest("hex");
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    // RULE 8: OTP ALONE MUST NEVER BYPASS PASSWORD OR ESTABLISH A SESSION DIRECTLY
+    // Every OTP verification strictly issues a single-use setupPasswordToken and returns step: "CREATE_PASSWORD"
+    const setupPasswordToken = crypto.randomUUID();
+    const tokenHash = crypto.createHash("sha256").update(setupPasswordToken).digest("hex");
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-      studentAccount.passwordResetTokenHash = tokenHash;
-      studentAccount.passwordResetExpiresAt = expiresAt;
-      await studentAccount.save();
-
-      return res.json({
-        success: true,
-        verified: true,
-        authenticated: false,
-        passwordRequired: true,
-        step: "CREATE_PASSWORD",
-        setupPasswordToken,
-        message: "Verification successful. Please create a new password for your account.",
-        student: {
-          regNo: rawReg,
-          studentName,
-        },
-      });
-    }
-
-    // If student ALREADY has a password (OTP fallback login)
-    studentAccount.failedPasswordAttempts = 0;
-    studentAccount.lastFailedPasswordAt = null;
-    studentAccount.lockedUntil = null;
+    studentAccount.passwordResetTokenHash = tokenHash;
+    studentAccount.passwordResetExpiresAt = expiresAt;
     await studentAccount.save();
 
-    const maxAllowedDevices = getMaxAllowedDevices(rawReg);
-    const activeSessions = await getActiveSessions(StudentSession, rawReg);
-
-    if (maxAllowedDevices === 1) {
-      const { newSession } = await replaceStudentSession(StudentSession, rawReg, {
-        deviceInfo: extractRequestDeviceInfo(req),
-      });
-
-      const studentToken = jwt.sign(
-        { regNo: rawReg, sessionId: newSession.sessionId, role: "student" },
-        process.env.JWT_SECRET,
-        { expiresIn: "60d" }
-      );
-
-      res.cookie("student_jwt", studentToken, getCookieOptions(req));
-
-      return res.json({
-        success: true,
-        message: "Authentication successful via OTP recovery.",
-        student: {
-          regNo: rawReg,
-          studentName,
-          sessionId: newSession.sessionId,
-        },
-      });
-    } else {
-      if (activeSessions.length >= maxAllowedDevices) {
-        const sorted = activeSessions.sort((a, b) => new Date(a.lastActiveAt || a.loggedInAt) - new Date(b.lastActiveAt || b.loggedInAt));
-        const oldest = sorted[0];
-        if (oldest) {
-          oldest.isActive = false;
-          oldest.revokedAt = new Date();
-          oldest.revokeReason = "REPLACED_BY_NEW_DEVICE";
-          await oldest.save();
-        }
-      }
-
-      const sessionId = crypto.randomUUID();
-      const now = Date.now();
-      const expiresAt = new Date(now + PERMANENT_SESSION_MS);
-
-      await StudentSession.create({
+    return res.json({
+      success: true,
+      verified: true,
+      authenticated: false,
+      passwordRequired: true,
+      step: "CREATE_PASSWORD",
+      setupPasswordToken,
+      message: studentAccount.passwordHash
+        ? "Identity verified. Please create a new password to access your account."
+        : "Identity verified. Please create a password for your account.",
+      student: {
         regNo: rawReg,
-        sessionId,
-        deviceId: crypto.randomUUID(),
-        deviceInfo: extractRequestDeviceInfo(req),
-        loggedInAt: new Date(now),
-        lastActiveAt: new Date(now),
-        expiresAt,
-        isActive: true,
-      });
-
-      const studentToken = jwt.sign(
-        { regNo: rawReg, sessionId, role: "student" },
-        process.env.JWT_SECRET,
-        { expiresIn: "36500d" }
-      );
-
-      res.cookie("student_jwt", studentToken, getCookieOptions(req, expiresAt));
-
-      return res.json({
-        success: true,
-        message: "Authentication successful via OTP recovery.",
-        student: {
-          regNo: rawReg,
-          studentName,
-          sessionId,
-        },
-      });
-    }
+        studentName,
+      },
+    });
   } catch (err) {
     console.error("Student verify-otp error:", err);
     res.status(500).json({ success: false, message: "An internal error occurred during OTP verification." });
@@ -1436,44 +1367,18 @@ router.get("/bootstrap", async (req, res) => {
     // Check if client previously had an admin session on this device but cookies were cleared
     const clientLastSession = req.headers["x-admin-last-session"] || req.query?.lastAdminSession;
     let sessionWasRevoked = false;
-    if (!adminAuth) {
+    if (!adminAuth && clientLastSession) {
       try {
-        if (clientLastSession) {
-          const orphanedSession = await AdminSession.findOneAndUpdate(
-            { sessionId: clientLastSession, isActive: true },
-            { $set: { isActive: false, revokedAt: new Date(), revokeReason: "COOKIE_CLEARED_ON_CLIENT" } }
-          );
-          const orphanedSubSession = await SubAdminSession.findOneAndUpdate(
-            { sessionId: clientLastSession, isActive: true },
-            { $set: { isActive: false, revokedAt: new Date(), revokeReason: "COOKIE_CLEARED_ON_CLIENT" } }
-          );
-          if (orphanedSession || orphanedSubSession) {
-            sessionWasRevoked = true;
-          }
-        }
-
-        // User-Agent fallback: detect if this browser previously had an active session that lost its cookie
-        const clientInfo = extractRequestDeviceInfo(req);
-        if (clientInfo && clientInfo.userAgent && clientInfo.userAgent.length > 5) {
-          const matchingSession = await AdminSession.findOneAndUpdate(
-            {
-              isActive: true,
-              "deviceInfo.userAgent": clientInfo.userAgent,
-              lastActiveAt: { $gte: new Date(Date.now() - 2 * 60 * 60 * 1000) },
-            },
-            { $set: { isActive: false, revokedAt: new Date(), revokeReason: "COOKIE_CLEARED_ON_CLIENT" } }
-          );
-          if (matchingSession) sessionWasRevoked = true;
-
-          const matchingSubSession = await SubAdminSession.findOneAndUpdate(
-            {
-              isActive: true,
-              "deviceInfo.userAgent": clientInfo.userAgent,
-              lastActiveAt: { $gte: new Date(Date.now() - 2 * 60 * 60 * 1000) },
-            },
-            { $set: { isActive: false, revokedAt: new Date(), revokeReason: "COOKIE_CLEARED_ON_CLIENT" } }
-          );
-          if (matchingSubSession) sessionWasRevoked = true;
+        const orphanedSession = await AdminSession.findOneAndUpdate(
+          { sessionId: clientLastSession, isActive: true },
+          { $set: { isActive: false, revokedAt: new Date(), revokeReason: "COOKIE_CLEARED_ON_CLIENT" } }
+        );
+        const orphanedSubSession = await SubAdminSession.findOneAndUpdate(
+          { sessionId: clientLastSession, isActive: true },
+          { $set: { isActive: false, revokedAt: new Date(), revokeReason: "COOKIE_CLEARED_ON_CLIENT" } }
+        );
+        if (orphanedSession || orphanedSubSession) {
+          sessionWasRevoked = true;
         }
       } catch {}
     }
@@ -1941,6 +1846,17 @@ const handleAdminPasswordLogin = async (req, res) => {
       } catch {}
     }
 
+    // Strict Admin Device Limit: Max 2 devices allowed simultaneously (Device 3 blocked with HTTP 403)
+    if (activeSessions.length >= MAX_ADMIN_DEVICES && !isCurrentDevice) {
+      return res.status(403).json({
+        success: false,
+        code: "DEVICE_LIMIT_REACHED",
+        message: "Maximum active administrator sessions reached (2 devices). Access denied.",
+        activeDeviceCount: activeSessions.length,
+        maxAllowedDevices: MAX_ADMIN_DEVICES,
+      });
+    }
+
     // Generate secure 6-digit OTP code
     const otp = crypto.randomInt(100000, 1000000).toString();
     const otpHash = await bcrypt.hash(otp, 10);
@@ -2027,38 +1943,16 @@ router.post("/admin/verify-otp", async (req, res) => {
 
     await AdminOtpVerification.deleteMany({});
 
+    // Enforce strict 2-device limit (Device 3 rejected with HTTP 403; NEVER silently evict Device 1)
     const activeSessions = await getActiveAdminSessions(AdminSession);
     if (activeSessions.length >= MAX_ADMIN_DEVICES) {
-      // Prevent permanent lockout if cookies were cleared on one device or ghost sessions exist
-      const incomingDevice = extractRequestDeviceInfo(req);
-      const sameDeviceSession = activeSessions.find(
-        (s) =>
-          s.deviceInfo?.userAgent === incomingDevice?.userAgent &&
-          s.deviceInfo?.os === incomingDevice?.os &&
-          s.deviceInfo?.browser === incomingDevice?.browser
-      );
-      const sessionToRevoke =
-        sameDeviceSession ||
-        activeSessions.sort(
-          (a, b) =>
-            new Date(a.lastActiveAt || a.loggedInAt) -
-            new Date(b.lastActiveAt || b.loggedInAt)
-        )[0];
-
-      if (sessionToRevoke) {
-        await AdminSession.updateOne(
-          { _id: sessionToRevoke._id },
-          {
-            $set: {
-              isActive: false,
-              revokedAt: new Date(),
-              revokeReason: sameDeviceSession
-                ? "REPLACED_BY_RELOGIN"
-                : "REPLACED_BY_NEW_DEVICE",
-            },
-          }
-        );
-      }
+      return res.status(403).json({
+        success: false,
+        code: "DEVICE_LIMIT_REACHED",
+        message: "Maximum active administrator sessions reached (2 devices). Access denied.",
+        activeDeviceCount: activeSessions.length,
+        maxAllowedDevices: MAX_ADMIN_DEVICES,
+      });
     }
 
     const sessionId = crypto.randomUUID();
@@ -2092,6 +1986,9 @@ router.post("/admin/verify-otp", async (req, res) => {
       };
       authEventBus.emit("admin-availability-updated", availabilityData);
       broadcastAblyHttp("admin-availability-updated", availabilityData);
+      if (typeof broadcastRealtimeEvent === "function") {
+        broadcastRealtimeEvent("admin-availability-updated", availabilityData).catch(() => {});
+      }
     } catch {}
 
     return res.json({
@@ -2521,6 +2418,9 @@ const handleAdminLogout = async (req, res) => {
       };
       authEventBus.emit("admin-availability-updated", availabilityData);
       broadcastAblyHttp("admin-availability-updated", availabilityData);
+      if (typeof broadcastRealtimeEvent === "function") {
+        broadcastRealtimeEvent("admin-availability-updated", availabilityData).catch(() => {});
+      }
     } catch {}
 
     return res.status(200).json({
@@ -2603,6 +2503,9 @@ const handleAdminReleaseSession = async (req, res) => {
       };
       authEventBus.emit("admin-availability-updated", availabilityData);
       broadcastAblyHttp("admin-availability-updated", availabilityData);
+      if (typeof broadcastRealtimeEvent === "function") {
+        broadcastRealtimeEvent("admin-availability-updated", availabilityData).catch(() => {});
+      }
     } catch {}
 
     return res.status(200).json({
@@ -2728,9 +2631,102 @@ const handleStudentLogout = async (req, res) => {
 router.post("/student/logout", handleStudentLogout);
 router.post("/logout-student", handleStudentLogout);
 
-// Realtime Token Route (Dev/Fallback)
+// Realtime Token Route (Ably Scoped Token Auth)
 router.all("/realtime-token", async (req, res) => {
-  return res.json({ token: "mock_token_dev_mode" });
+  try {
+    let incomingToken = req.headers["x-student-token"] || req.cookies?.student_jwt;
+    let adminToken = req.headers["x-admin-token"] || req.cookies?.jwt;
+    if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+      const bearer = req.headers.authorization.split(" ")[1];
+      if (!incomingToken) incomingToken = bearer;
+      if (!adminToken) adminToken = bearer;
+    }
+
+    // 1. Authenticated Student Token Request
+    if (incomingToken && incomingToken !== "none") {
+      try {
+        const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+        if (decoded.role === "student" && decoded.regNo && decoded.sessionId) {
+          const cleanReg = String(decoded.regNo).trim().toUpperCase();
+          const session = await StudentSession.findOne({
+            regNo: cleanReg,
+            sessionId: decoded.sessionId,
+            isActive: true,
+            expiresAt: { $gt: new Date() },
+          });
+          if (session) {
+            const tokenRequest = await createRealtimeTokenRequest({
+              clientId: cleanReg,
+              regNo: cleanReg,
+              capabilities: {
+                [`student-${cleanReg}`]: ["subscribe"],
+                "broadcasts-all": ["subscribe"],
+              },
+            });
+            return res.json(tokenRequest);
+          }
+        }
+      } catch {}
+    }
+
+    // 2. Authenticated Admin Token Request
+    if (adminToken && adminToken !== "none") {
+      try {
+        const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
+        if (decoded.role === "admin" && decoded.sessionId) {
+          const session = await AdminSession.findOne({
+            sessionId: decoded.sessionId,
+            isActive: true,
+            expiresAt: { $gt: new Date() },
+          });
+          if (session) {
+            const tokenRequest = await createRealtimeTokenRequest({
+              clientId: "admin",
+              capabilities: {
+                "admin-control": ["subscribe", "publish"],
+                "broadcasts-all": ["subscribe", "publish"],
+                "*": ["subscribe"],
+              },
+            });
+            return res.json(tokenRequest);
+          }
+        }
+      } catch {}
+    }
+
+    // 3. Device Approval Waiting Client (Pending Request ID)
+    const reqId = req.query?.requestId || req.body?.requestId || req.headers["x-approval-request-id"];
+    if (reqId) {
+      const cleanReqId = String(reqId).trim();
+      const pendingApproval = await require("../models/DeviceApprovalRequest").findOne({
+        requestId: cleanReqId,
+        status: { $in: ["PENDING", "APPROVED"] },
+        expiresAt: { $gt: new Date() },
+      });
+      if (pendingApproval) {
+        const tokenRequest = await createRealtimeTokenRequest({
+          clientId: `approval-${cleanReqId}`,
+          regNo: pendingApproval.regNo,
+          capabilities: {
+            [`approval-${cleanReqId}`]: ["subscribe"],
+          },
+        });
+        return res.json(tokenRequest);
+      }
+    }
+
+    // 4. Anonymous / Public Guest Client (Broadcast announcements & admin button status only)
+    const tokenRequest = await createRealtimeTokenRequest({
+      clientId: "guest-" + crypto.randomUUID().slice(0, 8),
+      capabilities: {
+        "broadcasts-all": ["subscribe"],
+      },
+    });
+    return res.json(tokenRequest);
+  } catch (err) {
+    console.error("Realtime token error:", err);
+    return res.status(500).json({ success: false, message: "Realtime token generation failed." });
+  }
 });
 
 module.exports = router;

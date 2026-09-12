@@ -98,6 +98,11 @@ async function replaceStudentSession(StudentSession, regNo, sessionData) {
 
     // 1. If single-device student (limit = 1), revoke all existing active sessions
     if (maxAllowed === 1) {
+      const existingSessions = await StudentSession.find({
+        regNo: clean,
+        isActive: true,
+      }).select("sessionId");
+
       const updateResult = await StudentSession.updateMany(
         {
           regNo: clean,
@@ -112,6 +117,43 @@ async function replaceStudentSession(StudentSession, regNo, sessionData) {
         }
       );
       wasReplaced = (updateResult.modifiedCount || updateResult.nModified || 0) > 0;
+
+      if (wasReplaced && existingSessions.length > 0) {
+        for (const s of existingSessions) {
+          try {
+            await publishStudentRealtimeEvent(clean, "session-revoked", {
+              revokedSessionId: s.sessionId,
+              reason: "REPLACED_BY_NEW_DEVICE",
+              message: "Your session ended because you logged in from another device.",
+            });
+          } catch (_) {}
+        }
+      }
+    } else {
+      // Multi-device accounts (e.g. Special Student 230301120327): FIFO eviction if limit reached
+      const existingSessions = await StudentSession.find({
+        regNo: clean,
+        isActive: true,
+        expiresAt: { $gt: new Date() },
+      }).sort({ lastActiveAt: 1, loggedInAt: 1 });
+
+      if (existingSessions.length >= maxAllowed) {
+        const toRevoke = existingSessions.slice(0, existingSessions.length - maxAllowed + 1);
+        for (const s of toRevoke) {
+          s.isActive = false;
+          s.revokedAt = new Date();
+          s.revokeReason = "REPLACED_BY_NEW_DEVICE";
+          await s.save();
+          try {
+            await publishStudentRealtimeEvent(clean, "session-revoked", {
+              revokedSessionId: s.sessionId,
+              reason: "REPLACED_BY_NEW_DEVICE",
+              message: "Your session ended because this account logged in on another device.",
+            });
+          } catch (_) {}
+        }
+        wasReplaced = true;
+      }
     }
 
     // 2. Create the new active session
@@ -544,56 +586,35 @@ async function touchSession(session) {
 ═══════════════════════════════════════════════════════════════════ */
 
 async function cleanExpiredAdminSessions(AdminSession) {
-  await AdminSession.deleteMany({
-    $or: [
-      { isActive: false },
-      { expiresAt: { $lte: new Date() } },
-    ],
-  });
-}
-
-const ADMIN_ACTIVITY_TTL_MS = 60 * 60 * 1000; // 1 hour rolling session window for inactive/abandoned devices
-
-async function getActiveAdminSessions(AdminSession) {
   const activeCutoff = new Date(Date.now() - ADMIN_ACTIVITY_TTL_MS);
-
-  // Automatically mark stale zombie sessions (inactive > 3m or null lastActiveAt) as dormant
   try {
-    const pruneRes = await AdminSession.updateMany(
+    await AdminSession.updateMany(
       {
         isActive: true,
         $or: [
+          { expiresAt: { $lte: new Date() } },
           { lastActiveAt: { $lt: activeCutoff } },
-          { lastActiveAt: null },
-          { lastActiveAt: { $exists: false } },
         ],
       },
       {
         $set: {
           isActive: false,
           revokedAt: new Date(),
-          revokeReason: "INACTIVITY_OR_COOKIE_LOSS",
+          revokeReason: "EXPIRED_OR_INACTIVE",
         },
       }
     );
-
-    if ((pruneRes?.modifiedCount || pruneRes?.nModified || 0) > 0) {
-      try {
-        const remainingCount = await AdminSession.countDocuments({
-          isActive: true,
-          expiresAt: { $gt: new Date() },
-          lastActiveAt: { $gte: activeCutoff },
-        });
-        if (typeof broadcastRealtimeEvent === "function") {
-          broadcastRealtimeEvent("admin-availability-updated", {
-            activeDeviceCount: remainingCount,
-            isAdminButtonVisible: remainingCount < MAX_ADMIN_DEVICES,
-          }).catch(() => {});
-        }
-      } catch (_) {}
-    }
   } catch (_) {}
+}
 
+const ADMIN_ACTIVITY_TTL_MS = 60 * 60 * 1000; // 1 hour rolling session window for inactive/abandoned devices
+
+/**
+ * Authoritative Server-Side Query for Active Admin Sessions.
+ * Pure read-only query; zero write locks on read.
+ */
+async function getActiveAdminSessions(AdminSession) {
+  const activeCutoff = new Date(Date.now() - ADMIN_ACTIVITY_TTL_MS);
   return AdminSession.find({
     isActive: true,
     expiresAt: { $gt: new Date() },

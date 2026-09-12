@@ -4,6 +4,12 @@ const EventEmitter = require("events");
 
 const DeviceApprovalRequest = require("../models/DeviceApprovalRequest");
 const StudentNotification = require("../models/StudentNotification");
+const {
+  publishStudentRealtimeEvent,
+  publishApprovalRealtimeEvent,
+  broadcastRealtimeEvent,
+  publishAdminRealtimeEvent,
+} = require("./ablyService");
 
 const DEFAULT_SESSION_TTL_MS = 60 * 24 * 60 * 60 * 1000; // 60 days rolling session TTL
 const PERMANENT_SESSION_MS = DEFAULT_SESSION_TTL_MS;
@@ -93,6 +99,11 @@ async function replaceStudentSession(StudentSession, regNo, sessionData) {
 
     // 1. If single-device student (limit = 1), revoke all existing active sessions
     if (maxAllowed === 1) {
+      const existingSessions = await StudentSession.find({
+        regNo: clean,
+        isActive: true,
+      }).select("sessionId");
+
       const updateResult = await StudentSession.updateMany(
         {
           regNo: clean,
@@ -107,6 +118,43 @@ async function replaceStudentSession(StudentSession, regNo, sessionData) {
         }
       );
       wasReplaced = (updateResult.modifiedCount || updateResult.nModified || 0) > 0;
+
+      if (wasReplaced && existingSessions.length > 0) {
+        for (const s of existingSessions) {
+          try {
+            await publishStudentRealtimeEvent(clean, "session-revoked", {
+              revokedSessionId: s.sessionId,
+              reason: "REPLACED_BY_NEW_DEVICE",
+              message: "Your session ended because you logged in from another device.",
+            });
+          } catch (_) {}
+        }
+      }
+    } else {
+      // Multi-device accounts (e.g. Special Student 230301120327): FIFO eviction if limit reached
+      const existingSessions = await StudentSession.find({
+        regNo: clean,
+        isActive: true,
+        expiresAt: { $gt: new Date() },
+      }).sort({ lastActiveAt: 1, loggedInAt: 1 });
+
+      if (existingSessions.length >= maxAllowed) {
+        const toRevoke = existingSessions.slice(0, existingSessions.length - maxAllowed + 1);
+        for (const s of toRevoke) {
+          s.isActive = false;
+          s.revokedAt = new Date();
+          s.revokeReason = "REPLACED_BY_NEW_DEVICE";
+          await s.save();
+          try {
+            await publishStudentRealtimeEvent(clean, "session-revoked", {
+              revokedSessionId: s.sessionId,
+              reason: "REPLACED_BY_NEW_DEVICE",
+              message: "Your session ended because this account logged in on another device.",
+            });
+          } catch (_) {}
+        }
+        wasReplaced = true;
+      }
     }
 
     // 2. Create the new active session
@@ -188,6 +236,20 @@ async function createDeviceApprovalRequest(regNo, requestingDeviceInfo, targetSe
     approvalRequest,
   });
 
+  // Publish instant Ably WebSocket event to student's active device (<0.1s latency)
+  try {
+    const plainNotif = notification && notification.toObject ? notification.toObject() : JSON.parse(JSON.stringify(notification));
+    const plainApproval = approvalRequest && approvalRequest.toObject ? approvalRequest.toObject() : JSON.parse(JSON.stringify(approvalRequest));
+    delete plainApproval.exchangeHash; // Never expose exchange hash in realtime payloads
+    await publishStudentRealtimeEvent(clean, "new-notification", {
+      type: "NEW_NOTIFICATION",
+      notification: plainNotif,
+      approvalRequest: plainApproval,
+    });
+  } catch (e) {
+    console.warn("[Ably] Device approval publish warning:", e?.message || e);
+  }
+
   return { approvalRequest, notification, exchangeSecret };
 }
 
@@ -252,6 +314,26 @@ async function respondDeviceApproval(StudentSession, requestId, respondingSessio
         requestId,
         status: "DENIED",
       });
+
+      // Publish instant Ably WebSocket events (<0.1s latency)
+      try {
+        await Promise.allSettled([
+          publishApprovalRealtimeEvent(requestId, cleanReg, "approval-status", {
+            status: "DENIED",
+            message: "Login request was denied from your active device.",
+          }),
+          publishStudentRealtimeEvent(cleanReg, "approval-response", {
+            requestId,
+            status: "DENIED",
+          }),
+          publishStudentRealtimeEvent(cleanReg, "notification-updated", {
+            requestId,
+            status: "DENIED",
+          }),
+        ]);
+      } catch (e) {
+        console.warn("[Ably] Denied publish warning:", e?.message || e);
+      }
 
       return { success: true, status: "DENIED", message: "Login request denied successfully." };
     }
@@ -319,6 +401,28 @@ async function respondDeviceApproval(StudentSession, requestId, respondingSessio
         requestId,
         regNo: cleanReg,
       });
+
+      // 5. Publish instant Ably WebSocket events (<0.1s latency)
+      try {
+        await Promise.allSettled([
+          publishStudentRealtimeEvent(cleanReg, "notification-updated", {
+            requestId,
+            status: "APPROVED",
+          }),
+          publishStudentRealtimeEvent(cleanReg, "session-revoked", {
+            revokedSessionId: targetSessionId,
+            reason: "APPROVED_ON_NEW_DEVICE",
+            message: "Your session ended because your account was approved on another device.",
+          }),
+          publishApprovalRealtimeEvent(requestId, cleanReg, "approval-status", {
+            status: "APPROVED",
+            requestId,
+            regNo: cleanReg,
+          }),
+        ]);
+      } catch (e) {
+        console.warn("[Ably] Approved publish warning:", e?.message || e);
+      }
 
       return {
         success: true,
@@ -483,54 +587,35 @@ async function touchSession(session) {
 ═══════════════════════════════════════════════════════════════════ */
 
 async function cleanExpiredAdminSessions(AdminSession) {
-  await AdminSession.deleteMany({
-    $or: [
-      { isActive: false },
-      { expiresAt: { $lte: new Date() } },
-    ],
-  });
-}
-
-const ADMIN_ACTIVITY_TTL_MS = 60 * 60 * 1000; // 1 hour rolling session window for inactive/abandoned devices
-
-async function getActiveAdminSessions(AdminSession) {
   const activeCutoff = new Date(Date.now() - ADMIN_ACTIVITY_TTL_MS);
-
-  // Automatically mark stale zombie sessions (inactive > 3m or null lastActiveAt) as dormant
   try {
-    const pruneRes = await AdminSession.updateMany(
+    await AdminSession.updateMany(
       {
         isActive: true,
         $or: [
+          { expiresAt: { $lte: new Date() } },
           { lastActiveAt: { $lt: activeCutoff } },
-          { lastActiveAt: null },
-          { lastActiveAt: { $exists: false } },
         ],
       },
       {
         $set: {
           isActive: false,
           revokedAt: new Date(),
-          revokeReason: "INACTIVITY_OR_COOKIE_LOSS",
+          revokeReason: "EXPIRED_OR_INACTIVE",
         },
       }
     );
-
-    if ((pruneRes?.modifiedCount || pruneRes?.nModified || 0) > 0) {
-      try {
-        const remainingCount = await AdminSession.countDocuments({
-          isActive: true,
-          expiresAt: { $gt: new Date() },
-          lastActiveAt: { $gte: activeCutoff },
-        });
-        authEventBus.emit("admin-availability-updated", {
-          activeDeviceCount: remainingCount,
-          isAdminButtonVisible: remainingCount < MAX_ADMIN_DEVICES,
-        });
-      } catch (_) {}
-    }
   } catch (_) {}
+}
 
+const ADMIN_ACTIVITY_TTL_MS = 60 * 60 * 1000; // 1 hour rolling session window for inactive/abandoned devices
+
+/**
+ * Authoritative Server-Side Query for Active Admin Sessions.
+ * Pure read-only query; zero write locks on read.
+ */
+async function getActiveAdminSessions(AdminSession) {
+  const activeCutoff = new Date(Date.now() - ADMIN_ACTIVITY_TTL_MS);
   return AdminSession.find({
     isActive: true,
     expiresAt: { $gt: new Date() },

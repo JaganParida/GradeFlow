@@ -66,5 +66,6 @@ const DeviceApprovalRequestSchema = new mongoose.Schema(
 );
 
 DeviceApprovalRequestSchema.index({ regNo: 1, status: 1, expiresAt: 1 });
+DeviceApprovalRequestSchema.index({ targetSessionId: 1, status: 1 });
 
 module.exports = mongoose.models.DeviceApprovalRequest || mongoose.model("DeviceApprovalRequest", DeviceApprovalRequestSchema);

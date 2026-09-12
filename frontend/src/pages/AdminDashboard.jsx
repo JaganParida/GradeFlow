@@ -3702,7 +3702,7 @@ function FeedbackManager({ authHeaders, API }) {
    7. MAIN ADMIN DASHBOARD SHELL
    ════════════════════════════════════════════════════════════════ */
 export default function AdminDashboard({ defaultTab = null }) {
-  const { adminToken, adminLogout, authChecking, API = "/api" } = useApp();
+  const { adminToken, adminLogout, authChecking, adminProfile: globalAdminProfile, API = "/api" } = useApp();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
@@ -3710,7 +3710,7 @@ export default function AdminDashboard({ defaultTab = null }) {
 
   const authHeaders = getAuthHeaders();
 
-  const [adminProfile, setAdminProfile] = useState(null);
+  const [adminProfile, setAdminProfile] = useState(globalAdminProfile || null);
   const [stats, setStats] = useState(null);
   const [rankSem, setRankSem] = useState("");
   const [rankMsg, setRankMsg] = useState("");
@@ -3789,22 +3789,29 @@ export default function AdminDashboard({ defaultTab = null }) {
   const [showBatchPills, setShowBatchPills] = useState(false);
 
   useEffect(() => {
+    if (globalAdminProfile) {
+      setAdminProfile(globalAdminProfile);
+    }
+  }, [globalAdminProfile]);
+
+  useEffect(() => {
     if (authChecking) return;
     if (!adminToken) {
       navigate("/admin");
       return;
     }
-    if (adminProfile && adminProfile.permissions) {
-      const isMain = adminProfile.adminType === "main" || !adminProfile.adminType;
-      const permittedRoutes = adminProfile.permissions?.routes || [];
+    const profile = adminProfile || globalAdminProfile;
+    if (profile && profile.permissions) {
+      const isMain = profile.adminType === "main" || !profile.adminType;
+      const permittedRoutes = profile.permissions?.routes || [];
       if (!isMain && permittedRoutes.length > 0 && !permittedRoutes.includes(tab)) {
         setTab(permittedRoutes[0]);
       }
-    } else {
+    } else if (!profile) {
       fetchAdminProfile();
     }
     fetchStats();
-  }, [adminToken, authChecking]);
+  }, [adminToken, authChecking, adminProfile, globalAdminProfile]);
 
   async function fetchAdminProfile() {
     try {

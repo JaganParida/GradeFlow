@@ -23,8 +23,9 @@ const adminSessionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+adminSessionSchema.index({ sessionId: 1, isActive: 1 });
 adminSessionSchema.index({ isActive: 1, expiresAt: 1 });
 adminSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-module.exports = mongoose.model("AdminSession", adminSessionSchema);
+module.exports = mongoose.models.AdminSession || mongoose.model("AdminSession", adminSessionSchema);
 
