@@ -1514,30 +1514,70 @@ module.exports = async function handler(req, res) {
       // Check if client previously had an admin session on this device but cookies were cleared
       const clientLastSession = req.headers["x-admin-last-session"] || req.query?.lastAdminSession;
       let sessionWasRevoked = false;
-      if (clientLastSession && !adminAuth) {
+      if (!adminAuth) {
         try {
-          const orphanedSession = await AdminSession.findOneAndUpdate(
-            { sessionId: clientLastSession, isActive: true },
-            {
-              $set: {
-                isActive: false,
-                revokedAt: new Date(),
-                revokeReason: "COOKIE_CLEARED_BY_CLIENT",
-              },
+          if (clientLastSession) {
+            const orphanedSession = await AdminSession.findOneAndUpdate(
+              { sessionId: clientLastSession, isActive: true },
+              {
+                $set: {
+                  isActive: false,
+                  revokedAt: new Date(),
+                  revokeReason: "COOKIE_CLEARED_BY_CLIENT",
+                },
+              }
+            );
+            const orphanedSubSession = await SubAdminSession.findOneAndUpdate(
+              { sessionId: clientLastSession, isActive: true },
+              {
+                $set: {
+                  isActive: false,
+                  revokedAt: new Date(),
+                  revokeReason: "COOKIE_CLEARED_BY_CLIENT",
+                },
+              }
+            );
+            if (orphanedSession || orphanedSubSession) {
+              sessionWasRevoked = true;
             }
-          );
-          const orphanedSubSession = await SubAdminSession.findOneAndUpdate(
-            { sessionId: clientLastSession, isActive: true },
-            {
-              $set: {
-                isActive: false,
-                revokedAt: new Date(),
-                revokeReason: "COOKIE_CLEARED_BY_CLIENT",
+          }
+
+          // DEVICE FINGERPRINT / USER-AGENT FALLBACK:
+          // If the user cleared cookies/storage or closed incognito, no x-admin-last-session header is sent.
+          // Detect any active session created from this exact User-Agent and revoke it since the device has no cookie.
+          const clientInfo = extractRequestDeviceInfo(req);
+          if (clientInfo && clientInfo.userAgent && clientInfo.userAgent.length > 5) {
+            const matchingSession = await AdminSession.findOneAndUpdate(
+              {
+                isActive: true,
+                "deviceInfo.userAgent": clientInfo.userAgent,
+                lastActiveAt: { $gte: new Date(Date.now() - 2 * 60 * 60 * 1000) },
               },
-            }
-          );
-          if (orphanedSession || orphanedSubSession) {
-            sessionWasRevoked = true;
+              {
+                $set: {
+                  isActive: false,
+                  revokedAt: new Date(),
+                  revokeReason: "COOKIE_CLEARED_ON_CLIENT",
+                },
+              }
+            );
+            if (matchingSession) sessionWasRevoked = true;
+
+            const matchingSubSession = await SubAdminSession.findOneAndUpdate(
+              {
+                isActive: true,
+                "deviceInfo.userAgent": clientInfo.userAgent,
+                lastActiveAt: { $gte: new Date(Date.now() - 2 * 60 * 60 * 1000) },
+              },
+              {
+                $set: {
+                  isActive: false,
+                  revokedAt: new Date(),
+                  revokeReason: "COOKIE_CLEARED_ON_CLIENT",
+                },
+              }
+            );
+            if (matchingSubSession) sessionWasRevoked = true;
           }
         } catch (_) {}
       }
@@ -2308,6 +2348,24 @@ module.exports = async function handler(req, res) {
 
       if (!targetSessionId) {
         targetSessionId = req.headers["x-admin-last-session"] || req.body?.sessionId || null;
+      }
+
+      if (!targetSessionId) {
+        const clientInfo = extractRequestDeviceInfo(req);
+        if (clientInfo && clientInfo.userAgent) {
+          const match = await AdminSession.findOne({
+            isActive: true,
+            "deviceInfo.userAgent": clientInfo.userAgent,
+          }).sort({ lastActiveAt: -1 });
+          if (match) targetSessionId = match.sessionId;
+          if (!targetSessionId) {
+            const subMatch = await SubAdminSession.findOne({
+              isActive: true,
+              "deviceInfo.userAgent": clientInfo.userAgent,
+            }).sort({ lastActiveAt: -1 });
+            if (subMatch) targetSessionId = subMatch.sessionId;
+          }
+        }
       }
 
       if (targetSessionId) {
