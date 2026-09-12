@@ -130,29 +130,19 @@ async function replaceStudentSession(StudentSession, regNo, sessionData) {
         }
       }
     } else {
-      // Multi-device accounts (e.g. Special Student 230301120327): FIFO eviction if limit reached
+      // Multi-device accounts (e.g. Special Student 230301120327): Enforce strict device cap (No silent eviction)
       const existingSessions = await StudentSession.find({
         regNo: clean,
         isActive: true,
         expiresAt: { $gt: new Date() },
-      }).sort({ lastActiveAt: 1, loggedInAt: 1 });
+      });
 
       if (existingSessions.length >= maxAllowed) {
-        const toRevoke = existingSessions.slice(0, existingSessions.length - maxAllowed + 1);
-        for (const s of toRevoke) {
-          s.isActive = false;
-          s.revokedAt = new Date();
-          s.revokeReason = "REPLACED_BY_NEW_DEVICE";
-          await s.save();
-          try {
-            await publishStudentRealtimeEvent(clean, "session-revoked", {
-              revokedSessionId: s.sessionId,
-              reason: "REPLACED_BY_NEW_DEVICE",
-              message: "Your session ended because this account logged in on another device.",
-            });
-          } catch (_) {}
-        }
-        wasReplaced = true;
+        const err = new Error(`DEVICE_LIMIT_REACHED: Account ${clean} has reached the maximum allowed active devices (${maxAllowed}).`);
+        err.code = "DEVICE_LIMIT_REACHED";
+        err.activeDeviceCount = existingSessions.length;
+        err.maxAllowedDevices = maxAllowed;
+        throw err;
       }
     }
 
