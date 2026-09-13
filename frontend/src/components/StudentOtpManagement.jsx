@@ -610,9 +610,11 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               style={{
                 position: "relative",
                 display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: isMob ? "11px 12px" : "14px 18px",
+                flexDirection: isMob ? "column" : "row",
+                alignItems: isMob ? "stretch" : "center",
+                justifyContent: isMob ? "space-between" : "flex-start",
+                gap: isMob ? 8 : 12,
+                padding: isMob ? "11px 11px" : "14px 18px",
                 borderRadius: 14,
                 border: isActive ? "1.5px solid #4f46e5" : "1px solid #e2e8f0",
                 background: isActive ? "linear-gradient(135deg, #eef2ff 0%, #ffffff 100%)" : "#ffffff",
@@ -620,67 +622,140 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 cursor: "pointer",
                 textAlign: "left",
                 transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                boxSizing: "border-box",
+                minHeight: isMob ? 84 : "auto",
               }}
             >
-              <div
-                style={{
-                  width: isMob ? 32 : 38,
-                  height: isMob ? 32 : 38,
-                  borderRadius: 10,
-                  background: isActive ? "#4f46e5" : "#f1f5f9",
-                  color: isActive ? "#ffffff" : "#64748b",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  transition: "all 0.2s ease",
-                }}
-              >
-                <IconComponent size={isMob ? 16 : 19} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span
-                    style={{
-                      fontSize: isMob ? 12.5 : 14,
-                      fontWeight: isActive ? 800 : 700,
-                      color: isActive ? "#312e81" : "#1e293b",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {tab.label}
-                  </span>
-                  {tab.badge && (
-                    <span
+              {isMob ? (
+                <>
+                  {/* Top Row on Mobile: Icon on left, Badge on right */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+                    <div
                       style={{
-                        fontSize: 9.5,
-                        fontWeight: 700,
-                        padding: "1px 5px",
-                        borderRadius: 4,
-                        background: isActive ? "#e0e7ff" : "#f1f5f9",
-                        color: isActive ? "#4338ca" : "#64748b",
+                        width: 30,
+                        height: 30,
+                        borderRadius: 8,
+                        background: isActive ? "#4f46e5" : "#f1f5f9",
+                        color: isActive ? "#ffffff" : "#64748b",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        transition: "all 0.2s ease",
                       }}
                     >
-                      {tab.badge}
-                    </span>
-                  )}
-                </div>
-                <div
-                  style={{
-                    fontSize: isMob ? 10.5 : 11.5,
-                    color: isActive ? "#4f46e5" : "#94a3b8",
-                    fontWeight: 500,
-                    marginTop: 2,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {tab.desc}
-                </div>
-              </div>
+                      <IconComponent size={15} />
+                    </div>
+                    {tab.badge && (
+                      <span
+                        style={{
+                          fontSize: 9.5,
+                          fontWeight: 750,
+                          padding: "2px 6px",
+                          borderRadius: 6,
+                          background: isActive ? "#e0e7ff" : "#f1f5f9",
+                          color: isActive ? "#4338ca" : "#64748b",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {tab.badge}
+                      </span>
+                    )}
+                  </div>
+                  {/* Bottom Content on Mobile: Full Title & Desc */}
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: isActive ? 800 : 700,
+                        color: isActive ? "#312e81" : "#1e293b",
+                        lineHeight: 1.25,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {tab.label}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: isActive ? "#4f46e5" : "#94a3b8",
+                        fontWeight: 500,
+                        marginTop: 2,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {tab.desc}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Desktop Layout: Horizontal row */}
+                  <div
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 10,
+                      background: isActive ? "#4f46e5" : "#f1f5f9",
+                      color: isActive ? "#ffffff" : "#64748b",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <IconComponent size={19} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span
+                        style={{
+                          fontSize: 14,
+                          fontWeight: isActive ? 800 : 700,
+                          color: isActive ? "#312e81" : "#1e293b",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {tab.label}
+                      </span>
+                      {tab.badge && (
+                        <span
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: 700,
+                            padding: "1px 5px",
+                            borderRadius: 4,
+                            background: isActive ? "#e0e7ff" : "#f1f5f9",
+                            color: isActive ? "#4338ca" : "#64748b",
+                          }}
+                        >
+                          {tab.badge}
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11.5,
+                        color: isActive ? "#4f46e5" : "#94a3b8",
+                        fontWeight: 500,
+                        marginTop: 2,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {tab.desc}
+                    </div>
+                  </div>
+                </>
+              )}
             </button>
           );
         })}
@@ -853,7 +928,9 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             onClick={() => handleSearchWithReg("230301120327")}
             disabled={loading}
             style={{
-              padding: "8px 16px",
+              width: isMob ? "100%" : "auto",
+              justifyContent: "center",
+              padding: isMob ? "10px 16px" : "8px 16px",
               borderRadius: 10,
               border: "none",
               background: "#7c3aed",
@@ -879,7 +956,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             background: "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)",
             border: "1px solid #c7d2fe",
             borderRadius: 14,
-            padding: isMob ? "12px 14px" : "16px 20px",
+            padding: isMob ? "14px 14px" : "16px 20px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -933,7 +1010,9 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             onClick={() => fetchAdminDetails(true)}
             disabled={adminLoading}
             style={{
-              padding: "8px 16px",
+              width: isMob ? "100%" : "auto",
+              justifyContent: "center",
+              padding: isMob ? "10px 16px" : "8px 16px",
               borderRadius: 10,
               border: "none",
               background: "#4338ca",
@@ -999,7 +1078,9 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               onClick={() => fetchSubAdminDetails(selectedSubAdminId, true)}
               disabled={subAdminLoading}
               style={{
-                padding: "7px 14px",
+                width: isMob ? "100%" : "auto",
+                justifyContent: "center",
+                padding: isMob ? "9px 14px" : "7px 14px",
                 borderRadius: 9,
                 border: "1px solid #cbd5e1",
                 background: "#f8fafc",
@@ -1013,7 +1094,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               }}
             >
               <RefreshCw size={12} className={subAdminLoading ? "spin" : ""} />
-              <span>Refresh</span>
+              <span>Refresh Sub-Admin Status</span>
             </button>
           </div>
 

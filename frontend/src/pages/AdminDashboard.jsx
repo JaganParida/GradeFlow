@@ -4264,138 +4264,221 @@ export default function AdminDashboard({ defaultTab = null }) {
                   background: "#ffffff",
                   border: stat.targetTab && tab === stat.targetTab ? "1.5px solid #10b981" : "1px solid #e2e8f0",
                   borderRadius: isMobile ? 14 : 16,
-                  padding: isMobile ? "12px 11px" : "18px 20px",
+                  padding: isMobile ? (i === 4 ? "12px 14px" : "12px 11px") : "18px 20px",
                   boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
                   display: "flex",
-                  flexDirection: "column",
+                  flexDirection: isMobile && i === 4 ? "row" : "column",
+                  alignItems: isMobile && i === 4 ? "center" : "stretch",
                   justifyContent: "space-between",
-                  gap: isMobile ? 8 : 12,
+                  gap: isMobile ? (i === 4 ? 12 : 8) : 12,
                   cursor: stat.targetTab ? "pointer" : "default",
                   transition: "all 0.18s ease",
                   position: "relative",
                   boxSizing: "border-box",
+                  gridColumn: isMobile && i === 4 ? "1 / -1" : "auto",
                 }}
               >
-                {/* Top Row: Icon on left + Badge on right (Never wraps on mobile!) */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                  <div
-                    style={{
-                      width: isMobile ? 30 : 38,
-                      height: isMobile ? 30 : 38,
-                      borderRadius: isMobile ? 8 : 10,
-                      background: stat.bg,
-                      border: `1px solid ${stat.border}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {stat.icon}
-                  </div>
-
-                  {stat.badge && (
-                    <span
-                      style={{
-                        fontSize: isMobile ? 9.5 : 10,
-                        fontWeight: 750,
-                        padding: isMobile ? "2px 6px" : "2px 7px",
-                        borderRadius: 6,
-                        background: stat.badgeBg,
-                        color: stat.badgeColor,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 3.5,
-                        letterSpacing: "0.02em",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {stat.isLive && (
-                        <span
-                          style={{
-                            width: 5.5,
-                            height: 5.5,
-                            borderRadius: "50%",
-                            background: "#10b981",
-                            boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.25)",
-                            display: "inline-block",
-                          }}
-                        />
-                      )}
-                      {stat.badge}
-                    </span>
-                  )}
-                </div>
-
-                {/* Middle: Big Metric Value */}
-                <div style={{ marginTop: isMobile ? 2 : 4 }}>
-                  <div style={{ fontSize: isMobile ? 22 : 26, fontWeight: 900, color: "#0f172a", letterSpacing: "-0.5px", lineHeight: 1 }}>
-                    {stat.value || "0"}
-                  </div>
-                </div>
-
-                {/* Bottom: Label & Sublabel / CTA */}
-                <div style={{ borderTop: "1px solid #f8fafc", paddingTop: isMobile ? 5 : 6 }}>
-                  <div
-                    style={{
-                      fontSize: isMobile ? 11 : 12,
-                      fontWeight: 800,
-                      color: "#1e293b",
-                      lineHeight: 1.25,
-                      whiteSpace: isMobile ? "nowrap" : "normal",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                    title={stat.label}
-                  >
-                    {stat.label}
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 4,
-                      marginTop: 2,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: isMobile ? 10 : 11,
-                        color: "#94a3b8",
-                        fontWeight: 500,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {isMobile && stat.mobileSublabel ? stat.mobileSublabel : stat.sublabel}
-                    </span>
-
-                    {stat.cta && (
-                      <span
+                {isMobile && i === 4 ? (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
+                      <div
                         style={{
-                          fontSize: isMobile ? 9.5 : 11,
-                          fontWeight: 750,
-                          color: "#059669",
-                          background: "#ecfdf5",
-                          border: "1px solid #a7f3d0",
-                          padding: "1px 5px",
-                          borderRadius: 5,
-                          display: "inline-flex",
+                          width: 36,
+                          height: 36,
+                          borderRadius: 10,
+                          background: stat.bg,
+                          border: `1px solid ${stat.border}`,
+                          display: "flex",
                           alignItems: "center",
-                          gap: 2,
-                          whiteSpace: "nowrap",
+                          justifyContent: "center",
                           flexShrink: 0,
                         }}
                       >
-                        <span>{isMobile && stat.mobileCta ? stat.mobileCta : stat.cta}</span>
-                        <ArrowRight size={isMobile ? 9 : 11} strokeWidth={2.5} />
-                      </span>
-                    )}
+                        {stat.icon}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontSize: 16, fontWeight: 900, color: "#0f172a", letterSpacing: "-0.4px", lineHeight: 1.1 }}>
+                            {stat.value}
+                          </span>
+                          {stat.badge && (
+                            <span
+                              style={{
+                                fontSize: 9.5,
+                                fontWeight: 750,
+                                padding: "2px 6px",
+                                borderRadius: 6,
+                                background: stat.badgeBg,
+                                color: stat.badgeColor,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3.5,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {stat.badge}
+                            </span>
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 10.5,
+                            color: "#64748b",
+                            fontWeight: 600,
+                            marginTop: 2,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {stat.label} · {stat.mobileSublabel || stat.sublabel}
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 750,
+                        color: "#7c3aed",
+                        background: "#f5f3ff",
+                        border: "1px solid #ddd6fe",
+                        padding: "5px 9px",
+                        borderRadius: 8,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 3.5,
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span>Monitor</span>
+                      <ArrowRight size={11} strokeWidth={2.5} />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    {/* Top Row: Icon on left + Badge on right (Never wraps on mobile!) */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                      <div
+                        style={{
+                          width: isMobile ? 30 : 38,
+                          height: isMobile ? 30 : 38,
+                          borderRadius: isMobile ? 8 : 10,
+                          background: stat.bg,
+                          border: `1px solid ${stat.border}`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {stat.icon}
+                      </div>
+
+                      {stat.badge && (
+                        <span
+                          style={{
+                            fontSize: isMobile ? 9.5 : 10,
+                            fontWeight: 750,
+                            padding: isMobile ? "2px 6px" : "2px 7px",
+                            borderRadius: 6,
+                            background: stat.badgeBg,
+                            color: stat.badgeColor,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 3.5,
+                            letterSpacing: "0.02em",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {stat.isLive && (
+                            <span
+                              style={{
+                                width: 5.5,
+                                height: 5.5,
+                                borderRadius: "50%",
+                                background: "#10b981",
+                                boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.25)",
+                                display: "inline-block",
+                              }}
+                            />
+                          )}
+                          {stat.badge}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Middle: Big Metric Value */}
+                    <div style={{ marginTop: isMobile ? 2 : 4 }}>
+                      <div style={{ fontSize: isMobile ? 22 : 26, fontWeight: 900, color: "#0f172a", letterSpacing: "-0.5px", lineHeight: 1 }}>
+                        {stat.value || "0"}
+                      </div>
+                    </div>
+
+                    {/* Bottom: Label & Sublabel / CTA */}
+                    <div style={{ borderTop: "1px solid #f8fafc", paddingTop: isMobile ? 5 : 6 }}>
+                      <div
+                        style={{
+                          fontSize: isMobile ? 11 : 12,
+                          fontWeight: 800,
+                          color: "#1e293b",
+                          lineHeight: 1.25,
+                          whiteSpace: isMobile ? "nowrap" : "normal",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                        title={stat.label}
+                      >
+                        {stat.label}
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 4,
+                          marginTop: 2,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: isMobile ? 10 : 11,
+                            color: "#94a3b8",
+                            fontWeight: 500,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {isMobile && stat.mobileSublabel ? stat.mobileSublabel : stat.sublabel}
+                        </span>
+
+                        {stat.cta && (
+                          <span
+                            style={{
+                              fontSize: isMobile ? 9.5 : 11,
+                              fontWeight: 750,
+                              color: "#059669",
+                              background: "#ecfdf5",
+                              border: "1px solid #a7f3d0",
+                              padding: "1px 5px",
+                              borderRadius: 5,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 2,
+                              whiteSpace: "nowrap",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <span>{isMobile && stat.mobileCta ? stat.mobileCta : stat.cta}</span>
+                            <ArrowRight size={isMobile ? 9 : 11} strokeWidth={2.5} />
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
               </motion.div>
             ))}
           </div>

@@ -1500,7 +1500,7 @@ export function AdminStatsSkeleton() {
   return (
     <>
       <div className="gf-admin-stats-skeleton-grid" style={{ display: "grid", width: "100%", boxSizing: "border-box" }}>
-        {Array(4)
+        {Array(5)
           .fill(0)
           .map((_, i) => (
             <div
@@ -1548,6 +1548,9 @@ export function AdminStatsSkeleton() {
           }
           .gf-admin-stats-skel-card {
             padding: 12px 11px !important;
+          }
+          .gf-admin-stats-skel-card:nth-child(5) {
+            grid-column: 1 / -1 !important;
           }
         }
       `}</style>
