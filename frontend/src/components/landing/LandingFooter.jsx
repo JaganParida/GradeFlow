@@ -26,11 +26,14 @@ export default function LandingFooter({ onNavigateSection }) {
       canSeeAdmin = Boolean(roles.guests);
     }
   } else {
-    // Automatic logic: Admin button requires BOTH role eligibility AND device availability (activeAdminCount < 2)
-    if (isMainAdminViewer || isSubAdminViewer || isSpecialAdminPortalViewer) {
-      canSeeAdmin = Boolean(isAdminButtonVisible);
-    } else {
+    // Automatic logic: Admin button requires device availability (activeAdminCount < 2)
+    // BUT hide for logged-in Normal Students and Special Students (who don't have an Admin session)
+    if (loggedInRegNo && !isMainAdminViewer && !isSubAdminViewer) {
+      // User is logged in as a student (normal or special) without an admin session
       canSeeAdmin = false;
+    } else {
+      // Guest (potential admin), authenticated Master Admin, or SubAdmin: follow device count
+      canSeeAdmin = Boolean(isAdminButtonVisible);
     }
   }
 
