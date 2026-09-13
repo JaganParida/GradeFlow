@@ -5,8 +5,8 @@ import { useApp } from "../../context/AppContext";
 
 export default function LandingFooter({ onNavigateSection }) {
   const navigate = useNavigate();
-  const { adminToken, adminProfile, adminButtonConfig, isAdminButtonVisible, studentSession } = useApp();
-  const loggedInRegNo = studentSession?.regNo || "";
+  const { adminToken, adminProfile, adminButtonConfig, isAdminButtonVisible, studentSession, studentData } = useApp();
+  const loggedInRegNo = studentSession?.regNo || studentData?.regNo || "";
   const isSpecialAdminPortalViewer = loggedInRegNo === "230301120327";
   const isSubAdminViewer = adminProfile?.adminType === "subadmin" || Boolean(adminProfile?.isSubAdmin);
   const isMainAdminViewer = Boolean(adminToken && !isSubAdminViewer);

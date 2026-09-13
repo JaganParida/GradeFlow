@@ -196,7 +196,7 @@ function ProtectedRoute({ children }) {
 }
 
 function AdminRouteGuard({ children, allowGate = false }) {
-  const { adminToken, authChecking, adminAuthStatus, isAdminButtonVisible } = useApp();
+  const { adminToken, authChecking, adminAuthStatus, isAdminButtonVisible, studentSession, studentData } = useApp();
 
   if (authChecking || adminAuthStatus === "AUTH_ERROR") {
     return <DashboardSkeleton />;
@@ -214,9 +214,16 @@ function AdminRouteGuard({ children, allowGate = false }) {
   }
 
   // For the login gate (/admin, /admin/login):
-  // If 2 devices are already logged in (button hidden), unauthorized users cannot access login
-  if (allowGate && !adminToken && !isAdminButtonVisible) {
-    return <UnauthorizedState />;
+  // Access is strictly restricted to browsers where Special Student 230301120327 is logged in,
+  // AND active admin device capacity is available (isAdminButtonVisible is true).
+  // Any Normal Student or unauthenticated guest accessing via direct URL will see UnauthorizedState (403).
+  if (allowGate && !adminToken) {
+    const loggedInRegNo = studentSession?.regNo || studentData?.regNo || "";
+    const isSpecialStudent = loggedInRegNo === "230301120327";
+
+    if (!isSpecialStudent || !isAdminButtonVisible) {
+      return <UnauthorizedState />;
+    }
   }
 
   return children;

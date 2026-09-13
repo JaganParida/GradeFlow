@@ -224,6 +224,15 @@ if (adminButtonConfig && adminButtonConfig.mode === "MANUAL") {
 }
 ```
 
+### Route Access Enforcement (`AdminRouteGuard` in `App.jsx`):
+- **Direct URL Access to Admin Gate (`/admin`, `/admin/login`)**:
+  - Even if a user attempts to navigate directly by typing `/admin` or `/admin/login` into the browser URL bar:
+    - If user is NOT already an authenticated Admin:
+      - Access is ONLY permitted if **Special Student (`230301120327`) is currently logged in** in this browser session, AND **`isAdminButtonVisible` is true** (active devices < 2).
+      - If a **Normal Student** or **Guest / unauthenticated visitor** navigates to `/admin` or `/admin/login`, they are immediately blocked with the **403 Forbidden Page (`<UnauthorizedState />`)**.
+- **Protected Administrative Pages (`/admin/dashboard`, `/admin/traffic`, etc.)**:
+  - Strictly requires an active, authenticated administrative session token (`adminToken`). Any unauthenticated attempt displays `<UnauthorizedState />`.
+
 ---
 
 ## 8. Zero-Polling Realtime Architecture (Ably)
