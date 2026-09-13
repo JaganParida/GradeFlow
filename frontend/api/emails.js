@@ -1,4 +1,3 @@
-const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
 const connectToDatabase = require("./_lib/db");
 const AdminSession = require("./_lib/models/AdminSession");
@@ -7,37 +6,7 @@ const { isAdminSessionValid } = require("./_lib/sessionManager");
 const { generateBacklogEmailHtml, generateBacklogEmailText } = require("./_lib/emailTemplate.js");
 const { generateTopperEmailHtml, generateTopperEmailText } = require("./_lib/topperEmailTemplate.js");
 const { applyCors } = require("./_lib/cors");
-
-function createTransporter() {
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS;
-
-  if (!emailUser || !emailPass) {
-    throw new Error("EMAIL_USER and EMAIL_PASS environment variables are missing.");
-  }
-
-  const host = process.env.EMAIL_HOST || (process.env.EMAIL_SERVICE ? null : "smtp-relay.brevo.com");
-  const port = Number(process.env.EMAIL_PORT) || 587;
-  const secure = port === 465;
-  const service = host ? null : process.env.EMAIL_SERVICE || "gmail";
-
-  const config = service
-    ? { service, auth: { user: emailUser, pass: emailPass } }
-    : {
-        host,
-        port,
-        secure,
-        auth: { user: emailUser, pass: emailPass },
-        tls: { rejectUnauthorized: false },
-      };
-
-  return nodemailer.createTransport({
-    ...config,
-    connectionTimeout: 15000,
-    greetingTimeout: 10000,
-    socketTimeout: 20000,
-  });
-}
+const { sendMailWithFailover } = require("./_lib/emailProviderManager");
 
 function parseCookies(cookieHeader) {
   const cookies = {};
@@ -202,8 +171,6 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      const transporter = createTransporter();
-
       const emailPayload = {
         studentName: sanitizeText(studentName),
         regNo: cleanRegNo,
@@ -232,7 +199,7 @@ module.exports = async function handler(req, res) {
         html,
       };
 
-      const info = await transporter.sendMail(mailOptions);
+      const info = await sendMailWithFailover(mailOptions);
       return res.json({
         success: true,
         message: `Academic Excellence email successfully dispatched to ${recipientEmail}`,
@@ -269,9 +236,7 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    const transporter = createTransporter();
-
-    const emailPayload = {
+      const emailPayload = {
       studentName: sanitizeText(studentName),
       regNo: cleanRegNo,
       cgpa: Number(cgpa) || 0,
@@ -299,7 +264,7 @@ module.exports = async function handler(req, res) {
       html,
     };
 
-    const info = await transporter.sendMail(mailOptions);
+    const info = await sendMailWithFailover(mailOptions);
     return res.json({
       success: true,
       message: `Backlog notification email successfully dispatched to ${recipientEmail}`,

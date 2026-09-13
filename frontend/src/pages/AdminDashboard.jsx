@@ -18,7 +18,7 @@ import AdminLiveTrafficManager from "../components/AdminLiveTrafficManager";
 import AdminVercelQuotaMonitor from "../components/AdminVercelQuotaMonitor";
 import ModernMobileSubNav from "../components/ModernMobileSubNav";
 import AdminNotificationBroadcast from "../components/AdminNotificationBroadcast";
-import { createAdminAblyRealtime } from "../services/ablyClient";
+import { subscribeAdminChannel } from "../services/ablyClient";
 import { getAdminCache, setAdminCache, onAdminCacheDirty, invalidateAdminCache, AdminCacheScopes } from "../utils/adminRealtimeCache";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
@@ -3924,34 +3924,14 @@ export default function AdminDashboard({ defaultTab = null }) {
     });
   }, []);
 
-  // Ably Realtime Listener for instant ranking and stats synchronization (0 polling)
+  // Shared Ably Realtime Listener for instant ranking and stats synchronization (0 polling)
   useEffect(() => {
-    let ably = null;
-    let bcastChannel = null;
-    try {
-      ably = createAdminAblyRealtime();
-      bcastChannel = ably.channels.get("broadcasts-all");
-      bcastChannel.subscribe("rankings-updated", () => {
-        fetchStats(true);
-      });
-    } catch (err) {
-      console.warn("[AdminDashboard] Ably sync init notice:", err?.message || err);
-    }
-
-    const handleVisibility = () => {
-      if (!ably) return;
-      if (document.visibilityState === "hidden") {
-        if (ably.connection.state === "connected") ably.connection.close();
-      } else if (document.visibilityState === "visible") {
-        if (ably.connection.state !== "connected") ably.connection.connect();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
+    const unsubscribe = subscribeAdminChannel("broadcasts-all", "rankings-updated", () => {
+      fetchStats(true);
+    });
 
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
-      if (bcastChannel) bcastChannel.unsubscribe();
-      if (ably) ably.close();
+      if (typeof unsubscribe === "function") unsubscribe();
     };
   }, []);
 

@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { createAblyRealtime, createAdminAblyRealtime } from "../services/ablyClient";
+import { createAblyRealtime, subscribeAdminChannel, closeSharedAdminAbly } from "../services/ablyClient";
 import { invalidateAdminCache, AdminCacheScopes } from "../utils/adminRealtimeCache";
 
 export const API_BASE = import.meta.env.VITE_API_URL || "/api";
@@ -424,6 +424,7 @@ export function AppProvider({ children }) {
     } catch (err) {
       console.warn("Logout error:", err.message);
     } finally {
+      closeSharedAdminAbly();
       setAdminToken(false);
       setAdminProfile(null);
       setIsAdminButtonVisible(true);
@@ -435,59 +436,92 @@ export function AppProvider({ children }) {
 
   // ─── Active Admin Ably Realtime Event Subscriptions (Zero Polling) ────
   useEffect(() => {
-    if (!adminToken) return;
+    if (!adminToken) {
+      closeSharedAdminAbly();
+      return;
+    }
 
-    let adminAbly = null;
-    let adminChannel = null;
+    const unsubs = [];
 
-    try {
-      adminAbly = createAdminAblyRealtime();
-      adminChannel = adminAbly.channels.get("admin-control");
-
-      // Targeted session revocation: only log out if this specific session was revoked
-      adminChannel.subscribe("session-revoked", (msg) => {
+    // Targeted session revocation: only log out if this specific session was revoked
+    unsubs.push(
+      subscribeAdminChannel("admin-control", "session-revoked", (msg) => {
         const mySessionId = adminProfile?.sessionId;
         const targetRevoked = msg?.data?.sessionId || msg?.data?.revokedSessionId;
         if (targetRevoked && mySessionId && targetRevoked === mySessionId) {
           console.warn("[AdminAbly] This device session was revoked:", msg?.data);
           adminLogout();
         }
-      });
+      })
+    );
 
-      // ── Realtime Event-Driven Cache Invalidation Subscriptions ──
-      adminChannel.subscribe("attendance-updated", () => {
+    // ── Realtime Event-Driven Cache Invalidation Subscriptions ──
+    unsubs.push(
+      subscribeAdminChannel("admin-control", "attendance-updated", () => {
         invalidateAdminCache(AdminCacheScopes.ATTENDANCE);
-      });
+      })
+    );
 
-      adminChannel.subscribe("timetable-updated", () => {
+    unsubs.push(
+      subscribeAdminChannel("admin-control", "timetable-updated", () => {
         invalidateAdminCache(AdminCacheScopes.TIMETABLE);
-      });
+      })
+    );
 
-      adminChannel.subscribe("rankings-updated", () => {
+    unsubs.push(
+      subscribeAdminChannel("admin-control", "rankings-updated", () => {
         invalidateAdminCache(AdminCacheScopes.RANKINGS);
         invalidateAdminCache(AdminCacheScopes.STATS);
         invalidateAdminCache(AdminCacheScopes.TOPPERS);
         invalidateAdminCache(AdminCacheScopes.BACKLOGS);
-      });
+      })
+    );
 
-      adminChannel.subscribe("feedback-updated", () => {
+    unsubs.push(
+      subscribeAdminChannel("admin-control", "feedback-updated", () => {
         invalidateAdminCache(AdminCacheScopes.FEEDBACK);
-      });
+      })
+    );
 
-      adminChannel.subscribe("otp-updated", () => {
+    unsubs.push(
+      subscribeAdminChannel("admin-control", "otp-updated", () => {
         invalidateAdminCache(AdminCacheScopes.OTP);
-      });
+      })
+    );
 
-      adminChannel.subscribe("admin-cache-invalidate", (msg) => {
+    unsubs.push(
+      subscribeAdminChannel("admin-control", "admin-cache-invalidate", (msg) => {
         invalidateAdminCache(msg?.data?.scope || AdminCacheScopes.ALL);
-      });
-    } catch (err) {
-      console.warn("[AdminAbly] Connection init warning:", err?.message || err);
-    }
+      })
+    );
+
+    // Also receive broadcast updates via the shared admin connection
+    unsubs.push(
+      subscribeAdminChannel("broadcasts-all", "admin-availability-updated", (msg) => {
+        if (!msg?.data) return;
+        const { activeDeviceCount: newDevCount, isAdminButtonVisible: newBtnVis } = msg.data;
+        if (typeof newDevCount === "number") {
+          setAdminDeviceCount(newDevCount);
+        }
+        if (typeof newBtnVis === "boolean") {
+          setIsAdminButtonVisible(newBtnVis);
+        }
+      })
+    );
+
+    unsubs.push(
+      subscribeAdminChannel("broadcasts-all", "timetable-updated", (msg) => {
+        try {
+          sessionStorage.removeItem("gf_schedules_cache");
+        } catch (_) {}
+        window.dispatchEvent(new CustomEvent("gradeflow:timetable-updated", { detail: msg?.data }));
+      })
+    );
 
     return () => {
-      if (adminChannel) adminChannel.unsubscribe();
-      if (adminAbly) adminAbly.close();
+      unsubs.forEach((unsub) => {
+        if (typeof unsub === "function") unsub();
+      });
     };
   }, [adminToken, adminProfile, adminLogout]);
 
@@ -647,8 +681,13 @@ export function AppProvider({ children }) {
     } catch {}
   };
 
-  // ─── Global Realtime Broadcasts (All Visitors, Guests, Students, Admins) ────────
+  // ─── Global Realtime Broadcasts (Anonymous Visitors & Unauthenticated Guests) ──
   useEffect(() => {
+    // Only connect anonymous guest client if user is NOT logged in as admin or student
+    if (adminToken || (studentSession && studentSession.regNo)) {
+      return;
+    }
+
     let isMounted = true;
     let globalAbly = null;
     let globalBroadcastChannel = null;
@@ -692,7 +731,7 @@ export function AppProvider({ children }) {
         } catch (_) {}
       }
     };
-  }, []);
+  }, [adminToken, studentSession?.regNo]);
 
   // ─── Dual-Ably Realtime Handover & Notification Sync (0 Polling, 0 Extra CPU) ───
   useEffect(() => {

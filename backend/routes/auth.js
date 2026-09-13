@@ -1959,15 +1959,6 @@ const handleAdminPasswordLogin = async (req, res) => {
     }
 
     const candidateTrimmed = candidateRaw.trim();
-    const candidateVariants = [candidateRaw];
-    if (candidateTrimmed !== candidateRaw && candidateTrimmed.length > 0) candidateVariants.push(candidateTrimmed);
-    try {
-      const decoded = decodeURIComponent(candidateRaw);
-      if (!candidateVariants.includes(decoded)) candidateVariants.push(decoded);
-      const decodedTrim = decoded.trim();
-      if (!candidateVariants.includes(decodedTrim)) candidateVariants.push(decodedTrim);
-    } catch (_) {}
-
     let isPasswordCorrect = false;
     let matchedAdminDoc = null;
     let targetRecipientEmail = process.env.ADMIN_EMAIL || null;
@@ -1976,58 +1967,54 @@ const handleAdminPasswordLogin = async (req, res) => {
     const envAdminPassword = process.env.ADMIN_PASSWORD;
     if (envAdminPassword) {
       const cleanEnvPass = String(envAdminPassword).trim().replace(/^["']|["']$/g, "");
-      for (const cand of candidateVariants) {
-        if (!cand) continue;
-        // Plaintext constant-time check against trimmed env var
-        const candBuf = Buffer.from(cand, "utf8");
-        const envBuf = Buffer.from(cleanEnvPass, "utf8");
-        if (candBuf.length === envBuf.length && crypto.timingSafeEqual(candBuf, envBuf)) {
-          isPasswordCorrect = true;
-          break;
-        }
-        // Plaintext check against raw env var
-        const rawEnvBuf = Buffer.from(envAdminPassword, "utf8");
-        if (candBuf.length === rawEnvBuf.length && crypto.timingSafeEqual(candBuf, rawEnvBuf)) {
-          isPasswordCorrect = true;
-          break;
-        }
-        // Bcrypt check if env var is bcrypt hash
-        if (cleanEnvPass.startsWith("$2a$") || cleanEnvPass.startsWith("$2b$") || cleanEnvPass.startsWith("$2y$")) {
-          try {
-            if (await bcrypt.compare(cand, cleanEnvPass)) {
+      const candRawBuf = Buffer.from(candidateRaw, "utf8");
+      const candTrimBuf = Buffer.from(candidateTrimmed, "utf8");
+      const envCleanBuf = Buffer.from(cleanEnvPass, "utf8");
+      const envRawBuf = Buffer.from(envAdminPassword, "utf8");
+
+      // Plaintext constant-time checks (~0ms CPU)
+      if (
+        (candRawBuf.length === envCleanBuf.length && crypto.timingSafeEqual(candRawBuf, envCleanBuf)) ||
+        (candTrimBuf.length === envCleanBuf.length && crypto.timingSafeEqual(candTrimBuf, envCleanBuf)) ||
+        (candRawBuf.length === envRawBuf.length && crypto.timingSafeEqual(candRawBuf, envRawBuf)) ||
+        (candTrimBuf.length === envRawBuf.length && crypto.timingSafeEqual(candTrimBuf, envRawBuf))
+      ) {
+        isPasswordCorrect = true;
+      } else if (cleanEnvPass.startsWith("$2a$") || cleanEnvPass.startsWith("$2b$") || cleanEnvPass.startsWith("$2y$")) {
+        // Single canonical bcrypt comparison if env var is bcrypt hash
+        try {
+          if (await bcrypt.compare(candidateRaw, cleanEnvPass)) {
+            isPasswordCorrect = true;
+          } else if (candidateTrimmed !== candidateRaw && candidateTrimmed.length > 0) {
+            if (await bcrypt.compare(candidateTrimmed, cleanEnvPass)) {
               isPasswordCorrect = true;
-              break;
             }
-          } catch (_) {}
-        }
+          }
+        } catch (_) {}
       }
     }
 
-    // 2. Check against all MongoDB Admin accounts
+    // 2. Check against all MongoDB Admin accounts (single canonical compare per admin)
     if (!isPasswordCorrect) {
       const allAdmins = await Admin.find({});
       for (const admin of allAdmins) {
-        for (const cand of candidateVariants) {
-          if (!cand) continue;
-          try {
-            if (typeof admin.comparePassword === "function") {
-              if (await admin.comparePassword(cand)) {
-                isPasswordCorrect = true;
-                matchedAdminDoc = admin;
-                targetRecipientEmail = admin.email;
-                break;
-              }
-            } else if (admin.password) {
-              if (await bcrypt.compare(cand, admin.password)) {
-                isPasswordCorrect = true;
-                matchedAdminDoc = admin;
-                targetRecipientEmail = admin.email;
-                break;
-              }
+        try {
+          if (typeof admin.comparePassword === "function") {
+            if (await admin.comparePassword(candidateRaw)) {
+              isPasswordCorrect = true;
+              matchedAdminDoc = admin;
+              targetRecipientEmail = admin.email;
+              break;
             }
-          } catch (_) {}
-        }
-        if (isPasswordCorrect) break;
+          } else if (admin.password) {
+            if (await bcrypt.compare(candidateRaw, admin.password)) {
+              isPasswordCorrect = true;
+              matchedAdminDoc = admin;
+              targetRecipientEmail = admin.email;
+              break;
+            }
+          }
+        } catch (_) {}
       }
     }
 
@@ -2035,27 +2022,23 @@ const handleAdminPasswordLogin = async (req, res) => {
     if (!isPasswordCorrect) {
       const allSubAdmins = await SubAdmin.find({ status: "active" });
       for (const subAdmin of allSubAdmins) {
-        for (const cand of candidateVariants) {
-          if (!cand) continue;
-          try {
-            if (typeof subAdmin.comparePassword === "function") {
-              if (await subAdmin.comparePassword(cand)) {
-                isPasswordCorrect = true;
-                matchedAdminDoc = subAdmin;
-                targetRecipientEmail = subAdmin.email;
-                break;
-              }
-            } else if (subAdmin.password) {
-              if (await bcrypt.compare(cand, subAdmin.password)) {
-                isPasswordCorrect = true;
-                matchedAdminDoc = subAdmin;
-                targetRecipientEmail = subAdmin.email;
-                break;
-              }
+        try {
+          if (typeof subAdmin.comparePassword === "function") {
+            if (await subAdmin.comparePassword(candidateRaw)) {
+              isPasswordCorrect = true;
+              matchedAdminDoc = subAdmin;
+              targetRecipientEmail = subAdmin.email;
+              break;
             }
-          } catch (_) {}
-        }
-        if (isPasswordCorrect) break;
+          } else if (subAdmin.password) {
+            if (await bcrypt.compare(candidateRaw, subAdmin.password)) {
+              isPasswordCorrect = true;
+              matchedAdminDoc = subAdmin;
+              targetRecipientEmail = subAdmin.email;
+              break;
+            }
+          }
+        } catch (_) {}
       }
     }
 

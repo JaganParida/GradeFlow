@@ -5,6 +5,7 @@ const AdminSession = require("./_lib/models/AdminSession");
 const AdminAuditLog = require("./_lib/models/AdminAuditLog");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const { sendSubAdminWelcomeEmail } = require("./_lib/emailProviderManager");
 
 const { applyCors } = require("./_lib/cors");
 
@@ -190,6 +191,18 @@ module.exports = async function handler(req, res) {
           userAgent: req.headers["user-agent"] || "",
         });
       } catch {}
+
+      // Dispatch welcome email asynchronously
+      sendSubAdminWelcomeEmail({
+        to: cleanEmail,
+        name: newSubAdmin.name,
+        email: cleanEmail,
+        password: String(password),
+        assignedModules: sanitizedPermissions.routes,
+        loginUrl: process.env.CLIENT_URL ? `${process.env.CLIENT_URL}/admin` : "https://grade-flow-six.vercel.app/admin",
+      }).catch((emailErr) => {
+        console.warn("Sub-Admin welcome email notice:", emailErr.message);
+      });
 
       const responseDoc = newSubAdmin.toObject();
       delete responseDoc.password;

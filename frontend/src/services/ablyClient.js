@@ -37,3 +37,87 @@ export function createAdminAblyRealtime(options = {}) {
     ...options,
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared Admin Ably Realtime Manager (Single Connection per Admin Auth Context)
+// ─────────────────────────────────────────────────────────────────────────────
+let sharedAdminAbly = null;
+let adminVisibilityHandlerAttached = false;
+
+function ensureAdminVisibilityHandler() {
+  if (typeof document === "undefined" || adminVisibilityHandlerAttached) return;
+  adminVisibilityHandlerAttached = true;
+  document.addEventListener("visibilitychange", () => {
+    if (!sharedAdminAbly) return;
+    try {
+      if (document.visibilityState === "visible") {
+        if (sharedAdminAbly.connection && sharedAdminAbly.connection.state !== "connected") {
+          sharedAdminAbly.connection.connect();
+        }
+      }
+    } catch (_) {}
+  });
+}
+
+/**
+ * Returns the singleton Ably Realtime instance for the active administrator session.
+ */
+export function getSharedAdminAbly(options = {}) {
+  if (
+    !sharedAdminAbly ||
+    sharedAdminAbly.connection.state === "closed" ||
+    sharedAdminAbly.connection.state === "failed"
+  ) {
+    sharedAdminAbly = createAdminAblyRealtime(options);
+    ensureAdminVisibilityHandler();
+  }
+  return sharedAdminAbly;
+}
+
+/**
+ * Subscribes to a channel/event using the shared Admin Ably Realtime client.
+ * Returns an unsubscribe cleanup function that only detaches the specific listener
+ * without closing or disconnecting the underlying shared connection.
+ *
+ * @param {string} channelName - e.g. "admin-control" or "broadcasts-all"
+ * @param {string|Function} eventOrHandler - event name (string) or callback function
+ * @param {Function} [handler] - callback function if event name was provided as 2nd arg
+ * @returns {Function} unsubscribe cleanup function
+ */
+export function subscribeAdminChannel(channelName, eventOrHandler, handler) {
+  try {
+    const client = getSharedAdminAbly();
+    const channel = client.channels.get(channelName);
+
+    if (typeof eventOrHandler === "function") {
+      channel.subscribe(eventOrHandler);
+      return () => {
+        try {
+          channel.unsubscribe(eventOrHandler);
+        } catch (_) {}
+      };
+    } else {
+      channel.subscribe(eventOrHandler, handler);
+      return () => {
+        try {
+          channel.unsubscribe(eventOrHandler, handler);
+        } catch (_) {}
+      };
+    }
+  } catch (err) {
+    console.warn(`[AdminAbly] Failed to subscribe to ${channelName}:`, err?.message || err);
+    return () => {};
+  }
+}
+
+/**
+ * Closes and resets the shared Admin Ably client upon explicit logout.
+ */
+export function closeSharedAdminAbly() {
+  if (sharedAdminAbly) {
+    try {
+      sharedAdminAbly.close();
+    } catch (_) {}
+    sharedAdminAbly = null;
+  }
+}

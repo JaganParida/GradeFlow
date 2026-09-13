@@ -19,38 +19,42 @@ adminSchema.methods.comparePassword = async function (candidatePassword) {
   if (!this.password) return false;
   if (candidatePassword === undefined || candidatePassword === null) return false;
 
-  const raw = String(candidatePassword);
-  const trimmed = raw.trim();
-  const variants = [raw];
-  if (trimmed !== raw && trimmed.length > 0) variants.push(trimmed);
-
+  let clean = String(candidatePassword);
   try {
-    const nfkcRaw = raw.normalize("NFKC");
-    if (!variants.includes(nfkcRaw)) variants.push(nfkcRaw);
-    const nfkcTrimmed = trimmed.normalize("NFKC");
-    if (!variants.includes(nfkcTrimmed)) variants.push(nfkcTrimmed);
+    clean = clean.normalize("NFKC");
   } catch (_) {}
 
-  try {
-    const decoded = decodeURIComponent(raw);
-    if (!variants.includes(decoded)) variants.push(decoded);
-    const decodedTrim = decoded.trim();
-    if (!variants.includes(decodedTrim)) variants.push(decodedTrim);
-  } catch (_) {}
-
-  if (this.password.startsWith("$2a$") || this.password.startsWith("$2b$") || this.password.startsWith("$2y$")) {
-    for (const v of variants) {
+  // 1. Canonical Bcrypt comparison (single execution, avoids CPU loop)
+  if (
+    this.password.startsWith("$2a$") ||
+    this.password.startsWith("$2b$") ||
+    this.password.startsWith("$2y$")
+  ) {
+    try {
+      if (await bcrypt.compare(clean, this.password)) {
+        return true;
+      }
+    } catch (_) {}
+    // Safe compatibility: only test trimmed variant if input actually differed from trimmed
+    const trimmed = clean.trim();
+    if (trimmed !== clean && trimmed.length > 0) {
       try {
-        if (await bcrypt.compare(v, this.password)) {
+        if (await bcrypt.compare(trimmed, this.password)) {
           return true;
         }
       } catch (_) {}
     }
   }
 
-  for (const v of variants) {
-    if (v === this.password) return true;
+  // 2. Legacy plaintext migration fallback (instant string comparison ~0ms CPU)
+  if (clean === this.password || clean.trim() === this.password) {
+    try {
+      this.password = clean;
+      await this.save();
+    } catch (_) {}
+    return true;
   }
+
   return false;
 };
 

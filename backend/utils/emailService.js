@@ -16,12 +16,12 @@ function createTransporter() {
     return cachedTransporter;
   }
 
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS;
+  const emailUser = process.env.BREVO_USER_1 || process.env.BREVO_SMTP_USER_1 || process.env.EMAIL_USER;
+  const emailPass = process.env.BREVO_PASS_1 || process.env.BREVO_SMTP_PASS_1 || process.env.EMAIL_PASS;
 
   if (!emailUser || !emailPass) {
     throw new Error(
-      "Email service is not configured. Set EMAIL_USER and EMAIL_PASS environment variables."
+      "Email service is not configured. Set BREVO_USER_1/EMAIL_USER and BREVO_PASS_1/EMAIL_PASS environment variables."
     );
   }
 
