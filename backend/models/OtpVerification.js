@@ -7,6 +7,7 @@ const otpVerificationSchema = new mongoose.Schema(
     otpHash: { type: String, required: true },
     expiresAt: { type: Date, required: true, index: { expires: 0 } }, // MongoDB automatic TTL cleanup
     attempts: { type: Number, default: 0 },
+    purpose: { type: String, default: "VERIFICATION" },
   },
   { timestamps: true }
 );

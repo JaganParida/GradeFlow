@@ -241,9 +241,9 @@ module.exports = async function handler(req, res) {
         isActive: true,
       });
 
-      if (!activeSession) {
+      if (!activeSession || !isSessionValid(activeSession)) {
         return res.status(401).json({
-          message: "Your session has ended because this device was logged out.",
+          message: "Your session has ended because this device was logged out or expired due to inactivity.",
           code: "SESSION_TERMINATED",
         });
       }

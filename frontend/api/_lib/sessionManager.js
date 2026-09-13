@@ -12,6 +12,7 @@ const {
 
 const DEFAULT_SESSION_TTL_MS = 60 * 24 * 60 * 60 * 1000; // 60 days rolling session TTL
 const PERMANENT_SESSION_MS = DEFAULT_SESSION_TTL_MS;
+const STUDENT_INACTIVITY_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days continuous rolling inactivity timeout (BRAIN.md / SECURITY.md)
 const MAX_ADMIN_DEVICES = 2; // Maximum simultaneous active devices for Admin
 const MAX_SUBADMIN_DEVICES = 2; // Maximum simultaneous active devices for Sub-Admin
 const APPROVAL_TTL_MS = 3 * 60 * 1000; // 3 minutes TTL for device approval requests
@@ -34,30 +35,54 @@ function getMaxAllowedDevices(regNo) {
  * Cleans up explicitly revoked/inactive student sessions from MongoDB.
  */
 async function cleanExpiredSessions(StudentSession, regNo = null) {
+  const activeCutoff = new Date(Date.now() - STUDENT_INACTIVITY_TTL_MS);
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const filter = {
-    $or: [
-      { isActive: false, updatedAt: { $lt: thirtyDaysAgo } },
-      { expiresAt: { $lte: thirtyDaysAgo } },
-    ],
-  };
-  if (regNo) {
-    filter.regNo = String(regNo).trim().toUpperCase();
-  }
-  await StudentSession.deleteMany(filter);
+
+  try {
+    const filter = {
+      isActive: true,
+      $or: [
+        { expiresAt: { $lte: new Date() } },
+        { lastActiveAt: { $lt: activeCutoff } },
+      ],
+    };
+    if (regNo) {
+      filter.regNo = String(regNo).trim().toUpperCase();
+    }
+    await StudentSession.updateMany(filter, {
+      $set: {
+        isActive: false,
+        revokedAt: new Date(),
+        revokeReason: "EXPIRED_OR_INACTIVE",
+      },
+    });
+
+    const purgeFilter = {
+      $or: [
+        { isActive: false, updatedAt: { $lt: thirtyDaysAgo } },
+        { expiresAt: { $lte: thirtyDaysAgo } },
+      ],
+    };
+    if (regNo) {
+      purgeFilter.regNo = String(regNo).trim().toUpperCase();
+    }
+    await StudentSession.deleteMany(purgeFilter);
+  } catch (_) {}
 }
 
 /**
  * Single Authoritative Server-Side Function: Returns all genuinely valid active sessions.
- * Queries active, unexpired sessions without write-on-read locks.
+ * Queries active, unexpired sessions within the 7-day inactivity window without write-on-read locks.
  */
 async function getValidActiveSessions(StudentSession, regNo) {
   const clean = String(regNo || "").trim().toUpperCase();
+  const activeCutoff = new Date(Date.now() - STUDENT_INACTIVITY_TTL_MS);
 
   return StudentSession.find({
     regNo: clean,
     isActive: true,
     expiresAt: { $gt: new Date() },
+    lastActiveAt: { $gte: activeCutoff },
   }).sort({ loggedInAt: -1 });
 }
 
@@ -131,11 +156,7 @@ async function replaceStudentSession(StudentSession, regNo, sessionData) {
       }
     } else {
       // Multi-device accounts (e.g. Special Student 230301120327): Enforce strict device cap (No silent eviction)
-      const existingSessions = await StudentSession.find({
-        regNo: clean,
-        isActive: true,
-        expiresAt: { $gt: new Date() },
-      });
+      const existingSessions = await getValidActiveSessions(StudentSession, clean);
 
       if (existingSessions.length >= maxAllowed) {
         const err = new Error(`DEVICE_LIMIT_REACHED: Account ${clean} has reached the maximum allowed active devices (${maxAllowed}).`);
@@ -276,7 +297,7 @@ async function respondDeviceApproval(StudentSession, requestId, respondingSessio
       return { success: false, code: "REQUEST_EXPIRED", message: "This approval request has expired." };
     }
 
-    if (cleanAction === "DENY") {
+    if (cleanAction === "DENY" || cleanAction === "DENIED") {
       freshReq.status = "DENIED";
       freshReq.respondedAt = new Date();
       freshReq.respondedBySessionId = respondingSessionId;
@@ -327,7 +348,7 @@ async function respondDeviceApproval(StudentSession, requestId, respondingSessio
       return { success: true, status: "DENIED", message: "Login request denied successfully." };
     }
 
-    if (cleanAction === "ALLOW") {
+    if (cleanAction === "ALLOW" || cleanAction === "APPROVE" || cleanAction === "APPROVED") {
       const targetSessionId = freshReq.targetSessionId || respondingSessionId;
 
       // 1. Atomically revoke target active session(s)
@@ -541,6 +562,8 @@ async function getDeviceApprovalStatus(requestId) {
 function isSessionValid(session) {
   if (!session || !session.isActive) return false;
   if (session.expiresAt && new Date(session.expiresAt) <= new Date()) return false;
+  const activeCutoff = new Date(Date.now() - STUDENT_INACTIVITY_TTL_MS);
+  if (session.lastActiveAt && new Date(session.lastActiveAt) < activeCutoff) return false;
   return true;
 }
 
@@ -655,16 +678,44 @@ async function cleanExpiredSubAdminSessions(SubAdminSession, subAdminId = null) 
 }
 
 async function getActiveSubAdminSessions(SubAdminSession, subAdminId) {
+  const activeCutoff = new Date(Date.now() - ADMIN_ACTIVITY_TTL_MS);
   return SubAdminSession.find({
     subAdminId,
     isActive: true,
     expiresAt: { $gt: new Date() },
-  }).sort({ loggedInAt: -1 });
+    lastActiveAt: { $gte: activeCutoff },
+  }).sort({ lastActiveAt: -1 });
+}
+
+function isSubAdminSessionValid(session) {
+  if (!session || !session.isActive) return false;
+  if (session.expiresAt && new Date(session.expiresAt) <= new Date()) return false;
+  const activeCutoff = new Date(Date.now() - ADMIN_ACTIVITY_TTL_MS);
+  if (session.lastActiveAt && new Date(session.lastActiveAt) < activeCutoff) return false;
+  return true;
+}
+
+async function touchSubAdminSession(session) {
+  if (!session || !session.isActive || !session._id) return session;
+  const now = Date.now();
+  if (session.lastActiveAt && (now - new Date(session.lastActiveAt).getTime()) < 15 * 1000) {
+    return session;
+  }
+  const update = {
+    $set: {
+      lastActiveAt: new Date(now),
+    },
+  };
+  await session.constructor.updateOne({ _id: session._id, isActive: true }, update);
+  session.lastActiveAt = update.$set.lastActiveAt;
+  return session;
 }
 
 module.exports = {
   DEFAULT_SESSION_TTL_MS,
   PERMANENT_SESSION_MS,
+  STUDENT_INACTIVITY_TTL_MS,
+  ADMIN_ACTIVITY_TTL_MS,
   MAX_ADMIN_DEVICES,
   MAX_SUBADMIN_DEVICES,
   APPROVAL_TTL_MS,
@@ -686,4 +737,6 @@ module.exports = {
   touchAdminSession,
   cleanExpiredSubAdminSessions,
   getActiveSubAdminSessions,
+  isSubAdminSessionValid,
+  touchSubAdminSession,
 };

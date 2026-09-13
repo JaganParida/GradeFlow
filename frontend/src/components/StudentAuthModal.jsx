@@ -1824,7 +1824,13 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 <button
                   type="button"
                   disabled={resendCooldown > 0 || remainingDailyAttempts <= 0 || loading}
-                  onClick={() => triggerSendOtp(isForgotPasswordMode)}
+                  onClick={() => {
+                    if (cleanReg === "230301120327" && password && !isForgotPasswordMode) {
+                      handlePasswordSubmit();
+                    } else {
+                      triggerSendOtp(isForgotPasswordMode);
+                    }
+                  }}
                   style={{
                     background: "none",
                     border: "none",
@@ -2156,10 +2162,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         activeDevices={blockedDevicesData}
         accountIdentifier={regNo}
         maxAllowed={regNo.trim().toUpperCase() === "230301120327" ? 2 : 1}
-        onTransferSession={() => {
-          setIsBlockedModalOpen(false);
-          triggerSendOtp();
-        }}
+        onTransferSession={
+          regNo.trim().toUpperCase() === "230301120327" || errorCode === "DEVICE_LIMIT_REACHED"
+            ? undefined
+            : () => {
+                setIsBlockedModalOpen(false);
+                triggerSendOtp();
+              }
+        }
       />
     </AnimatePresence>
   );

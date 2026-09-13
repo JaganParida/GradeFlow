@@ -8,6 +8,8 @@ const {
   touchSession,
   isAdminSessionValid,
   touchAdminSession,
+  isSubAdminSessionValid,
+  touchSubAdminSession,
 } = require("../utils/sessionManager");
 
 // Admin Protection Middleware (Supports Main Admin and Sub-Admin via HttpOnly Cookie & Authoritative Sessions)
@@ -61,17 +63,16 @@ const protect = async (req, res, next) => {
           isActive: true,
         });
 
-        if (!session) {
+        if (!session || !isSubAdminSessionValid(session)) {
           return res.status(401).json({
             success: false,
-            message: "Sub-Admin session ended because this device was logged out.",
+            message: "Sub-Admin session ended because this device was logged out or inactive.",
             code: "ADMIN_SESSION_TERMINATED",
           });
         }
 
-        // Record last active time without auto-expiration
-        session.lastActiveAt = new Date();
-        await session.save();
+        // Record activity timestamp with throttling
+        await touchSubAdminSession(session);
       }
 
       const subAdmin = await SubAdmin.findById(decoded.subAdminId);
@@ -169,10 +170,10 @@ const protectStudent = async (req, res, next) => {
       isActive: true,
     });
 
-    if (!session) {
+    if (!session || !isSessionValid(session)) {
       return res.status(401).json({
         success: false,
-        message: "Your session has ended because this device was logged out.",
+        message: "Your session has ended because this device was logged out or expired due to inactivity.",
         code: "SESSION_TERMINATED",
       });
     }
@@ -256,10 +257,10 @@ const requireStudentOrAdmin = async (req, res, next) => {
       isActive: true,
     });
 
-    if (!session) {
+    if (!session || !isSessionValid(session)) {
       return res.status(401).json({
         success: false,
-        message: "Your session has ended because this device was logged out.",
+        message: "Your session has ended because this device was logged out or expired due to inactivity.",
         code: "SESSION_TERMINATED",
       });
     }

@@ -24,6 +24,7 @@ const { globalDbQueue } = require("../utils/dbProtection");
 const {
   PERMANENT_SESSION_MS,
   DEFAULT_SESSION_TTL_MS,
+  STUDENT_INACTIVITY_TTL_MS,
   MAX_ADMIN_DEVICES,
   MAX_SUBADMIN_DEVICES,
   authEventBus,
@@ -34,11 +35,14 @@ const {
   respondDeviceApproval,
   completeDeviceApproval,
   getDeviceApprovalStatus,
+  isSessionValid,
   touchSession,
   getActiveAdminSessions,
   isAdminSessionValid,
   touchAdminSession,
   getActiveSubAdminSessions,
+  isSubAdminSessionValid,
+  touchSubAdminSession,
 } = require("../utils/sessionManager");
 
 const {
@@ -408,21 +412,20 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
         } catch {}
       }
 
-      if (isCurrentDevice && matchedSession) {
-        // Session rotation on re-authentication: atomically retire old session to issue a fresh one
-        matchedSession.isActive = false;
-        matchedSession.revokedAt = new Date();
-        matchedSession.revokeReason = "SESSION_ROTATED_ON_RELOGIN";
-        await matchedSession.save();
-      }
-
-      // Filter out the session we just rotated to accurately count OTHER active devices (Fixes Bug 1)
-      const remainingActiveSessions = (isCurrentDevice && matchedSession)
-        ? activeSessions.filter((s) => s.sessionId !== matchedSession.sessionId)
-        : activeSessions;
-
       // CASE A: Normal Single-Device Student (limit = 1)
       if (maxAllowedDevices === 1) {
+        if (isCurrentDevice && matchedSession) {
+          // Session rotation on re-authentication: atomically retire old session to issue a fresh one
+          matchedSession.isActive = false;
+          matchedSession.revokedAt = new Date();
+          matchedSession.revokeReason = "SESSION_ROTATED_ON_RELOGIN";
+          await matchedSession.save();
+        }
+
+        const remainingActiveSessions = (isCurrentDevice && matchedSession)
+          ? activeSessions.filter((s) => s.sessionId !== matchedSession.sessionId)
+          : activeSessions;
+
         if (remainingActiveSessions.length === 0) {
           // Direct login! Issue fresh session & JWT
           const { newSession } = await replaceStudentSession(StudentSession, rawReg, {
@@ -478,8 +481,9 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
         });
       } else {
         // CASE B: 2-Device Account (Special Student 230301120327): Strict 2-Device Cap (Device 3 Blocked)
-        if (remainingActiveSessions.length >= maxAllowedDevices) {
-          const sanitizedDevices = remainingActiveSessions.map((s, idx) => ({
+        // Check active authenticated device sessions ONLY AFTER password is verified
+        if (activeSessions.length >= maxAllowedDevices) {
+          const sanitizedDevices = activeSessions.map((s, idx) => ({
             deviceIndex: idx + 1,
             platform: s.deviceInfo?.platform || "Unknown",
             userAgent: s.deviceInfo?.userAgent || "Unknown",
@@ -491,43 +495,59 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
           return res.status(403).json({
             success: false,
             code: "DEVICE_LIMIT_REACHED",
-            message: `Account ${rawReg} is currently active on ${remainingActiveSessions.length} devices (maximum limit: ${maxAllowedDevices}). Please log out from another device before signing in on a new device.`,
-            activeDeviceCount: remainingActiveSessions.length,
+            message: `Account ${rawReg} is currently active on ${activeSessions.length} devices (maximum limit: ${maxAllowedDevices}). Please log out from another device before signing in on a new device.`,
+            activeDeviceCount: activeSessions.length,
             maxAllowedDevices,
             activeDevices: sanitizedDevices,
           });
         }
 
-        const sessionId = crypto.randomUUID();
-        const now = Date.now();
-        const expiresAt = new Date(now + PERMANENT_SESSION_MS);
+        // Active devices < 2: Generate and dispatch OTP (Special Student requires OTP on EVERY login attempt)
+        const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
+        const otpCode = crypto.randomInt(100000, 999999).toString();
+        const otpSalt = await bcrypt.genSalt(10);
+        const otpHash = await bcrypt.hash(otpCode, otpSalt);
+        const otpTtlMinutes = 3;
+        const expiresAt = new Date(Date.now() + otpTtlMinutes * 60 * 1000);
 
-        const newSession = await StudentSession.create({
-          regNo: rawReg,
-          sessionId,
-          deviceId: crypto.randomUUID(),
-          deviceInfo: extractRequestDeviceInfo(req),
-          loggedInAt: new Date(now),
-          lastActiveAt: new Date(now),
-          expiresAt,
-          isActive: true,
-        });
-
-        const studentToken = jwt.sign(
-          { regNo: rawReg, sessionId, role: "student" },
-          process.env.JWT_SECRET,
-          { expiresIn: "60d" }
+        await globalDbQueue.run(() => OtpVerification.deleteMany({ regNo: rawReg }));
+        await globalDbQueue.run(() =>
+          OtpVerification.create({
+            regNo: rawReg,
+            email: studentEmail,
+            otpHash,
+            expiresAt,
+            attempts: 0,
+            purpose: "SPECIAL_STUDENT_LOGIN",
+          })
         );
 
-        res.cookie("student_jwt", studentToken, getCookieOptions(req, expiresAt));
+        try {
+          await sendStudentOtpEmail({
+            to: studentEmail,
+            studentName,
+            regNo: rawReg,
+            otp: otpCode,
+            expiresInMinutes: otpTtlMinutes,
+          });
+        } catch (emailErr) {
+          console.error("Special student OTP email failed:", emailErr?.message || emailErr);
+        }
+
+        const parts = studentEmail.split("@");
+        const maskedUser = parts[0].length > 4 ? `${parts[0].slice(0, 3)}***${parts[0].slice(-2)}` : `${parts[0].slice(0, 1)}***`;
+        const maskedEmail = `${maskedUser}@${parts[1]}`;
 
         return res.json({
           success: true,
-          message: "Login successful.",
+          step: "OTP",
+          message: `A 6-digit verification code has been dispatched to ${studentEmail}.`,
+          regNo: rawReg,
+          maskedEmail,
+          expiresInSeconds: otpTtlMinutes * 60,
           student: {
             regNo: rawReg,
             studentName,
-            sessionId,
           },
         });
       }
@@ -949,9 +969,6 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
       });
     }
 
-    // OTP is valid! Remove OTP record immediately
-    await OtpVerification.deleteOne({ _id: otpRecord._id });
-
     // Fetch or create Student account
     let studentAccount = await Student.findOne({ regNo: rawReg });
     if (!studentAccount) {
@@ -960,6 +977,107 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
 
     const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
     const studentName = studentRecord?.studentName || "Student";
+
+    const isSpecialStudentLogin =
+      (otpRecord.purpose === "SPECIAL_STUDENT_LOGIN" || (rawReg === "230301120327" && otpRecord.purpose !== "PASSWORD_RESET")) &&
+      Boolean(studentAccount && studentAccount.passwordHash) &&
+      !req.body.isForgotPassword;
+
+    // OTP is valid! Remove OTP record immediately
+    await OtpVerification.deleteOne({ _id: otpRecord._id });
+
+    if (isSpecialStudentLogin) {
+      const maxAllowedDevices = getMaxAllowedDevices(rawReg);
+      const activeSessions = await getActiveSessions(StudentSession, rawReg);
+
+      // Check if current requesting device already has an active session
+      let incomingToken = req.cookies?.student_jwt;
+      if (!incomingToken && req.headers["x-student-token"]) {
+        incomingToken = req.headers["x-student-token"];
+      }
+      if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+        incomingToken = req.headers.authorization.split(" ")[1];
+      }
+
+      let isCurrentDevice = false;
+      let matchedSession = null;
+      if (incomingToken && incomingToken !== "none") {
+        try {
+          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+          if (decoded.regNo === rawReg) {
+            matchedSession = activeSessions.find((s) => s.sessionId === decoded.sessionId);
+            if (matchedSession) {
+              isCurrentDevice = true;
+            }
+          }
+        } catch {}
+      }
+
+      if (isCurrentDevice && matchedSession) {
+        matchedSession.isActive = false;
+        matchedSession.revokedAt = new Date();
+        matchedSession.revokeReason = "SESSION_ROTATED_ON_RELOGIN";
+        await matchedSession.save();
+      }
+
+      const remainingActiveSessions = (isCurrentDevice && matchedSession)
+        ? activeSessions.filter((s) => s.sessionId !== matchedSession.sessionId)
+        : activeSessions;
+
+      if (remainingActiveSessions.length >= maxAllowedDevices) {
+        const sanitizedDevices = remainingActiveSessions.map((s, idx) => ({
+          deviceIndex: idx + 1,
+          platform: s.deviceInfo?.platform || "Unknown",
+          userAgent: s.deviceInfo?.userAgent || "Unknown",
+          loggedInAt: s.loggedInAt,
+          lastActiveAt: s.lastActiveAt,
+          status: "ACTIVE",
+        }));
+
+        return res.status(403).json({
+          success: false,
+          code: "DEVICE_LIMIT_REACHED",
+          message: `Account ${rawReg} is currently active on ${remainingActiveSessions.length} devices (maximum limit: ${maxAllowedDevices}). Please log out from another device before signing in on a new device.`,
+          activeDeviceCount: remainingActiveSessions.length,
+          maxAllowedDevices,
+          activeDevices: sanitizedDevices,
+        });
+      }
+
+      const sessionId = crypto.randomUUID();
+      const now = Date.now();
+      const expiresAt = new Date(now + PERMANENT_SESSION_MS);
+
+      const newSession = await StudentSession.create({
+        regNo: rawReg,
+        sessionId,
+        deviceId: crypto.randomUUID(),
+        deviceInfo: extractRequestDeviceInfo(req),
+        loggedInAt: new Date(now),
+        lastActiveAt: new Date(now),
+        expiresAt,
+        isActive: true,
+      });
+
+      const studentToken = jwt.sign(
+        { regNo: rawReg, sessionId, role: "student" },
+        process.env.JWT_SECRET,
+        { expiresIn: "60d" }
+      );
+
+      res.cookie("student_jwt", studentToken, getCookieOptions(req, expiresAt));
+
+      return res.json({
+        success: true,
+        authenticated: true,
+        message: "Login successful.",
+        student: {
+          regNo: rawReg,
+          studentName,
+          sessionId: newSession.sessionId,
+        },
+      });
+    }
 
     // RULE 8: OTP ALONE MUST NEVER BYPASS PASSWORD OR ESTABLISH A SESSION DIRECTLY
     // Every OTP verification strictly issues a single-use setupPasswordToken and returns step: "CREATE_PASSWORD"
@@ -1307,7 +1425,7 @@ router.get("/bootstrap", async (req, res) => {
             sessionId: decoded.sessionId,
             isActive: true,
           });
-          if (session && (!session.expiresAt || new Date(session.expiresAt) > new Date())) {
+          if (session && isSessionValid(session)) {
             await touchSession(session);
             const studentRecord = await SemesterResult.findOne({ regNo: decoded.regNo }).sort({ semester: -1 });
             studentAuth = {
@@ -1327,9 +1445,8 @@ router.get("/bootstrap", async (req, res) => {
         if (decoded?.role === "admin") {
           if (decoded.adminType === "subadmin" && decoded.subAdminId) {
             const session = await SubAdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
-            if (session && (!session.expiresAt || new Date(session.expiresAt) > new Date())) {
-              session.lastActiveAt = new Date();
-              await session.save();
+            if (session && isSubAdminSessionValid(session)) {
+              await touchSubAdminSession(session);
               const subAdmin = await SubAdmin.findById(decoded.subAdminId);
               if (subAdmin && subAdmin.status === "active") {
                 adminAuth = {
@@ -1856,6 +1973,12 @@ const handleAdminPasswordLogin = async (req, res) => {
         message: "Maximum active administrator sessions reached (2 devices). Access denied.",
         activeDeviceCount: activeSessions.length,
         maxAllowedDevices: MAX_ADMIN_DEVICES,
+        activeDevices: activeSessions.map((s) => ({
+          sessionId: s.sessionId,
+          deviceInfo: s.deviceInfo,
+          lastActiveAt: s.lastActiveAt,
+          loggedInAt: s.loggedInAt,
+        })),
       });
     }
 
@@ -1954,6 +2077,12 @@ router.post("/admin/verify-otp", async (req, res) => {
         message: "Maximum active administrator sessions reached (2 devices). Access denied.",
         activeDeviceCount: activeSessions.length,
         maxAllowedDevices: MAX_ADMIN_DEVICES,
+        activeDevices: activeSessions.map((s) => ({
+          sessionId: s.sessionId,
+          deviceInfo: s.deviceInfo,
+          lastActiveAt: s.lastActiveAt,
+          loggedInAt: s.loggedInAt,
+        })),
       });
     }
 
@@ -2087,6 +2216,23 @@ router.post("/subadmin/login", async (req, res) => {
       } catch {}
     }
 
+    // Strict Sub-Admin Device Limit: Max 2 devices allowed simultaneously (Device 3 blocked with HTTP 403)
+    if (activeSessions.length >= MAX_SUBADMIN_DEVICES && !isCurrentDevice) {
+      return res.status(403).json({
+        success: false,
+        code: "SUBADMIN_DEVICE_LIMIT_REACHED",
+        message: `Sub-Admin portal is currently active on ${activeSessions.length} authorized devices (maximum limit: ${MAX_SUBADMIN_DEVICES} devices). Please log out from another device to continue.`,
+        activeDeviceCount: activeSessions.length,
+        maxAllowedDevices: MAX_SUBADMIN_DEVICES,
+        activeDevices: activeSessions.map((s) => ({
+          sessionId: s.sessionId,
+          deviceInfo: s.deviceInfo,
+          lastActiveAt: s.lastActiveAt,
+          loggedInAt: s.loggedInAt,
+        })),
+      });
+    }
+
     // Generate secure 6-digit OTP code
     const otp = crypto.randomInt(100000, 1000000).toString();
     const otpHash = await bcrypt.hash(otp, 10);
@@ -2191,16 +2337,22 @@ router.post("/subadmin/verify-otp", async (req, res) => {
 
     await SubAdminOtpVerification.deleteMany({ email: cleanEmail });
 
+    // Enforce strict 2-device limit (Device 3 rejected with HTTP 403; NEVER silently evict Device 1)
     const activeSessions = await getActiveSubAdminSessions(SubAdminSession, subAdmin._id);
     if (activeSessions.length >= MAX_SUBADMIN_DEVICES) {
-      const sorted = activeSessions.sort((a, b) => new Date(a.lastActiveAt || a.loggedInAt) - new Date(b.lastActiveAt || b.loggedInAt));
-      const oldest = sorted[0];
-      if (oldest) {
-        oldest.isActive = false;
-        oldest.revokedAt = new Date();
-        oldest.revokeReason = "REPLACED_BY_NEW_DEVICE";
-        await oldest.save();
-      }
+      return res.status(403).json({
+        success: false,
+        code: "SUBADMIN_DEVICE_LIMIT_REACHED",
+        message: `Sub-Admin portal is currently active on ${activeSessions.length} authorized devices (maximum limit: ${MAX_SUBADMIN_DEVICES} devices). Access denied.`,
+        activeDeviceCount: activeSessions.length,
+        maxAllowedDevices: MAX_SUBADMIN_DEVICES,
+        activeDevices: activeSessions.map((s) => ({
+          sessionId: s.sessionId,
+          deviceInfo: s.deviceInfo,
+          lastActiveAt: s.lastActiveAt,
+          loggedInAt: s.loggedInAt,
+        })),
+      });
     }
 
     const sessionId = crypto.randomUUID();
@@ -2284,16 +2436,15 @@ const handleAdminMe = async (req, res) => {
           isActive: true,
         });
 
-        if (!session) {
+        if (!session || !isSubAdminSessionValid(session)) {
           return res.status(401).json({
             success: false,
             code: "ADMIN_SESSION_TERMINATED",
-            message: "Sub-Admin session ended because this device was logged out.",
+            message: "Sub-Admin session ended because this device was logged out or inactive.",
           });
         }
 
-        session.lastActiveAt = new Date();
-        await session.save();
+        await touchSubAdminSession(session);
       }
 
       const subAdmin = await SubAdmin.findById(decoded.subAdminId);
