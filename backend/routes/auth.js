@@ -1673,10 +1673,17 @@ router.get("/bootstrap", async (req, res) => {
       } catch {}
     }
 
+    let buttonVisibilityConfig = null;
     try {
-      const [activeAdminSessions, config] = await Promise.all([
+      const [activeAdminSessions, config, vConfigDoc] = await Promise.all([
         getActiveAdminSessions(AdminSession),
         SystemConfig.findOne({ key: "maintenance" }).lean(),
+        SystemConfig.findOne({
+          key: { $in: ["admin_button_config", "rankings_meta", "system_config"] },
+          adminButtonVisibility: { $exists: true },
+        })
+          .select("adminButtonVisibility")
+          .lean(),
       ]);
       activeAdminCount = activeAdminSessions?.length || 0;
       if (config?.maintenance) {
@@ -1685,6 +1692,9 @@ router.get("/bootstrap", async (req, res) => {
           message: config.maintenance.message || "",
           enabledAt: config.maintenance.enabledAt || null,
         };
+      }
+      if (vConfigDoc?.adminButtonVisibility) {
+        buttonVisibilityConfig = vConfigDoc.adminButtonVisibility;
       }
 
       if (sessionWasRevoked) {
@@ -1719,6 +1729,7 @@ router.get("/bootstrap", async (req, res) => {
       admin: adminAuth,
       adminDeviceCount: activeAdminCount,
       isAdminButtonVisible: activeAdminCount < 2,
+      adminButtonConfig: buttonVisibilityConfig,
       maintenance: maintenanceState,
     });
   } catch (err) {

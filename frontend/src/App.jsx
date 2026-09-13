@@ -279,7 +279,7 @@ export default function App() {
           if (isAdminRoute) {
             // Admin 401: clear admin session without evicting student state
             if (typeof adminLogout === "function") {
-              adminLogout();
+              adminLogout(false);
             }
           } else if (isStudentRoute && !isStudentAuthRoute) {
             // Student 401: evict student state only when confirmed student route

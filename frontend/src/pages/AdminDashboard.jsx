@@ -3702,15 +3702,13 @@ function FeedbackManager({ authHeaders, API }) {
    7. MAIN ADMIN DASHBOARD SHELL
    ════════════════════════════════════════════════════════════════ */
 export default function AdminDashboard({ defaultTab = null }) {
-  const { adminToken, adminLogout, authChecking, adminProfile: globalAdminProfile, API = "/api" } = useApp();
+  const { adminToken, adminLogout, authChecking, adminProfile, setAdminProfile, API = "/api" } = useApp();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const getAuthHeaders = () => ({ headers: { "X-Requested-With": "XMLHttpRequest" } });
 
   const authHeaders = getAuthHeaders();
-
-  const [adminProfile, setAdminProfile] = useState(globalAdminProfile || null);
   const [stats, setStats] = useState(null);
   const [rankSem, setRankSem] = useState("");
   const [rankMsg, setRankMsg] = useState("");
@@ -3789,18 +3787,12 @@ export default function AdminDashboard({ defaultTab = null }) {
   const [showBatchPills, setShowBatchPills] = useState(false);
 
   useEffect(() => {
-    if (globalAdminProfile) {
-      setAdminProfile(globalAdminProfile);
-    }
-  }, [globalAdminProfile]);
-
-  useEffect(() => {
     if (authChecking) return;
     if (!adminToken) {
       navigate("/admin");
       return;
     }
-    const profile = adminProfile || globalAdminProfile;
+    const profile = adminProfile;
     if (profile && profile.permissions) {
       const isMain = profile.adminType === "main" || !profile.adminType;
       const permittedRoutes = profile.permissions?.routes || [];
@@ -3811,7 +3803,7 @@ export default function AdminDashboard({ defaultTab = null }) {
       fetchAdminProfile();
     }
     fetchStats();
-  }, [adminToken, authChecking, adminProfile, globalAdminProfile]);
+  }, [adminToken, authChecking, adminProfile]);
 
   async function fetchAdminProfile() {
     try {

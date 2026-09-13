@@ -70,13 +70,16 @@ function setStudentCookie(res, token, customMaxAge = null) {
   ]);
 }
 
-function clearStudentCookie(res) {
+function clearStudentCookie(res, cookies = {}) {
   const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
   const secureFlag = isProd ? " Secure;" : "";
-  res.setHeader("Set-Cookie", [
+  const setCookies = [
     `student_jwt=; Path=/; HttpOnly;${secureFlag} SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
-    `gf_auth_present=; Path=/;${secureFlag} SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
-  ]);
+  ];
+  if (!cookies?.jwt || cookies.jwt === "none") {
+    setCookies.push(`gf_auth_present=; Path=/;${secureFlag} SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`);
+  }
+  res.setHeader("Set-Cookie", setCookies);
 }
 
 function setAdminCookie(res, token) {
@@ -89,13 +92,16 @@ function setAdminCookie(res, token) {
   ]);
 }
 
-function clearAdminCookie(res) {
+function clearAdminCookie(res, cookies = {}) {
   const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
   const secureFlag = isProd ? " Secure;" : "";
-  res.setHeader("Set-Cookie", [
+  const setCookies = [
     `jwt=; Path=/; HttpOnly;${secureFlag} SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
-    `gf_auth_present=; Path=/;${secureFlag} SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
-  ]);
+  ];
+  if (!cookies?.student_jwt || cookies.student_jwt === "none") {
+    setCookies.push(`gf_auth_present=; Path=/;${secureFlag} SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`);
+  }
+  res.setHeader("Set-Cookie", setCookies);
 }
 
 function extractRequestDeviceInfo(req) {
@@ -1796,7 +1802,12 @@ module.exports = async function handler(req, res) {
         const [activeAdminSessions, config, vConfigDoc] = await Promise.all([
           getActiveAdminSessions(AdminSession),
           SystemConfig.findOne({ key: "maintenance" }).select("maintenance").lean(),
-          SystemConfig.findOne({ key: "admin_button_config" }).select("adminButtonVisibility").lean(),
+          SystemConfig.findOne({
+            key: { $in: ["admin_button_config", "rankings_meta", "system_config"] },
+            adminButtonVisibility: { $exists: true },
+          })
+            .select("adminButtonVisibility")
+            .lean(),
         ]);
         activeAdminCount = activeAdminSessions?.length || 0;
         if (config?.maintenance) {
@@ -1962,7 +1973,7 @@ module.exports = async function handler(req, res) {
         );
       }
 
-      clearStudentCookie(res);
+      clearStudentCookie(res, cookies);
       return res.json({ success: true, message: "Logged out successfully from this device." });
     }
 
@@ -2674,7 +2685,7 @@ module.exports = async function handler(req, res) {
         } catch {}
       }
 
-      clearAdminCookie(res);
+      clearAdminCookie(res, cookies);
 
       // Broadcast live availability to all clients
       let remainingAdminCount = 0;
@@ -2728,7 +2739,7 @@ module.exports = async function handler(req, res) {
         } catch {}
       }
 
-      clearAdminCookie(res);
+      clearAdminCookie(res, cookies);
 
       let remainingCount = 0;
       try {

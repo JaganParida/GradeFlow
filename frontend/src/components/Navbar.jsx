@@ -119,7 +119,7 @@ export default function Navbar() {
 
   // Dedicated special student account
   const isSpecialAdminPortalViewer = loggedInRegNo === "230301120327";
-  const isSubAdminViewer = Boolean(adminProfile?.isSubAdmin);
+  const isSubAdminViewer = adminProfile?.adminType === "subadmin" || Boolean(adminProfile?.isSubAdmin);
   const isMainAdminViewer = Boolean(adminToken && !isSubAdminViewer);
 
   // Manual Override vs Logical Automatic Behavior (Preserved untouched)

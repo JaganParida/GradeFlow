@@ -114,6 +114,16 @@ export function AppProvider({ children }) {
   useEffect(() => {
     adminProfileRef.current = adminProfile;
   }, [adminProfile]);
+
+  const studentSessionRef = useRef(studentSession);
+  useEffect(() => {
+    studentSessionRef.current = studentSession;
+  }, [studentSession]);
+
+  const adminTokenRef = useRef(adminToken);
+  useEffect(() => {
+    adminTokenRef.current = adminToken;
+  }, [adminToken]);
   const [adminDeviceCount, setAdminDeviceCount] = useState(0);
   const [isAdminButtonVisible, setIsAdminButtonVisible] = useState(true);
   const [adminButtonConfig, setAdminButtonConfig] = useState(() => ({
@@ -430,13 +440,13 @@ export function AppProvider({ children }) {
   }, [authStatus, bootstrapAuthentication]);
 
   // ─── Admin Logout Handler ─────────────────────────────────────────
-  const adminLogout = useCallback(async () => {
+  const adminLogout = useCallback(async (shouldNavigate = true) => {
     try {
       OBSOLETE_AUTH_STORAGE_KEYS.forEach((key) => {
         localStorage.removeItem(key);
         sessionStorage.removeItem(key);
       });
-      const activeSessionId = adminProfile?.sessionId || "";
+      const activeSessionId = adminProfileRef.current?.sessionId || "";
 
       const res = await axios.post(
         `${API_BASE}/auth/admin/logout`,
@@ -461,11 +471,16 @@ export function AppProvider({ children }) {
       closeSharedAdminAbly();
       setAdminToken(false);
       setAdminProfile(null);
-      clearAuthPresence();
+      // Only clear client auth presence cookie if no student session remains active
+      if (!studentSessionRef.current) {
+        clearAuthPresence();
+      }
       setIsAdminButtonVisible(true);
-      navigate("/admin");
+      if (shouldNavigate || (typeof window !== "undefined" && window.location.pathname.startsWith("/admin"))) {
+        navigate("/admin");
+      }
     }
-  }, [adminProfile, navigate]);
+  }, [navigate]);
 
   const logoutAdmin = adminLogout;
 
@@ -1242,7 +1257,10 @@ export function AppProvider({ children }) {
     } catch (err) {
       console.warn("Student logout server sync:", err);
     } finally {
-      clearAuthPresence();
+      // Only clear client auth presence cookie if no admin session remains active
+      if (!adminTokenRef.current) {
+        clearAuthPresence();
+      }
       setIsLoggingOut(false);
       navigate("/", { replace: true });
     }
@@ -1285,7 +1303,14 @@ export function AppProvider({ children }) {
       if (res.data?.success && res.data?.authenticated) {
         setAdminToken(true);
         setAdminProfile(res.data);
-        setIsAdminButtonVisible(true);
+        if (typeof res.data.isAdminButtonVisible === "boolean") {
+          setIsAdminButtonVisible(res.data.isAdminButtonVisible);
+        } else if (typeof res.data.activeDeviceCount === "number") {
+          setIsAdminButtonVisible(res.data.activeDeviceCount < 2);
+        }
+        if (typeof res.data.activeDeviceCount === "number") {
+          setAdminDeviceCount(res.data.activeDeviceCount);
+        }
         return { success: true };
       }
       const msg = res.data?.message || "OTP verification failed.";
@@ -1318,6 +1343,14 @@ export function AppProvider({ children }) {
       if (res.data?.alreadyLoggedIn) {
         setAdminToken(true);
         setAdminProfile(res.data);
+        if (typeof res.data.isAdminButtonVisible === "boolean") {
+          setIsAdminButtonVisible(res.data.isAdminButtonVisible);
+        } else if (typeof res.data.activeDeviceCount === "number") {
+          setIsAdminButtonVisible(res.data.activeDeviceCount < 2);
+        }
+        if (typeof res.data.activeDeviceCount === "number") {
+          setAdminDeviceCount(res.data.activeDeviceCount);
+        }
         return { success: true, alreadyLoggedIn: true, subAdmin: res.data };
       }
       if (res.data?.step === "OTP_REQUIRED") {
@@ -1334,6 +1367,14 @@ export function AppProvider({ children }) {
       if (res.data?.success && res.data?.authenticated) {
         setAdminToken(true);
         setAdminProfile(res.data);
+        if (typeof res.data.isAdminButtonVisible === "boolean") {
+          setIsAdminButtonVisible(res.data.isAdminButtonVisible);
+        } else if (typeof res.data.activeDeviceCount === "number") {
+          setIsAdminButtonVisible(res.data.activeDeviceCount < 2);
+        }
+        if (typeof res.data.activeDeviceCount === "number") {
+          setAdminDeviceCount(res.data.activeDeviceCount);
+        }
         return { success: true, subAdmin: res.data };
       }
       return { success: false, message: res.data?.message || "Sub-Admin login failed" };
@@ -1359,6 +1400,14 @@ export function AppProvider({ children }) {
       if (res.data?.success && res.data?.authenticated) {
         setAdminToken(true);
         setAdminProfile(res.data);
+        if (typeof res.data.isAdminButtonVisible === "boolean") {
+          setIsAdminButtonVisible(res.data.isAdminButtonVisible);
+        } else if (typeof res.data.activeDeviceCount === "number") {
+          setIsAdminButtonVisible(res.data.activeDeviceCount < 2);
+        }
+        if (typeof res.data.activeDeviceCount === "number") {
+          setAdminDeviceCount(res.data.activeDeviceCount);
+        }
         return { success: true, subAdmin: res.data };
       }
       const msg = res.data?.message || "Sub-Admin OTP verification failed.";
@@ -1596,6 +1645,7 @@ export function AppProvider({ children }) {
         error,
         adminToken,
         adminProfile,
+        setAdminProfile,
         adminDeviceCount,
         isAdminButtonVisible,
         adminButtonConfig,

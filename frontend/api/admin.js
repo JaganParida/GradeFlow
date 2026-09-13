@@ -11,7 +11,7 @@ const AdminSession = require("./_lib/models/AdminSession");
 const Attendance = require("./_lib/models/Attendance");
 const SystemConfig = require("./_lib/models/SystemConfig");
 const jwt = require("jsonwebtoken");
-const { isAdminSessionValid, touchAdminSession } = require("./_lib/sessionManager");
+const { isAdminSessionValid, touchAdminSession, getActiveAdminSessions } = require("./_lib/sessionManager");
 const {
   GRADE_POINTS,
   calculateSGPA,
@@ -362,6 +362,7 @@ module.exports = async function handler(req, res) {
     // Public / semi-public portal visibility read
     if ((action === "portal-visibility" || cleanUrl.includes("/portal-visibility")) && req.method === "GET") {
       const config = (await SystemConfig.findOne({ key: "admin_button_config" }).lean()) ||
+                     (await SystemConfig.findOne({ key: "rankings_meta" }).lean()) ||
                      (await SystemConfig.findOne({ key: "system_config" }).lean());
       const vConfig = config?.adminButtonVisibility || {
         mode: "AUTO",
@@ -377,7 +378,7 @@ module.exports = async function handler(req, res) {
       // Also get active admin sessions count to display dynamic auto status
       let activeAdminCount = 0;
       try {
-        const activeSessions = await AdminSession.find({ isActive: true, expiresAt: { $gt: new Date() } }).lean();
+        const activeSessions = await getActiveAdminSessions(AdminSession);
         activeAdminCount = activeSessions?.length || 0;
       } catch {}
 
