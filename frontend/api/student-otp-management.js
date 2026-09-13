@@ -187,6 +187,7 @@ module.exports = async (req, res) => {
 
   const todayKey = getIstDateKey();
   const isSpecialStudent = rawReg === "230301120327";
+  const isUnlimited = isSpecialStudent;
   const maxDailyLimit = isSpecialStudent ? 5 : 3;
 
   // ── 1. GET /history ──
@@ -379,7 +380,7 @@ module.exports = async (req, res) => {
           todayDateKey: todayKey,
           todayUsage,
           maxDailyLimit,
-          remainingDailyAttempts: isUnlimited ? 99 : Math.max(0, maxDailyLimit - todayUsage),
+          remainingDailyAttempts: Math.max(0, maxDailyLimit - todayUsage),
           isUnlimited,
           todayDeliveries,
           todayFailed,
@@ -387,7 +388,7 @@ module.exports = async (req, res) => {
           cooldownRemainingSeconds,
           cooldownStartedAt,
           activeDevicesCount: sanitizedActiveSessions.length,
-          maxAllowedDevices: isUnlimited ? 2 : 1,
+          maxAllowedDevices: isSpecialStudent ? 2 : 1,
           activeSessions: sanitizedActiveSessions,
           recentSessions: sanitizedRecentHistory,
           lastLogoutInfo,
