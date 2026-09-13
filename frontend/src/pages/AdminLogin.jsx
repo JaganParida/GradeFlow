@@ -114,7 +114,7 @@ export default function AdminLogin() {
   // ─── Step 1: Submit Password (Main Admin) ─────────────────────────
   async function handlePasswordSubmit(e) {
     e.preventDefault();
-    if (lockCountdown > 0) return;
+    if (loading || lockCountdown > 0) return;
 
     const rawPassword = String(password || "");
     if (!rawPassword.trim()) {
@@ -219,7 +219,7 @@ export default function AdminLogin() {
   // ─── Step 1B: Submit Sub-Admin Login ─────────────────────────────
   async function handleSubAdminSubmit(e) {
     e.preventDefault();
-    if (lockCountdown > 0) return;
+    if (loading || lockCountdown > 0) return;
 
     const cleanPassword = String(subAdminPassword || "").trim();
 
@@ -363,6 +363,7 @@ export default function AdminLogin() {
 
   async function handleOtpSubmit(e) {
     e.preventDefault();
+    if (loading) return;
     const fullOtp = otp.join("").trim();
 
     if (fullOtp.length !== 6) {

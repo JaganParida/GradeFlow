@@ -631,6 +631,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   };
 
   const triggerSendOtp = async (isForgot = false) => {
+    if (loading) return;
     if (resendCooldown > 0) {
       setErrorMsg(`Please wait ${resendCooldown} seconds before requesting another verification code.`);
       setErrorCode("OTP_COOLDOWN_ACTIVE");
@@ -682,6 +683,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   // Step 2: Submit Password (Handles direct login OR triggers Device Approval)
   const handlePasswordSubmit = async (e) => {
     if (e) e.preventDefault();
+    if (loading) return;
     if (!password) {
       setErrorMsg("Please enter your password.");
       return;
@@ -755,6 +757,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   };
 
   const handleSessionTakeover = async () => {
+    if (loading) return;
     if (!password) {
       setStep("PASSWORD");
       setErrorMsg("Please enter your password to take over the session.");
@@ -779,6 +782,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   };
 
   const handleRequestEmailOtpHandover = async () => {
+    if (loading) return;
     setLoading(true);
     setErrorMsg("");
     setErrorCode("");
@@ -803,6 +807,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   // Step 3: Verify OTP
   const handleVerifyOtp = async (e) => {
     if (e) e.preventDefault();
+    if (loading) return;
     const cleanOtp = otp.trim();
     if (!cleanOtp || cleanOtp.length < 6) {
       setErrorMsg("Please enter the complete 6-digit verification code.");
@@ -833,6 +838,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   // Step 4: Mandatory Create Password -> Transitions to Animated Password Success Screen
   const handleCreatePasswordSubmit = async (e) => {
     if (e) e.preventDefault();
+    if (loading) return;
     if (!password || password.length < 8) {
       setErrorMsg("Password must be at least 8 characters long.");
       return;
