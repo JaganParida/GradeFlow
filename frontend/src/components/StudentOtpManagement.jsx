@@ -459,68 +459,6 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: isMob ? 16 : 22, fontFamily: "'DM Sans', sans-serif" }}>
-      {/* ── Top Header Banner ── */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)",
-          borderRadius: isMob ? 16 : 20,
-          padding: isMob ? "16px 14px" : "24px 28px",
-          color: "#ffffff",
-          boxShadow: "0 10px 25px -5px rgba(49, 46, 129, 0.2)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 12,
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: isMob ? 10 : 14 }}>
-            <div
-              style={{
-                width: isMob ? 38 : 44,
-                height: isMob ? 38 : 44,
-                borderRadius: isMob ? 10 : 12,
-                background: "rgba(255, 255, 255, 0.14)",
-                backdropFilter: "blur(10px)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "1px solid rgba(255, 255, 255, 0.25)",
-                flexShrink: 0,
-              }}
-            >
-              <ShieldAlert size={isMob ? 20 : 24} color="#a5b4fc" />
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-              <h2 style={{ margin: 0, fontSize: isMob ? 16.5 : 22, fontWeight: 800, letterSpacing: "-0.5px" }}>
-                Session & OTP Management
-              </h2>
-              <span
-                style={{
-                  background: "#4338ca",
-                  color: "#e0e7ff",
-                  fontSize: 10,
-                  fontWeight: 700,
-                  padding: "2px 7px",
-                  borderRadius: 6,
-                  border: "1px solid #6366f1",
-                  textTransform: "uppercase",
-                  whiteSpace: "nowrap",
-                  display: "inline-block",
-                  flexShrink: 0,
-                }}
-              >
-                Main Admin
-              </span>
-            </div>
-          </div>
-          <p style={{ margin: 0, fontSize: isMob ? 12 : 13, color: "#c7d2fe", maxWidth: 680, lineHeight: 1.45 }}>
-            Inspect detailed OTP request history, live student & administrator authorized device sessions, and manage daily limits with full audit logging.
-          </p>
-        </div>
-      </div>
-
       {/* ── Search Bar Card ── */}
       <div
         style={{
