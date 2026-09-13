@@ -17,6 +17,11 @@ const AdminSession = require("../models/AdminSession");
 const OtpVerification = require("../models/OtpVerification");
 const Attendance = require("../models/Attendance");
 const OtpRequestLog = require("../models/OtpRequestLog");
+const SubAdmin = require("../models/SubAdmin");
+const SubAdminSession = require("../models/SubAdminSession");
+const SubAdminOtpVerification = require("../models/SubAdminOtpVerification");
+const AdminAuditLog = require("../models/AdminAuditLog");
+const AdminOtpVerification = require("../models/AdminOtpVerification");
 const { getActiveSessions, getMaxAllowedDevices } = require("../utils/sessionManager");
 const { publishAdminRealtimeEvent } = require("../utils/ablyService");
 const { isBatchExpired, purgeExpiredBatches } = require("../utils/batchLifecycle");
@@ -3069,7 +3074,6 @@ router.post(
 
 // ─── GLOBAL MAINTENANCE MODE (Main Admin Only) ──────────────────────────────
 const { getMaintenanceState, setMaintenanceState } = require("../middleware/maintenance");
-const AdminAuditLog = require("../models/AdminAuditLog");
 
 // GET current maintenance mode status
 router.get("/maintenance", async (req, res) => {
@@ -3162,6 +3166,81 @@ function getIstDateKey(date = new Date()) {
   }).format(date);
 }
 
+function formatSessionRecord(s, idx = 0, currentSessionId = null) {
+  const ua = String(s.deviceInfo?.userAgent || "");
+  const rawIp = String(s.deviceInfo?.ip || s.ip || "");
+  const maskedIp = rawIp.includes(".")
+    ? `${rawIp.split(".").slice(0, 2).join(".")}.***.***`
+    : (rawIp ? "Hidden" : "Unknown");
+
+  let os = s.deviceInfo?.os || "Unknown";
+  if (os === "Unknown" || !os) {
+    if (/windows/i.test(ua)) os = "Windows";
+    else if (/macintosh|mac os x/i.test(ua)) os = "macOS";
+    else if (/android/i.test(ua)) os = "Android";
+    else if (/iphone/i.test(ua)) os = "iOS";
+    else if (/ipad/i.test(ua)) os = "iPadOS";
+    else if (/linux/i.test(ua)) os = "Linux";
+  }
+
+  let browser = s.deviceInfo?.browser || "Unknown";
+  if (browser === "Unknown" || !browser) {
+    if (/edg/i.test(ua)) browser = "Edge";
+    else if (/chrome|crios/i.test(ua)) browser = "Chrome";
+    else if (/firefox|fxios/i.test(ua)) browser = "Firefox";
+    else if (/safari/i.test(ua)) browser = "Safari";
+    else if (/opera|opr/i.test(ua)) browser = "Opera";
+  }
+
+  let deviceType = s.deviceInfo?.deviceType || "Desktop";
+  if (deviceType === "Desktop" || !deviceType || deviceType === "Unknown") {
+    if (/mobile|iphone|ipod|android.*mobile|windows phone/i.test(ua) || os === "Android" || os === "iOS") {
+      deviceType = "Mobile";
+    } else if (/tablet|ipad|android(?!.*mobile)/i.test(ua) || os === "iPadOS") {
+      deviceType = "Tablet";
+    } else if (os === "Windows" || os === "macOS" || os === "Linux") {
+      deviceType = "Laptop";
+    }
+  }
+
+  let platform = s.deviceInfo?.platform;
+  if (!platform || platform === "Unknown") {
+    if (os !== "Unknown" && browser !== "Unknown") {
+      platform = `${os} / ${browser}`;
+    } else if (os !== "Unknown") {
+      platform = `${os} Device`;
+    } else if (deviceType !== "Unknown") {
+      platform = `${deviceType} Browser`;
+    } else {
+      platform = "Authorized Browser";
+    }
+  }
+
+  const isCurrent = Boolean(currentSessionId && s.sessionId === currentSessionId);
+
+  return {
+    deviceIndex: idx + 1,
+    sessionId: s.sessionId,
+    deviceId: s.deviceId,
+    deviceType,
+    os,
+    browser,
+    platform,
+    userAgent: ua,
+    ip: rawIp,
+    maskedIp,
+    loggedInAt: s.loggedInAt,
+    lastActiveAt: s.lastActiveAt,
+    loggedOutAt: s.loggedOutAt || s.revokedAt || null,
+    logoutType: s.logoutType || (s.revokedAt ? "revoked" : null),
+    revokeReason: s.revokeReason || null,
+    expiresAt: s.expiresAt,
+    isActive: Boolean(s.isActive),
+    isCurrent,
+    status: s.isActive ? "ACTIVE" : (s.logoutType === "student_manual" ? "SIGNED_OUT" : "REVOKED"),
+  };
+}
+
 // 0. POST Reset Administrator Daily OTP Limit
 router.post("/student-otp-management/reset-admin-otp", requireMainAdmin, async (req, res) => {
   try {
@@ -3211,35 +3290,200 @@ router.post("/student-otp-management/reset-admin-otp", requireMainAdmin, async (
   }
 });
 
-// 0b. GET Active Admin Sessions
-router.get("/student-otp-management/admin-sessions", requireMainAdmin, async (req, res) => {
+// 0b. GET Active Admin Details & Sessions
+router.get(["/student-otp-management/admin-details", "/student-otp-management/admin-sessions"], requireMainAdmin, async (req, res) => {
   try {
-    const activeSessions = await AdminSession.find({
-      isActive: true,
-      expiresAt: { $gt: new Date() },
-    })
-      .sort({ lastActiveAt: -1 })
-      .lean();
-
+    const todayKey = getIstDateKey();
     const currentSessionId = req.admin?.sessionId;
+    const adminEmail = req.admin?.email || process.env.ADMIN_EMAIL || "jaganparida35@gmail.com";
+
+    const [allAdminSessions, dailyLimit, activeOtp, auditLogs, otpLogs] = await Promise.all([
+      AdminSession.find({})
+        .sort({ lastActiveAt: -1, updatedAt: -1 })
+        .limit(20)
+        .lean(),
+      StudentDailyLimit.findOne({ regNo: { $regex: /^ADMIN:/i }, dateKey: todayKey }),
+      AdminOtpVerification.findOne({ expiresAt: { $gt: new Date() } }),
+      AdminAuditLog.find({
+        $or: [
+          { actorType: "main_admin" },
+          { actorEmail: adminEmail },
+          { action: { $regex: /ADMIN/i } },
+        ],
+      })
+        .sort({ timestamp: -1 })
+        .limit(30)
+        .lean(),
+      OtpRequestLog.find({ regNo: { $regex: /^ADMIN/i } })
+        .sort({ timestamp: -1 })
+        .limit(30)
+        .lean(),
+    ]);
+
+    const sanitizedActiveSessions = allAdminSessions
+      .filter((s) => s.isActive && (!s.expiresAt || new Date(s.expiresAt) > new Date()))
+      .map((s, idx) => formatSessionRecord(s, idx, currentSessionId));
+
+    const sanitizedRecentHistory = allAdminSessions.map((s, idx) =>
+      formatSessionRecord(s, idx, currentSessionId)
+    );
+
+    const latestLoggedOut = allAdminSessions.find(
+      (s) => !s.isActive && (s.loggedOutAt || s.revokedAt)
+    );
+    const mostRecentSession = allAdminSessions[0]
+      ? formatSessionRecord(allAdminSessions[0], 0, currentSessionId)
+      : null;
+
+    const lastLogoutInfo = latestLoggedOut
+      ? {
+          device: formatSessionRecord(latestLoggedOut, 0, currentSessionId),
+          loggedOutAt: latestLoggedOut.loggedOutAt || latestLoggedOut.revokedAt,
+          lastActiveAt: latestLoggedOut.lastActiveAt,
+          reason: latestLoggedOut.revokeReason || "Administrator session revoked",
+          logoutType: "revoked",
+        }
+      : (mostRecentSession && !mostRecentSession.isActive
+          ? {
+              device: mostRecentSession,
+              loggedOutAt: mostRecentSession.loggedOutAt || mostRecentSession.lastActiveAt,
+              lastActiveAt: mostRecentSession.lastActiveAt,
+              reason: mostRecentSession.revokeReason || "Previous session ended",
+              logoutType: "ended",
+            }
+          : null);
+
+    const todayUsage = dailyLimit ? dailyLimit.otpSendCount : 0;
+    const maxDailyLimit = 5;
+
+    let isCooldownActive = false;
+    let cooldownRemainingSeconds = 0;
+    let cooldownStartedAt = null;
+
+    if (dailyLimit && dailyLimit.lastOtpSentAt && dailyLimit.otpSendCount > 0) {
+      const timeSinceLastSend = Date.now() - new Date(dailyLimit.lastOtpSentAt).getTime();
+      if (timeSinceLastSend < 180 * 1000) {
+        isCooldownActive = true;
+        cooldownRemainingSeconds = Math.ceil((180 * 1000 - timeSinceLastSend) / 1000);
+        cooldownStartedAt = dailyLimit.lastOtpSentAt;
+      }
+    }
+
+    const latestOtpStatus = activeOtp ? "ACTIVE" : "NONE";
+
+    const maskedEmail = adminEmail.includes("@")
+      ? `${adminEmail.slice(0, 4)}***@${adminEmail.split("@")[1]}`
+      : "jaga***@gmail.com";
+
+    const istFormatter = new Intl.DateTimeFormat("en-IN", {
+      timeZone: "Asia/Kolkata",
+      dateStyle: "medium",
+      timeStyle: "medium",
+    });
+
+    const formattedFromOtp = (otpLogs || []).map((log) => {
+      const ip = String(log.deviceInfo?.ip || "");
+      const maskedIp = ip.includes(".")
+        ? `${ip.split(".").slice(0, 2).join(".")}.***.***`
+        : (ip ? "Hidden" : "Unknown");
+      return {
+        id: log._id,
+        timestamp: log.timestamp || log.createdAt,
+        formattedTime: istFormatter.format(new Date(log.timestamp || log.createdAt)),
+        dateKey: log.dateKey || todayKey,
+        status: log.status || "DELIVERED",
+        deliveryStatus: log.deliveryStatus || "DELIVERED",
+        provider: log.provider || "SYSTEM",
+        failoverOccurred: Boolean(log.failoverOccurred),
+        primaryFailureReason: log.primaryFailureReason || null,
+        reason: log.reason || "Administrator OTP Request",
+        device: {
+          deviceType: log.deviceInfo?.deviceType || "Desktop",
+          os: log.deviceInfo?.os || "Windows",
+          browser: log.deviceInfo?.browser || "Chrome",
+          platform: log.deviceInfo?.platform || "Authorized Admin Console",
+          maskedIp,
+        },
+      };
+    });
+
+    const formattedFromAudit = (auditLogs || []).map((log) => {
+      const ip = String(log.ip || "");
+      const maskedIp = ip.includes(".")
+        ? `${ip.split(".").slice(0, 2).join(".")}.***.***`
+        : (ip ? "Hidden" : "Unknown");
+
+      let status = "DELIVERED";
+      if (log.result === "FAILED" || log.result === "DENIED" || log.result === "FORBIDDEN") {
+        status = "FAILED";
+      }
+
+      const actionText = (log.action || "ADMIN_AUDIT").replace(/_/g, " ");
+
+      return {
+        id: log._id,
+        timestamp: log.timestamp || log.createdAt,
+        formattedTime: istFormatter.format(new Date(log.timestamp || log.createdAt)),
+        dateKey: todayKey,
+        status,
+        deliveryStatus: status === "DELIVERED" ? "DELIVERED" : "FAILED",
+        provider: "AUDIT",
+        failoverOccurred: false,
+        primaryFailureReason: null,
+        reason: actionText,
+        device: {
+          deviceType: "Desktop",
+          os: "Secure Admin Console",
+          browser: "Admin Workspace",
+          platform: "Authorized Administrator Device",
+          maskedIp,
+        },
+      };
+    });
+
+    const combinedTimeline = [...formattedFromOtp, ...formattedFromAudit]
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 50);
+
+    const adminSummary = {
+      regNo: "MAIN_ADMIN",
+      studentName: "Main Administrator",
+      maskedEmail,
+      fullEmail: adminEmail,
+      isRegistered: true,
+      branch: "System Administration",
+      batch: "Chief Security Control",
+      roleTitle: "Institutional Chief Administrator",
+      todayDateKey: todayKey,
+      todayUsage,
+      maxDailyLimit,
+      remainingDailyAttempts: Math.max(0, maxDailyLimit - todayUsage),
+      isUnlimited: false,
+      todayDeliveries: todayUsage,
+      todayFailed: 0,
+      isCooldownActive,
+      cooldownRemainingSeconds,
+      cooldownStartedAt,
+      activeDevicesCount: sanitizedActiveSessions.length,
+      maxAllowedDevices: 2,
+      activeSessions: sanitizedActiveSessions,
+      recentSessions: sanitizedRecentHistory,
+      lastLogoutInfo,
+      lastActiveDevice: mostRecentSession,
+      latestOtpStatus,
+    };
 
     return res.json({
       success: true,
       currentSessionId,
-      sessions: activeSessions.map((s) => ({
-        sessionId: s.sessionId,
-        deviceId: s.deviceId,
-        deviceInfo: s.deviceInfo || {},
-        loggedInAt: s.loggedInAt,
-        lastActiveAt: s.lastActiveAt,
-        expiresAt: s.expiresAt,
-        isActive: s.isActive,
-        isCurrent: Boolean(currentSessionId && s.sessionId === currentSessionId),
-      })),
+      adminData: adminSummary,
+      studentSummary: adminSummary,
+      historyTimeline: combinedTimeline,
+      sessions: sanitizedActiveSessions,
     });
   } catch (err) {
-    console.error("GET /student-otp-management/admin-sessions error:", err);
-    return res.status(500).json({ success: false, message: "Failed to fetch active administrator sessions." });
+    console.error("GET /student-otp-management/admin-details error:", err);
+    return res.status(500).json({ success: false, message: "Failed to fetch administrator details." });
   }
 });
 
@@ -3380,6 +3624,333 @@ router.post("/student-otp-management/revoke-all-admin-sessions", requireMainAdmi
   } catch (err) {
     console.error("POST /student-otp-management/revoke-all-admin-sessions error:", err);
     return res.status(500).json({ success: false, message: "Failed to revoke administrator sessions." });
+  }
+});
+
+// 0e. GET Sub-Admin Details & Sessions
+router.get(["/student-otp-management/subadmin-details", "/student-otp-management/subadmin-sessions"], requireMainAdmin, async (req, res) => {
+  try {
+    const todayKey = getIstDateKey();
+
+    const subAdmins = await SubAdmin.find()
+      .select("_id name email status role permissions createdAt")
+      .lean();
+
+    let targetSubAdminId = String(req.query.subAdminId || req.body?.subAdminId || "").trim();
+    let targetEmail = String(req.query.email || req.body?.email || "").trim().toLowerCase();
+
+    let selected = null;
+    if (targetSubAdminId) {
+      selected = subAdmins.find((s) => String(s._id) === targetSubAdminId);
+    } else if (targetEmail) {
+      selected = subAdmins.find((s) => s.email.toLowerCase() === targetEmail);
+    }
+    if (!selected && subAdmins.length > 0) {
+      selected = subAdmins[0];
+    }
+
+    if (!selected) {
+      return res.json({
+        success: true,
+        subAdmins: [],
+        selectedSubAdminId: null,
+        selectedSubAdmin: null,
+        studentSummary: null,
+        historyTimeline: [],
+        sessions: [],
+      });
+    }
+
+    const subAdminEmail = selected.email;
+    const subAdminAccountKey = "SUBADMIN:" + subAdminEmail.toLowerCase();
+
+    const [allSubAdminSessions, dailyLimit, activeOtp, auditLogs] = await Promise.all([
+      SubAdminSession.find({ subAdminId: selected._id })
+        .sort({ lastActiveAt: -1, updatedAt: -1 })
+        .limit(20)
+        .lean(),
+      StudentDailyLimit.findOne({ regNo: subAdminAccountKey, dateKey: todayKey }),
+      SubAdminOtpVerification.findOne({ email: subAdminEmail.toLowerCase(), expiresAt: { $gt: new Date() } }),
+      AdminAuditLog.find({
+        $or: [
+          { actorEmail: subAdminEmail },
+          { targetId: subAdminEmail },
+          { "details.subAdminId": String(selected._id) },
+        ],
+      })
+        .sort({ timestamp: -1 })
+        .limit(50)
+        .lean(),
+    ]);
+
+    const sanitizedActiveSessions = allSubAdminSessions
+      .filter((s) => s.isActive && (!s.expiresAt || new Date(s.expiresAt) > new Date()))
+      .map((s, idx) => formatSessionRecord(s, idx));
+
+    const sanitizedRecentHistory = allSubAdminSessions.map((s, idx) =>
+      formatSessionRecord(s, idx)
+    );
+
+    const latestLoggedOut = allSubAdminSessions.find(
+      (s) => !s.isActive && (s.loggedOutAt || s.revokedAt)
+    );
+    const mostRecentSession = allSubAdminSessions[0]
+      ? formatSessionRecord(allSubAdminSessions[0], 0)
+      : null;
+
+    const lastLogoutInfo = latestLoggedOut
+      ? {
+          device: formatSessionRecord(latestLoggedOut, 0),
+          loggedOutAt: latestLoggedOut.loggedOutAt || latestLoggedOut.revokedAt,
+          lastActiveAt: latestLoggedOut.lastActiveAt,
+          reason: latestLoggedOut.revokeReason || "Sub-administrator session revoked",
+          logoutType: "revoked",
+        }
+      : (mostRecentSession && !mostRecentSession.isActive
+          ? {
+              device: mostRecentSession,
+              loggedOutAt: mostRecentSession.loggedOutAt || mostRecentSession.lastActiveAt,
+              lastActiveAt: mostRecentSession.lastActiveAt,
+              reason: mostRecentSession.revokeReason || "Previous session ended",
+              logoutType: "ended",
+            }
+          : null);
+
+    const todayUsage = dailyLimit ? dailyLimit.otpSendCount : 0;
+    const maxDailyLimit = 5;
+
+    let isCooldownActive = false;
+    let cooldownRemainingSeconds = 0;
+    let cooldownStartedAt = null;
+
+    if (dailyLimit && dailyLimit.lastOtpSentAt && dailyLimit.otpSendCount > 0) {
+      const timeSinceLastSend = Date.now() - new Date(dailyLimit.lastOtpSentAt).getTime();
+      if (timeSinceLastSend < 180 * 1000) {
+        isCooldownActive = true;
+        cooldownRemainingSeconds = Math.ceil((180 * 1000 - timeSinceLastSend) / 1000);
+        cooldownStartedAt = dailyLimit.lastOtpSentAt;
+      }
+    }
+
+    const latestOtpStatus = activeOtp ? "ACTIVE" : "NONE";
+
+    const maskedEmail = subAdminEmail.includes("@")
+      ? `${subAdminEmail.slice(0, 4)}***@${subAdminEmail.split("@")[1]}`
+      : "sub***@centurion.edu.in";
+
+    const routesList = (selected.permissions?.routes || []).join(", ");
+    const actionsCount = (selected.permissions?.actions || []).length;
+
+    const istFormatter = new Intl.DateTimeFormat("en-IN", {
+      timeZone: "Asia/Kolkata",
+      dateStyle: "medium",
+      timeStyle: "medium",
+    });
+
+    const formattedTimeline = auditLogs.map((log) => {
+      const ip = String(log.ip || "");
+      const maskedIp = ip.includes(".")
+        ? `${ip.split(".").slice(0, 2).join(".")}.***.***`
+        : (ip ? "Hidden" : "Unknown");
+
+      let status = "DELIVERED";
+      if (log.result === "FAILED" || log.result === "DENIED" || log.result === "FORBIDDEN") {
+        status = "FAILED";
+      }
+
+      const actionText = (log.action || "SUBADMIN_ACTION").replace(/_/g, " ");
+
+      return {
+        id: log._id,
+        timestamp: log.timestamp || log.createdAt,
+        formattedTime: istFormatter.format(new Date(log.timestamp || log.createdAt)),
+        dateKey: todayKey,
+        status,
+        deliveryStatus: status === "DELIVERED" ? "DELIVERED" : "FAILED",
+        provider: "AUDIT",
+        failoverOccurred: false,
+        primaryFailureReason: null,
+        reason: actionText,
+        device: {
+          deviceType: "Desktop",
+          os: "Delegated Console",
+          browser: "Protected Console",
+          platform: "Sub-Admin Console",
+          maskedIp,
+        },
+      };
+    });
+
+    const subAdminSummary = {
+      regNo: `SUBADMIN:${subAdminEmail.split("@")[0].toUpperCase()}`,
+      subAdminId: String(selected._id),
+      studentName: selected.name,
+      maskedEmail,
+      fullEmail: subAdminEmail,
+      isRegistered: true,
+      branch: routesList ? `Routes: ${routesList}` : "Delegated Sub-Admin",
+      batch: `${actionsCount} Granted Actions`,
+      roleTitle: "Institutional Sub-Administrator",
+      status: selected.status || "active",
+      todayDateKey: todayKey,
+      todayUsage,
+      maxDailyLimit,
+      remainingDailyAttempts: Math.max(0, maxDailyLimit - todayUsage),
+      isUnlimited: false,
+      todayDeliveries: todayUsage,
+      todayFailed: 0,
+      isCooldownActive,
+      cooldownRemainingSeconds,
+      cooldownStartedAt,
+      activeDevicesCount: sanitizedActiveSessions.length,
+      maxAllowedDevices: 2,
+      activeSessions: sanitizedActiveSessions,
+      recentSessions: sanitizedRecentHistory,
+      lastLogoutInfo,
+      lastActiveDevice: mostRecentSession,
+      latestOtpStatus,
+    };
+
+    return res.json({
+      success: true,
+      subAdmins: subAdmins.map((s) => ({
+        _id: String(s._id),
+        name: s.name,
+        email: s.email,
+        status: s.status,
+        role: s.role,
+        permissions: s.permissions,
+      })),
+      selectedSubAdminId: String(selected._id),
+      selectedSubAdmin: subAdminSummary,
+      studentSummary: subAdminSummary,
+      historyTimeline: formattedTimeline,
+      sessions: sanitizedActiveSessions,
+    });
+  } catch (err) {
+    console.error("GET /student-otp-management/subadmin-details error:", err);
+    return res.status(500).json({ success: false, message: "Failed to fetch sub-administrator details." });
+  }
+});
+
+// 0f. POST Revoke Specific Sub-Admin Session
+router.post("/student-otp-management/revoke-subadmin-session/:sessionId", requireMainAdmin, async (req, res) => {
+  try {
+    const targetSessionId = String(req.params.sessionId || req.body?.sessionId || "").trim();
+    const reason = String(req.body?.reason || "MANUAL_REVOCATION_BY_MAIN_ADMIN").trim();
+
+    if (!targetSessionId) {
+      return res.status(400).json({
+        success: false,
+        message: "Session ID is required to revoke a sub-admin session.",
+      });
+    }
+
+    const revokedSession = await SubAdminSession.findOneAndUpdate(
+      { sessionId: targetSessionId, isActive: true },
+      {
+        $set: {
+          isActive: false,
+          revokedAt: new Date(),
+          revokeReason: reason,
+        },
+      },
+      { new: true }
+    );
+
+    if (!revokedSession) {
+      return res.status(404).json({
+        success: false,
+        message: "Active sub-administrator session not found or already terminated.",
+      });
+    }
+
+    try {
+      await publishAdminRealtimeEvent("subadmin-session-revoked", {
+        sessionId: targetSessionId,
+        subAdminId: revokedSession.subAdminId,
+        reason,
+        timestamp: Date.now(),
+      });
+    } catch (_) {}
+
+    return res.json({
+      success: true,
+      message: "Sub-administrator session revoked successfully.",
+      sessionId: targetSessionId,
+    });
+  } catch (err) {
+    console.error("POST /student-otp-management/revoke-subadmin-session error:", err);
+    return res.status(500).json({ success: false, message: "Failed to revoke sub-administrator session." });
+  }
+});
+
+// 0g. POST Revoke All Sessions for Sub-Admin
+router.post("/student-otp-management/revoke-all-subadmin-sessions", requireMainAdmin, async (req, res) => {
+  try {
+    const targetSubAdminId = String(req.body?.subAdminId || req.query.subAdminId || "").trim();
+    const reason = String(req.body?.reason || "ALL_SESSIONS_REVOKED_BY_MAIN_ADMIN").trim();
+
+    const filter = { isActive: true };
+    if (targetSubAdminId) {
+      filter.subAdminId = targetSubAdminId;
+    }
+
+    const updateResult = await SubAdminSession.updateMany(filter, {
+      $set: {
+        isActive: false,
+        revokedAt: new Date(),
+        revokeReason: reason,
+      },
+    });
+
+    try {
+      await publishAdminRealtimeEvent("subadmin-session-revoked", {
+        all: true,
+        subAdminId: targetSubAdminId,
+        reason,
+        timestamp: Date.now(),
+      });
+    } catch (_) {}
+
+    return res.json({
+      success: true,
+      message: `All active sessions (${updateResult.modifiedCount}) for sub-administrator have been revoked.`,
+      revokedCount: updateResult.modifiedCount,
+    });
+  } catch (err) {
+    console.error("POST /student-otp-management/revoke-all-subadmin-sessions error:", err);
+    return res.status(500).json({ success: false, message: "Failed to revoke sub-administrator sessions." });
+  }
+});
+
+// 0h. POST Reset Sub-Admin OTP Limit
+router.post("/student-otp-management/reset-subadmin-otp", requireMainAdmin, async (req, res) => {
+  try {
+    const subAdminEmail = String(req.body?.email || req.query.email || "").trim().toLowerCase();
+    if (!subAdminEmail) {
+      return res.status(400).json({ success: false, message: "Sub-administrator email is required to reset OTP counter." });
+    }
+
+    const todayKey = getIstDateKey();
+    const rollingWindowMs = 24 * 60 * 60 * 1000;
+    const yesterdayKey = getIstDateKey(new Date(Date.now() - rollingWindowMs));
+
+    await StudentDailyLimit.deleteMany({
+      regNo: "SUBADMIN:" + subAdminEmail,
+      dateKey: { $in: [todayKey, yesterdayKey] },
+    });
+
+    await SubAdminOtpVerification.deleteMany({ email: subAdminEmail });
+
+    return res.json({
+      success: true,
+      message: `Today's OTP counter for sub-administrator (${subAdminEmail}) has been reset to 0/5.`,
+      remainingAttempts: 5,
+    });
+  } catch (err) {
+    console.error("POST /student-otp-management/reset-subadmin-otp error:", err);
+    return res.status(500).json({ success: false, message: "Failed to reset sub-administrator OTP limit." });
   }
 });
 

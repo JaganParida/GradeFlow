@@ -175,6 +175,22 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   const [revokeReason, setRevokeReason] = useState("");
   const [revokeLoading, setRevokeLoading] = useState(false);
 
+  // ── 4 Category Navigation Tabs State ──
+  const [activeTab, setActiveTab] = useState("normal-student"); // "normal-student" | "special-student" | "admin" | "subadmin"
+
+  // Administrator Details State
+  const [adminData, setAdminData] = useState(null);
+  const [adminTimeline, setAdminTimeline] = useState([]);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminCurrentSessionId, setAdminCurrentSessionId] = useState(null);
+
+  // Sub-Administrator Details State
+  const [subAdminsList, setSubAdminsList] = useState([]);
+  const [selectedSubAdminId, setSelectedSubAdminId] = useState(null);
+  const [subAdminData, setSubAdminData] = useState(null);
+  const [subAdminTimeline, setSubAdminTimeline] = useState([]);
+  const [subAdminLoading, setSubAdminLoading] = useState(false);
+
   // Administrator OTP Quota Reset State
   const [adminResetLoading, setAdminResetLoading] = useState(false);
   const [adminResetSuccess, setAdminResetSuccess] = useState("");
@@ -182,11 +198,6 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   // Administrator Sessions State
   const [adminSessions, setAdminSessions] = useState([]);
   const [adminSessionsLoading, setAdminSessionsLoading] = useState(false);
-  const [adminSessionRevokeLoading, setAdminSessionRevokeLoading] = useState(false);
-  const [showAdminRevokeModal, setShowAdminRevokeModal] = useState(false);
-  const [adminRevokeTarget, setAdminRevokeTarget] = useState(null); // { isAll: boolean, session: object | null }
-  const [adminRevokeReason, setAdminRevokeReason] = useState("");
-  const [adminRevokeSuccess, setAdminRevokeSuccess] = useState("");
 
   // Fetch all registered student accounts on mount & when filter changes with permanent session cache
   const fetchAccounts = async (search = directorySearch, filter = directoryFilter, forceRefresh = false) => {
@@ -242,9 +253,23 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   useEffect(() => {
     return onAdminCacheDirty(AdminCacheScopes.OTP, () => {
       fetchAccounts(directorySearch, directoryFilter, true);
-      fetchAdminSessions();
+      if (activeTab === "admin") {
+        fetchAdminDetails(true);
+      } else if (activeTab === "subadmin") {
+        fetchSubAdminDetails(selectedSubAdminId, true);
+      } else if (studentData?.regNo) {
+        handleSearchWithReg(studentData.regNo);
+      }
     });
-  }, [directorySearch, directoryFilter]);
+  }, [directorySearch, directoryFilter, activeTab, selectedSubAdminId, studentData?.regNo]);
+
+  useEffect(() => {
+    if (activeTab === "admin") {
+      fetchAdminDetails();
+    } else if (activeTab === "subadmin") {
+      fetchSubAdminDetails();
+    }
+  }, [activeTab]);
 
   const handleDirectorySearchSubmit = (e) => {
     if (e) e.preventDefault();
@@ -292,25 +317,41 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   };
 
   const handleResetSubmit = async () => {
-    if (!studentData?.regNo) return;
     setResetLoading(true);
     setErrorMsg("");
     setSuccessMsg("");
 
     try {
-      const res = await axios.post(
-        `${API}/admin/student-otp-management/reset/${studentData.regNo}`,
-        { reason: resetReason.trim() },
-        authHeaders
-      );
+      let res;
+      if (activeTab === "admin") {
+        res = await axios.post(
+          `${API}/admin/student-otp-management/reset-admin-otp`,
+          {},
+          authHeaders
+        );
+      } else if (activeTab === "subadmin") {
+        res = await axios.post(
+          `${API}/admin/student-otp-management/reset-subadmin-otp`,
+          { email: subAdminData?.fullEmail },
+          authHeaders
+        );
+      } else {
+        if (!studentData?.regNo) return;
+        res = await axios.post(
+          `${API}/admin/student-otp-management/reset/${studentData.regNo}`,
+          { reason: resetReason.trim() },
+          authHeaders
+        );
+      }
 
       if (res.data?.success) {
         setSuccessMsg(res.data.message || "OTP attempts reset successfully.");
         setShowResetModal(false);
         setResetReason("");
         invalidateAdminCache(AdminCacheScopes.OTP);
-        // Refresh details
-        handleSearch();
+        if (activeTab === "admin") fetchAdminDetails(true);
+        else if (activeTab === "subadmin") fetchSubAdminDetails(selectedSubAdminId, true);
+        else handleSearch();
       } else {
         setErrorMsg(res.data?.message || "Failed to reset OTP attempts.");
       }
@@ -323,28 +364,61 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   };
 
   const handleRevokeSubmit = async () => {
-    if (!studentData?.regNo || !revokeTarget) return;
+    if (!revokeTarget) return;
     setRevokeLoading(true);
     setErrorMsg("");
     setSuccessMsg("");
 
     try {
       let res;
-      if (revokeTarget.isAll) {
-        res = await axios.post(
-          `${API}/admin/student-otp-management/revoke-all-sessions/${studentData.regNo}`,
-          { reason: revokeReason.trim() },
-          authHeaders
-        );
+      if (activeTab === "admin") {
+        if (revokeTarget.isAll) {
+          res = await axios.post(
+            `${API}/admin/student-otp-management/revoke-all-admin-sessions`,
+            { reason: revokeReason.trim() || "ALL_ADMIN_SESSIONS_REVOKED_BY_MAIN_ADMIN", revokeCurrent: false },
+            authHeaders
+          );
+        } else {
+          const targetId = revokeTarget.session?.sessionId;
+          res = await axios.post(
+            `${API}/admin/student-otp-management/revoke-admin-session/${targetId}`,
+            { reason: revokeReason.trim() || "MANUAL_REVOCATION_BY_MAIN_ADMIN" },
+            authHeaders
+          );
+        }
+      } else if (activeTab === "subadmin") {
+        if (revokeTarget.isAll) {
+          res = await axios.post(
+            `${API}/admin/student-otp-management/revoke-all-subadmin-sessions`,
+            { subAdminId: subAdminData?.subAdminId, reason: revokeReason.trim() },
+            authHeaders
+          );
+        } else {
+          const targetId = revokeTarget.session?.sessionId;
+          res = await axios.post(
+            `${API}/admin/student-otp-management/revoke-subadmin-session/${targetId}`,
+            { reason: revokeReason.trim() },
+            authHeaders
+          );
+        }
       } else {
-        res = await axios.post(
-          `${API}/admin/student-otp-management/revoke-session/${studentData.regNo}`,
-          {
-            sessionId: revokeTarget.session?.sessionId,
-            reason: revokeReason.trim(),
-          },
-          authHeaders
-        );
+        if (!studentData?.regNo) return;
+        if (revokeTarget.isAll) {
+          res = await axios.post(
+            `${API}/admin/student-otp-management/revoke-all-sessions/${studentData.regNo}`,
+            { reason: revokeReason.trim() },
+            authHeaders
+          );
+        } else {
+          res = await axios.post(
+            `${API}/admin/student-otp-management/revoke-session/${studentData.regNo}`,
+            {
+              sessionId: revokeTarget.session?.sessionId,
+              reason: revokeReason.trim(),
+            },
+            authHeaders
+          );
+        }
       }
 
       if (res.data?.success) {
@@ -353,8 +427,9 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
         setRevokeTarget(null);
         setRevokeReason("");
         invalidateAdminCache(AdminCacheScopes.OTP);
-        // Instantly reload student session details
-        handleSearch();
+        if (activeTab === "admin") fetchAdminDetails(true);
+        else if (activeTab === "subadmin") fetchSubAdminDetails(selectedSubAdminId, true);
+        else handleSearch();
       } else {
         setErrorMsg(res.data?.message || "Failed to revoke device session.");
       }
@@ -366,20 +441,96 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
     }
   };
 
-  const fetchAdminSessions = async () => {
+  const fetchAdminDetails = async (forceRefresh = false) => {
+    const cacheKey = "gf_admin_otp_admin_details";
+    if (!forceRefresh) {
+      const cached = getAdminCache(cacheKey);
+      if (cached) {
+        setAdminData(cached.adminData || cached.studentSummary);
+        setAdminTimeline(cached.historyTimeline || []);
+        setAdminSessions(cached.sessions || []);
+        setAdminCurrentSessionId(cached.currentSessionId || null);
+        return;
+      }
+    }
+    setAdminLoading(true);
     setAdminSessionsLoading(true);
     try {
       const res = await axios.get(
-        `${API}/admin/student-otp-management/admin-sessions`,
+        `${API}/admin/student-otp-management/admin-details`,
         authHeaders
       );
       if (res.data?.success) {
+        setAdminData(res.data.adminData || res.data.studentSummary);
+        setAdminTimeline(res.data.historyTimeline || []);
         setAdminSessions(res.data.sessions || []);
+        setAdminCurrentSessionId(res.data.currentSessionId || null);
+        setAdminCache(cacheKey, res.data, AdminCacheScopes.OTP);
       }
     } catch (err) {
-      console.warn("Failed to fetch admin sessions:", err.message);
+      console.warn("Failed to fetch admin details:", err.message);
     } finally {
+      setAdminLoading(false);
       setAdminSessionsLoading(false);
+    }
+  };
+
+  const fetchAdminSessions = async () => {
+    return fetchAdminDetails();
+  };
+
+  const fetchSubAdminDetails = async (subAdminId = null, forceRefresh = false) => {
+    const cacheKey = `gf_admin_otp_subadmin_${subAdminId || "default"}`;
+    if (!forceRefresh) {
+      const cached = getAdminCache(cacheKey);
+      if (cached) {
+        setSubAdminsList(cached.subAdmins || []);
+        setSelectedSubAdminId(cached.selectedSubAdminId || null);
+        setSubAdminData(cached.selectedSubAdmin || cached.studentSummary || null);
+        setSubAdminTimeline(cached.historyTimeline || []);
+        return;
+      }
+    }
+    setSubAdminLoading(true);
+    try {
+      const url = subAdminId
+        ? `${API}/admin/student-otp-management/subadmin-details?subAdminId=${subAdminId}`
+        : `${API}/admin/student-otp-management/subadmin-details`;
+      const res = await axios.get(url, authHeaders);
+      if (res.data?.success) {
+        setSubAdminsList(res.data.subAdmins || []);
+        setSelectedSubAdminId(res.data.selectedSubAdminId || null);
+        setSubAdminData(res.data.selectedSubAdmin || res.data.studentSummary || null);
+        setSubAdminTimeline(res.data.historyTimeline || []);
+        setAdminCache(cacheKey, res.data, AdminCacheScopes.OTP);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch sub-admin details:", err.message);
+    } finally {
+      setSubAdminLoading(false);
+    }
+  };
+
+  const handleTabSwitch = (newTab) => {
+    if (newTab === activeTab) return;
+    setActiveTab(newTab);
+    setErrorMsg("");
+    setSuccessMsg("");
+    setHistoryPage(1);
+
+    if (newTab === "normal-student") {
+      if (studentData?.regNo === "230301120327") {
+        setStudentData(null);
+        setTimeline([]);
+        setSearchReg("");
+      }
+    } else if (newTab === "special-student") {
+      setSearchReg("230301120327");
+      handleSearchWithReg("230301120327");
+    } else if (newTab === "admin") {
+      fetchAdminDetails();
+    } else if (newTab === "subadmin") {
+      fetchSubAdminDetails(selectedSubAdminId);
     }
   };
 
@@ -396,6 +547,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
       if (res.data?.success) {
         setAdminResetSuccess(res.data.message || "Administrator OTP limit for today has been reset to 0/5 (5 attempts available).");
         invalidateAdminCache(AdminCacheScopes.OTP);
+        fetchAdminDetails(true);
       } else {
         setErrorMsg(res.data?.message || "Failed to reset Administrator OTP limit.");
       }
@@ -407,167 +559,526 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
     }
   };
 
-  const handleConfirmAdminRevoke = async () => {
-    if (!adminRevokeTarget) return;
-    setAdminSessionRevokeLoading(true);
-    setErrorMsg("");
-    setAdminRevokeSuccess("");
-    try {
-      if (adminRevokeTarget.isAll) {
-        const res = await axios.post(
-          `${API}/admin/student-otp-management/revoke-all-admin-sessions`,
-          { reason: adminRevokeReason || "ALL_ADMIN_SESSIONS_REVOKED_BY_MAIN_ADMIN", revokeCurrent: false },
-          authHeaders
-        );
-        if (res.data?.success) {
-          setAdminRevokeSuccess(res.data.message || "All other administrator sessions have been revoked.");
-          setShowAdminRevokeModal(false);
-          setAdminRevokeTarget(null);
-          setAdminRevokeReason("");
-          invalidateAdminCache(AdminCacheScopes.OTP);
-          fetchAdminSessions();
-        } else {
-          setErrorMsg(res.data?.message || "Failed to revoke sessions.");
-        }
-      } else {
-        const targetId = adminRevokeTarget.session?.sessionId;
-        const res = await axios.post(
-          `${API}/admin/student-otp-management/revoke-admin-session/${targetId}`,
-          { reason: adminRevokeReason || "MANUAL_REVOCATION_BY_MAIN_ADMIN" },
-          authHeaders
-        );
-        if (res.data?.success) {
-          setAdminRevokeSuccess(res.data.message || "Administrator session revoked successfully.");
-          setShowAdminRevokeModal(false);
-          setAdminRevokeTarget(null);
-          setAdminRevokeReason("");
-          invalidateAdminCache(AdminCacheScopes.OTP);
-          fetchAdminSessions();
-        } else {
-          setErrorMsg(res.data?.message || "Failed to revoke session.");
-        }
-      }
-    } catch (err) {
-      console.error("Admin Session Revoke Error:", err);
-      setErrorMsg(err.response?.data?.message || "An error occurred while revoking administrator session.");
-    } finally {
-      setAdminSessionRevokeLoading(false);
-    }
-  };
-
   const isMob = isMobileScreen;
+
+  const displayTarget =
+    activeTab === "admin"
+      ? adminData
+      : activeTab === "subadmin"
+      ? subAdminData
+      : studentData;
+
+  const displayTimeline =
+    activeTab === "admin"
+      ? adminTimeline
+      : activeTab === "subadmin"
+      ? subAdminTimeline
+      : timeline;
+
+  const isDisplayLoading =
+    activeTab === "admin"
+      ? adminLoading
+      : activeTab === "subadmin"
+      ? subAdminLoading
+      : loading;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: isMob ? 16 : 22, fontFamily: "'DM Sans', sans-serif" }}>
-      {/* ── Search Bar Card ── */}
+      {/* ── 4 Category Navigation Tabs ── */}
       <div
         style={{
-          background: "#ffffff",
-          borderRadius: isMob ? 14 : 16,
-          border: "1px solid #e2e8f0",
-          padding: isMob ? "14px 12px" : "20px 24px",
-          boxShadow: "0 2px 10px rgba(15, 23, 42, 0.03)",
+          display: "grid",
+          gridTemplateColumns: isMob ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+          gap: isMob ? 8 : 12,
         }}
       >
-        <form onSubmit={handleSearch} style={{ display: "flex", gap: 10, flexDirection: isMob ? "column" : "row", alignItems: "stretch" }}>
-          <div style={{ position: "relative", flex: 1, minWidth: isMob ? "100%" : 280 }}>
-            <Search
-              size={18}
-              color="#94a3b8"
-              style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }}
-            />
-            <input
-              type="text"
-              placeholder={isMob ? "Enter Reg No (e.g., 230301120137)..." : "Enter Student Reg No (e.g., 230301120137)..."}
-              value={searchReg}
-              onChange={(e) => setSearchReg(e.target.value)}
+        {[
+          { id: "normal-student", label: "Normal Student", desc: "Directory & Search", icon: Users },
+          { id: "special-student", label: "Special Student", desc: "JAGAN (Multi-Device)", icon: ShieldCheck, badge: "VIP" },
+          { id: "admin", label: "Main Admin", desc: "Master Security", icon: ShieldAlert, badge: "Chief" },
+          { id: "subadmin", label: "Sub-Admin", desc: "Delegated Access", icon: KeyRound, badge: `${subAdminsList.length || 1} Accounts` },
+        ].map((tab) => {
+          const isActive = activeTab === tab.id;
+          const IconComponent = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => handleTabSwitch(tab.id)}
               style={{
-                width: "100%",
-                padding: "11px 14px 11px 42px",
-                borderRadius: 12,
-                border: "1.5px solid #cbd5e1",
-                fontSize: 13.5,
-                fontWeight: 600,
-                color: "#0f172a",
-                outline: "none",
-                transition: "border-color 0.2s",
-                boxSizing: "border-box",
-                maxWidth: "100%",
-                fontFamily: "'DM Sans', sans-serif",
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: isMob ? "11px 12px" : "14px 18px",
+                borderRadius: 14,
+                border: isActive ? "1.5px solid #4f46e5" : "1px solid #e2e8f0",
+                background: isActive ? "linear-gradient(135deg, #eef2ff 0%, #ffffff 100%)" : "#ffffff",
+                boxShadow: isActive ? "0 4px 14px rgba(79, 70, 229, 0.12)" : "0 1px 3px rgba(15, 23, 42, 0.03)",
+                cursor: "pointer",
+                textAlign: "left",
+                transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
               }}
-              onFocus={(e) => (e.target.style.borderColor = "#4f46e5")}
-              onBlur={(e) => (e.target.style.borderColor = "#cbd5e1")}
-            />
+            >
+              <div
+                style={{
+                  width: isMob ? 32 : 38,
+                  height: isMob ? 32 : 38,
+                  borderRadius: 10,
+                  background: isActive ? "#4f46e5" : "#f1f5f9",
+                  color: isActive ? "#ffffff" : "#64748b",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <IconComponent size={isMob ? 16 : 19} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    style={{
+                      fontSize: isMob ? 12.5 : 14,
+                      fontWeight: isActive ? 800 : 700,
+                      color: isActive ? "#312e81" : "#1e293b",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {tab.label}
+                  </span>
+                  {tab.badge && (
+                    <span
+                      style={{
+                        fontSize: 9.5,
+                        fontWeight: 700,
+                        padding: "1px 5px",
+                        borderRadius: 4,
+                        background: isActive ? "#e0e7ff" : "#f1f5f9",
+                        color: isActive ? "#4338ca" : "#64748b",
+                      }}
+                    >
+                      {tab.badge}
+                    </span>
+                  )}
+                </div>
+                <div
+                  style={{
+                    fontSize: isMob ? 10.5 : 11.5,
+                    color: isActive ? "#4f46e5" : "#94a3b8",
+                    fontWeight: 500,
+                    marginTop: 2,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {tab.desc}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Tab Context Banners / Controls ── */}
+      {activeTab === "normal-student" && (
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: isMob ? 14 : 16,
+            border: "1px solid #e2e8f0",
+            padding: isMob ? "14px 12px" : "20px 24px",
+            boxShadow: "0 2px 10px rgba(15, 23, 42, 0.03)",
+          }}
+        >
+          <form onSubmit={handleSearch} style={{ display: "flex", gap: 10, flexDirection: isMob ? "column" : "row", alignItems: "stretch" }}>
+            <div style={{ position: "relative", flex: 1, minWidth: isMob ? "100%" : 280 }}>
+              <Search
+                size={18}
+                color="#94a3b8"
+                style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }}
+              />
+              <input
+                type="text"
+                placeholder={isMob ? "Enter Reg No (e.g., 230301120137)..." : "Enter Student Reg No (e.g., 230301120137)..."}
+                value={searchReg}
+                onChange={(e) => setSearchReg(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "11px 14px 11px 42px",
+                  borderRadius: 12,
+                  border: "1.5px solid #cbd5e1",
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  color: "#0f172a",
+                  outline: "none",
+                  transition: "border-color 0.2s",
+                  boxSizing: "border-box",
+                  maxWidth: "100%",
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
+                onFocus={(e) => (e.target.style.borderColor = "#4f46e5")}
+                onBlur={(e) => (e.target.style.borderColor = "#cbd5e1")}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                padding: isMob ? "11px 16px" : "12px 24px",
+                borderRadius: 12,
+                border: "none",
+                background: "#4f46e5",
+                color: "#ffffff",
+                fontSize: 13.5,
+                fontWeight: 700,
+                cursor: loading ? "not-allowed" : "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                boxShadow: "0 4px 12px rgba(79, 70, 229, 0.25)",
+                transition: "all 0.2s",
+                opacity: loading ? 0.8 : 1,
+              }}
+            >
+              {loading ? <RefreshCw size={15} className="spin" /> : <Search size={15} />}
+              <span>Search Activity</span>
+            </button>
+          </form>
+          {errorMsg && (
+            <div
+              style={{
+                marginTop: 14,
+                background: "#fef2f2",
+                border: "1px solid #fecaca",
+                borderRadius: 10,
+                padding: "10px 14px",
+                color: "#b91c1c",
+                fontSize: 13,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <AlertTriangle size={16} color="#dc2626" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+          {successMsg && (
+            <div
+              style={{
+                marginTop: 14,
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                borderRadius: 10,
+                padding: "10px 14px",
+                color: "#166534",
+                fontSize: 13,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <CheckCircle2 size={16} color="#16a34a" />
+              <span>{successMsg}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "special-student" && (
+        <div
+          style={{
+            background: "linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)",
+            border: "1px solid #e9d5ff",
+            borderRadius: 14,
+            padding: isMob ? "12px 14px" : "16px 20px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+            boxShadow: "0 2px 8px rgba(124, 58, 237, 0.06)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: "#7c3aed",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <ShieldCheck size={22} />
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 15, fontWeight: 800, color: "#581c87" }}>
+                  Special Student Profile: 230301120327 (JAGAN PARIDA)
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "#6b21a8",
+                    background: "#f3e8ff",
+                    border: "1px solid #d8b4fe",
+                    padding: "2px 7px",
+                    borderRadius: 6,
+                  }}
+                >
+                  VIP Multi-Device
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: "#7e22ce", marginTop: 2 }}>
+                Elevated multi-device authorization (2 active slots) and daily 5-attempt OTP quota with zero cooldown blocks.
+              </div>
+            </div>
           </div>
           <button
-            type="submit"
+            type="button"
+            onClick={() => handleSearchWithReg("230301120327")}
             disabled={loading}
             style={{
-              padding: isMob ? "11px 16px" : "12px 24px",
-              borderRadius: 12,
+              padding: "8px 16px",
+              borderRadius: 10,
               border: "none",
-              background: "#4f46e5",
+              background: "#7c3aed",
               color: "#ffffff",
-              fontSize: 13.5,
+              fontSize: 12.5,
               fontWeight: 700,
               cursor: loading ? "not-allowed" : "pointer",
               display: "inline-flex",
               alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              boxShadow: "0 4px 12px rgba(79, 70, 229, 0.25)",
-              transition: "all 0.2s",
-              opacity: loading ? 0.8 : 1,
+              gap: 6,
+              boxShadow: "0 2px 6px rgba(124, 58, 237, 0.25)",
             }}
           >
-            {loading ? <RefreshCw size={15} className="spin" /> : <Search size={15} />}
-            <span>Search Activity</span>
+            <RefreshCw size={13} className={loading ? "spin" : ""} />
+            <span>Refresh Status</span>
           </button>
-        </form>
+        </div>
+      )}
 
-        {errorMsg && (
-          <div
+      {activeTab === "admin" && (
+        <div
+          style={{
+            background: "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)",
+            border: "1px solid #c7d2fe",
+            borderRadius: 14,
+            padding: isMob ? "12px 14px" : "16px 20px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+            boxShadow: "0 2px 8px rgba(79, 70, 229, 0.06)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: "#4338ca",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <ShieldAlert size={22} />
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 15, fontWeight: 800, color: "#1e1b4b" }}>
+                  Institutional Main Administrator Security Console
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "#3730a3",
+                    background: "#e0e7ff",
+                    border: "1px solid #c7d2fe",
+                    padding: "2px 7px",
+                    borderRadius: 6,
+                  }}
+                >
+                  Chief Officer
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: "#4338ca", marginTop: 2 }}>
+                Live session monitoring, real-time device eviction, and emergency OTP quota control.
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => fetchAdminDetails(true)}
+            disabled={adminLoading}
             style={{
-              marginTop: 14,
-              background: "#fef2f2",
-              border: "1px solid #fecaca",
+              padding: "8px 16px",
               borderRadius: 10,
-              padding: "10px 14px",
-              color: "#b91c1c",
-              fontSize: 13,
-              display: "flex",
+              border: "none",
+              background: "#4338ca",
+              color: "#ffffff",
+              fontSize: 12.5,
+              fontWeight: 700,
+              cursor: adminLoading ? "not-allowed" : "pointer",
+              display: "inline-flex",
               alignItems: "center",
-              gap: 8,
+              gap: 6,
+              boxShadow: "0 2px 6px rgba(67, 56, 202, 0.25)",
             }}
           >
-            <AlertTriangle size={16} color="#dc2626" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
+            <RefreshCw size={13} className={adminLoading ? "spin" : ""} />
+            <span>Refresh Admin Status</span>
+          </button>
+        </div>
+      )}
 
-        {successMsg && (
-          <div
-            style={{
-              marginTop: 14,
-              background: "#f0fdf4",
-              border: "1px solid #bbf7d0",
-              borderRadius: 10,
-              padding: "10px 14px",
-              color: "#15803d",
-              fontSize: 13,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <CheckCircle2 size={16} color="#16a34a" />
-            <span>{successMsg}</span>
+      {activeTab === "subadmin" && (
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: 14,
+            padding: isMob ? "14px 14px" : "18px 22px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: "#0284c7",
+                  color: "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <KeyRound size={19} />
+              </div>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
+                    Sub-Administrator Accounts ({subAdminsList.length})
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+                  Select an authorized sub-administrator to inspect active devices, session security, and OTP logs.
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => fetchSubAdminDetails(selectedSubAdminId, true)}
+              disabled={subAdminLoading}
+              style={{
+                padding: "7px 14px",
+                borderRadius: 9,
+                border: "1px solid #cbd5e1",
+                background: "#f8fafc",
+                color: "#334155",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: subAdminLoading ? "not-allowed" : "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+              }}
+            >
+              <RefreshCw size={12} className={subAdminLoading ? "spin" : ""} />
+              <span>Refresh</span>
+            </button>
           </div>
-        )}
-      </div>
 
-      {/* ── Student Summary & Timeline (If Student Found) ── */}
-      {studentData && (
+          {subAdminsList.length > 0 ? (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", paddingTop: 4 }}>
+              {subAdminsList.map((sa) => {
+                const isSel = selectedSubAdminId === sa._id;
+                return (
+                  <button
+                    key={sa._id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedSubAdminId(sa._id);
+                      fetchSubAdminDetails(sa._id);
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 14px",
+                      borderRadius: 10,
+                      border: isSel ? "1.5px solid #0284c7" : "1px solid #e2e8f0",
+                      background: isSel ? "#f0f9ff" : "#ffffff",
+                      color: isSel ? "#0369a1" : "#334155",
+                      fontSize: 12.5,
+                      fontWeight: isSel ? 800 : 600,
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <User size={14} color={isSel ? "#0284c7" : "#64748b"} />
+                    <span>{sa.name}</span>
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        padding: "1px 6px",
+                        borderRadius: 4,
+                        background: sa.status === "active" ? "#dcfce7" : "#fee2e2",
+                        color: sa.status === "active" ? "#15803d" : "#b91c1c",
+                      }}
+                    >
+                      {sa.status}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ padding: "14px", borderRadius: 10, background: "#f8fafc", color: "#64748b", fontSize: 13, textAlign: "center" }}>
+              No sub-administrator accounts configured in database.
+            </div>
+          )}
+        </div>
+      )}
+
+      {isDisplayLoading && !displayTarget && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "50px 20px", background: "#ffffff", borderRadius: 16, border: "1px solid #e2e8f0", gap: 12 }}>
+          <Loader2 size={24} className="spin" color="#4f46e5" />
+          <span style={{ fontSize: 14, fontWeight: 700, color: "#475569" }}>
+            {activeTab === "admin" ? "Loading administrator security data..." : activeTab === "subadmin" ? "Loading sub-administrator sessions..." : "Loading student details..."}
+          </span>
+        </div>
+      )}
+
+      {/* ── Summary & Timeline Inspection View ── */}
+      {displayTarget && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -591,45 +1102,47 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
               <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#2563eb", boxShadow: "0 0 0 3px rgba(37,99,235,0.2)" }} />
               <span style={{ fontSize: isMob ? 12.5 : 13.5, fontWeight: 800, color: "#1e40af" }}>
-                Currently Inspecting: {studentData.name || studentData.studentName || "Student"} ({studentData.regNo})
+                Currently Inspecting: {displayTarget.name || displayTarget.studentName || "Account"} ({displayTarget.regNo})
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setStudentData(null);
-                setTimeline([]);
-                setSearchReg("");
-                setErrorMsg("");
-                setSuccessMsg("");
-              }}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-                padding: "6px 12px",
-                borderRadius: 8,
-                border: "1px solid #cbd5e1",
-                background: "#ffffff",
-                color: "#475569",
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: "pointer",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-                transition: "all 0.15s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#f8fafc";
-                e.currentTarget.style.color = "#0f172a";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#ffffff";
-                e.currentTarget.style.color = "#475569";
-              }}
-            >
-              <X size={13} />
-              <span>Close Inspection</span>
-            </button>
+            {activeTab === "normal-student" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStudentData(null);
+                  setTimeline([]);
+                  setSearchReg("");
+                  setErrorMsg("");
+                  setSuccessMsg("");
+                }}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "6px 12px",
+                  borderRadius: 8,
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                  color: "#475569",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                  transition: "all 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#f8fafc";
+                  e.currentTarget.style.color = "#0f172a";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#ffffff";
+                  e.currentTarget.style.color = "#475569";
+                }}
+              >
+                <X size={13} />
+                <span>Close Inspection</span>
+              </button>
+            )}
           </div>
 
           {/* Summary Overview Grid */}
@@ -640,7 +1153,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               gap: isMob ? 10 : 14,
             }}
           >
-            {/* Student Info Card */}
+            {/* Identity Info Card */}
             <div
               style={{
                 background: "#ffffff",
@@ -653,24 +1166,24 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               }}
             >
               <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-                Student Identity
+                {activeTab === "admin" ? "Administrator Identity" : activeTab === "subadmin" ? "Sub-Admin Identity" : "Student Identity"}
               </div>
               <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}>
-                {studentData.studentName}
+                {displayTarget.studentName}
               </div>
               <div style={{ fontSize: 12.5, fontWeight: 700, color: "#4f46e5" }}>
-                {studentData.regNo}
+                {displayTarget.regNo}
               </div>
               <div style={{ fontSize: 12, color: "#64748b", display: "flex", alignItems: "center", gap: 4 }}>
-                <Mail size={12} /> {studentData.maskedEmail}
+                <Mail size={12} /> {displayTarget.maskedEmail}
               </div>
             </div>
 
             {/* Today's Usage Card */}
             <div
               style={{
-                background: studentData.todayUsage >= studentData.maxDailyLimit ? "#fef2f2" : "#f8fafc",
-                border: `1px solid ${studentData.todayUsage >= studentData.maxDailyLimit ? "#fecaca" : "#e2e8f0"}`,
+                background: displayTarget.todayUsage >= displayTarget.maxDailyLimit ? "#fef2f2" : "#f8fafc",
+                border: `1px solid ${displayTarget.todayUsage >= displayTarget.maxDailyLimit ? "#fecaca" : "#e2e8f0"}`,
                 borderRadius: 14,
                 padding: isMob ? "14px 16px" : "16px 18px",
                 display: "flex",
@@ -679,21 +1192,21 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               }}
             >
               <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-                Today's OTP Quota ({studentData.todayDateKey})
+                Today's OTP Quota ({displayTarget.todayDateKey})
               </div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: studentData.todayUsage >= studentData.maxDailyLimit ? "#b91c1c" : "#0f172a" }}>
-                {studentData.todayUsage} / {studentData.maxDailyLimit}
+              <div style={{ fontSize: 24, fontWeight: 800, color: displayTarget.todayUsage >= displayTarget.maxDailyLimit ? "#b91c1c" : "#0f172a" }}>
+                {displayTarget.todayUsage} / {displayTarget.maxDailyLimit}
               </div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: studentData.todayUsage >= studentData.maxDailyLimit ? "#dc2626" : "#16a34a" }}>
-                {studentData.todayUsage >= studentData.maxDailyLimit ? "Daily quota exhausted" : `${studentData.remainingDailyAttempts} attempt(s) remaining`}
+              <div style={{ fontSize: 12, fontWeight: 600, color: displayTarget.todayUsage >= displayTarget.maxDailyLimit ? "#dc2626" : "#16a34a" }}>
+                {displayTarget.todayUsage >= displayTarget.maxDailyLimit ? "Daily quota exhausted" : `${displayTarget.remainingDailyAttempts} attempt(s) remaining`}
               </div>
             </div>
 
             {/* Cooldown State Card */}
             <div
               style={{
-                background: studentData.isCooldownActive ? "#fffbeb" : "#f8fafc",
-                border: `1px solid ${studentData.isCooldownActive ? "#fde68a" : "#e2e8f0"}`,
+                background: displayTarget.isCooldownActive ? "#fffbeb" : "#f8fafc",
+                border: `1px solid ${displayTarget.isCooldownActive ? "#fde68a" : "#e2e8f0"}`,
                 borderRadius: 14,
                 padding: isMob ? "14px 16px" : "16px 18px",
                 display: "flex",
@@ -704,10 +1217,10 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
                 180-Second Cooldown
               </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: studentData.isCooldownActive ? "#b45309" : "#10b981", display: "flex", alignItems: "center", gap: 6 }}>
-                {studentData.isCooldownActive ? (
+              <div style={{ fontSize: 18, fontWeight: 800, color: displayTarget.isCooldownActive ? "#b45309" : "#10b981", display: "flex", alignItems: "center", gap: 6 }}>
+                {displayTarget.isCooldownActive ? (
                   <>
-                    <Clock size={18} /> {studentData.cooldownRemainingSeconds}s Active
+                    <Clock size={18} /> {displayTarget.cooldownRemainingSeconds}s Active
                   </>
                 ) : (
                   <>
@@ -716,7 +1229,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 )}
               </div>
               <div style={{ fontSize: 12, color: "#64748b" }}>
-                {studentData.isCooldownActive ? "Resend locked temporarily" : "Can send new OTP immediately"}
+                {displayTarget.isCooldownActive ? "Resend locked temporarily" : "Can send new OTP immediately"}
               </div>
             </div>
 
@@ -733,13 +1246,13 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               }}
             >
               <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-                Active Devices ({studentData.activeDevicesCount} / {studentData.maxAllowedDevices})
+                Active Devices ({displayTarget.activeDevicesCount} / {displayTarget.maxAllowedDevices})
               </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: studentData.activeDevicesCount >= studentData.maxAllowedDevices ? "#b91c1c" : "#0f172a", display: "flex", alignItems: "center", gap: 6 }}>
-                <Smartphone size={18} /> {studentData.activeDevicesCount} Active Device(s)
+              <div style={{ fontSize: 18, fontWeight: 800, color: displayTarget.activeDevicesCount >= displayTarget.maxAllowedDevices ? "#b91c1c" : "#0f172a", display: "flex", alignItems: "center", gap: 6 }}>
+                <Smartphone size={18} /> {displayTarget.activeDevicesCount} Active Device(s)
               </div>
               <div style={{ fontSize: 12, color: "#64748b" }}>
-                {studentData.activeDevicesCount >= studentData.maxAllowedDevices ? "Single-device lock active" : "Device slots available"}
+                {displayTarget.activeDevicesCount >= displayTarget.maxAllowedDevices ? "Device quota limit reached" : "Device slots available"}
               </div>
             </div>
           </div>
@@ -761,25 +1274,29 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                     width: 32,
                     height: 32,
                     borderRadius: 8,
-                    background: (studentData.activeSessions?.length || 0) > 0 ? "#ecfdf5" : "#f1f5f9",
+                    background: (displayTarget.activeSessions?.length || 0) > 0 ? "#ecfdf5" : "#f1f5f9",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  <Smartphone size={17} color={(studentData.activeSessions?.length || 0) > 0 ? "#059669" : "#64748b"} />
+                  <Smartphone size={17} color={(displayTarget.activeSessions?.length || 0) > 0 ? "#059669" : "#64748b"} />
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: isMob ? 14.5 : 15.5, fontWeight: 800, color: "#0f172a" }}>
-                    Active Device Sessions ({studentData.activeDevicesCount} / {studentData.maxAllowedDevices})
+                    Active Device Sessions ({displayTarget.activeDevicesCount} / {displayTarget.maxAllowedDevices})
                   </h3>
                   <p style={{ margin: "2px 0 0 0", fontSize: 11.5, color: "#64748b" }}>
-                    Live student sessions currently holding valid authentication tokens in MongoDB.
+                    {activeTab === "admin"
+                      ? "Live administrator sessions currently holding valid authentication tokens in MongoDB."
+                      : activeTab === "subadmin"
+                      ? "Live sub-administrator sessions currently holding valid authentication tokens in MongoDB."
+                      : "Live student sessions currently holding valid authentication tokens in MongoDB."}
                   </p>
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                {(studentData.activeSessions?.length || 0) > 1 && (
+                {(displayTarget.activeSessions?.length || 0) > 1 && (
                   <button
                     type="button"
                     onClick={() => {
@@ -805,27 +1322,27 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                     onMouseLeave={(e) => { e.currentTarget.style.background = "#fef2f2"; }}
                   >
                     <Trash2 size={12} color="#dc2626" />
-                    Revoke All Devices
+                    {activeTab === "admin" ? "Revoke Other Devices" : "Revoke All Devices"}
                   </button>
                 )}
                 <span
                   style={{
                     fontSize: 11.5,
                     fontWeight: 700,
-                    color: (studentData.activeSessions?.length || 0) > 0 ? "#065f46" : "#64748b",
-                    background: (studentData.activeSessions?.length || 0) > 0 ? "#d1fae5" : "#f1f5f9",
+                    color: (displayTarget.activeSessions?.length || 0) > 0 ? "#065f46" : "#64748b",
+                    background: (displayTarget.activeSessions?.length || 0) > 0 ? "#d1fae5" : "#f1f5f9",
                     padding: "4px 10px",
                     borderRadius: 8,
-                    border: `1px solid ${(studentData.activeSessions?.length || 0) > 0 ? "#a7f3d0" : "#e2e8f0"}`,
+                    border: `1px solid ${(displayTarget.activeSessions?.length || 0) > 0 ? "#a7f3d0" : "#e2e8f0"}`,
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 5,
                   }}
                 >
-                  {(studentData.activeSessions?.length || 0) > 0 ? (
+                  {(displayTarget.activeSessions?.length || 0) > 0 ? (
                     <>
                       <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
-                      {studentData.activeSessions.length} Active Device{studentData.activeSessions.length > 1 ? "s" : ""}
+                      {displayTarget.activeSessions.length} Active Device{displayTarget.activeSessions.length > 1 ? "s" : ""}
                     </>
                   ) : (
                     "0 Active Devices (Signed Out)"
@@ -834,7 +1351,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               </div>
             </div>
 
-            {(!studentData.activeSessions || studentData.activeSessions.length === 0) ? (
+            {(!displayTarget.activeSessions || displayTarget.activeSessions.length === 0) ? (
               <div
                 style={{
                   padding: "18px 20px",
@@ -861,9 +1378,9 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                         flexShrink: 0,
                       }}
                     >
-                      {(studentData.lastLogoutInfo?.device?.deviceType === "Mobile" || studentData.lastActiveDevice?.deviceType === "Mobile") ? (
+                      {(displayTarget.lastLogoutInfo?.device?.deviceType === "Mobile" || displayTarget.lastActiveDevice?.deviceType === "Mobile") ? (
                         <Smartphone size={20} />
-                      ) : (studentData.lastLogoutInfo?.device?.deviceType === "Tablet" || studentData.lastActiveDevice?.deviceType === "Tablet") ? (
+                      ) : (displayTarget.lastLogoutInfo?.device?.deviceType === "Tablet" || displayTarget.lastActiveDevice?.deviceType === "Tablet") ? (
                         <Tablet size={20} />
                       ) : (
                         <Laptop size={20} />
@@ -873,11 +1390,11 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                       <div style={{ fontSize: 14, fontWeight: 800, color: "#1e293b", display: "flex", alignItems: "center", gap: 6 }}>
                         <span>Last Active Device:</span>
                         <span style={{ color: "#2563eb" }}>
-                          {studentData.lastLogoutInfo?.device?.platform || studentData.lastActiveDevice?.platform || "Authorized Device"}
+                          {displayTarget.lastLogoutInfo?.device?.platform || displayTarget.lastActiveDevice?.platform || "Authorized Device"}
                         </span>
                       </div>
                       <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>
-                        {studentData.lastLogoutInfo?.device?.os || studentData.lastActiveDevice?.os || "Unknown OS"} • {studentData.lastLogoutInfo?.device?.browser || studentData.lastActiveDevice?.browser || "Browser"} ({studentData.lastLogoutInfo?.device?.deviceType || studentData.lastActiveDevice?.deviceType || "Device"})
+                        {displayTarget.lastLogoutInfo?.device?.os || displayTarget.lastActiveDevice?.os || "Unknown OS"} • {displayTarget.lastLogoutInfo?.device?.browser || displayTarget.lastActiveDevice?.browser || "Browser"} ({displayTarget.lastLogoutInfo?.device?.deviceType || displayTarget.lastActiveDevice?.deviceType || "Device"})
                       </div>
                     </div>
                   </div>
@@ -904,11 +1421,11 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                   <div style={{ background: "#ffffff", padding: "10px 14px", borderRadius: 10, border: "1px solid #e2e8f0" }}>
                     <div style={{ color: "#94a3b8", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Logged Out At</div>
                     <div style={{ color: "#0f172a", fontWeight: 800, marginTop: 3, fontSize: 13 }}>
-                      {formatISTDate(studentData.lastLogoutInfo?.loggedOutAt || studentData.lastActiveDevice?.loggedOutAt)}
+                      {formatISTDate(displayTarget.lastLogoutInfo?.loggedOutAt || displayTarget.lastActiveDevice?.loggedOutAt)}
                     </div>
-                    {(studentData.lastLogoutInfo?.loggedOutAt || studentData.lastActiveDevice?.loggedOutAt) && (
+                    {(displayTarget.lastLogoutInfo?.loggedOutAt || displayTarget.lastActiveDevice?.loggedOutAt) && (
                       <div style={{ color: "#64748b", fontSize: 11, marginTop: 2 }}>
-                        {formatRelativeTime(studentData.lastLogoutInfo?.loggedOutAt || studentData.lastActiveDevice?.loggedOutAt)}
+                        {formatRelativeTime(displayTarget.lastLogoutInfo?.loggedOutAt || displayTarget.lastActiveDevice?.loggedOutAt)}
                       </div>
                     )}
                   </div>
@@ -916,11 +1433,11 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                   <div style={{ background: "#ffffff", padding: "10px 14px", borderRadius: 10, border: "1px solid #e2e8f0" }}>
                     <div style={{ color: "#94a3b8", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Last Active Time</div>
                     <div style={{ color: "#0f172a", fontWeight: 800, marginTop: 3, fontSize: 13 }}>
-                      {formatISTDate(studentData.lastLogoutInfo?.lastActiveAt || studentData.lastActiveDevice?.lastActiveAt)}
+                      {formatISTDate(displayTarget.lastLogoutInfo?.lastActiveAt || displayTarget.lastActiveDevice?.lastActiveAt)}
                     </div>
-                    {(studentData.lastLogoutInfo?.lastActiveAt || studentData.lastActiveDevice?.lastActiveAt) && (
+                    {(displayTarget.lastLogoutInfo?.lastActiveAt || displayTarget.lastActiveDevice?.lastActiveAt) && (
                       <div style={{ color: "#64748b", fontSize: 11, marginTop: 2 }}>
-                        {formatRelativeTime(studentData.lastLogoutInfo?.lastActiveAt || studentData.lastActiveDevice?.lastActiveAt)}
+                        {formatRelativeTime(displayTarget.lastLogoutInfo?.lastActiveAt || displayTarget.lastActiveDevice?.lastActiveAt)}
                       </div>
                     )}
                   </div>
@@ -929,7 +1446,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                     <div style={{ color: "#94a3b8", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Logout Status / Method</div>
                     <div style={{ color: "#0f172a", fontWeight: 700, marginTop: 3, display: "flex", alignItems: "center", gap: 5 }}>
                       <LogOut size={13} color="#e11d48" />
-                      <span>{studentData.lastLogoutInfo?.reason || "Student signed out manually"}</span>
+                      <span>{displayTarget.lastLogoutInfo?.reason || "Signed out"}</span>
                     </div>
                   </div>
 
@@ -937,22 +1454,23 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                     <div style={{ color: "#94a3b8", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Last Known IP</div>
                     <div style={{ color: "#0f172a", fontWeight: 700, marginTop: 3, display: "flex", alignItems: "center", gap: 5 }}>
                       <Globe size={13} color="#64748b" />
-                      <span>{studentData.lastLogoutInfo?.device?.maskedIp || studentData.lastActiveDevice?.maskedIp || "Hidden"}</span>
+                      <span>{displayTarget.lastLogoutInfo?.device?.maskedIp || displayTarget.lastActiveDevice?.maskedIp || "Hidden"}</span>
                     </div>
                   </div>
                 </div>
               </div>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr" : "repeat(auto-fit, minmax(320px, 1fr))", gap: 12 }}>
-                {studentData.activeSessions.map((session, idx) => {
+                {displayTarget.activeSessions.map((session, idx) => {
                   const isMobileDev = session.deviceType === "Mobile";
                   const isTab = session.deviceType === "Tablet";
+                  const isCurrent = Boolean(session.isCurrent);
                   return (
                     <div
                       key={session.sessionId || idx}
                       style={{
-                        background: "#f8fafc",
-                        border: "1px solid #e2e8f0",
+                        background: isCurrent ? "#f0fdf4" : "#f8fafc",
+                        border: `1.5px solid ${isCurrent ? "#86efac" : "#e2e8f0"}`,
                         borderRadius: 12,
                         padding: "14px 16px",
                         display: "flex",
@@ -960,15 +1478,15 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                         gap: 10,
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <div
                             style={{
                               width: 32,
                               height: 32,
                               borderRadius: 8,
-                              background: "#eff6ff",
-                              color: "#2563eb",
+                              background: isCurrent ? "#dcfce7" : "#eff6ff",
+                              color: isCurrent ? "#15803d" : "#2563eb",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
@@ -981,27 +1499,48 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                               {session.platform || "Authorized Device"}
                             </div>
                             <div style={{ fontSize: 11.5, color: "#64748b" }}>
-                              Device {session.deviceIndex || idx + 1} of {studentData.maxAllowedDevices}
+                              Device {session.deviceIndex || idx + 1} of {displayTarget.maxAllowedDevices}
                             </div>
                           </div>
                         </div>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color: "#059669",
-                            background: "#ecfdf5",
-                            border: "1px solid #a7f3d0",
-                            padding: "3px 8px",
-                            borderRadius: 6,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
-                        >
-                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
-                          ACTIVE
-                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          {isCurrent && (
+                            <span
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                color: "#166534",
+                                background: "#dcfce7",
+                                border: "1px solid #86efac",
+                                padding: "2px 7px",
+                                borderRadius: 6,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                              }}
+                            >
+                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e" }} />
+                              This Device (Current)
+                            </span>
+                          )}
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: "#059669",
+                              background: "#ecfdf5",
+                              border: "1px solid #a7f3d0",
+                              padding: "3px 8px",
+                              borderRadius: 6,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
+                            ACTIVE
+                          </span>
+                        </div>
                       </div>
 
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 12, paddingTop: 6, borderTop: "1px solid #f1f5f9" }}>
@@ -1033,39 +1572,45 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
 
                       {/* Revoke Session Button */}
                       <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 6, borderTop: "1px dashed #e2e8f0" }}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRevokeTarget({ isAll: false, session });
-                            setRevokeReason("");
-                            setShowRevokeModal(true);
-                          }}
-                          style={{
-                            padding: "6px 12px",
-                            borderRadius: 8,
-                            border: "1px solid #fecaca",
-                            background: "#fff1f2",
-                            color: "#be123c",
-                            fontSize: 11.5,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 5,
-                            transition: "all 0.15s ease",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "#ffe4e6";
-                            e.currentTarget.style.borderColor = "#fda4af";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "#fff1f2";
-                            e.currentTarget.style.borderColor = "#fecaca";
-                          }}
-                        >
-                          <LogOut size={12} color="#e11d48" />
-                          Revoke Session
-                        </button>
+                        {isCurrent ? (
+                          <span style={{ fontSize: 11.5, color: "#15803d", fontWeight: 700, padding: "4px 8px" }}>
+                            Current Device (Active)
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRevokeTarget({ isAll: false, session });
+                              setRevokeReason("");
+                              setShowRevokeModal(true);
+                            }}
+                            style={{
+                              padding: "6px 12px",
+                              borderRadius: 8,
+                              border: "1px solid #fecaca",
+                              background: "#fff1f2",
+                              color: "#be123c",
+                              fontSize: 11.5,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 5,
+                              transition: "all 0.15s ease",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = "#ffe4e6";
+                              e.currentTarget.style.borderColor = "#fda4af";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = "#fff1f2";
+                              e.currentTarget.style.borderColor = "#fecaca";
+                            }}
+                          >
+                            <LogOut size={12} color="#e11d48" />
+                            Revoke Session
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -1074,14 +1619,14 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             )}
 
             {/* Recent Device Session History & Logout Audit */}
-            {studentData.recentSessions && studentData.recentSessions.length > 0 && (
+            {displayTarget.recentSessions && displayTarget.recentSessions.length > 0 && (
               <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px dashed #cbd5e1" }}>
                 <div style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 8, display: "flex", alignItems: "center", gap: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
                   <Clock size={13} color="#64748b" />
-                  <span>Recent Device Sessions &amp; Logout Log ({studentData.recentSessions.length})</span>
+                  <span>Recent Device Sessions &amp; Logout Log ({displayTarget.recentSessions.length})</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {studentData.recentSessions.slice(0, 5).map((sess, sIdx) => {
+                  {displayTarget.recentSessions.slice(0, 5).map((sess, sIdx) => {
                     const isMobD = sess.deviceType === "Mobile";
                     const isTabD = sess.deviceType === "Tablet";
                     return (
@@ -1133,7 +1678,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
 
           {/* ── Chronological OTP History Timeline (Recent First & 5 Items / Page) ── */}
           {(() => {
-            const sortedTimeline = [...timeline].sort(
+            const sortedTimeline = [...(displayTimeline || [])].sort(
               (a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0)
             );
             const itemsPerPage = 5;
@@ -1174,6 +1719,10 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                     <p style={{ margin: "4px 0 0 0", fontSize: isMob ? 11.5 : 12.5, color: "#64748b" }}>
                       {sortedTimeline.length > 0
                         ? `Showing events ${startIndex + 1}–${endIndex} of ${sortedTimeline.length} • Recent first (5 per page)`
+                        : activeTab === "admin"
+                        ? "No OTP requests recorded for administrator."
+                        : activeTab === "subadmin"
+                        ? "No OTP requests recorded for this sub-admin."
                         : "No OTP requests recorded for this student."}
                     </p>
                   </div>
@@ -1224,7 +1773,13 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                     }}
                   >
                     <Clock size={28} color="#94a3b8" style={{ margin: "0 auto 8px" }} />
-                    <p style={{ margin: 0, fontWeight: 600 }}>No OTP request history logged for this student yet.</p>
+                    <p style={{ margin: 0, fontWeight: 600 }}>
+                      {activeTab === "admin"
+                        ? "No OTP request history logged for administrator yet."
+                        : activeTab === "subadmin"
+                        ? "No OTP request history logged for this sub-admin yet."
+                        : "No OTP request history logged for this student yet."}
+                    </p>
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -1548,7 +2103,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 </h4>
               </div>
               <p style={{ margin: 0, fontSize: isMob ? 12 : 12.5, color: "#64748b", maxWidth: 650, lineHeight: 1.4 }}>
-                Resets only today's OTP quota ({studentData.todayDateKey}) for student <strong>{studentData.regNo}</strong> to <strong>0 / {studentData.maxDailyLimit}</strong> and clears active cooldown. Historical activity logs above are permanently retained for audit purposes.
+                Resets only today's OTP quota ({displayTarget.todayDateKey}) for {activeTab === "admin" ? "Institutional Administrator" : activeTab === "subadmin" ? "Sub-Administrator" : "student"} <strong>{displayTarget.regNo}</strong> to <strong>0 / {displayTarget.maxDailyLimit}</strong> and clears active cooldown. Historical activity logs above are permanently retained for audit purposes.
               </p>
             </div>
 
@@ -1580,7 +2135,8 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
         </motion.div>
       )}
 
-      {/* ── Registered Accounts & Live Login Monitor Directory ── */}
+      {/* ── Registered Accounts & Live Login Monitor Directory (Normal Student Tab Only) ── */}
+      {activeTab === "normal-student" && (
       <div
         style={{
           background: "#ffffff",
@@ -2301,555 +2857,11 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
           );
         })()}
       </div>
-
-      {/* ── Administrator OTP Limit Management Card ── */}
-      <div
-        style={{
-          background: "#ffffff",
-          borderRadius: isMob ? 16 : 20,
-          border: "1.5px solid #e2e8f0",
-          padding: isMob ? "16px 14px" : "24px 28px",
-          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)",
-          display: "flex",
-          flexDirection: isMob ? "column" : "row",
-          alignItems: isMob ? "stretch" : "center",
-          justifyContent: "space-between",
-          gap: 16,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
-              background: "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)",
-              border: "1px solid #c7d2fe",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <ShieldCheck size={22} color="#4338ca" />
-          </div>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#1e1b4b" }}>
-                Administrator OTP Limit Management
-              </h3>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "#4338ca",
-                  background: "#e0e7ff",
-                  padding: "2px 8px",
-                  borderRadius: 6,
-                }}
-              >
-                Max 5 / 24 hrs
-              </span>
-            </div>
-            <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748b" }}>
-              Reset today's OTP request limit & cooldown counter for Master Administrator logins.
-            </p>
-            {adminResetSuccess && (
-              <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 600, color: "#16a34a" }}>
-                {adminResetSuccess}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleResetAdminOtp}
-          disabled={adminResetLoading}
-          style={{
-            padding: "10px 18px",
-            borderRadius: 10,
-            border: "1.5px solid #4338ca",
-            background: adminResetLoading ? "#f1f5f9" : "linear-gradient(135deg, #4338ca 0%, #3730a3 100%)",
-            color: adminResetLoading ? "#94a3b8" : "#ffffff",
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: adminResetLoading ? "not-allowed" : "pointer",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            boxShadow: "0 2px 4px rgba(67, 56, 202, 0.2)",
-            whiteSpace: "nowrap",
-            flexShrink: 0,
-          }}
-        >
-          <RotateCcw size={14} className={adminResetLoading ? "spin" : ""} />
-          <span>{adminResetLoading ? "Resetting Limit..." : "Reset Admin OTP Limit"}</span>
-        </button>
-      </div>
-
-      {/* ── Administrator Active Sessions & Security Control Card ── */}
-      <div
-        style={{
-          background: "#ffffff",
-          borderRadius: isMob ? 16 : 20,
-          border: "1.5px solid #e2e8f0",
-          padding: isMob ? "16px 14px" : "24px 28px",
-          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)",
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 12,
-                background: "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)",
-                border: "1px solid #c7d2fe",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <Monitor size={22} color="#4338ca" />
-            </div>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#1e1b4b" }}>
-                  Administrator Active Sessions ({adminSessions.length})
-                </h3>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: adminSessions.length > 0 ? "#065f46" : "#64748b",
-                    background: adminSessions.length > 0 ? "#d1fae5" : "#f1f5f9",
-                    padding: "2px 8px",
-                    borderRadius: 6,
-                    border: `1px solid ${adminSessions.length > 0 ? "#a7f3d0" : "#e2e8f0"}`,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: adminSessions.length > 0 ? "#10b981" : "#94a3b8" }} />
-                  {adminSessions.length} Active Device{adminSessions.length === 1 ? "" : "s"}
-                </span>
-              </div>
-              <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748b" }}>
-                Authorized admin devices holding valid authentication tokens in MongoDB. Revoking immediately terminates live access.
-              </p>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <button
-              type="button"
-              onClick={fetchAdminSessions}
-              disabled={adminSessionsLoading}
-              title="Refresh admin sessions"
-              style={{
-                padding: "8px 14px",
-                borderRadius: 9,
-                border: "1px solid #cbd5e1",
-                background: "#f8fafc",
-                color: "#475569",
-                fontSize: 12.5,
-                fontWeight: 700,
-                cursor: adminSessionsLoading ? "not-allowed" : "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              <RefreshCw size={13} className={adminSessionsLoading ? "spin" : ""} />
-              <span>{adminSessionsLoading ? "Refreshing..." : "Refresh"}</span>
-            </button>
-
-            {adminSessions.filter((s) => !s.isCurrent).length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setAdminRevokeTarget({ isAll: true, session: null });
-                  setAdminRevokeReason("");
-                  setShowAdminRevokeModal(true);
-                }}
-                style={{
-                  padding: "8px 14px",
-                  borderRadius: 9,
-                  border: "1px solid #fecaca",
-                  background: "#fef2f2",
-                  color: "#b91c1c",
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  transition: "all 0.15s ease",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "#fee2e2"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "#fef2f2"; }}
-              >
-                <Trash2 size={13} color="#dc2626" />
-                <span>Revoke All Other Devices</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {adminRevokeSuccess && (
-          <div
-            style={{
-              padding: "10px 14px",
-              borderRadius: 10,
-              background: "#ecfdf5",
-              border: "1px solid #a7f3d0",
-              color: "#065f46",
-              fontSize: 13,
-              fontWeight: 600,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <CheckCircle2 size={16} color="#059669" />
-            <span>{adminRevokeSuccess}</span>
-          </div>
-        )}
-
-        {adminSessionsLoading && adminSessions.length === 0 ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "30px 20px", color: "#64748b", gap: 10 }}>
-            <Loader2 size={20} className="spin" />
-            <span style={{ fontSize: 13.5, fontWeight: 600 }}>Loading active administrator sessions...</span>
-          </div>
-        ) : adminSessions.length === 0 ? (
-          <div
-            style={{
-              padding: "24px 20px",
-              borderRadius: 12,
-              background: "#f8fafc",
-              border: "1.5px dashed #cbd5e1",
-              textAlign: "center",
-              color: "#64748b",
-              fontSize: 13.5,
-            }}
-          >
-            No active administrator sessions found.
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {adminSessions.map((session, idx) => {
-              const devType = session.deviceInfo?.deviceType || "Desktop";
-              const isMobileDev = devType.toLowerCase() === "mobile";
-              const isTabletDev = devType.toLowerCase() === "tablet";
-              const browserName = session.deviceInfo?.browser || "Browser";
-              const osName = session.deviceInfo?.os || "Operating System";
-              const ipAddress = session.deviceInfo?.ip || "Protected IP";
-              const isCurrent = session.isCurrent;
-
-              return (
-                <div
-                  key={session.sessionId || idx}
-                  style={{
-                    padding: isMob ? "12px 14px" : "14px 18px",
-                    borderRadius: 12,
-                    background: isCurrent ? "#f0fdf4" : "#f8fafc",
-                    border: `1.5px solid ${isCurrent ? "#86efac" : "#e2e8f0"}`,
-                    display: "flex",
-                    flexDirection: isMob ? "column" : "row",
-                    alignItems: isMob ? "flex-start" : "center",
-                    justifyContent: "space-between",
-                    gap: 12,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                    <div
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 10,
-                        background: isCurrent ? "#dcfce7" : "#e2e8f0",
-                        color: isCurrent ? "#15803d" : "#475569",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {isMobileDev ? <Smartphone size={20} /> : isTabletDev ? <Tablet size={20} /> : <Laptop size={20} />}
-                    </div>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>
-                          {browserName} on {osName}
-                        </span>
-                        {isCurrent && (
-                          <span
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 700,
-                              color: "#15803d",
-                              background: "#dcfce7",
-                              border: "1px solid #86efac",
-                              padding: "2px 7px",
-                              borderRadius: 6,
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4,
-                            }}
-                          >
-                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e" }} />
-                            This Device (Current)
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 3, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <span>IP: <strong style={{ color: "#334155" }}>{ipAddress}</strong></span>
-                        <span>•</span>
-                        <span>Logged in: <strong style={{ color: "#334155" }}>{formatISTDate(session.loggedInAt)}</strong></span>
-                        <span>•</span>
-                        <span>Last Active: <strong style={{ color: "#334155" }}>{formatRelativeTime(session.lastActiveAt)}</strong></span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, alignSelf: isMob ? "flex-end" : "center" }}>
-                    {!isCurrent ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAdminRevokeTarget({ isAll: false, session });
-                          setAdminRevokeReason("");
-                          setShowAdminRevokeModal(true);
-                        }}
-                        style={{
-                          padding: "6px 14px",
-                          borderRadius: 8,
-                          background: "#ffffff",
-                          border: "1px solid #fca5a5",
-                          color: "#b91c1c",
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 5,
-                          transition: "all 0.15s ease",
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = "#fef2f2"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = "#ffffff"; }}
-                      >
-                        <LogOut size={13} color="#dc2626" />
-                        <span>Revoke Session</span>
-                      </button>
-                    ) : (
-                      <span style={{ fontSize: 12, color: "#15803d", fontWeight: 700, padding: "4px 8px" }}>
-                        Active
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ── Administrator Revoke Session Confirmation Modal ── */}
-      <AnimatePresence>
-        {showAdminRevokeModal && adminRevokeTarget && (
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "rgba(15, 23, 42, 0.65)",
-              backdropFilter: "blur(4px)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 9999,
-              padding: 16,
-            }}
-            onClick={() => !adminSessionRevokeLoading && setShowAdminRevokeModal(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: "#ffffff",
-                borderRadius: 20,
-                maxWidth: 480,
-                width: "100%",
-                padding: 24,
-                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-                border: "1px solid #e2e8f0",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: 10,
-                      background: "#fee2e2",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <LogOut size={20} color="#dc2626" />
-                  </div>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: 16.5, fontWeight: 800, color: "#0f172a" }}>
-                      {adminRevokeTarget.isAll ? "Revoke All Other Admin Sessions" : "Revoke Administrator Session"}
-                    </h3>
-                    <div style={{ fontSize: 12, color: "#64748b" }}>Main Admin Authorization Required</div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => !adminSessionRevokeLoading && setShowAdminRevokeModal(false)}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* Details Box */}
-              <div
-                style={{
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 12,
-                  padding: "14px 16px",
-                  marginBottom: 16,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                {adminRevokeTarget.isAll ? (
-                  <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.5 }}>
-                    This action will immediately revoke <strong>all other active administrator sessions</strong> across all devices. Your current active device session will remain connected.
-                  </div>
-                ) : (
-                  <>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                      <span style={{ color: "#64748b" }}>Target Device:</span>
-                      <strong style={{ color: "#0f172a" }}>
-                        {adminRevokeTarget.session?.deviceInfo?.browser || "Browser"} on {adminRevokeTarget.session?.deviceInfo?.os || "OS"}
-                      </strong>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                      <span style={{ color: "#64748b" }}>IP Address:</span>
-                      <strong style={{ color: "#334155" }}>
-                        {adminRevokeTarget.session?.deviceInfo?.ip || adminRevokeTarget.session?.ip || "Protected IP"}
-                      </strong>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                      <span style={{ color: "#64748b" }}>Session Created:</span>
-                      <span style={{ color: "#334155", fontWeight: 600 }}>
-                        {formatISTDate(adminRevokeTarget.session?.loggedInAt)}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Revocation Reason Input */}
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "#334155", marginBottom: 6 }}>
-                  Audit Trail Reason (Optional):
-                </label>
-                <input
-                  type="text"
-                  value={adminRevokeReason}
-                  onChange={(e) => setAdminRevokeReason(e.target.value)}
-                  placeholder={adminRevokeTarget.isAll ? "e.g. Routine administrative security cleanup" : "e.g. Unrecognized device or administrative signout"}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: 8,
-                    border: "1px solid #cbd5e1",
-                    fontSize: 13,
-                    color: "#0f172a",
-                    boxSizing: "border-box",
-                    outline: "none",
-                  }}
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button
-                  type="button"
-                  disabled={adminSessionRevokeLoading}
-                  onClick={() => setShowAdminRevokeModal(false)}
-                  style={{
-                    padding: "9px 16px",
-                    borderRadius: 8,
-                    border: "1px solid #cbd5e1",
-                    background: "#ffffff",
-                    color: "#475569",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: adminSessionRevokeLoading ? "not-allowed" : "pointer",
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  disabled={adminSessionRevokeLoading}
-                  onClick={handleConfirmAdminRevoke}
-                  style={{
-                    padding: "9px 18px",
-                    borderRadius: 8,
-                    border: "none",
-                    background: adminSessionRevokeLoading ? "#94a3b8" : "#dc2626",
-                    color: "#ffffff",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: adminSessionRevokeLoading ? "not-allowed" : "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    boxShadow: "0 2px 4px rgba(220, 38, 38, 0.2)",
-                  }}
-                >
-                  {adminSessionRevokeLoading ? (
-                    <>
-                      <Loader2 size={14} className="spin" />
-                      <span>Revoking...</span>
-                    </>
-                  ) : (
-                    <>
-                      <LogOut size={14} />
-                      <span>{adminRevokeTarget.isAll ? "Revoke All Other Devices" : "Confirm Revocation"}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      )}
 
       {/* ── Confirmation Modal ── */}
       <AnimatePresence>
-        {showResetModal && studentData && (
+        {showResetModal && displayTarget && (
           <div
             style={{
               position: "fixed",
@@ -2924,12 +2936,14 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: "#64748b" }}>Student Reg No:</span>
-                  <strong style={{ color: "#0f172a" }}>{studentData.regNo} ({studentData.studentName})</strong>
+                  <span style={{ color: "#64748b" }}>
+                    {activeTab === "admin" ? "Admin Account:" : activeTab === "subadmin" ? "Sub-Admin Account:" : "Student Reg No:"}
+                  </span>
+                  <strong style={{ color: "#0f172a" }}>{displayTarget.regNo} ({displayTarget.studentName})</strong>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "#64748b" }}>Today's Usage Change:</span>
-                  <strong style={{ color: "#b91c1c" }}>{studentData.todayUsage} / {studentData.maxDailyLimit} &rarr; <span style={{ color: "#16a34a" }}>0 / {studentData.maxDailyLimit}</span></strong>
+                  <strong style={{ color: "#b91c1c" }}>{displayTarget.todayUsage} / {displayTarget.maxDailyLimit} &rarr; <span style={{ color: "#16a34a" }}>0 / {displayTarget.maxDailyLimit}</span></strong>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "#64748b" }}>Cooldown Status:</span>
@@ -3007,7 +3021,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
 
       {/* ── Revoke Device Session Confirmation Modal ── */}
       <AnimatePresence>
-        {showRevokeModal && revokeTarget && studentData && (
+        {showRevokeModal && revokeTarget && displayTarget && (
           <div
             style={{
               position: "fixed",
@@ -3057,7 +3071,9 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                   </div>
                   <div>
                     <h3 style={{ margin: 0, fontSize: 16.5, fontWeight: 800, color: "#0f172a" }}>
-                      {revokeTarget.isAll ? "Revoke All Device Sessions" : "Revoke Device Session"}
+                      {revokeTarget.isAll
+                        ? (activeTab === "admin" ? "Revoke Other Administrator Sessions" : "Revoke All Device Sessions")
+                        : (activeTab === "admin" ? "Revoke Administrator Session" : "Revoke Device Session")}
                     </h3>
                     <div style={{ fontSize: 12, color: "#64748b" }}>Main Admin Authorization Required</div>
                   </div>
@@ -3084,13 +3100,19 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: "#64748b" }}>Student Reg No:</span>
-                  <strong style={{ color: "#0f172a" }}>{studentData.regNo} ({studentData.studentName})</strong>
+                  <span style={{ color: "#64748b" }}>
+                    {activeTab === "admin" ? "Admin Account:" : activeTab === "subadmin" ? "Sub-Admin Account:" : "Student Reg No:"}
+                  </span>
+                  <strong style={{ color: "#0f172a" }}>{displayTarget.regNo} ({displayTarget.studentName})</strong>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "#64748b" }}>Target Device:</span>
                   <strong style={{ color: "#be123c" }}>
-                    {revokeTarget.isAll ? `All Active Devices (${studentData.activeSessions?.length || 0})` : (revokeTarget.session?.platform || "Authorized Device")}
+                    {revokeTarget.isAll
+                      ? (activeTab === "admin"
+                          ? `All Other Active Devices (${Math.max(0, (displayTarget.activeSessions?.length || 1) - 1)})`
+                          : `All Active Devices (${displayTarget.activeSessions?.length || 0})`)
+                      : (revokeTarget.session?.platform || "Authorized Device")}
                   </strong>
                 </div>
                 {!revokeTarget.isAll && revokeTarget.session && (
