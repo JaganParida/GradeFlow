@@ -95,8 +95,12 @@ export function AppProvider({ children }) {
       const next = typeof studentOrUpdater === "function" ? studentOrUpdater(prev) : studentOrUpdater;
       if (next && next.regNo) {
         try { localStorage.setItem("gf_student_reg", String(next.regNo).trim()); } catch {}
+        if (next.sessionId) {
+          try { localStorage.setItem("gf_student_session_hint", String(next.sessionId).trim()); } catch {}
+        }
       } else if (!next) {
         try { localStorage.removeItem("gf_student_reg"); } catch {}
+        try { localStorage.removeItem("gf_student_session_hint"); } catch {}
       }
       return next;
     });
@@ -146,7 +150,13 @@ export function AppProvider({ children }) {
   const checkAdminStatus = async () => {
     if (isOldDomain) return null;
     try {
+      const headers = {};
+      try {
+        const hint = localStorage.getItem("gf_admin_session_hint");
+        if (hint) headers["x-admin-last-session"] = hint;
+      } catch {}
       const res = await axios.get(`${API_BASE}/auth/admin/check-status`, {
+        headers,
         withCredentials: true,
         timeout: 4000,
       });
@@ -278,15 +288,27 @@ export function AppProvider({ children }) {
           sessionStorage.removeItem("gf_bootstrap_cache");
         } catch (_) {}
 
+        const bootstrapHeaders = {
+          "Cache-Control": "no-cache",
+        };
+        try {
+          const adminHint = localStorage.getItem("gf_admin_session_hint");
+          if (adminHint) {
+            bootstrapHeaders["x-admin-last-session"] = adminHint;
+          }
+          const studentHint = localStorage.getItem("gf_student_session_hint");
+          if (studentHint) {
+            bootstrapHeaders["x-student-last-session"] = studentHint;
+          }
+        } catch (_) {}
+
         const res = await axios.get(`${API_BASE}/auth/bootstrap`, {
           withCredentials: true,
           // Serverless cold starts and slow mobile networks can take longer than
           // six seconds. Do not mistake an unfinished cookie validation for a
           // logged-out student.
           timeout: 15000,
-          headers: {
-            "Cache-Control": "no-cache",
-          },
+          headers: bootstrapHeaders,
         });
 
         if (res.data && res.data.success) {
@@ -296,6 +318,7 @@ export function AppProvider({ children }) {
           if (student && student.regNo && student.sessionId) {
             setStudentSession(student);
             setAuthStatus("AUTHENTICATED");
+            try { localStorage.setItem("gf_student_session_hint", String(student.sessionId).trim()); } catch {}
             // Only non-blocking fetch session profile if we are not currently viewing a specific student route
             const path = typeof window !== "undefined" ? window.location.pathname : "";
             const isViewingSpecificRoute =
@@ -311,6 +334,7 @@ export function AppProvider({ children }) {
             setStudentSession(null);
             setStudentData(null);
             setAuthStatus("UNAUTHENTICATED");
+            try { localStorage.removeItem("gf_student_session_hint"); } catch {}
           }
 
           // 2. Hydrate Admin Session (Pure In-Memory State)
@@ -318,10 +342,14 @@ export function AppProvider({ children }) {
             setAdminToken(true);
             setAdminProfile(admin);
             setAdminAuthStatus("AUTHENTICATED");
+            if (admin.sessionId) {
+              try { localStorage.setItem("gf_admin_session_hint", String(admin.sessionId).trim()); } catch {}
+            }
           } else {
             setAdminToken(false);
             setAdminProfile(null);
             setAdminAuthStatus("UNAUTHENTICATED");
+            try { localStorage.removeItem("gf_admin_session_hint"); } catch {}
           }
 
           // 3. Hydrate Admin Occupancy & Button Visibility
@@ -362,11 +390,19 @@ export function AppProvider({ children }) {
           setAuthStatus("UNAUTHENTICATED");
           setAdminAuthStatus("UNAUTHENTICATED");
           clearAuthPresence();
+          try {
+            localStorage.removeItem("gf_admin_session_hint");
+            localStorage.removeItem("gf_student_session_hint");
+          } catch {}
         }
       } catch (err) {
         console.warn("Authentication bootstrap could not be resolved:", err.message);
         if (err.response?.status === 401 || err.response?.status === 403) {
           clearAuthPresence();
+          try {
+            localStorage.removeItem("gf_admin_session_hint");
+            localStorage.removeItem("gf_student_session_hint");
+          } catch {}
         }
         // A timeout/offline response cannot prove that a cookie is missing.
         // Keep this distinct from an explicit successful unauthenticated
@@ -446,7 +482,12 @@ export function AppProvider({ children }) {
         localStorage.removeItem(key);
         sessionStorage.removeItem(key);
       });
-      const activeSessionId = adminProfileRef.current?.sessionId || "";
+      let activeSessionId = adminProfileRef.current?.sessionId || "";
+      if (!activeSessionId) {
+        try {
+          activeSessionId = localStorage.getItem("gf_admin_session_hint") || "";
+        } catch {}
+      }
 
       const res = await axios.post(
         `${API_BASE}/auth/admin/logout`,
@@ -468,6 +509,9 @@ export function AppProvider({ children }) {
     } catch (err) {
       console.warn("Logout error:", err.message);
     } finally {
+      try {
+        localStorage.removeItem("gf_admin_session_hint");
+      } catch {}
       closeSharedAdminAbly();
       setAdminToken(false);
       setAdminProfile(null);
@@ -1223,7 +1267,12 @@ export function AppProvider({ children }) {
   const studentLogout = async () => {
     setIsLoggingOut(true);
 
-    const activeSessionId = studentSession?.sessionId || "";
+    let activeSessionId = studentSession?.sessionId || "";
+    if (!activeSessionId) {
+      try {
+        activeSessionId = localStorage.getItem("gf_student_session_hint") || "";
+      } catch {}
+    }
     const reg = studentSession?.regNo || studentData?.regNo || "";
 
     // 1. Immediately wipe in-memory state for this device
@@ -1240,6 +1289,7 @@ export function AppProvider({ children }) {
         localStorage.removeItem(k);
         sessionStorage.removeItem(k);
       });
+      localStorage.removeItem("gf_student_session_hint");
     } catch {}
 
     // 2. Clear ONLY this device's session on server
@@ -1250,6 +1300,7 @@ export function AppProvider({ children }) {
         {
           headers: {
             "x-student-session": activeSessionId,
+            "x-student-last-session": activeSessionId,
           },
           withCredentials: true,
         }
@@ -1257,6 +1308,9 @@ export function AppProvider({ children }) {
     } catch (err) {
       console.warn("Student logout server sync:", err);
     } finally {
+      try {
+        localStorage.removeItem("gf_student_session_hint");
+      } catch {}
       // Only clear client auth presence cookie if no admin session remains active
       if (!adminTokenRef.current) {
         clearAuthPresence();
@@ -1303,6 +1357,11 @@ export function AppProvider({ children }) {
       if (res.data?.success && res.data?.authenticated) {
         setAdminToken(true);
         setAdminProfile(res.data);
+        if (res.data.sessionId) {
+          try {
+            localStorage.setItem("gf_admin_session_hint", String(res.data.sessionId).trim());
+          } catch {}
+        }
         if (typeof res.data.isAdminButtonVisible === "boolean") {
           setIsAdminButtonVisible(res.data.isAdminButtonVisible);
         } else if (typeof res.data.activeDeviceCount === "number") {
@@ -1343,6 +1402,11 @@ export function AppProvider({ children }) {
       if (res.data?.alreadyLoggedIn) {
         setAdminToken(true);
         setAdminProfile(res.data);
+        if (res.data.sessionId) {
+          try {
+            localStorage.setItem("gf_admin_session_hint", String(res.data.sessionId).trim());
+          } catch {}
+        }
         if (typeof res.data.isAdminButtonVisible === "boolean") {
           setIsAdminButtonVisible(res.data.isAdminButtonVisible);
         } else if (typeof res.data.activeDeviceCount === "number") {
@@ -1367,6 +1431,11 @@ export function AppProvider({ children }) {
       if (res.data?.success && res.data?.authenticated) {
         setAdminToken(true);
         setAdminProfile(res.data);
+        if (res.data.sessionId) {
+          try {
+            localStorage.setItem("gf_admin_session_hint", String(res.data.sessionId).trim());
+          } catch {}
+        }
         if (typeof res.data.isAdminButtonVisible === "boolean") {
           setIsAdminButtonVisible(res.data.isAdminButtonVisible);
         } else if (typeof res.data.activeDeviceCount === "number") {
@@ -1400,6 +1469,11 @@ export function AppProvider({ children }) {
       if (res.data?.success && res.data?.authenticated) {
         setAdminToken(true);
         setAdminProfile(res.data);
+        if (res.data.sessionId) {
+          try {
+            localStorage.setItem("gf_admin_session_hint", String(res.data.sessionId).trim());
+          } catch {}
+        }
         if (typeof res.data.isAdminButtonVisible === "boolean") {
           setIsAdminButtonVisible(res.data.isAdminButtonVisible);
         } else if (typeof res.data.activeDeviceCount === "number") {

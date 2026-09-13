@@ -1673,6 +1673,17 @@ router.get("/bootstrap", async (req, res) => {
       } catch {}
     }
 
+    // Check if client previously had a student session on this device but cookies were cleared
+    const clientLastStudentSession = req.headers["x-student-last-session"] || req.query?.lastStudentSession;
+    if (!studentAuth && clientLastStudentSession) {
+      try {
+        await StudentSession.findOneAndUpdate(
+          { sessionId: clientLastStudentSession, isActive: true },
+          { $set: { isActive: false, revokedAt: new Date(), revokeReason: "COOKIE_CLEARED_ON_CLIENT" } }
+        );
+      } catch {}
+    }
+
     let buttonVisibilityConfig = null;
     try {
       const [activeAdminSessions, config, vConfigDoc] = await Promise.all([
@@ -2916,7 +2927,7 @@ const handleStudentLogout = async (req, res) => {
     }
 
     if (!sessionId) {
-      sessionId = req.headers["x-student-session"] || req.body?.sessionId || null;
+      sessionId = req.headers["x-student-session"] || req.headers["x-student-last-session"] || req.body?.sessionId || null;
     }
 
     const targetReg = String(decodedRegNo || req.body?.regNo || "").toUpperCase().trim();
