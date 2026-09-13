@@ -179,6 +179,15 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   const [adminResetLoading, setAdminResetLoading] = useState(false);
   const [adminResetSuccess, setAdminResetSuccess] = useState("");
 
+  // Administrator Sessions State
+  const [adminSessions, setAdminSessions] = useState([]);
+  const [adminSessionsLoading, setAdminSessionsLoading] = useState(false);
+  const [adminSessionRevokeLoading, setAdminSessionRevokeLoading] = useState(false);
+  const [showAdminRevokeModal, setShowAdminRevokeModal] = useState(false);
+  const [adminRevokeTarget, setAdminRevokeTarget] = useState(null); // { isAll: boolean, session: object | null }
+  const [adminRevokeReason, setAdminRevokeReason] = useState("");
+  const [adminRevokeSuccess, setAdminRevokeSuccess] = useState("");
+
   // Fetch all registered student accounts on mount & when filter changes with permanent session cache
   const fetchAccounts = async (search = directorySearch, filter = directoryFilter, forceRefresh = false) => {
     const cleanSearch = String(search || "").trim();
@@ -226,12 +235,14 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   useEffect(() => {
     setDirectoryPage(1);
     fetchAccounts(directorySearch, directoryFilter);
+    fetchAdminSessions();
   }, [directoryFilter]);
 
   // Real-time reactive invalidation listener (0 polling, instant silent refresh on OTP/session change)
   useEffect(() => {
     return onAdminCacheDirty(AdminCacheScopes.OTP, () => {
       fetchAccounts(directorySearch, directoryFilter, true);
+      fetchAdminSessions();
     });
   }, [directorySearch, directoryFilter]);
 
@@ -355,13 +366,30 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
     }
   };
 
+  const fetchAdminSessions = async () => {
+    setAdminSessionsLoading(true);
+    try {
+      const res = await axios.get(
+        `${API}/admin/student-otp-management/admin-sessions`,
+        authHeaders
+      );
+      if (res.data?.success) {
+        setAdminSessions(res.data.sessions || []);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch admin sessions:", err.message);
+    } finally {
+      setAdminSessionsLoading(false);
+    }
+  };
+
   const handleResetAdminOtp = async () => {
     setAdminResetLoading(true);
     setAdminResetSuccess("");
     setErrorMsg("");
     try {
       const res = await axios.post(
-        `${API}/admin/student-otp-management?action=reset-admin-otp`,
+        `${API}/admin/student-otp-management/reset-admin-otp`,
         {},
         authHeaders
       );
@@ -376,6 +404,54 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
       setErrorMsg(err.response?.data?.message || "An error occurred while resetting Administrator OTP limit.");
     } finally {
       setAdminResetLoading(false);
+    }
+  };
+
+  const handleConfirmAdminRevoke = async () => {
+    if (!adminRevokeTarget) return;
+    setAdminSessionRevokeLoading(true);
+    setErrorMsg("");
+    setAdminRevokeSuccess("");
+    try {
+      if (adminRevokeTarget.isAll) {
+        const res = await axios.post(
+          `${API}/admin/student-otp-management/revoke-all-admin-sessions`,
+          { reason: adminRevokeReason || "ALL_ADMIN_SESSIONS_REVOKED_BY_MAIN_ADMIN", revokeCurrent: false },
+          authHeaders
+        );
+        if (res.data?.success) {
+          setAdminRevokeSuccess(res.data.message || "All other administrator sessions have been revoked.");
+          setShowAdminRevokeModal(false);
+          setAdminRevokeTarget(null);
+          setAdminRevokeReason("");
+          invalidateAdminCache(AdminCacheScopes.OTP);
+          fetchAdminSessions();
+        } else {
+          setErrorMsg(res.data?.message || "Failed to revoke sessions.");
+        }
+      } else {
+        const targetId = adminRevokeTarget.session?.sessionId;
+        const res = await axios.post(
+          `${API}/admin/student-otp-management/revoke-admin-session/${targetId}`,
+          { reason: adminRevokeReason || "MANUAL_REVOCATION_BY_MAIN_ADMIN" },
+          authHeaders
+        );
+        if (res.data?.success) {
+          setAdminRevokeSuccess(res.data.message || "Administrator session revoked successfully.");
+          setShowAdminRevokeModal(false);
+          setAdminRevokeTarget(null);
+          setAdminRevokeReason("");
+          invalidateAdminCache(AdminCacheScopes.OTP);
+          fetchAdminSessions();
+        } else {
+          setErrorMsg(res.data?.message || "Failed to revoke session.");
+        }
+      }
+    } catch (err) {
+      console.error("Admin Session Revoke Error:", err);
+      setErrorMsg(err.response?.data?.message || "An error occurred while revoking administrator session.");
+    } finally {
+      setAdminSessionRevokeLoading(false);
     }
   };
 
@@ -418,7 +494,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               <h2 style={{ margin: 0, fontSize: isMob ? 16.5 : 22, fontWeight: 800, letterSpacing: "-0.5px" }}>
-                Student OTP & Session Control
+                Session & OTP Management
               </h2>
               <span
                 style={{
@@ -440,7 +516,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             </div>
           </div>
           <p style={{ margin: 0, fontSize: isMob ? 12 : 13, color: "#c7d2fe", maxWidth: 680, lineHeight: 1.45 }}>
-            Inspect detailed OTP request history, live authorized device sessions, and reset daily limits with full audit logging.
+            Inspect detailed OTP request history, live student & administrator authorized device sessions, and manage daily limits with full audit logging.
           </p>
         </div>
       </div>
@@ -2374,6 +2450,464 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
           <span>{adminResetLoading ? "Resetting Limit..." : "Reset Admin OTP Limit"}</span>
         </button>
       </div>
+
+      {/* ── Administrator Active Sessions & Security Control Card ── */}
+      <div
+        style={{
+          background: "#ffffff",
+          borderRadius: isMob ? 16 : 20,
+          border: "1.5px solid #e2e8f0",
+          padding: isMob ? "16px 14px" : "24px 28px",
+          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)",
+                border: "1px solid #c7d2fe",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Monitor size={22} color="#4338ca" />
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#1e1b4b" }}>
+                  Administrator Active Sessions ({adminSessions.length})
+                </h3>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: adminSessions.length > 0 ? "#065f46" : "#64748b",
+                    background: adminSessions.length > 0 ? "#d1fae5" : "#f1f5f9",
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                    border: `1px solid ${adminSessions.length > 0 ? "#a7f3d0" : "#e2e8f0"}`,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: adminSessions.length > 0 ? "#10b981" : "#94a3b8" }} />
+                  {adminSessions.length} Active Device{adminSessions.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748b" }}>
+                Authorized admin devices holding valid authentication tokens in MongoDB. Revoking immediately terminates live access.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={fetchAdminSessions}
+              disabled={adminSessionsLoading}
+              title="Refresh admin sessions"
+              style={{
+                padding: "8px 14px",
+                borderRadius: 9,
+                border: "1px solid #cbd5e1",
+                background: "#f8fafc",
+                color: "#475569",
+                fontSize: 12.5,
+                fontWeight: 700,
+                cursor: adminSessionsLoading ? "not-allowed" : "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <RefreshCw size={13} className={adminSessionsLoading ? "spin" : ""} />
+              <span>{adminSessionsLoading ? "Refreshing..." : "Refresh"}</span>
+            </button>
+
+            {adminSessions.filter((s) => !s.isCurrent).length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setAdminRevokeTarget({ isAll: true, session: null });
+                  setAdminRevokeReason("");
+                  setShowAdminRevokeModal(true);
+                }}
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: 9,
+                  border: "1px solid #fecaca",
+                  background: "#fef2f2",
+                  color: "#b91c1c",
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "all 0.15s ease",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "#fee2e2"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "#fef2f2"; }}
+              >
+                <Trash2 size={13} color="#dc2626" />
+                <span>Revoke All Other Devices</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {adminRevokeSuccess && (
+          <div
+            style={{
+              padding: "10px 14px",
+              borderRadius: 10,
+              background: "#ecfdf5",
+              border: "1px solid #a7f3d0",
+              color: "#065f46",
+              fontSize: 13,
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <CheckCircle2 size={16} color="#059669" />
+            <span>{adminRevokeSuccess}</span>
+          </div>
+        )}
+
+        {adminSessionsLoading && adminSessions.length === 0 ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "30px 20px", color: "#64748b", gap: 10 }}>
+            <Loader2 size={20} className="spin" />
+            <span style={{ fontSize: 13.5, fontWeight: 600 }}>Loading active administrator sessions...</span>
+          </div>
+        ) : adminSessions.length === 0 ? (
+          <div
+            style={{
+              padding: "24px 20px",
+              borderRadius: 12,
+              background: "#f8fafc",
+              border: "1.5px dashed #cbd5e1",
+              textAlign: "center",
+              color: "#64748b",
+              fontSize: 13.5,
+            }}
+          >
+            No active administrator sessions found.
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {adminSessions.map((session, idx) => {
+              const devType = session.deviceInfo?.deviceType || "Desktop";
+              const isMobileDev = devType.toLowerCase() === "mobile";
+              const isTabletDev = devType.toLowerCase() === "tablet";
+              const browserName = session.deviceInfo?.browser || "Browser";
+              const osName = session.deviceInfo?.os || "Operating System";
+              const ipAddress = session.deviceInfo?.ip || "Protected IP";
+              const isCurrent = session.isCurrent;
+
+              return (
+                <div
+                  key={session.sessionId || idx}
+                  style={{
+                    padding: isMob ? "12px 14px" : "14px 18px",
+                    borderRadius: 12,
+                    background: isCurrent ? "#f0fdf4" : "#f8fafc",
+                    border: `1.5px solid ${isCurrent ? "#86efac" : "#e2e8f0"}`,
+                    display: "flex",
+                    flexDirection: isMob ? "column" : "row",
+                    alignItems: isMob ? "flex-start" : "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 10,
+                        background: isCurrent ? "#dcfce7" : "#e2e8f0",
+                        color: isCurrent ? "#15803d" : "#475569",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {isMobileDev ? <Smartphone size={20} /> : isTabletDev ? <Tablet size={20} /> : <Laptop size={20} />}
+                    </div>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>
+                          {browserName} on {osName}
+                        </span>
+                        {isCurrent && (
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 700,
+                              color: "#15803d",
+                              background: "#dcfce7",
+                              border: "1px solid #86efac",
+                              padding: "2px 7px",
+                              borderRadius: 6,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e" }} />
+                            This Device (Current)
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 3, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span>IP: <strong style={{ color: "#334155" }}>{ipAddress}</strong></span>
+                        <span>•</span>
+                        <span>Logged in: <strong style={{ color: "#334155" }}>{formatISTDate(session.loggedInAt)}</strong></span>
+                        <span>•</span>
+                        <span>Last Active: <strong style={{ color: "#334155" }}>{formatRelativeTime(session.lastActiveAt)}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, alignSelf: isMob ? "flex-end" : "center" }}>
+                    {!isCurrent ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAdminRevokeTarget({ isAll: false, session });
+                          setAdminRevokeReason("");
+                          setShowAdminRevokeModal(true);
+                        }}
+                        style={{
+                          padding: "6px 14px",
+                          borderRadius: 8,
+                          background: "#ffffff",
+                          border: "1px solid #fca5a5",
+                          color: "#b91c1c",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                          transition: "all 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = "#fef2f2"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "#ffffff"; }}
+                      >
+                        <LogOut size={13} color="#dc2626" />
+                        <span>Revoke Session</span>
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: 12, color: "#15803d", fontWeight: 700, padding: "4px 8px" }}>
+                        Active
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Administrator Revoke Session Confirmation Modal ── */}
+      <AnimatePresence>
+        {showAdminRevokeModal && adminRevokeTarget && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(15, 23, 42, 0.65)",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+              padding: 16,
+            }}
+            onClick={() => !adminSessionRevokeLoading && setShowAdminRevokeModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: "#ffffff",
+                borderRadius: 20,
+                maxWidth: 480,
+                width: "100%",
+                padding: 24,
+                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 10,
+                      background: "#fee2e2",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <LogOut size={20} color="#dc2626" />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 16.5, fontWeight: 800, color: "#0f172a" }}>
+                      {adminRevokeTarget.isAll ? "Revoke All Other Admin Sessions" : "Revoke Administrator Session"}
+                    </h3>
+                    <div style={{ fontSize: 12, color: "#64748b" }}>Main Admin Authorization Required</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => !adminSessionRevokeLoading && setShowAdminRevokeModal(false)}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Details Box */}
+              <div
+                style={{
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 12,
+                  padding: "14px 16px",
+                  marginBottom: 16,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                }}
+              >
+                {adminRevokeTarget.isAll ? (
+                  <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.5 }}>
+                    This action will immediately revoke <strong>all other active administrator sessions</strong> across all devices. Your current active device session will remain connected.
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                      <span style={{ color: "#64748b" }}>Target Device:</span>
+                      <strong style={{ color: "#0f172a" }}>
+                        {adminRevokeTarget.session?.deviceInfo?.browser || "Browser"} on {adminRevokeTarget.session?.deviceInfo?.os || "OS"}
+                      </strong>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                      <span style={{ color: "#64748b" }}>IP Address:</span>
+                      <strong style={{ color: "#334155" }}>
+                        {adminRevokeTarget.session?.deviceInfo?.ip || adminRevokeTarget.session?.ip || "Protected IP"}
+                      </strong>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                      <span style={{ color: "#64748b" }}>Session Created:</span>
+                      <span style={{ color: "#334155", fontWeight: 600 }}>
+                        {formatISTDate(adminRevokeTarget.session?.loggedInAt)}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Revocation Reason Input */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "#334155", marginBottom: 6 }}>
+                  Audit Trail Reason (Optional):
+                </label>
+                <input
+                  type="text"
+                  value={adminRevokeReason}
+                  onChange={(e) => setAdminRevokeReason(e.target.value)}
+                  placeholder={adminRevokeTarget.isAll ? "e.g. Routine administrative security cleanup" : "e.g. Unrecognized device or administrative signout"}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    border: "1px solid #cbd5e1",
+                    fontSize: 13,
+                    color: "#0f172a",
+                    boxSizing: "border-box",
+                    outline: "none",
+                  }}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  disabled={adminSessionRevokeLoading}
+                  onClick={() => setShowAdminRevokeModal(false)}
+                  style={{
+                    padding: "9px 16px",
+                    borderRadius: 8,
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                    color: "#475569",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: adminSessionRevokeLoading ? "not-allowed" : "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={adminSessionRevokeLoading}
+                  onClick={handleConfirmAdminRevoke}
+                  style={{
+                    padding: "9px 18px",
+                    borderRadius: 8,
+                    border: "none",
+                    background: adminSessionRevokeLoading ? "#94a3b8" : "#dc2626",
+                    color: "#ffffff",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: adminSessionRevokeLoading ? "not-allowed" : "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    boxShadow: "0 2px 4px rgba(220, 38, 38, 0.2)",
+                  }}
+                >
+                  {adminSessionRevokeLoading ? (
+                    <>
+                      <Loader2 size={14} className="spin" />
+                      <span>Revoking...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LogOut size={14} />
+                      <span>{adminRevokeTarget.isAll ? "Revoke All Other Devices" : "Confirm Revocation"}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ── Confirmation Modal ── */}
       <AnimatePresence>

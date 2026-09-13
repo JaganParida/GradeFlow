@@ -3206,34 +3206,7 @@ router.all("/realtime-token", async (req, res) => {
       if (!adminToken) adminToken = bearer;
     }
 
-    // 1. Authenticated Student Token Request
-    if (incomingToken && incomingToken !== "none") {
-      try {
-        const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
-        if (decoded.role === "student" && decoded.regNo && decoded.sessionId) {
-          const cleanReg = String(decoded.regNo).trim().toUpperCase();
-          const session = await StudentSession.findOne({
-            regNo: cleanReg,
-            sessionId: decoded.sessionId,
-            isActive: true,
-            expiresAt: { $gt: new Date() },
-          });
-          if (session) {
-            const tokenRequest = await createRealtimeTokenRequest({
-              clientId: cleanReg,
-              regNo: cleanReg,
-              capabilities: {
-                [`student-${cleanReg}`]: ["subscribe"],
-                "broadcasts-all": ["subscribe"],
-              },
-            });
-            return res.json(tokenRequest);
-          }
-        }
-      } catch {}
-    }
-
-    // 2. Authenticated Admin Token Request
+    // 1. Authenticated Admin Token Request (Priority for admin-control channel capabilities)
     if (adminToken && adminToken !== "none") {
       try {
         const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
@@ -3259,6 +3232,33 @@ router.all("/realtime-token", async (req, res) => {
                 "admin-control": ["subscribe", "publish"],
                 "broadcasts-all": ["subscribe", "publish"],
                 "*": ["subscribe"],
+              },
+            });
+            return res.json(tokenRequest);
+          }
+        }
+      } catch {}
+    }
+
+    // 2. Authenticated Student Token Request
+    if (incomingToken && incomingToken !== "none") {
+      try {
+        const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+        if (decoded.role === "student" && decoded.regNo && decoded.sessionId) {
+          const cleanReg = String(decoded.regNo).trim().toUpperCase();
+          const session = await StudentSession.findOne({
+            regNo: cleanReg,
+            sessionId: decoded.sessionId,
+            isActive: true,
+            expiresAt: { $gt: new Date() },
+          });
+          if (session) {
+            const tokenRequest = await createRealtimeTokenRequest({
+              clientId: cleanReg,
+              regNo: cleanReg,
+              capabilities: {
+                [`student-${cleanReg}`]: ["subscribe"],
+                "broadcasts-all": ["subscribe"],
               },
             });
             return res.json(tokenRequest);

@@ -121,7 +121,14 @@ module.exports = async (req, res) => {
     });
   }
 
-  const { action, regNo: paramRegNo } = req.query;
+  let action = req.query.action;
+  if (!action && req.url) {
+    if (req.url.includes("reset-admin-otp") || req.url.includes("admin-otp-reset")) action = "reset-admin-otp";
+    else if (req.url.includes("admin-sessions")) action = "admin-sessions";
+    else if (req.url.includes("revoke-admin-session")) action = "revoke-admin-session";
+    else if (req.url.includes("revoke-all-admin-sessions")) action = "revoke-all-admin-sessions";
+  }
+  const paramRegNo = req.query.regNo;
 
   // ── 0. RESET ADMIN OTP LIMIT (NO REGNO REQUIRED) ──
   if (action === "reset-admin-otp" || action === "admin-otp-reset") {
@@ -173,6 +180,192 @@ module.exports = async (req, res) => {
     } catch (adminResetErr) {
       console.error("Admin OTP reset error:", adminResetErr);
       return res.status(500).json({ success: false, message: "Failed to reset Administrator OTP limit." });
+    }
+  }
+
+  // ── 0b. GET ACTIVE ADMIN SESSIONS ──
+  if (action === "admin-sessions") {
+    try {
+      const activeSessions = await globalDbQueue.run(() =>
+        AdminSession.find({
+          isActive: true,
+          expiresAt: { $gt: new Date() },
+        })
+          .sort({ lastActiveAt: -1 })
+          .lean()
+      );
+
+      const currentSessionId = authResult.admin?.sessionId;
+
+      return res.json({
+        success: true,
+        currentSessionId,
+        sessions: activeSessions.map((s) => ({
+          sessionId: s.sessionId,
+          deviceId: s.deviceId,
+          deviceInfo: s.deviceInfo || {},
+          loggedInAt: s.loggedInAt,
+          lastActiveAt: s.lastActiveAt,
+          expiresAt: s.expiresAt,
+          isActive: s.isActive,
+          isCurrent: Boolean(currentSessionId && s.sessionId === currentSessionId),
+        })),
+      });
+    } catch (adminSessionsErr) {
+      console.error("Fetch Admin Sessions Error:", adminSessionsErr);
+      return res.status(500).json({ success: false, message: "Failed to fetch active administrator sessions." });
+    }
+  }
+
+  // ── 0c. REVOKE SPECIFIC ADMIN SESSION ──
+  if (action === "revoke-admin-session") {
+    try {
+      let targetSessionId = String(req.query.sessionId || req.body?.sessionId || "").trim();
+      if (!targetSessionId && req.url) {
+        const match = req.url.match(/revoke-admin-session\/([a-zA-Z0-9_-]+)/);
+        if (match) targetSessionId = match[1];
+      }
+      const reason = String(req.body?.reason || "MANUAL_REVOCATION_BY_MAIN_ADMIN").trim();
+
+      if (!targetSessionId) {
+        return res.status(400).json({
+          success: false,
+          message: "Session ID is required to revoke an admin session.",
+        });
+      }
+
+      const revokedSession = await globalDbQueue.run(() =>
+        AdminSession.findOneAndUpdate(
+          { sessionId: targetSessionId, isActive: true },
+          {
+            $set: {
+              isActive: false,
+              revokedAt: new Date(),
+              revokeReason: reason,
+            },
+          },
+          { new: true }
+        )
+      );
+
+      if (!revokedSession) {
+        return res.status(404).json({
+          success: false,
+          message: "Active administrator session not found or already terminated.",
+        });
+      }
+
+      // Realtime eviction via Ably on admin-control channel
+      try {
+        await publishAdminRealtimeEvent("session-revoked", {
+          sessionId: targetSessionId,
+          revokedSessionId: targetSessionId,
+          reason,
+          timestamp: Date.now(),
+        });
+      } catch (ablyErr) {
+        console.warn("Ably publish error on admin session revocation:", ablyErr.message);
+      }
+
+      const adminEmail = authResult.admin?.email || process.env.ADMIN_EMAIL || "main_admin";
+
+      try {
+        await globalDbQueue.run(() =>
+          AdminAuditLog.create({
+            actorEmail: adminEmail,
+            actorType: "main_admin",
+            action: "ADMIN_SESSION_REVOKED",
+            actionType: "SECURITY_ALERT",
+            targetRegNo: `ADMIN:${targetSessionId}`,
+            result: "SUCCESS",
+            details: {
+              targetSessionId,
+              deviceInfo: revokedSession.deviceInfo,
+              reason,
+            },
+            ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
+            userAgent: req.headers["user-agent"] || "",
+          })
+        );
+      } catch (_) {}
+
+      return res.json({
+        success: true,
+        message: "Administrator session revoked successfully.",
+        sessionId: targetSessionId,
+      });
+    } catch (revokeErr) {
+      console.error("Revoke Admin Session Error:", revokeErr);
+      return res.status(500).json({ success: false, message: "Failed to revoke administrator session." });
+    }
+  }
+
+  // ── 0d. REVOKE ALL (OR ALL OTHER) ADMIN SESSIONS ──
+  if (action === "revoke-all-admin-sessions") {
+    try {
+      const currentSessionId = authResult.admin?.sessionId;
+      const revokeCurrent = req.body?.revokeCurrent === true;
+      const reason = String(req.body?.reason || "ALL_ADMIN_SESSIONS_REVOKED_BY_MAIN_ADMIN").trim();
+
+      const filter = { isActive: true };
+      if (!revokeCurrent && currentSessionId) {
+        filter.sessionId = { $ne: currentSessionId };
+      }
+
+      const updateResult = await globalDbQueue.run(() =>
+        AdminSession.updateMany(filter, {
+          $set: {
+            isActive: false,
+            revokedAt: new Date(),
+            revokeReason: reason,
+          },
+        })
+      );
+
+      // Realtime eviction via Ably
+      try {
+        await publishAdminRealtimeEvent("session-revoked", {
+          all: true,
+          exceptSessionId: revokeCurrent ? null : currentSessionId,
+          reason,
+          timestamp: Date.now(),
+        });
+      } catch (ablyErr) {
+        console.warn("Ably publish error on revoke all admin sessions:", ablyErr.message);
+      }
+
+      const adminEmail = authResult.admin?.email || process.env.ADMIN_EMAIL || "main_admin";
+
+      try {
+        await globalDbQueue.run(() =>
+          AdminAuditLog.create({
+            actorEmail: adminEmail,
+            actorType: "main_admin",
+            action: "ALL_ADMIN_SESSIONS_REVOKED",
+            actionType: "SECURITY_ALERT",
+            targetRegNo: "ADMIN:ALL",
+            result: "SUCCESS",
+            details: {
+              revokedCount: updateResult.modifiedCount,
+              keptCurrent: !revokeCurrent,
+              reason,
+            },
+            ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
+            userAgent: req.headers["user-agent"] || "",
+          })
+        );
+      } catch (_) {}
+
+      return res.json({
+        success: true,
+        message: revokeCurrent
+          ? `All administrator sessions (${updateResult.modifiedCount}) have been revoked.`
+          : `All other administrator sessions (${updateResult.modifiedCount}) have been revoked. Current session retained.`,
+        revokedCount: updateResult.modifiedCount,
+      });
+    } catch (revokeAllErr) {
+      console.error("Revoke All Admin Sessions Error:", revokeAllErr);
+      return res.status(500).json({ success: false, message: "Failed to revoke administrator sessions." });
     }
   }
 

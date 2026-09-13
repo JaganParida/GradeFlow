@@ -3851,7 +3851,7 @@ export default function AdminDashboard({ defaultTab = null }) {
   if (isMainAdmin) {
     ALL_ADMIN_TABS.push({
       id: "otp-management",
-      label: "Student OTP Management",
+      label: "Session & OTP Management",
       icon: <ShieldAlert size={15} />,
     });
     ALL_ADMIN_TABS.push({

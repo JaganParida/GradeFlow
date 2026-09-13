@@ -536,12 +536,19 @@ export function AppProvider({ children }) {
 
     const unsubs = [];
 
-    // Targeted session revocation: only log out if this specific session was revoked
+    // Targeted or global session revocation: log out if this session was revoked
     unsubs.push(
       subscribeAdminChannel("admin-control", "session-revoked", (msg) => {
         const mySessionId = adminProfileRef.current?.sessionId;
         const targetRevoked = msg?.data?.sessionId || msg?.data?.revokedSessionId;
-        if (targetRevoked && mySessionId && targetRevoked === mySessionId) {
+        const isRevokeAll = msg?.data?.all === true || targetRevoked === "ALL";
+        const exceptSessionId = msg?.data?.exceptSessionId;
+        if (isRevokeAll) {
+          if (!exceptSessionId || (mySessionId && exceptSessionId !== mySessionId)) {
+            console.warn("[AdminAbly] All admin sessions revoked:", msg?.data);
+            adminLogout();
+          }
+        } else if (targetRevoked && mySessionId && targetRevoked === mySessionId) {
           console.warn("[AdminAbly] This device session was revoked:", msg?.data);
           adminLogout();
         }

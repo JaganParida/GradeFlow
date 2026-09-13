@@ -13,10 +13,12 @@ const Student = require("../models/Student");
 const BatchPurgeLog = require("../models/BatchPurgeLog");
 const StudentDailyLimit = require("../models/StudentDailyLimit");
 const StudentSession = require("../models/StudentSession");
+const AdminSession = require("../models/AdminSession");
 const OtpVerification = require("../models/OtpVerification");
 const Attendance = require("../models/Attendance");
 const OtpRequestLog = require("../models/OtpRequestLog");
 const { getActiveSessions, getMaxAllowedDevices } = require("../utils/sessionManager");
+const { publishAdminRealtimeEvent } = require("../utils/ablyService");
 const { isBatchExpired, purgeExpiredBatches } = require("../utils/batchLifecycle");
 const { clearStudentCache } = require("./student");
 const {
@@ -3206,6 +3208,178 @@ router.post("/student-otp-management/reset-admin-otp", requireMainAdmin, async (
   } catch (err) {
     console.error("POST /student-otp-management/reset-admin-otp error:", err);
     return res.status(500).json({ success: false, message: "Failed to reset Administrator OTP limit." });
+  }
+});
+
+// 0b. GET Active Admin Sessions
+router.get("/student-otp-management/admin-sessions", requireMainAdmin, async (req, res) => {
+  try {
+    const activeSessions = await AdminSession.find({
+      isActive: true,
+      expiresAt: { $gt: new Date() },
+    })
+      .sort({ lastActiveAt: -1 })
+      .lean();
+
+    const currentSessionId = req.admin?.sessionId;
+
+    return res.json({
+      success: true,
+      currentSessionId,
+      sessions: activeSessions.map((s) => ({
+        sessionId: s.sessionId,
+        deviceId: s.deviceId,
+        deviceInfo: s.deviceInfo || {},
+        loggedInAt: s.loggedInAt,
+        lastActiveAt: s.lastActiveAt,
+        expiresAt: s.expiresAt,
+        isActive: s.isActive,
+        isCurrent: Boolean(currentSessionId && s.sessionId === currentSessionId),
+      })),
+    });
+  } catch (err) {
+    console.error("GET /student-otp-management/admin-sessions error:", err);
+    return res.status(500).json({ success: false, message: "Failed to fetch active administrator sessions." });
+  }
+});
+
+// 0c. POST Revoke Specific Admin Session
+router.post("/student-otp-management/revoke-admin-session/:sessionId", requireMainAdmin, async (req, res) => {
+  try {
+    const targetSessionId = String(req.params.sessionId || req.body?.sessionId || "").trim();
+    const reason = String(req.body?.reason || "MANUAL_REVOCATION_BY_MAIN_ADMIN").trim();
+
+    if (!targetSessionId) {
+      return res.status(400).json({
+        success: false,
+        message: "Session ID is required to revoke an admin session.",
+      });
+    }
+
+    const revokedSession = await AdminSession.findOneAndUpdate(
+      { sessionId: targetSessionId, isActive: true },
+      {
+        $set: {
+          isActive: false,
+          revokedAt: new Date(),
+          revokeReason: reason,
+        },
+      },
+      { new: true }
+    );
+
+    if (!revokedSession) {
+      return res.status(404).json({
+        success: false,
+        message: "Active administrator session not found or already terminated.",
+      });
+    }
+
+    // Realtime eviction via Ably on admin-control channel
+    try {
+      await publishAdminRealtimeEvent("session-revoked", {
+        sessionId: targetSessionId,
+        revokedSessionId: targetSessionId,
+        reason,
+        timestamp: Date.now(),
+      });
+    } catch (ablyErr) {
+      console.warn("Ably publish error on admin session revocation:", ablyErr.message);
+    }
+
+    const adminEmail = req.admin?.email || process.env.ADMIN_EMAIL || "main_admin";
+
+    try {
+      await AdminAuditLog.create({
+        actorEmail: adminEmail,
+        actorType: "main_admin",
+        action: "ADMIN_SESSION_REVOKED",
+        actionType: "SECURITY_ALERT",
+        targetRegNo: `ADMIN:${targetSessionId}`,
+        result: "SUCCESS",
+        details: {
+          targetSessionId,
+          deviceInfo: revokedSession.deviceInfo,
+          reason,
+        },
+        ip: req.ip || "",
+        userAgent: req.headers["user-agent"] || "",
+      });
+    } catch (_) {}
+
+    return res.json({
+      success: true,
+      message: "Administrator session revoked successfully.",
+      sessionId: targetSessionId,
+    });
+  } catch (err) {
+    console.error("POST /student-otp-management/revoke-admin-session error:", err);
+    return res.status(500).json({ success: false, message: "Failed to revoke administrator session." });
+  }
+});
+
+// 0d. POST Revoke All (or All Other) Admin Sessions
+router.post("/student-otp-management/revoke-all-admin-sessions", requireMainAdmin, async (req, res) => {
+  try {
+    const currentSessionId = req.admin?.sessionId;
+    const revokeCurrent = req.body?.revokeCurrent === true;
+    const reason = String(req.body?.reason || "ALL_ADMIN_SESSIONS_REVOKED_BY_MAIN_ADMIN").trim();
+
+    const filter = { isActive: true };
+    if (!revokeCurrent && currentSessionId) {
+      filter.sessionId = { $ne: currentSessionId };
+    }
+
+    const updateResult = await AdminSession.updateMany(filter, {
+      $set: {
+        isActive: false,
+        revokedAt: new Date(),
+        revokeReason: reason,
+      },
+    });
+
+    // Realtime eviction via Ably
+    try {
+      await publishAdminRealtimeEvent("session-revoked", {
+        all: true,
+        exceptSessionId: revokeCurrent ? null : currentSessionId,
+        reason,
+        timestamp: Date.now(),
+      });
+    } catch (ablyErr) {
+      console.warn("Ably publish error on revoke all admin sessions:", ablyErr.message);
+    }
+
+    const adminEmail = req.admin?.email || process.env.ADMIN_EMAIL || "main_admin";
+
+    try {
+      await AdminAuditLog.create({
+        actorEmail: adminEmail,
+        actorType: "main_admin",
+        action: "ALL_ADMIN_SESSIONS_REVOKED",
+        actionType: "SECURITY_ALERT",
+        targetRegNo: "ADMIN:ALL",
+        result: "SUCCESS",
+        details: {
+          revokedCount: updateResult.modifiedCount,
+          keptCurrent: !revokeCurrent,
+          reason,
+        },
+        ip: req.ip || "",
+        userAgent: req.headers["user-agent"] || "",
+      });
+    } catch (_) {}
+
+    return res.json({
+      success: true,
+      message: revokeCurrent
+        ? `All administrator sessions (${updateResult.modifiedCount}) have been revoked.`
+        : `All other administrator sessions (${updateResult.modifiedCount}) have been revoked. Current session retained.`,
+      revokedCount: updateResult.modifiedCount,
+    });
+  } catch (err) {
+    console.error("POST /student-otp-management/revoke-all-admin-sessions error:", err);
+    return res.status(500).json({ success: false, message: "Failed to revoke administrator sessions." });
   }
 });
 
