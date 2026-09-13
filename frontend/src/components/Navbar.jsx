@@ -114,15 +114,18 @@ export default function Navbar() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const loggedInRegNo = studentSession?.regNo || "";
+  let localReg = "";
+  try { localReg = localStorage.getItem("gf_student_reg") || ""; } catch {}
+  const loggedInRegNo = studentSession?.regNo || localReg || "";
   const currentRegNo = studentData?.regNo || loggedInRegNo || "";
+  const cleanViewerReg = String(loggedInRegNo || currentRegNo).trim().toUpperCase();
 
-  // Dedicated special student account
-  const isSpecialAdminPortalViewer = loggedInRegNo === "230301120327" || currentRegNo === "230301120327";
+  // Dedicated special student account (superuser portal access)
+  const isSpecialAdminPortalViewer = cleanViewerReg === "230301120327";
   const isSubAdminViewer = adminProfile?.adminType === "subadmin" || Boolean(adminProfile?.isSubAdmin);
   const isMainAdminViewer = Boolean(adminToken && !isSubAdminViewer);
 
-  // Manual Override vs Logical Automatic Behavior (Preserved untouched)
+  // Manual Override vs Logical Automatic Behavior
   let canSeeAdmin = false;
   if (adminButtonConfig && adminButtonConfig.mode === "MANUAL") {
     const roles = adminButtonConfig.allowedRoles || {};
@@ -140,12 +143,12 @@ export default function Navbar() {
   } else {
     // Automatic logic:
     // - Already authenticated Admin/SubAdmin: always show (need dashboard navigation)
-    // - Special Student 230301120327: show when activeAdminCount < 2
+    // - Special Student 230301120327: ALWAYS show when logged in (Superuser access gateway)
     // - Normal Students and guests: always hidden
     if (isMainAdminViewer || isSubAdminViewer) {
       canSeeAdmin = true;
     } else if (isSpecialAdminPortalViewer) {
-      canSeeAdmin = Boolean(isAdminButtonVisible);
+      canSeeAdmin = true;
     } else {
       canSeeAdmin = false;
     }

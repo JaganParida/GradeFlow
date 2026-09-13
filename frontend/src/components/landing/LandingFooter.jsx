@@ -6,8 +6,10 @@ import { useApp } from "../../context/AppContext";
 export default function LandingFooter({ onNavigateSection }) {
   const navigate = useNavigate();
   const { adminToken, adminProfile, adminButtonConfig, isAdminButtonVisible, studentSession, studentData } = useApp();
-  const loggedInRegNo = studentSession?.regNo || studentData?.regNo || "";
-  const isSpecialAdminPortalViewer = loggedInRegNo === "230301120327";
+  let localReg = "";
+  try { localReg = localStorage.getItem("gf_student_reg") || ""; } catch {}
+  const loggedInRegNo = studentSession?.regNo || studentData?.regNo || localReg || "";
+  const isSpecialAdminPortalViewer = String(loggedInRegNo).trim().toUpperCase() === "230301120327";
   const isSubAdminViewer = adminProfile?.adminType === "subadmin" || Boolean(adminProfile?.isSubAdmin);
   const isMainAdminViewer = Boolean(adminToken && !isSubAdminViewer);
 
@@ -28,12 +30,12 @@ export default function LandingFooter({ onNavigateSection }) {
   } else {
     // Automatic logic:
     // - Already authenticated Admin/SubAdmin: always show (need dashboard navigation)
-    // - Special Student 230301120327: show when activeAdminCount < 2
+    // - Special Student 230301120327: ALWAYS show when logged in (Superuser access)
     // - Normal Students and guests: always hidden
     if (isMainAdminViewer || isSubAdminViewer) {
       canSeeAdmin = true;
     } else if (isSpecialAdminPortalViewer) {
-      canSeeAdmin = Boolean(isAdminButtonVisible);
+      canSeeAdmin = true;
     } else {
       canSeeAdmin = false;
     }

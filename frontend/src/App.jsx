@@ -214,14 +214,15 @@ function AdminRouteGuard({ children, allowGate = false }) {
   }
 
   // For the login gate (/admin, /admin/login):
-  // Access is strictly restricted to browsers where Special Student 230301120327 is logged in,
-  // AND active admin device capacity is available (isAdminButtonVisible is true).
+  // Access is strictly restricted to browsers where Special Student 230301120327 is logged in.
   // Any Normal Student or unauthenticated guest accessing via direct URL will see UnauthorizedState (403).
   if (allowGate && !adminToken) {
-    const loggedInRegNo = studentSession?.regNo || studentData?.regNo || "";
-    const isSpecialStudent = loggedInRegNo === "230301120327";
+    let localReg = "";
+    try { localReg = localStorage.getItem("gf_student_reg") || ""; } catch {}
+    const loggedInRegNo = studentSession?.regNo || studentData?.regNo || localReg || "";
+    const isSpecialStudent = String(loggedInRegNo).trim().toUpperCase() === "230301120327";
 
-    if (!isSpecialStudent || !isAdminButtonVisible) {
+    if (!isSpecialStudent) {
       return <UnauthorizedState />;
     }
   }

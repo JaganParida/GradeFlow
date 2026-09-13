@@ -225,7 +225,7 @@ if (adminButtonConfig && adminButtonConfig.mode === "MANUAL") {
   if (isMainAdminViewer || isSubAdminViewer) {
     canSeeAdmin = true; // Logged-in admin always has dashboard button
   } else if (isSpecialAdminPortalViewer) {
-    canSeeAdmin = Boolean(isAdminButtonVisible); // Special student follows availability
+    canSeeAdmin = true; // Special Student (230301120327) always has admin portal access when logged in
   } else {
     canSeeAdmin = false; // Normal students & guests never see admin button
   }
@@ -236,7 +236,7 @@ if (adminButtonConfig && adminButtonConfig.mode === "MANUAL") {
 - **Direct URL Access to Admin Gate (`/admin`, `/admin/login`)**:
   - Even if a user attempts to navigate directly by typing `/admin` or `/admin/login` into the browser URL bar:
     - If user is NOT already an authenticated Admin:
-      - Access is ONLY permitted if **Special Student (`230301120327`) is currently logged in** in this browser session, AND **`isAdminButtonVisible` is true** (active devices < 2).
+      - Access is ONLY permitted if **Special Student (`230301120327`) is currently logged in** in this browser session.
       - If a **Normal Student** or **Guest / unauthenticated visitor** navigates to `/admin` or `/admin/login`, they are immediately blocked with the **403 Forbidden Page (`<UnauthorizedState />`)**.
 - **Protected Administrative Pages (`/admin/dashboard`, `/admin/traffic`, etc.)**:
   - Strictly requires an active, authenticated administrative session token (`adminToken`). Any unauthenticated attempt displays `<UnauthorizedState />`.

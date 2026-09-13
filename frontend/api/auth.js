@@ -1906,6 +1906,21 @@ module.exports = async function handler(req, res) {
         } catch (_) {}
       }
 
+      // Fallback: If localStorage was also cleared, check physical device fingerprint for orphaned admin session
+      if (!adminAuth && !clientLastSession) {
+        try {
+          const activeAdminList = await getActiveAdminSessions(AdminSession);
+          const match = findMatchingSessionByDevice(activeAdminList, req);
+          if (match) {
+            match.isActive = false;
+            match.revokedAt = new Date();
+            match.revokeReason = "COOKIE_CLEARED_ON_CLIENT";
+            await match.save();
+            sessionWasRevoked = true;
+          }
+        } catch (_) {}
+      }
+
       // Check if client previously had a student session on this device but cookies were cleared
       const clientLastStudentSession = req.headers["x-student-last-session"] || req.query?.lastStudentSession;
       if (!studentAuth && clientLastStudentSession) {
