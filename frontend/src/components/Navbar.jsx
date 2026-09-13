@@ -138,8 +138,12 @@ export default function Navbar() {
       canSeeAdmin = Boolean(roles.guests);
     }
   } else {
-    // Automatic logic: Admin button follows isAdminButtonVisible (which is activeAdminCount < 2)
-    canSeeAdmin = Boolean(isAdminButtonVisible);
+    // Automatic logic: Admin button requires BOTH role eligibility AND device availability (activeAdminCount < 2)
+    if (isMainAdminViewer || isSubAdminViewer || isSpecialAdminPortalViewer) {
+      canSeeAdmin = Boolean(isAdminButtonVisible);
+    } else {
+      canSeeAdmin = false;
+    }
   }
 
   // Extract currently viewed student token from URL if present (e.g. /dashboard/:id, /analytics/:id)

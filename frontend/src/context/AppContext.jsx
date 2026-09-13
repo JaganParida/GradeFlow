@@ -475,7 +475,6 @@ export function AppProvider({ children }) {
       if (!studentSessionRef.current) {
         clearAuthPresence();
       }
-      setIsAdminButtonVisible(true);
       if (shouldNavigate || (typeof window !== "undefined" && window.location.pathname.startsWith("/admin"))) {
         navigate("/admin");
       }
