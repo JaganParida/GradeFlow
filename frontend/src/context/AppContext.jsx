@@ -55,6 +55,26 @@ export function AppProvider({ children }) {
     } catch {}
   }, []);
 
+  // Browser Presence Cookie Helpers (UI/Optimization Hint Only — Never Authoritative)
+  const getAuthPresence = useCallback(() => {
+    if (typeof document === "undefined") return false;
+    return document.cookie.split(";").some((c) => c.trim().startsWith("gf_auth_present=1"));
+  }, []);
+
+  const setAuthPresence = useCallback(() => {
+    if (typeof document === "undefined") return;
+    const isProd = window.location.protocol === "https:";
+    const secureFlag = isProd ? "; Secure" : "";
+    document.cookie = `gf_auth_present=1; Path=/; SameSite=Lax${secureFlag}; Max-Age=5184000`;
+  }, []);
+
+  const clearAuthPresence = useCallback(() => {
+    if (typeof document === "undefined") return;
+    const isProd = window.location.protocol === "https:";
+    const secureFlag = isProd ? "; Secure" : "";
+    document.cookie = `gf_auth_present=; Path=/; SameSite=Lax${secureFlag}; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  }, []);
+
   // Detect if running on old retired domain (saves 100% serverless CPU on old Vercel deployment)
   const isOldDomain = typeof window !== "undefined" && (
     window.location.hostname.toLowerCase().includes("grade-flow-navy") ||
@@ -317,13 +337,23 @@ export function AppProvider({ children }) {
             setMaintenanceChecked(true);
           }
 
+          if ((student && student.regNo) || (admin && admin.authenticated)) {
+            setAuthPresence();
+          } else {
+            clearAuthPresence();
+          }
+
           return res.data;
         } else {
           setAuthStatus("UNAUTHENTICATED");
           setAdminAuthStatus("UNAUTHENTICATED");
+          clearAuthPresence();
         }
       } catch (err) {
         console.warn("Authentication bootstrap could not be resolved:", err.message);
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          clearAuthPresence();
+        }
         // A timeout/offline response cannot prove that a cookie is missing.
         // Keep this distinct from an explicit successful unauthenticated
         // response so protected navigation never flashes the login state.
@@ -427,6 +457,7 @@ export function AppProvider({ children }) {
       closeSharedAdminAbly();
       setAdminToken(false);
       setAdminProfile(null);
+      clearAuthPresence();
       setIsAdminButtonVisible(true);
       navigate("/admin");
     }
@@ -1207,6 +1238,7 @@ export function AppProvider({ children }) {
     } catch (err) {
       console.warn("Student logout server sync:", err);
     } finally {
+      clearAuthPresence();
       setIsLoggingOut(false);
       navigate("/", { replace: true });
     }
@@ -1593,6 +1625,9 @@ export function AppProvider({ children }) {
         updateCachedAttendance,
         hasActiveSession,
         leaveSession,
+        getAuthPresence,
+        setAuthPresence,
+        clearAuthPresence,
         theme,
         toggleTheme,
         maintenance,

@@ -26,8 +26,8 @@ export default function LandingFooter({ onNavigateSection }) {
       canSeeAdmin = Boolean(roles.guests);
     }
   } else {
-    // Exact original automatic logic (Preserved untouched)
-    canSeeAdmin = Boolean(adminToken || isSpecialAdminPortalViewer || isAdminButtonVisible);
+    // Automatic logic: Admin button follows isAdminButtonVisible (which is activeAdminCount < 2)
+    canSeeAdmin = Boolean(isAdminButtonVisible);
   }
 
   return (

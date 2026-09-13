@@ -254,6 +254,43 @@ function getCookieOptions(req, customExpires = null) {
   };
 }
 
+function getPresenceCookieOptions(req, customExpires = null) {
+  const isProd = process.env.NODE_ENV === "production";
+  const expires = customExpires || new Date(Date.now() + PERMANENT_SESSION_MS);
+  return {
+    maxAge: PERMANENT_SESSION_MS,
+    expires,
+    httpOnly: false, // Non-HttpOnly UI hint readable by browser
+    secure: isProd || req.secure || req.headers["x-forwarded-proto"] === "https",
+    sameSite: "lax",
+    path: "/",
+  };
+}
+
+function setStudentAuthCookies(res, req, token, expiresAt = null) {
+  res.cookie("student_jwt", token, getCookieOptions(req, expiresAt));
+  res.cookie("gf_auth_present", "1", getPresenceCookieOptions(req, expiresAt));
+}
+
+function clearStudentAuthCookies(res, req) {
+  res.clearCookie("student_jwt", getCookieOptions(req, new Date(0)));
+  if (!req.cookies?.jwt || req.cookies.jwt === "none") {
+    res.clearCookie("gf_auth_present", getPresenceCookieOptions(req, new Date(0)));
+  }
+}
+
+function setAdminAuthCookies(res, req, token, expiresAt = null) {
+  res.cookie("jwt", token, getCookieOptions(req, expiresAt));
+  res.cookie("gf_auth_present", "1", getPresenceCookieOptions(req, expiresAt));
+}
+
+function clearAdminAuthCookies(res, req) {
+  res.clearCookie("jwt", getCookieOptions(req, new Date(0)));
+  if (!req.cookies?.student_jwt || req.cookies.student_jwt === "none") {
+    res.clearCookie("gf_auth_present", getPresenceCookieOptions(req, new Date(0)));
+  }
+}
+
 function maskEmail(email) {
   if (!email || !email.includes("@")) return email;
   const [local, domain] = email.split("@");
@@ -546,7 +583,7 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
             { expiresIn: "60d" }
           );
 
-          res.cookie("student_jwt", studentToken, getCookieOptions(req, newSession.expiresAt));
+          setStudentAuthCookies(res, req, studentToken, newSession.expiresAt);
 
           return res.json({
             success: true,
@@ -1199,7 +1236,7 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
         { expiresIn: "60d" }
       );
 
-      res.cookie("student_jwt", studentToken, getCookieOptions(req, expiresAt));
+      setStudentAuthCookies(res, req, studentToken, expiresAt);
 
       return res.json({
         success: true,
@@ -1317,7 +1354,7 @@ router.post("/student/create-password", authLimiter, async (req, res) => {
       { expiresIn: "60d" }
     );
 
-    res.cookie("student_jwt", studentToken, getCookieOptions(req));
+    setStudentAuthCookies(res, req, studentToken);
 
     return res.json({
       success: true,
@@ -1353,7 +1390,7 @@ router.post("/student/complete-approval", authLimiter, async (req, res) => {
       return res.status(400).json(result);
     }
 
-    res.cookie("student_jwt", result.token, getCookieOptions(req, result.session.expiresAt));
+    setStudentAuthCookies(res, req, result.token, result.session.expiresAt);
 
     const studentRecord = await SemesterResult.findOne({ regNo: result.regNo }).sort({ semester: -1 });
 
@@ -1428,7 +1465,7 @@ router.post("/student/transfer-session", authLimiter, async (req, res) => {
       { expiresIn: "60d" }
     );
 
-    res.cookie("student_jwt", studentToken, getCookieOptions(req));
+    setStudentAuthCookies(res, req, studentToken);
 
     return res.json({
       success: true,
@@ -1667,6 +1704,14 @@ router.get("/bootstrap", async (req, res) => {
       }
     } catch {}
 
+    if (!studentAuth && !adminAuth) {
+      if (req.cookies?.gf_auth_present) {
+        res.clearCookie("gf_auth_present", getPresenceCookieOptions(req, new Date(0)));
+      }
+    } else {
+      res.cookie("gf_auth_present", "1", getPresenceCookieOptions(req));
+    }
+
     return res.json({
       success: true,
       authStatus: "RESOLVED",
@@ -1769,7 +1814,7 @@ router.post("/student/logout", async (req, res) => {
       }
     }
 
-    res.clearCookie("student_jwt", getCookieOptions(req, new Date(0)));
+    clearStudentAuthCookies(res, req);
     return res.json({ success: true, message: "Logged out successfully from this device." });
   } catch (err) {
     console.error("Student logout error:", err);
@@ -1794,7 +1839,7 @@ router.get("/student/approval-status/:requestId", async (req, res) => {
     if (statusData.status === "APPROVED" && exchangeSecret) {
       const result = await completeDeviceApproval(StudentSession, requestId, exchangeSecret, req);
       if (result.success) {
-        res.cookie("student_jwt", result.token, getCookieOptions(req, result.session.expiresAt));
+        setStudentAuthCookies(res, req, result.token, result.session.expiresAt);
         const studentRecord = await SemesterResult.findOne({ regNo: result.regNo }).sort({ semester: -1 });
         return res.json({
           success: true,
@@ -2254,7 +2299,7 @@ router.post("/admin/verify-otp", async (req, res) => {
       { expiresIn: "60d" }
     );
 
-    res.cookie("jwt", token, getCookieOptions(req, expiresAt));
+    setAdminAuthCookies(res, req, token, expiresAt);
 
     let liveAdminCount = 1;
     try {
@@ -2570,7 +2615,7 @@ router.post("/subadmin/verify-otp", async (req, res) => {
       { expiresIn: "36500d" }
     );
 
-    res.cookie("jwt", token, getCookieOptions(req, expiresAt));
+    setAdminAuthCookies(res, req, token, expiresAt);
 
     return res.json({
       success: true,
@@ -2741,7 +2786,7 @@ const handleAdminLogout = async (req, res) => {
       } catch {}
     }
 
-    res.clearCookie("jwt", getCookieOptions(req, new Date(0)));
+    clearAdminAuthCookies(res, req);
 
     let remainingAdminCount = 0;
     try {
@@ -2826,7 +2871,7 @@ const handleAdminReleaseSession = async (req, res) => {
       } catch {}
     }
 
-    res.clearCookie("jwt", getCookieOptions(req, new Date(0)));
+    clearAdminAuthCookies(res, req);
 
     let remainingCount = 0;
     try {
@@ -2955,7 +3000,7 @@ const handleStudentLogout = async (req, res) => {
       }
     }
 
-    res.clearCookie("student_jwt", getCookieOptions(req, new Date(0)));
+    clearStudentAuthCookies(res, req);
     return res.status(200).json({ success: true, message: "Logged out successfully from this device." });
   } catch (err) {
     console.error("Student logout error:", err);

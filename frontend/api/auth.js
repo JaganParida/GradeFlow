@@ -64,38 +64,38 @@ function setStudentCookie(res, token, customMaxAge = null) {
   const maxAge = customMaxAge !== null ? customMaxAge : 60 * 24 * 60 * 60; // 60 days
   const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
   const secureFlag = isProd ? " Secure;" : "";
-  res.setHeader(
-    "Set-Cookie",
-    `student_jwt=${token}; Path=/; HttpOnly;${secureFlag} SameSite=Lax; Max-Age=${maxAge}`
-  );
+  res.setHeader("Set-Cookie", [
+    `student_jwt=${token}; Path=/; HttpOnly;${secureFlag} SameSite=Lax; Max-Age=${maxAge}`,
+    `gf_auth_present=1; Path=/;${secureFlag} SameSite=Lax; Max-Age=${maxAge}`,
+  ]);
 }
 
 function clearStudentCookie(res) {
   const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
   const secureFlag = isProd ? " Secure;" : "";
-  res.setHeader(
-    "Set-Cookie",
-    `student_jwt=; Path=/; HttpOnly;${secureFlag} SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`
-  );
+  res.setHeader("Set-Cookie", [
+    `student_jwt=; Path=/; HttpOnly;${secureFlag} SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+    `gf_auth_present=; Path=/;${secureFlag} SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+  ]);
 }
 
 function setAdminCookie(res, token) {
   const maxAge = 100 * 365 * 24 * 60 * 60;
   const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
   const secureFlag = isProd ? " Secure;" : "";
-  res.setHeader(
-    "Set-Cookie",
-    `jwt=${token}; Path=/; HttpOnly;${secureFlag} SameSite=Lax; Max-Age=${maxAge}`
-  );
+  res.setHeader("Set-Cookie", [
+    `jwt=${token}; Path=/; HttpOnly;${secureFlag} SameSite=Lax; Max-Age=${maxAge}`,
+    `gf_auth_present=1; Path=/;${secureFlag} SameSite=Lax; Max-Age=${maxAge}`,
+  ]);
 }
 
 function clearAdminCookie(res) {
   const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
   const secureFlag = isProd ? " Secure;" : "";
-  res.setHeader(
-    "Set-Cookie",
-    `jwt=; Path=/; HttpOnly;${secureFlag} SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`
-  );
+  res.setHeader("Set-Cookie", [
+    `jwt=; Path=/; HttpOnly;${secureFlag} SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+    `gf_auth_present=; Path=/;${secureFlag} SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+  ]);
 }
 
 function extractRequestDeviceInfo(req) {
@@ -1830,6 +1830,16 @@ module.exports = async function handler(req, res) {
         } else {
           resolvedButtonVisible = Boolean(roles.guests);
         }
+      }
+
+      const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+      const secureFlag = isProd ? " Secure;" : "";
+      if (!studentAuth && !adminAuth) {
+        if (cookies.gf_auth_present) {
+          res.setHeader("Set-Cookie", `gf_auth_present=; Path=/;${secureFlag} SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`);
+        }
+      } else {
+        res.setHeader("Set-Cookie", `gf_auth_present=1; Path=/;${secureFlag} SameSite=Lax; Max-Age=5184000`);
       }
 
       return res.json({
