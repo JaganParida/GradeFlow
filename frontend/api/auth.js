@@ -149,6 +149,52 @@ function extractRequestDeviceInfo(req) {
   };
 }
 
+function findMatchingSessionByDevice(activeSessions, req) {
+  if (!Array.isArray(activeSessions) || activeSessions.length === 0) return null;
+  const currentDev = extractRequestDeviceInfo(req);
+
+  // 1. Exact or prefix userAgent match (highest fidelity: same browser version & platform build)
+  if (currentDev.userAgent) {
+    const curUA = currentDev.userAgent.trim();
+    const matchUA = activeSessions.find((s) => {
+      const dbUA = String(s.deviceInfo?.userAgent || "").trim();
+      return dbUA && (dbUA === curUA || dbUA.startsWith(curUA) || curUA.startsWith(dbUA));
+    });
+    if (matchUA) return matchUA;
+  }
+
+  // 2. High-fidelity match: OS family + deviceType + browser family
+  const curOs = String(currentDev.os || "").toLowerCase();
+  const curType = String(currentDev.deviceType || "").toLowerCase();
+  const curBrowser = String(currentDev.browser || "").toLowerCase();
+
+  const matchHighFidelity = activeSessions.find((s) => {
+    const dev = s.deviceInfo || {};
+    const dbOs = String(dev.os || "").toLowerCase();
+    const dbType = String(dev.deviceType || "").toLowerCase();
+    const dbBrowser = String(dev.browser || "").toLowerCase();
+
+    const sameType = curType && dbType && curType === dbType;
+    const sameOs = curOs && dbOs && (curOs === dbOs || (curOs.includes("android") && dbOs.includes("android")) || (curOs.includes("windows") && dbOs.includes("windows")) || (curOs.includes("ios") && dbOs.includes("ios")) || (curOs.includes("mac") && dbOs.includes("mac")));
+    const sameBrowser = curBrowser && dbBrowser && (curBrowser === dbBrowser || curBrowser.includes(dbBrowser) || dbBrowser.includes(curBrowser));
+
+    return sameType && sameOs && sameBrowser;
+  });
+  if (matchHighFidelity) return matchHighFidelity;
+
+  // 3. Fallback match: OS family + deviceType
+  return activeSessions.find((s) => {
+    const dev = s.deviceInfo || {};
+    const dbOs = String(dev.os || "").toLowerCase();
+    const dbType = String(dev.deviceType || "").toLowerCase();
+
+    const sameType = curType && dbType && curType === dbType;
+    const sameOs = curOs && dbOs && (curOs === dbOs || (curOs.includes("android") && dbOs.includes("android")) || (curOs.includes("windows") && dbOs.includes("windows")));
+    return sameType && sameOs;
+  }) || null;
+}
+
+
 function getIstDateKey(date = new Date()) {
   const d = date instanceof Date ? date : new Date(date);
   const utcTime = d.getTime() + d.getTimezoneOffset() * 60000;
@@ -489,6 +535,25 @@ module.exports = async function handler(req, res) {
             currentSessionId = decoded.sessionId;
           }
         } catch {}
+      }
+
+      // Fallback 1: Header hint
+      const lastSessionHeader = req.headers["x-student-last-session"] || req.headers["x-student-session"];
+      if (!isCurrentDevice && hasPassword && lastSessionHeader) {
+        const match = activeSessions.find((s) => s.sessionId === lastSessionHeader);
+        if (match) {
+          isCurrentDevice = true;
+          currentSessionId = match.sessionId;
+        }
+      }
+
+      // Fallback 2: Match active session by physical device info if cookies/storage were cleared
+      if (!isCurrentDevice && hasPassword && activeSessions.length > 0) {
+        const match = findMatchingSessionByDevice(activeSessions, req);
+        if (match) {
+          isCurrentDevice = true;
+          currentSessionId = match.sessionId;
+        }
       }
 
       const maxDailyLimit = rawReg === "230301120327" ? 5 : 3;
@@ -901,6 +966,25 @@ module.exports = async function handler(req, res) {
           } catch {}
         }
 
+        // Fallback 1: Header hint
+        const lastSessionHeader = req.headers["x-student-last-session"] || req.headers["x-student-session"];
+        if (!isCurrentDevice && lastSessionHeader) {
+          const match = activeSessions.find((s) => s.sessionId === lastSessionHeader);
+          if (match) {
+            isCurrentDevice = true;
+            matchedSession = match;
+          }
+        }
+
+        // Fallback 2: Match active session by physical device info if cookies/storage were cleared
+        if (!isCurrentDevice && activeSessions.length > 0) {
+          const match = findMatchingSessionByDevice(activeSessions, req);
+          if (match) {
+            isCurrentDevice = true;
+            matchedSession = match;
+          }
+        }
+
         if (isCurrentDevice && matchedSession) {
           matchedSession.isActive = false;
           matchedSession.revokedAt = new Date();
@@ -1190,6 +1274,25 @@ module.exports = async function handler(req, res) {
           } catch {}
         }
 
+        // Fallback 1: Header hint
+        const lastSessionHeader = req.headers["x-student-last-session"] || req.headers["x-student-session"];
+        if (!isCurrentDevice && lastSessionHeader) {
+          const match = activeSessions.find((s) => s.sessionId === lastSessionHeader);
+          if (match) {
+            isCurrentDevice = true;
+            matchedSession = match;
+          }
+        }
+
+        // Fallback 2: Match active session by physical device info if cookies/storage were cleared
+        if (!isCurrentDevice && activeSessions.length > 0) {
+          const match = findMatchingSessionByDevice(activeSessions, req);
+          if (match) {
+            isCurrentDevice = true;
+            matchedSession = match;
+          }
+        }
+
         // CASE A: Normal Single-Device Student (limit = 1)
         if (maxAllowedDevices === 1) {
           if (isCurrentDevice && matchedSession) {
@@ -1253,8 +1356,13 @@ module.exports = async function handler(req, res) {
         } else {
           // CASE B: 2-Device Account (Special Student 230301120327): Strict 2-Device Cap (Device 3 Blocked)
           // Check active authenticated device sessions ONLY AFTER password is verified
-          if (activeSessions.length >= maxAllowedDevices) {
-            const sanitizedDevices = activeSessions.map((s, idx) => ({
+          // If current device matches an active session, exclude it so re-authentication proceeds to OTP
+          const remainingActiveSessions = (isCurrentDevice && matchedSession)
+            ? activeSessions.filter((s) => s.sessionId !== matchedSession.sessionId)
+            : activeSessions;
+
+          if (remainingActiveSessions.length >= maxAllowedDevices) {
+            const sanitizedDevices = remainingActiveSessions.map((s, idx) => ({
               deviceIndex: idx + 1,
               platform: s.deviceInfo?.platform || "Unknown",
               userAgent: s.deviceInfo?.userAgent || "Unknown",
@@ -1266,8 +1374,8 @@ module.exports = async function handler(req, res) {
             return res.status(403).json({
               success: false,
               code: "DEVICE_LIMIT_REACHED",
-              message: `Account ${rawReg} is currently active on ${activeSessions.length} devices (maximum limit: ${maxAllowedDevices}). Please log out from another device before signing in on a new device.`,
-              activeDeviceCount: activeSessions.length,
+              message: `Account ${rawReg} is currently active on ${remainingActiveSessions.length} devices (maximum limit: ${maxAllowedDevices}). Please log out from another device before signing in on a new device.`,
+              activeDeviceCount: remainingActiveSessions.length,
               maxAllowedDevices,
               activeDevices: sanitizedDevices,
             });
@@ -1972,6 +2080,16 @@ module.exports = async function handler(req, res) {
       }
 
       const targetReg = String(decodedRegNo || regNoFromBody || "").toUpperCase().trim();
+
+      if (!sessionId && targetReg) {
+        try {
+          const activeSessions = await getActiveSessions(StudentSession, targetReg);
+          const match = findMatchingSessionByDevice(activeSessions, req);
+          if (match) {
+            sessionId = match.sessionId;
+          }
+        } catch {}
+      }
       const now = new Date();
 
       if (sessionId) {
@@ -2050,6 +2168,22 @@ module.exports = async function handler(req, res) {
         }
       }
 
+      // Fallback 1: Header hint
+      if (!isCurrentDevice && clientLastSession) {
+        const match = activeSessions.find((s) => s.sessionId === clientLastSession);
+        if (match) {
+          isCurrentDevice = true;
+        }
+      }
+
+      // Fallback 2: Match active session by physical device info if cookies/storage were cleared
+      if (!isCurrentDevice && activeSessions.length > 0) {
+        const match = findMatchingSessionByDevice(activeSessions, req);
+        if (match) {
+          isCurrentDevice = true;
+        }
+      }
+
       const isBlocked = false;
       const sanitizedDevices = activeSessions.map((s, idx) => ({
         deviceIndex: idx + 1,
@@ -2081,7 +2215,7 @@ module.exports = async function handler(req, res) {
         }
       } catch {}
 
-      let resolvedButtonVisible = activeSessions.length < MAX_ADMIN_DEVICES;
+      let resolvedButtonVisible = activeSessions.length < MAX_ADMIN_DEVICES || isCurrentDevice;
       if (buttonVisibilityConfig && buttonVisibilityConfig.mode === "MANUAL") {
         const roles = buttonVisibilityConfig.allowedRoles || {};
         if (isCurrentDevice) {
@@ -2210,25 +2344,52 @@ module.exports = async function handler(req, res) {
         incomingToken = req.headers.authorization.split(" ")[1];
       }
       let isCurrentDevice = false;
+      let matchedSession = null;
       if (incomingToken && incomingToken !== "none") {
         try {
           const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
           if (decoded.role === "admin" && decoded.sessionId) {
             const match = activeSessions.find((s) => s.sessionId === decoded.sessionId);
-            if (match) isCurrentDevice = true;
+            if (match) {
+              isCurrentDevice = true;
+              matchedSession = match;
+            }
           }
         } catch {}
       }
 
+      // Fallback 1: Header hint
+      const lastAdminSessionHeader = req.headers["x-admin-last-session"] || req.headers["x-admin-session"];
+      if (!isCurrentDevice && lastAdminSessionHeader) {
+        const match = activeSessions.find((s) => s.sessionId === lastAdminSessionHeader);
+        if (match && isAdminSessionValid(match)) {
+          isCurrentDevice = true;
+          matchedSession = match;
+        }
+      }
+
+      // Fallback 2: Match active session by physical device info if cookies/storage were cleared
+      if (!isCurrentDevice && activeSessions.length > 0) {
+        const match = findMatchingSessionByDevice(activeSessions, req);
+        if (match && isAdminSessionValid(match)) {
+          isCurrentDevice = true;
+          matchedSession = match;
+        }
+      }
+
+      const remainingActiveSessions = (isCurrentDevice && matchedSession)
+        ? activeSessions.filter((s) => s.sessionId !== matchedSession.sessionId)
+        : activeSessions;
+
       // Strict Admin Device Limit: Max 2 devices allowed simultaneously (Device 3 blocked with HTTP 403)
-      if (activeSessions.length >= MAX_ADMIN_DEVICES && !isCurrentDevice) {
+      if (remainingActiveSessions.length >= MAX_ADMIN_DEVICES) {
         return res.status(403).json({
           success: false,
           code: "DEVICE_LIMIT_REACHED",
           message: "Maximum active administrator sessions reached (2 devices). Access denied.",
-          activeDeviceCount: activeSessions.length,
+          activeDeviceCount: remainingActiveSessions.length,
           maxAllowedDevices: MAX_ADMIN_DEVICES,
-          activeDevices: activeSessions.map((s) => ({
+          activeDevices: remainingActiveSessions.map((s) => ({
             sessionId: s.sessionId,
             deviceInfo: s.deviceInfo,
             lastActiveAt: s.lastActiveAt,
@@ -2326,14 +2487,61 @@ module.exports = async function handler(req, res) {
 
       // Enforce strict 2-device limit (Device 3 rejected with HTTP 403; NEVER silently evict Device 1)
       const activeSessions = await getActiveAdminSessions(AdminSession);
-      if (activeSessions.length >= MAX_ADMIN_DEVICES) {
+
+      let incomingToken = cookies.jwt || req.headers["x-admin-token"];
+      if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+        incomingToken = req.headers.authorization.split(" ")[1];
+      }
+      let isCurrentDevice = false;
+      let matchedSession = null;
+      if (incomingToken && incomingToken !== "none") {
+        try {
+          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+          if (decoded.role === "admin" && decoded.sessionId) {
+            matchedSession = activeSessions.find((s) => s.sessionId === decoded.sessionId);
+            if (matchedSession) isCurrentDevice = true;
+          }
+        } catch {}
+      }
+
+      // Fallback 1: Header hint
+      const lastAdminSessionHeader = req.headers["x-admin-last-session"] || req.headers["x-admin-session"];
+      if (!isCurrentDevice && lastAdminSessionHeader) {
+        const match = activeSessions.find((s) => s.sessionId === lastAdminSessionHeader);
+        if (match) {
+          isCurrentDevice = true;
+          matchedSession = match;
+        }
+      }
+
+      // Fallback 2: Match active session by physical device info if cookies/storage were cleared
+      if (!isCurrentDevice && activeSessions.length > 0) {
+        const match = findMatchingSessionByDevice(activeSessions, req);
+        if (match) {
+          isCurrentDevice = true;
+          matchedSession = match;
+        }
+      }
+
+      if (isCurrentDevice && matchedSession) {
+        matchedSession.isActive = false;
+        matchedSession.revokedAt = new Date();
+        matchedSession.revokeReason = "SESSION_ROTATED_ON_RELOGIN";
+        await matchedSession.save();
+      }
+
+      const remainingActiveSessions = (isCurrentDevice && matchedSession)
+        ? activeSessions.filter((s) => s.sessionId !== matchedSession.sessionId)
+        : activeSessions;
+
+      if (remainingActiveSessions.length >= MAX_ADMIN_DEVICES) {
         return res.status(403).json({
           success: false,
           code: "DEVICE_LIMIT_REACHED",
           message: "Maximum active administrator sessions reached (2 devices). Access denied.",
-          activeDeviceCount: activeSessions.length,
+          activeDeviceCount: remainingActiveSessions.length,
           maxAllowedDevices: MAX_ADMIN_DEVICES,
-          activeDevices: activeSessions.map((s) => ({
+          activeDevices: remainingActiveSessions.map((s) => ({
             sessionId: s.sessionId,
             deviceInfo: s.deviceInfo,
             lastActiveAt: s.lastActiveAt,
@@ -2687,6 +2895,16 @@ module.exports = async function handler(req, res) {
 
       if (!targetSessionId) {
         targetSessionId = req.headers["x-admin-last-session"] || req.body?.sessionId || null;
+      }
+
+      if (!targetSessionId) {
+        try {
+          const activeSessions = await getActiveAdminSessions(AdminSession);
+          const match = findMatchingSessionByDevice(activeSessions, req);
+          if (match) {
+            targetSessionId = match.sessionId;
+          }
+        } catch {}
       }
 
       if (targetSessionId) {

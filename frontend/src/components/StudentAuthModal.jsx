@@ -331,8 +331,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     setIsChecking(true);
     const timer = setTimeout(async () => {
       try {
+        const studentHeaders = {};
+        try {
+          const hint = localStorage.getItem("gf_student_session_hint");
+          if (hint) studentHeaders["x-student-last-session"] = hint;
+        } catch (_) {}
         const res = await axios.get(`${API_BASE}/auth/student/check-status?regNo=${encodeURIComponent(clean)}`, {
           withCredentials: true,
+          headers: studentHeaders,
         });
 
         if (res.data?.success) {
@@ -562,8 +568,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     if (!status || status.regNo !== cleanReg) {
       setLoading(true);
       try {
+        const studentHeaders = {};
+        try {
+          const hint = localStorage.getItem("gf_student_session_hint");
+          if (hint) studentHeaders["x-student-last-session"] = hint;
+        } catch (_) {}
         const res = await axios.get(`${API_BASE}/auth/student/check-status?regNo=${encodeURIComponent(cleanReg)}`, {
           withCredentials: true,
+          headers: studentHeaders,
         });
         if (res.data?.success) {
           status = {

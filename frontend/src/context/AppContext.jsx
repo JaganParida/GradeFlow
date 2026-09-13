@@ -1077,8 +1077,14 @@ export function AppProvider({ children }) {
     setLoading(true);
     setError("");
     try {
+      const studentHeaders = {};
+      try {
+        const hint = localStorage.getItem("gf_student_session_hint");
+        if (hint) studentHeaders["x-student-last-session"] = hint;
+      } catch (_) {}
+
       const payload = typeof options === "object" ? { regNo, otp, ...options } : { regNo, otp };
-      const res = await axios.post(`${API_BASE}/auth/student/verify-otp`, payload, { withCredentials: true });
+      const res = await axios.post(`${API_BASE}/auth/student/verify-otp`, payload, { withCredentials: true, headers: studentHeaders });
       if (res.data?.success) {
         if (res.data.step === "CREATE_PASSWORD") {
           return {
@@ -1091,6 +1097,9 @@ export function AppProvider({ children }) {
         }
         if (res.data.student) {
           setStudentSession(res.data.student);
+          if (res.data.student.sessionId) {
+            try { localStorage.setItem("gf_student_session_hint", String(res.data.student.sessionId).trim()); } catch (_) {}
+          }
           await fetchStudent(regNo, 3, 500, true);
           return { success: true, student: res.data.student };
         }
@@ -1114,7 +1123,13 @@ export function AppProvider({ children }) {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${API_BASE}/auth/student/login-password`, { regNo, password }, { withCredentials: true });
+      const studentHeaders = {};
+      try {
+        const hint = localStorage.getItem("gf_student_session_hint");
+        if (hint) studentHeaders["x-student-last-session"] = hint;
+      } catch (_) {}
+
+      const res = await axios.post(`${API_BASE}/auth/student/login-password`, { regNo, password }, { withCredentials: true, headers: studentHeaders });
       if (res.data?.step === "APPROVAL_PENDING") {
         return {
           success: true,
@@ -1140,6 +1155,9 @@ export function AppProvider({ children }) {
       }
       if (res.data?.success && res.data?.student) {
         setStudentSession(res.data.student);
+        if (res.data.student.sessionId) {
+          try { localStorage.setItem("gf_student_session_hint", String(res.data.student.sessionId).trim()); } catch (_) {}
+        }
         await fetchStudent(regNo, 3, 500, true);
         return {
           success: true,
@@ -1325,7 +1343,12 @@ export function AppProvider({ children }) {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${API_BASE}/auth/admin/login-password`, { password }, { withCredentials: true });
+      const adminHeaders = {};
+      try {
+        const hint = localStorage.getItem("gf_admin_session_hint");
+        if (hint) adminHeaders["x-admin-last-session"] = hint;
+      } catch (_) {}
+      const res = await axios.post(`${API_BASE}/auth/admin/login-password`, { password }, { withCredentials: true, headers: adminHeaders });
       if (res.data?.step === "OTP_REQUIRED") {
         return {
           success: true,
@@ -1353,7 +1376,12 @@ export function AppProvider({ children }) {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${API_BASE}/auth/admin/verify-otp`, { otp }, { withCredentials: true });
+      const adminHeaders = {};
+      try {
+        const hint = localStorage.getItem("gf_admin_session_hint");
+        if (hint) adminHeaders["x-admin-last-session"] = hint;
+      } catch (_) {}
+      const res = await axios.post(`${API_BASE}/auth/admin/verify-otp`, { otp }, { withCredentials: true, headers: adminHeaders });
       if (res.data?.success && res.data?.authenticated) {
         setAdminToken(true);
         setAdminProfile(res.data);
