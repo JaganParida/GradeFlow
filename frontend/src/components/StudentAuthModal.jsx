@@ -388,7 +388,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               setUnlockTime(res.data.unlockAt);
             }
             if (res.data.isCooldownActive && res.data.cooldownRemainingSeconds) {
-              setResendCooldown(res.data.cooldownRemainingSeconds);
+              setResendCooldown(res.data.cooldownRemainingSeconds + 2);
             }
             setErrorMsg("");
             setErrorCode("");
@@ -420,12 +420,26 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     return () => clearInterval(interval);
   }, [timerActive, timerSeconds]);
 
-  // Live Cooldown Timer for Resend
+  // Live Cooldown Timer for Resend & Request Throttling
   useEffect(() => {
     let interval = null;
     if (resendCooldown > 0) {
       interval = setInterval(() => {
-        setResendCooldown((prev) => (prev > 1 ? prev - 1 : 0));
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            setErrorMsg((curr) => (curr && curr.includes("before requesting another") ? "" : curr));
+            setErrorCode((curr) => (curr === "OTP_COOLDOWN_ACTIVE" ? "" : curr));
+            return 0;
+          }
+          const nextVal = prev - 1;
+          setErrorMsg((curr) => {
+            if (curr && curr.includes("before requesting another")) {
+              return `Please wait ${nextVal} seconds before requesting another verification code.`;
+            }
+            return curr;
+          });
+          return nextVal;
+        });
       }, 1000);
     }
     return () => clearInterval(interval);
@@ -562,7 +576,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
           if (res.data.attemptsUsedToday !== undefined) setAttemptsUsed(res.data.attemptsUsedToday);
           if (res.data.remainingDailyAttempts !== undefined) setRemainingDailyAttempts(res.data.remainingDailyAttempts);
           if (res.data.unlockAt) setUnlockTime(res.data.unlockAt);
-          if (res.data.isCooldownActive && res.data.cooldownRemainingSeconds) setResendCooldown(res.data.cooldownRemainingSeconds);
+          if (res.data.isCooldownActive && res.data.cooldownRemainingSeconds) setResendCooldown(res.data.cooldownRemainingSeconds + 2);
         } else {
           setErrorMsg(res.data?.message || "Unable to verify registration number.");
           setLoading(false);
@@ -605,6 +619,12 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   };
 
   const triggerSendOtp = async (isForgot = false) => {
+    if (resendCooldown > 0) {
+      setErrorMsg(`Please wait ${resendCooldown} seconds before requesting another verification code.`);
+      setErrorCode("OTP_COOLDOWN_ACTIVE");
+      return;
+    }
+
     const isForgotMode = typeof isForgot === "boolean" ? isForgot : isForgotPasswordMode;
     setLoading(true);
     setErrorMsg("");
@@ -636,7 +656,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         setRemainingDailyAttempts(0);
       }
       if (result.code === "OTP_COOLDOWN_ACTIVE") {
-        setResendCooldown(result.details?.remainingSeconds || 180);
+        const cd = result.details?.cooldownRemainingSeconds || result.details?.remainingSeconds || 180;
+        setResendCooldown(cd + 2);
       }
       if (result.code === "BLOCKED_DEVICE_ACTIVE" || result.code === "DEVICE_LIMIT_REACHED") {
         const devs = result.details?.activeDevices || result.details?.sessions || deviceStatus?.devices || [];
@@ -651,6 +672,13 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     if (e) e.preventDefault();
     if (!password) {
       setErrorMsg("Please enter your password.");
+      return;
+    }
+
+    // Client-Side Throttling: If OTP cooldown is active, prevent unnecessary server calls
+    if (resendCooldown > 0) {
+      setErrorMsg(`Please wait ${resendCooldown} seconds before requesting another verification code.`);
+      setErrorCode("OTP_COOLDOWN_ACTIVE");
       return;
     }
 
@@ -690,12 +718,22 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setErrorMsg(result.error);
       setErrorCode(result.code);
 
-      const attempts = (result.details?.failedAttempts || result.failedAttempts || failedPasswordAttemptsCount + 1);
-      setFailedPasswordAttemptsCount(attempts);
-
-      if (attempts >= 3 || result.code === "OTP_FALLBACK_ALLOWED" || result.code === "PASSWORD_ATTEMPTS_EXCEEDED") {
-        setDeviceStatus((prev) => ({ ...(prev || {}), otpFallbackAllowed: true, isLocked: true }));
+      // If server returns OTP cooldown, sync frontend cooldown timer with a 2-second safety buffer
+      if (result.code === "OTP_COOLDOWN_ACTIVE") {
+        const cd = result.details?.cooldownRemainingSeconds || result.details?.remainingSeconds || 60;
+        setResendCooldown(cd + 2);
       }
+
+      // ONLY count attempts on real password verification failure (never for OTP cooldown or rate limits)
+      if (result.code === "INVALID_PASSWORD" || result.code === "PASSWORD_ATTEMPTS_EXCEEDED" || result.details?.failedAttempts !== undefined) {
+        const attempts = (result.details?.failedAttempts ?? result.failedAttempts ?? (failedPasswordAttemptsCount + 1));
+        setFailedPasswordAttemptsCount(attempts);
+
+        if (attempts >= 3 || result.code === "OTP_FALLBACK_ALLOWED" || result.code === "PASSWORD_ATTEMPTS_EXCEEDED") {
+          setDeviceStatus((prev) => ({ ...(prev || {}), otpFallbackAllowed: true, isLocked: true }));
+        }
+      }
+
       if (result.code === "BLOCKED_DEVICE_ACTIVE" || result.code === "DEVICE_LIMIT_REACHED") {
         const devs = result.details?.activeDevices || result.details?.sessions || [];
         setBlockedDevicesData(devs);
@@ -1401,17 +1439,17 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 {!isPasswordBlocked && (
                   <button
                     type="submit"
-                    disabled={loading || !password}
+                    disabled={loading || !password || resendCooldown > 0}
                     style={{
                       width: "100%",
                       padding: "11px 16px",
                       borderRadius: 10,
                       border: "none",
-                      background: loading || !password ? "#cbd5e1" : "#0f172a",
+                      background: loading || !password || resendCooldown > 0 ? "#cbd5e1" : "#0f172a",
                       color: "#ffffff",
                       fontSize: 13.5,
                       fontWeight: 700,
-                      cursor: loading || !password ? "not-allowed" : "pointer",
+                      cursor: loading || !password || resendCooldown > 0 ? "not-allowed" : "pointer",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -1422,6 +1460,11 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                       <>
                         <Loader2 size={15} className="spin" />
                         <span>Signing in...</span>
+                      </>
+                    ) : resendCooldown > 0 ? (
+                      <>
+                        <Clock size={15} />
+                        <span>Please wait {resendCooldown}s</span>
                       </>
                     ) : (
                       <>
