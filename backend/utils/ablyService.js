@@ -1,12 +1,7 @@
 const Ably = require("ably");
 
-const ABLY_KEY_1 =
-  process.env.ABLY_API_KEY_1 ||
-  "REDACTED_ABLY_KEY_1";
-
-const ABLY_KEY_2 =
-  process.env.ABLY_API_KEY_2 ||
-  "REDACTED_ABLY_KEY_2";
+const ABLY_KEY_1 = process.env.ABLY_API_KEY_1 || "";
+const ABLY_KEY_2 = process.env.ABLY_API_KEY_2 || "";
 
 let client1 = null;
 let client2 = null;

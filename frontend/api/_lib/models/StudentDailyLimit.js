@@ -6,6 +6,7 @@ const studentDailyLimitSchema = new mongoose.Schema(
     dateKey: { type: String, required: true, index: true },
     otpSendCount: { type: Number, default: 0 },
     lastOtpSentAt: { type: Date, default: null },
+    sendTimestamps: { type: [Date], default: [] },
   },
   { timestamps: true }
 );

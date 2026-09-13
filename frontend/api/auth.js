@@ -175,12 +175,127 @@ function createTransporter() {
   });
 }
 
-function getIstDateKey() {
-  const now = new Date();
-  const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
+function getIstDateKey(date = new Date()) {
+  const d = date instanceof Date ? date : new Date(date);
+  const utcTime = d.getTime() + d.getTimezoneOffset() * 60000;
   const istOffset = 5.5 * 60 * 60000;
   const istDate = new Date(utcTime + istOffset);
   return istDate.toISOString().slice(0, 10);
+}
+
+function formatUnlockTime(date) {
+  if (!date) return "";
+  const d = new Date(date);
+  return (
+    d.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "numeric",
+      month: "short",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }) + " IST"
+  );
+}
+
+async function getAccountOtpQuotaState(accountKey, maxLimit = 3) {
+  const now = Date.now();
+  const rollingWindowMs = 24 * 60 * 60 * 1000;
+  const todayKey = getIstDateKey(new Date(now));
+  const yesterdayKey = getIstDateKey(new Date(now - rollingWindowMs));
+
+  const records = await StudentDailyLimit.find({
+    regNo: accountKey,
+    dateKey: { $in: [todayKey, yesterdayKey] },
+  });
+
+  let allTimestamps = [];
+  let lastOtpSentAt = null;
+
+  for (const rec of records) {
+    if (Array.isArray(rec.sendTimestamps) && rec.sendTimestamps.length > 0) {
+      for (const t of rec.sendTimestamps) {
+        const timeMs = new Date(t).getTime();
+        if (now - timeMs < rollingWindowMs) {
+          allTimestamps.push(timeMs);
+        }
+      }
+    } else if (rec.lastOtpSentAt) {
+      const timeMs = new Date(rec.lastOtpSentAt).getTime();
+      if (now - timeMs < rollingWindowMs) {
+        const count = rec.otpSendCount || 1;
+        for (let i = 0; i < count; i++) {
+          allTimestamps.push(timeMs);
+        }
+      }
+    }
+    if (rec.lastOtpSentAt) {
+      const t = new Date(rec.lastOtpSentAt);
+      if (!lastOtpSentAt || t > lastOtpSentAt) {
+        lastOtpSentAt = t;
+      }
+    }
+  }
+
+  allTimestamps.sort((a, b) => a - b);
+
+  const usedCount = allTimestamps.length;
+  const remainingAttempts = Math.max(0, maxLimit - usedCount);
+  const isLimitReached = usedCount >= maxLimit;
+
+  let unlockAt = null;
+  let secondsUntilUnlock = 0;
+  if (isLimitReached && allTimestamps.length > 0) {
+    const earliestInWindow = allTimestamps[0];
+    unlockAt = new Date(earliestInWindow + rollingWindowMs);
+    secondsUntilUnlock = Math.max(1, Math.ceil((unlockAt.getTime() - now) / 1000));
+  }
+
+  let isCooldownActive = false;
+  let cooldownRemainingSeconds = 0;
+  if (lastOtpSentAt) {
+    const timeSinceLast = now - lastOtpSentAt.getTime();
+    if (timeSinceLast < 180 * 1000) {
+      isCooldownActive = true;
+      cooldownRemainingSeconds = Math.ceil((180 * 1000 - timeSinceLast) / 1000);
+    }
+  }
+
+  return {
+    usedCount,
+    maxLimit,
+    remainingAttempts,
+    isLimitReached,
+    unlockAt,
+    secondsUntilUnlock,
+    isCooldownActive,
+    cooldownRemainingSeconds,
+    lastOtpSentAt,
+  };
+}
+
+async function recordAccountOtpSend(accountKey) {
+  const now = new Date();
+  const todayKey = getIstDateKey(now);
+
+  let todayRecord = await StudentDailyLimit.findOne({ regNo: accountKey, dateKey: todayKey });
+  if (!todayRecord) {
+    todayRecord = new StudentDailyLimit({
+      regNo: accountKey,
+      dateKey: todayKey,
+      otpSendCount: 0,
+      lastOtpSentAt: null,
+      sendTimestamps: [],
+    });
+  }
+
+  todayRecord.otpSendCount = (todayRecord.otpSendCount || 0) + 1;
+  todayRecord.lastOtpSentAt = now;
+  if (!Array.isArray(todayRecord.sendTimestamps)) todayRecord.sendTimestamps = [];
+  todayRecord.sendTimestamps.push(now);
+
+  await todayRecord.save();
+  return todayRecord;
 }
 
 function getTimeUntilIstMidnight() {
@@ -393,24 +508,16 @@ module.exports = async function handler(req, res) {
         } catch {}
       }
 
-      const dateKey = getIstDateKey();
-      const dailyLimit = await StudentDailyLimit.findOne({ regNo: rawReg, dateKey });
-      const isUnlimited = rawReg === "230301120327";
-      const maxDailyLimit = isUnlimited ? 99 : 3;
+      const maxDailyLimit = rawReg === "230301120327" ? 5 : 3;
+      const quota = await getAccountOtpQuotaState(rawReg, maxDailyLimit);
 
-      let isCooldownActive = false;
-      let cooldownRemainingSeconds = 0;
-      if (!isUnlimited && dailyLimit && dailyLimit.lastOtpSentAt && dailyLimit.otpSendCount > 0) {
-        const timeSinceLastSend = Date.now() - new Date(dailyLimit.lastOtpSentAt).getTime();
-        if (timeSinceLastSend < 180 * 1000) {
-          isCooldownActive = true;
-          cooldownRemainingSeconds = Math.ceil((180 * 1000 - timeSinceLastSend) / 1000);
-        }
-      }
-
-      const currentDailyCount = dailyLimit ? dailyLimit.otpSendCount : 0;
-      const isDailyLimitReached = !isUnlimited && currentDailyCount >= maxDailyLimit;
-      const remainingDailyAttempts = isUnlimited ? 99 : Math.max(0, maxDailyLimit - currentDailyCount);
+      const isCooldownActive = quota.isCooldownActive;
+      const cooldownRemainingSeconds = quota.cooldownRemainingSeconds;
+      const currentDailyCount = quota.usedCount;
+      const isDailyLimitReached = quota.isLimitReached;
+      const remainingDailyAttempts = quota.remainingAttempts;
+      const unlockAt = quota.unlockAt;
+      const secondsUntilUnlock = quota.secondsUntilUnlock;
 
       let isBlocked = false;
       let blockReason = null;
@@ -422,7 +529,7 @@ module.exports = async function handler(req, res) {
         if (isDailyLimitReached) {
           isBlocked = true;
           blockReason = "DAILY_LIMIT_EXCEEDED";
-          blockMessage = `Daily OTP limit reached (${currentDailyCount}/${maxDailyLimit} attempts used). Login for ${rawReg} is locked for today. It will automatically reset at midnight.`;
+          blockMessage = `OTP limit reached (${currentDailyCount}/${maxDailyLimit} requests used in 24 hours). You can request another OTP after ${formatUnlockTime(unlockAt)}.`;
         } else if (isCooldownActive) {
           blockReason = "OTP_COOLDOWN_ACTIVE";
           blockMessage = `Please wait ${cooldownRemainingSeconds} seconds before requesting another verification code.`;
@@ -459,6 +566,8 @@ module.exports = async function handler(req, res) {
         isCooldownActive,
         cooldownRemainingSeconds,
         remainingDailyAttempts,
+        unlockAt,
+        secondsUntilUnlock,
         attemptsUsedToday: currentDailyCount,
         maxDailyAttempts: maxDailyLimit,
         sessions: sessionDetails,
@@ -587,37 +696,39 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      // Daily Limit & Cooldown Check
-      const dateKey = getIstDateKey();
-      let dailyLimit = await globalDbQueue.run(() => StudentDailyLimit.findOne({ regNo: rawReg, dateKey }));
-      if (!dailyLimit) {
-        dailyLimit = new StudentDailyLimit({ regNo: rawReg, dateKey, otpSendCount: 0, lastOtpSentAt: null });
-      }
+      const isForgotPassword = Boolean(req.body.isForgotPassword || req.body.forceOtp);
+      const maxDailyLimit = rawReg === "230301120327" ? 5 : 3;
+      let quota = null;
 
-      if (!isUnlimited && dailyLimit.lastOtpSentAt && dailyLimit.otpSendCount > 0) {
-        const timeSinceLastSend = Date.now() - new Date(dailyLimit.lastOtpSentAt).getTime();
-        if (timeSinceLastSend < 180 * 1000) {
-          const waitSeconds = Math.ceil((180 * 1000 - timeSinceLastSend) / 1000);
+      if (!isForgotPassword) {
+        quota = await getAccountOtpQuotaState(rawReg, maxDailyLimit);
+        if (quota.isLimitReached) {
+          return res.status(429).json({
+            success: false,
+            code: "DAILY_LIMIT_EXCEEDED",
+            message: `OTP limit reached (maximum ${maxDailyLimit} requests per 24 hours). You can request another OTP after ${formatUnlockTime(quota.unlockAt)}.`,
+            remainingSeconds: quota.secondsUntilUnlock,
+            secondsUntilUnlock: quota.secondsUntilUnlock,
+            unlockAt: quota.unlockAt,
+            unlockTime: formatUnlockTime(quota.unlockAt),
+            remainingDailyAttempts: 0,
+            maxDailyAttempts: maxDailyLimit,
+          });
+        }
+
+        if (quota.isCooldownActive) {
           return res.status(429).json({
             success: false,
             code: "OTP_COOLDOWN_ACTIVE",
-            message: `Please wait ${waitSeconds} seconds before requesting a new verification code.`,
-            remainingSeconds: waitSeconds,
+            message: `Please wait ${quota.cooldownRemainingSeconds} seconds before requesting a new verification code.`,
+            remainingSeconds: quota.cooldownRemainingSeconds,
+            secondsRemaining: quota.cooldownRemainingSeconds,
+            cooldownRemainingSeconds: quota.cooldownRemainingSeconds,
+            remainingDailyAttempts: quota.remainingAttempts,
+            maxDailyAttempts: maxDailyLimit,
           });
         }
       }
-
-      const maxDailyLimit = isUnlimited ? 999 : 3;
-      if (!isUnlimited && dailyLimit.otpSendCount >= maxDailyLimit) {
-        const { hours, mins, totalSeconds } = getTimeUntilIstMidnight();
-        return res.status(429).json({
-          message: `Daily OTP limit reached (maximum ${maxDailyLimit} requests per calendar day). Login for ${rawReg} is locked for today. It will automatically reset at 12:00 AM midnight (in ${hours}h ${mins}m).`,
-          code: "DAILY_LIMIT_EXCEEDED",
-          remainingSeconds: totalSeconds,
-        });
-      }
-
-      const isForgotPassword = Boolean(req.body.isForgotPassword || req.body.forceOtp);
 
       // If in forgot password recovery mode: check if an unexpired recovery OTP is already alive in DB
       if (isForgotPassword) {
@@ -674,15 +785,15 @@ module.exports = async function handler(req, res) {
           expiresInMinutes: otpTtlMinutes,
         });
 
-        dailyLimit.otpSendCount += 1;
-        dailyLimit.lastOtpSentAt = new Date();
-        await globalDbQueue.run(() => dailyLimit.save());
+        if (!isForgotPassword) {
+          await recordAccountOtpSend(rawReg);
+        }
 
         const isFallback = emailResult.provider === "gmail_fallback";
         await OtpRequestLog.create({
           regNo: rawReg,
           studentName,
-          dateKey,
+          dateKey: getIstDateKey(),
           status: "DELIVERED",
           deliveryStatus: "DELIVERED",
           provider: isFallback ? "GMAIL" : "BREVO",
@@ -698,21 +809,25 @@ module.exports = async function handler(req, res) {
       }
 
       const maskedEmail = `${studentEmail.slice(0, 4)}***@${studentEmail.split("@")[1]}`;
+      const remainingAttemptsAfterSend = isForgotPassword
+        ? 0
+        : Math.max(0, (quota?.remainingAttempts ?? maxDailyLimit) - 1);
+
       return res.json({
         success: true,
         message: `A 6-digit verification code has been sent to ${studentEmail}.`,
-        maskedEmail,
+        email: studentEmail,
+        maskedEmail: isForgotPassword ? maskedEmail : studentEmail,
         studentName,
         regNo: rawReg,
         hasPassword,
         expiresInSeconds: otpTtlMinutes * 60,
         cooldownSeconds: 180,
-        attemptsUsedToday: dailyLimit.otpSendCount,
-        maxDailyAttempts: maxDailyLimit,
-        remainingDailyAttempts: isUnlimited ? 99 : Math.max(0, maxDailyLimit - dailyLimit.otpSendCount),
-        isUnlimited,
+        attemptsUsedToday: isForgotPassword ? (studentAccount?.recoveryOtpCount || 1) : ((quota?.usedCount || 0) + 1),
+        maxDailyAttempts: isForgotPassword ? 1 : maxDailyLimit,
+        remainingDailyAttempts: remainingAttemptsAfterSend,
         isForgotPassword,
-        resendAllowed: !isForgotPassword,
+        resendAllowed: !isForgotPassword && remainingAttemptsAfterSend > 0,
       });
     }
 
@@ -1175,7 +1290,36 @@ module.exports = async function handler(req, res) {
             });
           }
 
-          // Active devices < 2: Generate and dispatch OTP (Special Student requires OTP on EVERY login attempt)
+          // Active devices < 2: Check 5-send 24-hour OTP quota & 180s cooldown
+          const quota = await getAccountOtpQuotaState(rawReg, 5);
+          if (quota.isLimitReached) {
+            return res.status(429).json({
+              success: false,
+              code: "DAILY_LIMIT_EXCEEDED",
+              message: `OTP limit reached (maximum 5 requests per 24 hours). You can request another OTP after ${formatUnlockTime(quota.unlockAt)}.`,
+              remainingSeconds: quota.secondsUntilUnlock,
+              secondsUntilUnlock: quota.secondsUntilUnlock,
+              unlockAt: quota.unlockAt,
+              unlockTime: formatUnlockTime(quota.unlockAt),
+              remainingDailyAttempts: 0,
+              maxDailyAttempts: 5,
+            });
+          }
+
+          if (quota.isCooldownActive) {
+            return res.status(429).json({
+              success: false,
+              code: "OTP_COOLDOWN_ACTIVE",
+              message: `Please wait ${quota.cooldownRemainingSeconds} seconds before requesting another verification code.`,
+              remainingSeconds: quota.cooldownRemainingSeconds,
+              secondsRemaining: quota.cooldownRemainingSeconds,
+              cooldownRemainingSeconds: quota.cooldownRemainingSeconds,
+              remainingDailyAttempts: quota.remainingAttempts,
+              maxDailyAttempts: 5,
+            });
+          }
+
+          // Generate and dispatch OTP (Special Student requires OTP on EVERY login attempt)
           const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
           const otpCode = crypto.randomInt(100000, 999999).toString();
           const otpSalt = await bcrypt.genSalt(10);
@@ -1203,21 +1347,22 @@ module.exports = async function handler(req, res) {
               otp: otpCode,
               expiresInMinutes: otpTtlMinutes,
             });
+            await recordAccountOtpSend(rawReg);
           } catch (emailErr) {
             console.error("Special student OTP email failed:", emailErr?.message || emailErr);
           }
-
-          const parts = studentEmail.split("@");
-          const maskedUser = parts[0].length > 4 ? `${parts[0].slice(0, 3)}***${parts[0].slice(-2)}` : `${parts[0].slice(0, 1)}***`;
-          const maskedEmail = `${maskedUser}@${parts[1]}`;
 
           return res.json({
             success: true,
             step: "OTP",
             message: `A 6-digit verification code has been dispatched to ${studentEmail}.`,
             regNo: rawReg,
-            maskedEmail,
+            email: studentEmail,
+            maskedEmail: studentEmail,
             expiresInSeconds: otpTtlMinutes * 60,
+            cooldownSeconds: 180,
+            remainingDailyAttempts: quota.remainingAttempts - 1,
+            maxDailyAttempts: 5,
             student: {
               regNo: rawReg,
               studentName,
@@ -2117,16 +2262,45 @@ module.exports = async function handler(req, res) {
         });
       }
 
+      const recipientEmail = targetRecipientEmail || matchedAdminDoc?.email || process.env.ADMIN_EMAIL || "jaganparida35@gmail.com";
+      const adminAccountKey = "ADMIN:" + recipientEmail.toLowerCase().trim();
+      const quota = await getAccountOtpQuotaState(adminAccountKey, 5);
+
+      if (quota.isLimitReached) {
+        return res.status(429).json({
+          success: false,
+          code: "DAILY_LIMIT_EXCEEDED",
+          message: `Administrator OTP limit reached (maximum 5 requests per 24 hours). You can request another code after ${formatUnlockTime(quota.unlockAt)}.`,
+          remainingSeconds: quota.secondsUntilUnlock,
+          unlockAt: quota.unlockAt,
+          remainingAttempts: 0,
+          maxAttempts: 5,
+        });
+      }
+
+      if (quota.isCooldownActive) {
+        return res.status(429).json({
+          success: false,
+          code: "OTP_COOLDOWN_ACTIVE",
+          message: `Please wait ${quota.cooldownRemainingSeconds} seconds before requesting a new verification code.`,
+          remainingSeconds: quota.cooldownRemainingSeconds,
+          cooldownRemainingSeconds: quota.cooldownRemainingSeconds,
+          remainingAttempts: quota.remainingAttempts,
+          maxAttempts: 5,
+        });
+      }
+
       const otp = crypto.randomInt(100000, 1000000).toString();
       const otpHash = await bcrypt.hash(otp, 10);
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+      const otpTtlMinutes = 3;
+      const expiresAt = new Date(Date.now() + otpTtlMinutes * 60 * 1000);
 
       await AdminOtpVerification.deleteMany({});
       await AdminOtpVerification.create({ otpHash, expiresAt, attempts: 0 });
 
-      const recipientEmail = targetRecipientEmail || matchedAdminDoc?.email || process.env.ADMIN_EMAIL || "jaganparida35@gmail.com";
       try {
-        await sendAdminOtpEmail({ to: recipientEmail, otp, expiresInMinutes: 5 });
+        await sendAdminOtpEmail({ to: recipientEmail, otp, expiresInMinutes: otpTtlMinutes });
+        await recordAccountOtpSend(adminAccountKey);
       } catch (emailErr) {
         console.error("Admin OTP email send failure:", emailErr?.message || emailErr);
         return res.status(503).json({
@@ -2139,7 +2313,10 @@ module.exports = async function handler(req, res) {
       return res.json({
         success: true,
         step: "OTP_REQUIRED",
-        expiresInSeconds: 300,
+        expiresInSeconds: 180,
+        cooldownSeconds: 180,
+        remainingAttempts: quota.remainingAttempts - 1,
+        maxAttempts: 5,
         message: "A 6-digit verification code has been dispatched to the authorized administrator email.",
       });
     }
@@ -2310,15 +2487,44 @@ module.exports = async function handler(req, res) {
         });
       }
 
+      const subAdminAccountKey = "SUBADMIN:" + subAdmin.email.toLowerCase().trim();
+      const quota = await getAccountOtpQuotaState(subAdminAccountKey, 5);
+
+      if (quota.isLimitReached) {
+        return res.status(429).json({
+          success: false,
+          code: "DAILY_LIMIT_EXCEEDED",
+          message: `Sub-Administrator OTP limit reached (maximum 5 requests per 24 hours). You can request another code after ${formatUnlockTime(quota.unlockAt)}.`,
+          remainingSeconds: quota.secondsUntilUnlock,
+          unlockAt: quota.unlockAt,
+          remainingAttempts: 0,
+          maxAttempts: 5,
+        });
+      }
+
+      if (quota.isCooldownActive) {
+        return res.status(429).json({
+          success: false,
+          code: "OTP_COOLDOWN_ACTIVE",
+          message: `Please wait ${quota.cooldownRemainingSeconds} seconds before requesting a new verification code.`,
+          remainingSeconds: quota.cooldownRemainingSeconds,
+          cooldownRemainingSeconds: quota.cooldownRemainingSeconds,
+          remainingAttempts: quota.remainingAttempts,
+          maxAttempts: 5,
+        });
+      }
+
       const otp = crypto.randomInt(100000, 1000000).toString();
       const otpHash = await bcrypt.hash(otp, 10);
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+      const otpTtlMinutes = 3;
+      const expiresAt = new Date(Date.now() + otpTtlMinutes * 60 * 1000);
 
       await SubAdminOtpVerification.deleteMany({ email: subAdmin.email });
       await SubAdminOtpVerification.create({ email: subAdmin.email, otpHash, expiresAt, attempts: 0 });
 
       try {
-        await sendSubAdminOtpEmail({ to: subAdmin.email, name: subAdmin.name, otp, expiresInMinutes: 5 });
+        await sendSubAdminOtpEmail({ to: subAdmin.email, name: subAdmin.name, otp, expiresInMinutes: otpTtlMinutes });
+        await recordAccountOtpSend(subAdminAccountKey);
       } catch (emailErr) {
         console.error("Sub-Admin OTP email send failure:", emailErr?.message || emailErr);
         return res.status(503).json({
@@ -2333,7 +2539,10 @@ module.exports = async function handler(req, res) {
         step: "OTP_REQUIRED",
         email: subAdmin.email,
         name: subAdmin.name,
-        expiresInSeconds: 300,
+        expiresInSeconds: 180,
+        cooldownSeconds: 180,
+        remainingAttempts: quota.remainingAttempts - 1,
+        maxAttempts: 5,
         message: `Verification code sent to ${subAdmin.email}.`,
       });
     }

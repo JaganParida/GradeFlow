@@ -35,8 +35,10 @@ export default function AdminLogin() {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockCountdown, setLockCountdown] = useState(0);
 
-  // OTP Expiration Timer
-  const [otpTimeLeft, setOtpTimeLeft] = useState(300); // 5 minutes (300s)
+  // OTP Expiration & Cooldown Timers
+  const [otpTimeLeft, setOtpTimeLeft] = useState(180); // 3 minutes (180s)
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [remainingAttempts, setRemainingAttempts] = useState(5);
 
   const [authMode, setAuthMode] = useState("MAIN"); // "MAIN" | "SUBADMIN"
   const [subAdminEmail, setSubAdminEmail] = useState("");
@@ -91,6 +93,17 @@ export default function AdminLogin() {
     return () => clearInterval(timer);
   }, [step, otpTimeLeft]);
 
+  // Handle Resend Cooldown Countdown Timer
+  useEffect(() => {
+    let timer;
+    if (resendCooldown > 0) {
+      timer = setInterval(() => {
+        setResendCooldown((prev) => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
   // Format seconds to MM:SS
   const formatTimer = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -128,7 +141,12 @@ export default function AdminLogin() {
       if (res && res.step === "OTP_REQUIRED") {
         setStep("OTP");
         setOtp(["", "", "", "", "", ""]);
-        setOtpTimeLeft(res.expiresInSeconds || 300);
+        const ttl = res.expiresInSeconds || 180;
+        setOtpTimeLeft(ttl);
+        setResendCooldown(res.cooldownSeconds || ttl);
+        if (typeof res.remainingAttempts === "number") {
+          setRemainingAttempts(res.remainingAttempts);
+        }
         setStatusNotice("A 6-digit security code has been dispatched to your administrator email.");
         setTimeout(() => {
           if (otpInputsRef.current[0]) {
@@ -231,7 +249,12 @@ export default function AdminLogin() {
         setSubAdminMaskedEmail(res.maskedEmail || res.email || "");
         setStep("OTP");
         setOtp(["", "", "", "", "", ""]);
-        setOtpTimeLeft(res.expiresInSeconds || 300);
+        const ttl = res.expiresInSeconds || 180;
+        setOtpTimeLeft(ttl);
+        setResendCooldown(res.cooldownSeconds || ttl);
+        if (typeof res.remainingAttempts === "number") {
+          setRemainingAttempts(res.remainingAttempts);
+        }
         setStatusNotice(`A 6-digit verification code has been dispatched to ${res.maskedEmail || res.email}.`);
         setTimeout(() => {
           if (otpInputsRef.current[0]) {
@@ -397,7 +420,7 @@ export default function AdminLogin() {
   }
 
   const handleResendOtp = async () => {
-    if (loading || lockCountdown > 0) return;
+    if (loading || lockCountdown > 0 || resendCooldown > 0 || (typeof remainingAttempts === "number" && remainingAttempts <= 0)) return;
     setLoading(true);
     setErrorInfo(null);
     try {
@@ -408,7 +431,12 @@ export default function AdminLogin() {
 
       if (res && res.step === "OTP_REQUIRED") {
         setOtp(["", "", "", "", "", ""]);
-        setOtpTimeLeft(300);
+        const ttl = res.expiresInSeconds || 180;
+        setOtpTimeLeft(ttl);
+        setResendCooldown(res.cooldownSeconds || ttl);
+        if (typeof res.remainingAttempts === "number") {
+          setRemainingAttempts(res.remainingAttempts);
+        }
         setStatusNotice(`A fresh 6-digit verification code has been dispatched to ${res.maskedEmail || res.email}.`);
         if (otpInputsRef.current[0]) otpInputsRef.current[0].focus();
       } else if (res && (res.code === "SUBADMIN_DEVICE_LIMIT_REACHED" || res.details?.code === "SUBADMIN_DEVICE_LIMIT_REACHED")) {
@@ -419,11 +447,18 @@ export default function AdminLogin() {
           type: "warning",
         });
       }
-    } catch {
+    } catch (err) {
+      const errData = err.response?.data;
+      if (errData?.secondsRemaining) {
+        setResendCooldown(errData.secondsRemaining);
+      }
+      if (typeof errData?.remainingAttempts === "number") {
+        setRemainingAttempts(errData.remainingAttempts);
+      }
       setErrorInfo({
-        title: "Resend Failed",
-        message: "Unable to dispatch a new verification code. Please sign in again.",
-        badge: null,
+        title: errData?.code === "DAILY_OTP_LIMIT_EXCEEDED" ? "Daily Quota Reached" : "Resend Failed",
+        message: errData?.message || "Unable to dispatch a new verification code. Please sign in again.",
+        badge: errData?.secondsRemaining ? `Wait ${errData.secondsRemaining}s` : null,
         type: "error",
       });
     } finally {
@@ -1275,21 +1310,26 @@ export default function AdminLogin() {
                             width: 6,
                             height: 6,
                             borderRadius: "50%",
-                            background: otpTimeLeft > 60 ? "#10b981" : "#ef4444",
+                            background: otpTimeLeft > 30 ? "#10b981" : "#ef4444",
                           }}
                         />
                         <span>Expires in: <strong>{formatTimer(otpTimeLeft)}</strong></span>
+                        {typeof remainingAttempts === "number" && (
+                          <span style={{ marginLeft: 6, fontSize: 11, color: remainingAttempts <= 0 ? "#dc2626" : "#64748b" }}>
+                            ({remainingAttempts} left)
+                          </span>
+                        )}
                       </div>
 
                       <button
                         type="button"
                         onClick={handleResendOtp}
-                        disabled={loading || otpTimeLeft > 240}
+                        disabled={loading || resendCooldown > 0 || remainingAttempts <= 0}
                         style={{
                           background: "none",
                           border: "none",
-                          color: otpTimeLeft > 240 ? "#94a3b8" : "#2563eb",
-                          cursor: otpTimeLeft > 240 ? "not-allowed" : "pointer",
+                          color: resendCooldown > 0 || remainingAttempts <= 0 ? "#94a3b8" : "#2563eb",
+                          cursor: resendCooldown > 0 || remainingAttempts <= 0 ? "not-allowed" : "pointer",
                           fontSize: 12,
                           fontWeight: 700,
                           display: "inline-flex",
@@ -1299,7 +1339,13 @@ export default function AdminLogin() {
                         }}
                       >
                         <RotateCw size={12} className={loading ? "spin" : ""} />
-                        <span>Resend Code</span>
+                        <span>
+                          {remainingAttempts <= 0
+                            ? "Limit Reached"
+                            : resendCooldown > 0
+                            ? `Resend Code (${resendCooldown}s)`
+                            : "Resend Code"}
+                        </span>
                       </button>
                     </div>
                   </div>

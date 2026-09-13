@@ -156,8 +156,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const [errorCode, setErrorCode] = useState("");
   const [statusNotice, setStatusNotice] = useState("");
   const [maskedEmail, setMaskedEmail] = useState("");
+  const [accountEmail, setAccountEmail] = useState("");
+  const [unlockTime, setUnlockTime] = useState(null);
   const [studentName, setStudentName] = useState("");
-  const [remainingDailyAttempts, setRemainingDailyAttempts] = useState(2);
+  const [remainingDailyAttempts, setRemainingDailyAttempts] = useState(3);
   const [attemptsUsed, setAttemptsUsed] = useState(0);
   const [timerSeconds, setTimerSeconds] = useState(180);
   const [timerActive, setTimerActive] = useState(false);
@@ -277,6 +279,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setResendCooldown(0);
       setAttemptsUsed(0);
       setRemainingDailyAttempts(2);
+      setAccountEmail("");
+      setUnlockTime(null);
       setDeviceStatus(null);
       setIsChecking(false);
       if (hasActiveSession && studentSession?.regNo) {
@@ -284,6 +288,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       } else {
         setRegNo("");
         setMaskedEmail("");
+        setAccountEmail("");
         setStudentName("");
       }
     } else {
@@ -301,6 +306,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setResendCooldown(0);
       setAttemptsUsed(0);
       setRemainingDailyAttempts(2);
+      setAccountEmail("");
+      setUnlockTime(null);
       setDeviceStatus(null);
       setIsChecking(false);
     }
@@ -376,6 +383,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             }
             if (res.data.remainingDailyAttempts !== undefined) {
               setRemainingDailyAttempts(res.data.remainingDailyAttempts);
+            }
+            if (res.data.unlockAt) {
+              setUnlockTime(res.data.unlockAt);
             }
             if (res.data.isCooldownActive && res.data.cooldownRemainingSeconds) {
               setResendCooldown(res.data.cooldownRemainingSeconds);
@@ -551,6 +561,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
           if (res.data.studentName) setStudentName(res.data.studentName);
           if (res.data.attemptsUsedToday !== undefined) setAttemptsUsed(res.data.attemptsUsedToday);
           if (res.data.remainingDailyAttempts !== undefined) setRemainingDailyAttempts(res.data.remainingDailyAttempts);
+          if (res.data.unlockAt) setUnlockTime(res.data.unlockAt);
           if (res.data.isCooldownActive && res.data.cooldownRemainingSeconds) setResendCooldown(res.data.cooldownRemainingSeconds);
         } else {
           setErrorMsg(res.data?.message || "Unable to verify registration number.");
@@ -604,17 +615,26 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     setLoading(false);
 
     if (result.success) {
-      setMaskedEmail(result.data?.maskedEmail || `${cleanReg.toLowerCase()}@centurionuniv.edu.in`);
+      const authoritativeEmail = result.data?.email || (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
+      setAccountEmail(authoritativeEmail);
+      setMaskedEmail(result.data?.maskedEmail || authoritativeEmail);
       setStudentName(result.data?.studentName || "Student");
       setAttemptsUsed(result.data?.attemptsUsedToday ?? 1);
       setRemainingDailyAttempts(result.data?.remainingDailyAttempts ?? 1);
       setTimerSeconds(result.data?.expiresInSeconds || 180);
       setTimerActive(true);
       setResendCooldown(result.data?.cooldownSeconds || 180);
+      if (result.data?.unlockAt) setUnlockTime(result.data.unlockAt);
       setStep("OTP");
     } else {
       setErrorMsg(result.error);
       setErrorCode(result.code);
+      if (result.details?.unlockAt || result.data?.unlockAt) {
+        setUnlockTime(result.details?.unlockAt || result.data?.unlockAt);
+      }
+      if (result.code === "DAILY_LIMIT_EXCEEDED") {
+        setRemainingDailyAttempts(0);
+      }
       if (result.code === "OTP_COOLDOWN_ACTIVE") {
         setResendCooldown(result.details?.remainingSeconds || 180);
       }
@@ -652,12 +672,15 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     }
 
     if (result.step === "OTP") {
-      // Auto-sent OTP when cookies were deleted / logged out!
-      setStep("OTP");
-      setMaskedEmail(result.maskedEmail || "");
+      const authoritativeEmail = result.email || (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
+      setAccountEmail(authoritativeEmail);
+      setMaskedEmail(result.maskedEmail || authoritativeEmail);
       setTimerSeconds(result.expiresInSeconds || 180);
       setTimerActive(true);
-      setStatusNotice(result.message || `A 6-digit verification code has been dispatched to ${result.maskedEmail || "your university email"}.`);
+      setResendCooldown(result.cooldownSeconds || 180);
+      setRemainingDailyAttempts(result.remainingDailyAttempts ?? 4);
+      if (result.unlockAt) setUnlockTime(result.unlockAt);
+      setStep("OTP");
       return;
     }
 
@@ -1056,7 +1079,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 )}
               </div>
             </div>
-          ) : statusNotice && step !== "PASSWORD_SUCCESS" ? (
+          ) : statusNotice && step !== "PASSWORD_SUCCESS" && step !== "OTP" ? (
             <div
               style={{
                 background: "#f0fdf4",
@@ -1674,9 +1697,37 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   <div style={{ fontSize: 11.5, color: "#166534", fontWeight: 700 }}>
                     Verification code dispatched to:
                   </div>
-                  <div style={{ fontSize: 13.5, fontWeight: 800, color: "#15803d", fontFamily: "'Space Mono', monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {maskedEmail}
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 800,
+                      color: "#15803d",
+                      fontFamily: "'Space Mono', monospace",
+                      wordBreak: "break-all",
+                      overflowWrap: "anywhere",
+                      whiteSpace: "normal",
+                      lineHeight: 1.35,
+                      marginTop: 2,
+                    }}
+                  >
+                    {accountEmail || maskedEmail || "your registered email"}
                   </div>
+                  {!isForgotPasswordMode && typeof remainingDailyAttempts === "number" && (
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: remainingDailyAttempts <= 0 ? "#dc2626" : "#166534",
+                        fontWeight: 600,
+                        marginTop: 4,
+                      }}
+                    >
+                      {remainingDailyAttempts > 0 ? (
+                        <span>OTP attempts remaining today: <strong>{remainingDailyAttempts}</strong></span>
+                      ) : (
+                        <span>Daily OTP limit reached.{unlockTime ? ` Unlocks at ${unlockTime}.` : ""}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1823,7 +1874,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
                 <button
                   type="button"
-                  disabled={resendCooldown > 0 || remainingDailyAttempts <= 0 || loading}
+                  disabled={resendCooldown > 0 || (remainingDailyAttempts <= 0 && !isForgotPasswordMode) || loading}
                   onClick={() => {
                     if (cleanReg === "230301120327" && password && !isForgotPasswordMode) {
                       handlePasswordSubmit();
@@ -1834,10 +1885,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   style={{
                     background: "none",
                     border: "none",
-                    color: resendCooldown > 0 || remainingDailyAttempts <= 0 ? "#94a3b8" : "#2563eb",
+                    color: resendCooldown > 0 || (remainingDailyAttempts <= 0 && !isForgotPasswordMode) ? "#94a3b8" : "#2563eb",
                     fontSize: 12,
                     fontWeight: 700,
-                    cursor: resendCooldown > 0 || remainingDailyAttempts <= 0 ? "not-allowed" : "pointer",
+                    cursor: resendCooldown > 0 || (remainingDailyAttempts <= 0 && !isForgotPasswordMode) ? "not-allowed" : "pointer",
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 4,
@@ -1845,7 +1896,13 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   }}
                 >
                   <RefreshCw size={12} className={loading ? "spin" : ""} />
-                  <span>Resend Code {resendCooldown > 0 ? `(${resendCooldown}s)` : ""}</span>
+                  <span>
+                    {remainingDailyAttempts <= 0 && !isForgotPasswordMode
+                      ? "Daily Limit Reached"
+                      : resendCooldown > 0
+                      ? `Resend Code (${resendCooldown}s)`
+                      : "Resend Code"}
+                  </span>
                 </button>
               </div>
             </form>
