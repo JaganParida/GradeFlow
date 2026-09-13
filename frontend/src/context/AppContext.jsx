@@ -110,6 +110,10 @@ export function AppProvider({ children }) {
   // In-memory administrative authentication state — NOT persisted in localStorage
   const [adminToken, setAdminToken] = useState(false);
   const [adminProfile, setAdminProfile] = useState(null);
+  const adminProfileRef = useRef(adminProfile);
+  useEffect(() => {
+    adminProfileRef.current = adminProfile;
+  }, [adminProfile]);
   const [adminDeviceCount, setAdminDeviceCount] = useState(0);
   const [isAdminButtonVisible, setIsAdminButtonVisible] = useState(true);
   const [adminButtonConfig, setAdminButtonConfig] = useState(() => ({
@@ -477,7 +481,7 @@ export function AppProvider({ children }) {
     // Targeted session revocation: only log out if this specific session was revoked
     unsubs.push(
       subscribeAdminChannel("admin-control", "session-revoked", (msg) => {
-        const mySessionId = adminProfile?.sessionId;
+        const mySessionId = adminProfileRef.current?.sessionId;
         const targetRevoked = msg?.data?.sessionId || msg?.data?.revokedSessionId;
         if (targetRevoked && mySessionId && targetRevoked === mySessionId) {
           console.warn("[AdminAbly] This device session was revoked:", msg?.data);
@@ -554,7 +558,7 @@ export function AppProvider({ children }) {
         if (typeof unsub === "function") unsub();
       });
     };
-  }, [adminToken, adminProfile, adminLogout]);
+  }, [adminToken, adminLogout]);
 
   // ─── Student In-App Notifications & Realtime SSE Stream ──────────
   const [notifications, setNotifications] = useState([]);

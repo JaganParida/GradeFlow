@@ -1789,29 +1789,6 @@ router.post("/student/logout", async (req, res) => {
           },
         }
       );
-    } else if (targetReg) {
-      const clientInfo = extractRequestDeviceInfo(req);
-      const match = await StudentSession.findOne({
-        regNo: targetReg,
-        isActive: true,
-        "deviceInfo.userAgent": clientInfo.userAgent,
-      }).sort({ lastActiveAt: -1 });
-
-      if (match) {
-        await StudentSession.updateOne(
-          { _id: match._id },
-          {
-            $set: {
-              isActive: false,
-              loggedOutAt: now,
-              lastActiveAt: now,
-              logoutType: "student_manual",
-              revokedAt: now,
-              revokeReason: "Signed out manually by student",
-            },
-          }
-        );
-      }
     }
 
     clearStudentAuthCookies(res, req);
@@ -2689,6 +2666,7 @@ const handleAdminMe = async (req, res) => {
         role: "admin",
         adminType: "subadmin",
         subAdminId: subAdmin._id,
+        sessionId: decoded.sessionId,
         name: subAdmin.name,
         email: subAdmin.email,
         permissions: subAdmin.permissions || { routes: [], sections: [], actions: [] },
@@ -2720,6 +2698,7 @@ const handleAdminMe = async (req, res) => {
       adminType: "main",
       name: "Main Administrator",
       email: decoded.email || process.env.ADMIN_EMAIL,
+      sessionId: decoded.sessionId,
       permissions: { routes: ["*"], sections: ["*"], actions: ["*"] },
     });
   } catch (err) {
@@ -2753,24 +2732,6 @@ const handleAdminLogout = async (req, res) => {
 
     if (!targetSessionId) {
       targetSessionId = req.headers["x-admin-last-session"] || req.body?.sessionId || null;
-    }
-
-    if (!targetSessionId) {
-      const clientInfo = extractRequestDeviceInfo(req);
-      if (clientInfo && clientInfo.userAgent) {
-        const match = await AdminSession.findOne({
-          isActive: true,
-          "deviceInfo.userAgent": clientInfo.userAgent,
-        }).sort({ lastActiveAt: -1 });
-        if (match) targetSessionId = match.sessionId;
-        if (!targetSessionId) {
-          const subMatch = await SubAdminSession.findOne({
-            isActive: true,
-            "deviceInfo.userAgent": clientInfo.userAgent,
-          }).sort({ lastActiveAt: -1 });
-          if (subMatch) targetSessionId = subMatch.sessionId;
-        }
-      }
     }
 
     if (targetSessionId) {
@@ -2832,17 +2793,6 @@ const handleAdminReleaseSession = async (req, res) => {
           const decoded = jwt.verify(token, process.env.JWT_SECRET);
           targetSessionId = decoded?.sessionId;
         } catch {}
-      }
-    }
-
-    if (!targetSessionId) {
-      const clientInfo = extractRequestDeviceInfo(req);
-      if (clientInfo && clientInfo.userAgent) {
-        const match = await AdminSession.findOne({
-          isActive: true,
-          "deviceInfo.userAgent": clientInfo.userAgent,
-        }).sort({ lastActiveAt: -1 });
-        if (match) targetSessionId = match.sessionId;
       }
     }
 
@@ -2975,29 +2925,6 @@ const handleStudentLogout = async (req, res) => {
           },
         }
       );
-    } else if (targetReg) {
-      const clientInfo = extractRequestDeviceInfo(req);
-      const match = await StudentSession.findOne({
-        regNo: targetReg,
-        isActive: true,
-        "deviceInfo.userAgent": clientInfo.userAgent,
-      }).sort({ lastActiveAt: -1 });
-
-      if (match) {
-        await StudentSession.updateOne(
-          { _id: match._id },
-          {
-            $set: {
-              isActive: false,
-              loggedOutAt: now,
-              lastActiveAt: now,
-              logoutType: "student_manual",
-              revokedAt: now,
-              revokeReason: "Signed out manually by student",
-            },
-          }
-        );
-      }
     }
 
     clearStudentAuthCookies(res, req);
@@ -3054,14 +2981,23 @@ router.all("/realtime-token", async (req, res) => {
       try {
         const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
         if (decoded.role === "admin" && decoded.sessionId) {
-          const session = await AdminSession.findOne({
-            sessionId: decoded.sessionId,
-            isActive: true,
-            expiresAt: { $gt: new Date() },
-          });
+          let session = null;
+          if (decoded.adminType === "subadmin") {
+            session = await SubAdminSession.findOne({
+              sessionId: decoded.sessionId,
+              isActive: true,
+              expiresAt: { $gt: new Date() },
+            });
+          } else {
+            session = await AdminSession.findOne({
+              sessionId: decoded.sessionId,
+              isActive: true,
+              expiresAt: { $gt: new Date() },
+            });
+          }
           if (session) {
             const tokenRequest = await createRealtimeTokenRequest({
-              clientId: "admin",
+              clientId: decoded.adminType === "subadmin" ? `subadmin-${decoded.subAdminId || session.subAdminId}` : "admin",
               capabilities: {
                 "admin-control": ["subscribe", "publish"],
                 "broadcasts-all": ["subscribe", "publish"],

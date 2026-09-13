@@ -3817,7 +3817,7 @@ export default function AdminDashboard({ defaultTab = null }) {
     try {
       const { data } = await axios.get(`${API}/auth/admin/me`, { withCredentials: true });
       if (data.success && data.authenticated) {
-        setAdminProfile(data);
+        setAdminProfile((prev) => ({ ...prev, ...data }));
         const isMain = data.adminType === "main" || !data.adminType;
         const permittedRoutes = data.permissions?.routes || [];
         if (!isMain && permittedRoutes.length > 0 && !permittedRoutes.includes(tab)) {
