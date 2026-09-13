@@ -278,6 +278,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   };
 
   const handleSearchWithReg = async (targetReg) => {
+    if (loading) return;
     const cleanReg = targetReg.trim().toUpperCase();
     if (!cleanReg) return;
     setSearchReg(cleanReg);
@@ -317,6 +318,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   };
 
   const handleResetSubmit = async () => {
+    if (resetLoading) return;
     setResetLoading(true);
     setErrorMsg("");
     setSuccessMsg("");
@@ -364,7 +366,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   };
 
   const handleRevokeSubmit = async () => {
-    if (!revokeTarget) return;
+    if (revokeLoading || !revokeTarget) return;
     setRevokeLoading(true);
     setErrorMsg("");
     setSuccessMsg("");
