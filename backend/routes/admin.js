@@ -3151,15 +3151,63 @@ router.put("/maintenance", async (req, res) => {
    MAIN ADMIN EXCLUSIVE: STUDENT OTP ATTEMPT MANAGEMENT
 ═══════════════════════════════════════════════════════════════════ */
 
-function getIstDateKey() {
-  const now = new Date();
+function getIstDateKey(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Kolkata",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(now);
+  }).format(date);
 }
+
+// 0. POST Reset Administrator Daily OTP Limit
+router.post("/student-otp-management/reset-admin-otp", requireMainAdmin, async (req, res) => {
+  try {
+    const todayKey = getIstDateKey();
+    const rollingWindowMs = 24 * 60 * 60 * 1000;
+    const yesterdayKey = getIstDateKey(new Date(Date.now() - rollingWindowMs));
+    const AdminOtpVerification = require("../models/AdminOtpVerification");
+
+    // Reset today's and rolling-window limits for Admin accounts
+    const deleteResult = await StudentDailyLimit.deleteMany({
+      regNo: { $regex: /^ADMIN:/i },
+      dateKey: { $in: [todayKey, yesterdayKey] },
+    });
+
+    // Clean any unverified Admin OTP records
+    await AdminOtpVerification.deleteMany({});
+
+    const adminEmail = req.admin?.email || process.env.ADMIN_EMAIL || "main_admin";
+
+    try {
+      await AdminAuditLog.create({
+        actorEmail: adminEmail,
+        actorType: "main_admin",
+        action: "ADMIN_OTP_LIMIT_RESET",
+        actionType: "MANAGEMENT",
+        targetRegNo: "ADMIN:GLOBAL",
+        result: "SUCCESS",
+        details: {
+          dateKey: todayKey,
+          deletedDailyLimitRecords: deleteResult.deletedCount,
+        },
+        ip: req.ip || "",
+        userAgent: req.headers["user-agent"] || "",
+      });
+    } catch (_) {}
+
+    return res.json({
+      success: true,
+      message: `Today's Administrator OTP request counter has been reset to 0/5. 5 attempts are now available.`,
+      dateKey: todayKey,
+      maxDailyLimit: 5,
+      remainingAttempts: 5,
+    });
+  } catch (err) {
+    console.error("POST /student-otp-management/reset-admin-otp error:", err);
+    return res.status(500).json({ success: false, message: "Failed to reset Administrator OTP limit." });
+  }
+});
 
 // 1. GET Student OTP History & Activity Details
 router.get("/student-otp-management/history/:regNo", requireMainAdmin, async (req, res) => {
@@ -3394,23 +3442,48 @@ router.post("/student-otp-management/reset/:regNo", requireMainAdmin, async (req
     }
 
     const todayKey = getIstDateKey();
-    const existingLimit = await StudentDailyLimit.findOne({ regNo: rawReg, dateKey: todayKey });
-    const beforeUsage = existingLimit ? existingLimit.otpSendCount : 0;
-    const beforeCooldown = existingLimit && existingLimit.lastOtpSentAt && existingLimit.otpSendCount > 0 && (Date.now() - new Date(existingLimit.lastOtpSentAt).getTime() < 180 * 1000);
+    const rollingWindowMs = 24 * 60 * 60 * 1000;
+    const yesterdayKey = getIstDateKey(new Date(Date.now() - rollingWindowMs));
 
-    // Reset today's StudentDailyLimit record
-    if (existingLimit) {
-      existingLimit.otpSendCount = 0;
-      existingLimit.lastOtpSentAt = null;
-      await existingLimit.save();
-    } else {
-      await StudentDailyLimit.create({
-        regNo: rawReg,
-        dateKey: todayKey,
-        otpSendCount: 0,
-        lastOtpSentAt: null,
-      });
-    }
+    const isSpecialStudent = rawReg === "230301120327";
+    const maxDailyLimit = isSpecialStudent ? 5 : 3;
+
+    const existingLimits = await StudentDailyLimit.find({
+      regNo: rawReg,
+      dateKey: { $in: [todayKey, yesterdayKey] },
+    });
+    const todayDoc = existingLimits.find((d) => d.dateKey === todayKey);
+    const beforeUsage = todayDoc ? todayDoc.otpSendCount : 0;
+    const beforeCooldown =
+      todayDoc &&
+      todayDoc.lastOtpSentAt &&
+      todayDoc.otpSendCount > 0 &&
+      Date.now() - new Date(todayDoc.lastOtpSentAt).getTime() < 180 * 1000;
+
+    // Fully reset all records in rolling 24-hour window (including sendTimestamps)
+    await StudentDailyLimit.updateMany(
+      { regNo: rawReg, dateKey: { $in: [todayKey, yesterdayKey] } },
+      {
+        $set: {
+          otpSendCount: 0,
+          lastOtpSentAt: null,
+          sendTimestamps: [],
+        },
+      }
+    );
+
+    // Ensure today's document is cleanly initialized
+    await StudentDailyLimit.updateOne(
+      { regNo: rawReg, dateKey: todayKey },
+      {
+        $set: {
+          otpSendCount: 0,
+          lastOtpSentAt: null,
+          sendTimestamps: [],
+        },
+      },
+      { upsert: true }
+    );
 
     // Clean any unverified OTPs so student can request cleanly
     await OtpVerification.deleteMany({ regNo: rawReg });
@@ -3444,7 +3517,7 @@ router.post("/student-otp-management/reset/:regNo", requireMainAdmin, async (req
 
     return res.json({
       success: true,
-      message: `Today's OTP send attempt counter for student ${rawReg} has been reset to 0/2.`,
+      message: `Today's OTP send attempt counter for student ${rawReg} has been reset to 0/${maxDailyLimit}.`,
       before: {
         usage: beforeUsage,
         cooldown: Boolean(beforeCooldown),
@@ -3452,7 +3525,7 @@ router.post("/student-otp-management/reset/:regNo", requireMainAdmin, async (req
       after: {
         usage: 0,
         cooldown: false,
-        maxDailyLimit: rawReg === "230301120327" ? 99 : 3,
+        maxDailyLimit,
       },
     });
   } catch (err) {

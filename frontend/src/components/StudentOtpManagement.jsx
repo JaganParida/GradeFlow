@@ -175,6 +175,10 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   const [revokeReason, setRevokeReason] = useState("");
   const [revokeLoading, setRevokeLoading] = useState(false);
 
+  // Administrator OTP Quota Reset State
+  const [adminResetLoading, setAdminResetLoading] = useState(false);
+  const [adminResetSuccess, setAdminResetSuccess] = useState("");
+
   // Fetch all registered student accounts on mount & when filter changes with permanent session cache
   const fetchAccounts = async (search = directorySearch, filter = directoryFilter, forceRefresh = false) => {
     const cleanSearch = String(search || "").trim();
@@ -348,6 +352,30 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
       setErrorMsg(err.response?.data?.message || "An error occurred while revoking the device session.");
     } finally {
       setRevokeLoading(false);
+    }
+  };
+
+  const handleResetAdminOtp = async () => {
+    setAdminResetLoading(true);
+    setAdminResetSuccess("");
+    setErrorMsg("");
+    try {
+      const res = await axios.post(
+        `${API}/admin/student-otp-management?action=reset-admin-otp`,
+        {},
+        authHeaders
+      );
+      if (res.data?.success) {
+        setAdminResetSuccess(res.data.message || "Administrator OTP limit for today has been reset to 0/5 (5 attempts available).");
+        invalidateAdminCache(AdminCacheScopes.OTP);
+      } else {
+        setErrorMsg(res.data?.message || "Failed to reset Administrator OTP limit.");
+      }
+    } catch (err) {
+      console.error("Admin OTP Reset Error:", err);
+      setErrorMsg(err.response?.data?.message || "An error occurred while resetting Administrator OTP limit.");
+    } finally {
+      setAdminResetLoading(false);
     }
   };
 
@@ -2258,6 +2286,93 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             </>
           );
         })()}
+      </div>
+
+      {/* ── Administrator OTP Limit Management Card ── */}
+      <div
+        style={{
+          background: "#ffffff",
+          borderRadius: isMob ? 16 : 20,
+          border: "1.5px solid #e2e8f0",
+          padding: isMob ? "16px 14px" : "24px 28px",
+          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)",
+          display: "flex",
+          flexDirection: isMob ? "column" : "row",
+          alignItems: isMob ? "stretch" : "center",
+          justifyContent: "space-between",
+          gap: 16,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)",
+              border: "1px solid #c7d2fe",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <ShieldCheck size={22} color="#4338ca" />
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#1e1b4b" }}>
+                Administrator OTP Limit Management
+              </h3>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "#4338ca",
+                  background: "#e0e7ff",
+                  padding: "2px 8px",
+                  borderRadius: 6,
+                }}
+              >
+                Max 5 / 24 hrs
+              </span>
+            </div>
+            <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748b" }}>
+              Reset today's OTP request limit & cooldown counter for Master Administrator logins.
+            </p>
+            {adminResetSuccess && (
+              <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 600, color: "#16a34a" }}>
+                {adminResetSuccess}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleResetAdminOtp}
+          disabled={adminResetLoading}
+          style={{
+            padding: "10px 18px",
+            borderRadius: 10,
+            border: "1.5px solid #4338ca",
+            background: adminResetLoading ? "#f1f5f9" : "linear-gradient(135deg, #4338ca 0%, #3730a3 100%)",
+            color: adminResetLoading ? "#94a3b8" : "#ffffff",
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: adminResetLoading ? "not-allowed" : "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            boxShadow: "0 2px 4px rgba(67, 56, 202, 0.2)",
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+          }}
+        >
+          <RotateCcw size={14} className={adminResetLoading ? "spin" : ""} />
+          <span>{adminResetLoading ? "Resetting Limit..." : "Reset Admin OTP Limit"}</span>
+        </button>
       </div>
 
       {/* ── Confirmation Modal ── */}

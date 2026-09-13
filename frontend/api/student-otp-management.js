@@ -122,6 +122,60 @@ module.exports = async (req, res) => {
   }
 
   const { action, regNo: paramRegNo } = req.query;
+
+  // ── 0. RESET ADMIN OTP LIMIT (NO REGNO REQUIRED) ──
+  if (action === "reset-admin-otp" || action === "admin-otp-reset") {
+    try {
+      const todayKey = getIstDateKey();
+      const rollingWindowMs = 24 * 60 * 60 * 1000;
+      const yesterdayKey = getIstDateKey(new Date(Date.now() - rollingWindowMs));
+      const AdminOtpVerification = require("./_lib/models/AdminOtpVerification");
+
+      // Reset today's and rolling-window limits for Admin accounts
+      const deleteResult = await globalDbQueue.run(() =>
+        StudentDailyLimit.deleteMany({
+          regNo: { $regex: /^ADMIN:/i },
+          dateKey: { $in: [todayKey, yesterdayKey] },
+        })
+      );
+
+      // Clean any unverified Admin OTP records
+      await globalDbQueue.run(() => AdminOtpVerification.deleteMany({}));
+
+      const adminEmail = authResult.admin?.email || process.env.ADMIN_EMAIL || "main_admin";
+
+      try {
+        await globalDbQueue.run(() =>
+          AdminAuditLog.create({
+            actorEmail: adminEmail,
+            actorType: "main_admin",
+            action: "ADMIN_OTP_LIMIT_RESET",
+            actionType: "MANAGEMENT",
+            targetRegNo: "ADMIN:GLOBAL",
+            result: "SUCCESS",
+            details: {
+              dateKey: todayKey,
+              deletedDailyLimitRecords: deleteResult.deletedCount,
+            },
+            ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
+            userAgent: req.headers["user-agent"] || "",
+          })
+        );
+      } catch (_) {}
+
+      return res.json({
+        success: true,
+        message: `Today's Administrator OTP request counter has been reset to 0/5. 5 attempts are now available.`,
+        dateKey: todayKey,
+        maxDailyLimit: 5,
+        remainingAttempts: 5,
+      });
+    } catch (adminResetErr) {
+      console.error("Admin OTP reset error:", adminResetErr);
+      return res.status(500).json({ success: false, message: "Failed to reset Administrator OTP limit." });
+    }
+  }
+
   const rawReg = String(paramRegNo || req.body?.regNo || "").trim().toUpperCase();
 
   if (!rawReg || !/^[a-zA-Z0-9_-]{3,30}$/.test(rawReg)) {
@@ -132,8 +186,8 @@ module.exports = async (req, res) => {
   }
 
   const todayKey = getIstDateKey();
-  const isUnlimited = rawReg === "230301120327";
-  const maxDailyLimit = isUnlimited ? 99 : 3;
+  const isSpecialStudent = rawReg === "230301120327";
+  const maxDailyLimit = isSpecialStudent ? 5 : 3;
 
   // ── 1. GET /history ──
   if (req.method === "GET" || action === "history") {
@@ -506,6 +560,7 @@ module.exports = async (req, res) => {
         await Promise.allSettled([
           publishAdminRealtimeEvent("otp-updated", { regNo: rawReg, timestamp: Date.now() }),
           publishStudentRealtimeEvent(rawReg, "session-revoked", {
+            allSessionsRevoked: true,
             message: "All active sessions were ended by Institutional Administrator.",
           }),
         ]);
@@ -529,26 +584,48 @@ module.exports = async (req, res) => {
   // ── 4. POST /reset ──
   if (req.method === "POST" || action === "reset") {
     try {
-      const existingLimit = await globalDbQueue.run(() =>
-        StudentDailyLimit.findOne({ regNo: rawReg, dateKey: todayKey })
-      );
-      const beforeUsage = existingLimit ? existingLimit.otpSendCount : 0;
-      const beforeCooldown = existingLimit && existingLimit.lastOtpSentAt && existingLimit.otpSendCount > 0 && (Date.now() - new Date(existingLimit.lastOtpSentAt).getTime() < 180 * 1000);
+      const rollingWindowMs = 24 * 60 * 60 * 1000;
+      const yesterdayKey = getIstDateKey(new Date(Date.now() - rollingWindowMs));
 
-      if (existingLimit) {
-        existingLimit.otpSendCount = 0;
-        existingLimit.lastOtpSentAt = null;
-        await globalDbQueue.run(() => existingLimit.save());
-      } else {
-        await globalDbQueue.run(() =>
-          StudentDailyLimit.create({
-            regNo: rawReg,
-            dateKey: todayKey,
-            otpSendCount: 0,
-            lastOtpSentAt: null,
-          })
-        );
-      }
+      const existingLimits = await globalDbQueue.run(() =>
+        StudentDailyLimit.find({ regNo: rawReg, dateKey: { $in: [todayKey, yesterdayKey] } })
+      );
+      const todayDoc = existingLimits.find((d) => d.dateKey === todayKey);
+      const beforeUsage = todayDoc ? todayDoc.otpSendCount : 0;
+      const beforeCooldown =
+        todayDoc &&
+        todayDoc.lastOtpSentAt &&
+        todayDoc.otpSendCount > 0 &&
+        Date.now() - new Date(todayDoc.lastOtpSentAt).getTime() < 180 * 1000;
+
+      // Fully reset all records in rolling 24-hour window (including sendTimestamps)
+      await globalDbQueue.run(() =>
+        StudentDailyLimit.updateMany(
+          { regNo: rawReg, dateKey: { $in: [todayKey, yesterdayKey] } },
+          {
+            $set: {
+              otpSendCount: 0,
+              lastOtpSentAt: null,
+              sendTimestamps: [],
+            },
+          }
+        )
+      );
+
+      // Ensure today's document is cleanly initialized
+      await globalDbQueue.run(() =>
+        StudentDailyLimit.updateOne(
+          { regNo: rawReg, dateKey: todayKey },
+          {
+            $set: {
+              otpSendCount: 0,
+              lastOtpSentAt: null,
+              sendTimestamps: [],
+            },
+          },
+          { upsert: true }
+        )
+      );
 
       await globalDbQueue.run(() => OtpVerification.deleteMany({ regNo: rawReg }));
 
@@ -588,7 +665,7 @@ module.exports = async (req, res) => {
 
       return res.json({
         success: true,
-        message: `Today's OTP send attempt counter for student ${rawReg} has been reset to 0/3.`,
+        message: `Today's OTP send attempt counter for student ${rawReg} has been reset to 0/${maxDailyLimit}.`,
         before: {
           usage: beforeUsage,
           cooldown: Boolean(beforeCooldown),
@@ -596,7 +673,7 @@ module.exports = async (req, res) => {
         after: {
           usage: 0,
           cooldown: false,
-          maxDailyLimit: rawReg === "230301120327" ? 99 : 3,
+          maxDailyLimit,
         },
       });
     } catch (err) {

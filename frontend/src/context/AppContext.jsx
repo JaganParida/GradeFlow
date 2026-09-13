@@ -840,11 +840,12 @@ export function AppProvider({ children }) {
         );
       });
 
-      // C. Listen for session revocation (when another device is approved)
+      // C. Listen for session revocation (when another device is approved or admin revokes session)
       studentChannel.subscribe("session-revoked", (msg) => {
         if (!isMounted || !msg?.data) return;
         const targetRevokedId = msg.data.revokedSessionId || msg.data.sessionId;
-        if (targetRevokedId && studentSession?.sessionId && targetRevokedId === studentSession.sessionId) {
+        const currentSessionId = studentSessionRef.current?.sessionId || studentSession?.sessionId;
+        if (msg.data.allSessionsRevoked || !targetRevokedId || (currentSessionId && targetRevokedId === currentSessionId)) {
           setSessionRevokedNotice(
             msg.data.message || "Your session ended because your account was approved on another device."
           );
