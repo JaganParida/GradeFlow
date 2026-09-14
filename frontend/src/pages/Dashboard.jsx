@@ -1691,274 +1691,573 @@ export default function Dashboard() {
               )}
 
           {/* 4 Hero Stat Cards (2x2 on Mobile, 4 in row on Desktop) */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: isMobile ? 8 : 14,
-              width: "100%",
-            }}
-          >
-            {/* 1. Latest SGPA */}
-            <motion.div
-              whileHover={{ y: -2 }}
-              style={{
-                background: "#ffffff",
-                border: "1px solid #cbd5e1",
-                borderRadius: 14,
-                padding: isMobile ? "12px 12px" : "18px 18px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  Semester SGPA
-                </span>
-                <span style={{ fontSize: 10, background: "#eff6ff", color: "#2563eb", padding: "1px 6px", borderRadius: 5, fontWeight: 700 }}>
-                  Sem {selectedSem}
-                </span>
-              </div>
-              <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 800, color: "#2563eb", fontFamily: "'Space Mono', monospace", lineHeight: 1.1 }}>
-                {latestSgpa ? latestSgpa.toFixed(2) : "—"}
-                <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}> /10</span>
-              </div>
-              <span style={{ fontSize: 10.5, color: "#64748b" }}>Current semester performance</span>
-            </motion.div>
+          {(() => {
+            const totalCreditsCleared = results.length > 0
+              ? results.reduce((sum, r) => sum + calculateSemesterMetrics(r.subjects, r.semester).creditsCleared, 0)
+              : (studentData.creditsCleared || 0);
 
-            {/* 2. CGPA */}
-            <motion.div
-              whileHover={{ y: -2 }}
-              style={{
-                background: "#ffffff",
-                border: "1px solid #cbd5e1",
-                borderRadius: 14,
-                padding: isMobile ? "12px 12px" : "18px 18px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  Cumulative CGPA
-                </span>
-                <span style={{ fontSize: 10, background: "#f5f3ff", color: "#8b5cf6", padding: "1px 6px", borderRadius: 5, fontWeight: 700 }}>
-                  Overall
-                </span>
-              </div>
-              <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 800, color: "#8b5cf6", fontFamily: "'Space Mono', monospace", lineHeight: 1.1 }}>
-                {cgpa ? cgpa.toFixed(2) : "—"}
-                <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}> /10</span>
-              </div>
-              <span style={{ fontSize: 10.5, color: "#64748b" }}>Across all completed semesters</span>
-            </motion.div>
+            const totalCreditsGoal = results.length > 0
+              ? results.reduce((sum, r) => sum + calculateSemesterMetrics(r.subjects, r.semester).totalCredits, 0)
+              : (studentData.totalCredits || 160);
 
-            {/* 3. Credits Cleared */}
-            <motion.div
-              whileHover={{ y: -2 }}
-              style={{
-                background: "#ffffff",
-                border: "1px solid #cbd5e1",
-                borderRadius: 14,
-                padding: isMobile ? "12px 12px" : "18px 18px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-                position: "relative",
-                overflow: "hidden",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  Credits Cleared
-                </span>
-                <span style={{ fontSize: 10, background: "#f8fafc", color: "#64748b", border: "1px solid #cbd5e1", padding: "1px 6px", borderRadius: 5, fontWeight: 700 }}>
-                  Goal: 160
-                </span>
-              </div>
-              <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 800, color: "#0f172a", fontFamily: "'Space Mono', monospace", lineHeight: 1.1 }}>
-                {results.length > 0 ? results.reduce((sum, r) => sum + calculateSemesterMetrics(r.subjects, r.semester).creditsCleared, 0) : studentData.creditsCleared}
-                <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>
-                  {" "}
-                  / {results.length > 0 ? results.reduce((sum, r) => sum + calculateSemesterMetrics(r.subjects, r.semester).totalCredits, 0) : studentData.totalCredits}
-                </span>
-              </div>
-              <span style={{ fontSize: 10.5, color: "#64748b" }}>Degree requirement progress</span>
-              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3.5, background: "#f1f5f9" }}>
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{
-                    width: `${Math.min(
-                      100,
-                      ((results.length > 0
-                        ? results.reduce((sum, r) => sum + calculateSemesterMetrics(r.subjects, r.semester).creditsCleared, 0)
-                        : (studentData.creditsCleared || 0)) /
-                        160) *
-                        100
-                    )}%`,
-                  }}
-                  transition={{ duration: 1, ease: "easeOut" }}
-                  style={{ height: "100%", background: "#2563eb" }}
-                />
-              </div>
-            </motion.div>
-
-            {/* 4. Overall Attendance (For CSE) OR Academic Health (For Non-CSE) */}
-            {isCSE ? (
-              <motion.div
-                whileHover={{ y: -2 }}
-                onClick={() => navigate(`/attendance/${encodeStudentId(regNo)}`)}
+            return (
+              <div
                 style={{
-                  background: "#ffffff",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: 14,
-                  padding: isMobile ? "12px 12px" : "18px 18px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 4,
-                  cursor: "pointer",
-                  position: "relative",
-                  transition: "all 0.15s ease",
+                  display: "grid",
+                  gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: isMobile ? 8 : 14,
+                  width: "100%",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                    Overall Attendance
-                  </span>
-                  {attendanceSummary && attendanceSummary.percentage !== null && attendanceSummary.percentage !== undefined ? (
+                {/* 1. Latest SGPA */}
+                <motion.div
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 14,
+                    padding: isMobile ? "11px 11px 13px 11px" : "16px 18px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    minHeight: isMobile ? 116 : 136,
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
+                    position: "relative",
+                    overflow: "hidden",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4, minHeight: 20 }}>
                     <span
+                      title="Semester SGPA"
                       style={{
-                        fontSize: 10,
-                        background: attendanceSummary.percentage >= 75 ? "#f0fdf4" : "#fef2f2",
-                        color: attendanceSummary.percentage >= 75 ? "#16a34a" : "#dc2626",
-                        border: `1px solid ${attendanceSummary.percentage >= 75 ? "#bbf7d0" : "#fecaca"}`,
-                        padding: "1px 6px",
-                        borderRadius: 5,
+                        fontSize: isMobile ? 10 : 11.5,
                         fontWeight: 700,
+                        color: "#475569",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.4px",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
                       }}
                     >
-                      {attendanceSummary.percentage >= 75 ? "Eligible" : "Shortage"}
+                      {isMobile ? "Sem SGPA" : "Semester SGPA"}
                     </span>
-                  ) : (
-                    <Clock size={14} color="#2563eb" />
-                  )}
-                </div>
+                    <span
+                      style={{
+                        fontSize: 9.5,
+                        background: "#eff6ff",
+                        color: "#2563eb",
+                        border: "1px solid #bfdbfe",
+                        padding: "1.5px 6px",
+                        borderRadius: 5,
+                        fontWeight: 750,
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                        letterSpacing: "0.2px",
+                      }}
+                    >
+                      Sem {selectedSem || "—"}
+                    </span>
+                  </div>
 
-                {attendanceSummary && attendanceSummary.percentage !== null && attendanceSummary.percentage !== undefined ? (
-                  <>
-                    <div
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginTop: 4, marginBottom: 2 }}>
+                    <span
                       style={{
                         fontSize: isMobile ? 22 : 30,
                         fontWeight: 800,
-                        color: attendanceSummary.percentage >= 75 ? "#16a34a" : "#dc2626",
+                        color: "#2563eb",
                         fontFamily: "'Space Mono', monospace",
-                        lineHeight: 1.1,
+                        lineHeight: 1,
                       }}
                     >
-                      {Number(attendanceSummary.percentage).toFixed(2)}%
-                    </div>
-                    <span style={{ fontSize: 10.5, color: "#64748b" }}>
-                      {attendanceSummary.totalAttended} / {attendanceSummary.totalDelivered} classes attended ({attendanceSummary.subjectsCount} subjects)
+                      {latestSgpa ? latestSgpa.toFixed(2) : "—"}
                     </span>
-                  </>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/attendance/${encodeStudentId(regNo)}`);
-                      }}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        width: "100%",
-                        padding: isMobile ? "7px 10px" : "9px 12px",
-                        borderRadius: 8,
-                        border: "1px solid #bfdbfe",
-                        background: "#eff6ff",
-                        color: "#1d4ed8",
-                        fontSize: isMobile ? 12 : 12.5,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        fontFamily: "'DM Sans', sans-serif",
-                        transition: "all 0.15s ease",
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#dbeafe")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "#eff6ff")}
-                    >
-                      <span>Set Your Attendance</span>
-                      <ArrowRight size={13} color="#2563eb" />
-                    </button>
-                    <span style={{ fontSize: 10.5, color: "#64748b" }}>Track subjects, timetable & bunk margin</span>
+                    <span style={{ fontSize: isMobile ? 10.5 : 11.5, color: "#94a3b8", fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>
+                      /10
+                    </span>
                   </div>
-                )}
-              </motion.div>
-            ) : (
-              <motion.div
-                whileHover={{ y: -2 }}
-                onClick={() => navigate(`/analytics/${encodeStudentId(regNo)}`)}
-                style={{
-                  background: "#ffffff",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: 14,
-                  padding: isMobile ? "12px 12px" : "18px 18px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 4,
-                  cursor: "pointer",
-                  position: "relative",
-                  overflow: "hidden",
-                  transition: "all 0.15s ease",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                    Academic Health
-                  </span>
+
                   <span
                     style={{
-                      fontSize: 10,
-                      background: academicHealthScore >= 80 ? "#f0fdf4" : academicHealthScore >= 60 ? "#fffbeb" : "#fef2f2",
-                      color: healthColor,
-                      border: `1px solid ${academicHealthScore >= 80 ? "#bbf7d0" : academicHealthScore >= 60 ? "#fde68a" : "#fecaca"}`,
-                      padding: "1px 6px",
-                      borderRadius: 5,
-                      fontWeight: 700,
+                      fontSize: isMobile ? 10 : 11,
+                      color: "#64748b",
+                      fontWeight: 500,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
                     }}
                   >
-                    {healthLabel}
+                    {isMobile ? "Current sem score" : "Current semester performance"}
                   </span>
-                </div>
-                <div
+
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "#f1f5f9" }}>
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, Math.max(0, ((latestSgpa || 0) / 10) * 100))}%` }}
+                      transition={{ duration: 0.9, ease: "easeOut" }}
+                      style={{ height: "100%", background: "#2563eb" }}
+                    />
+                  </div>
+                </motion.div>
+
+                {/* 2. CGPA */}
+                <motion.div
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigate(`/analytics/${encodeStudentId(regNo)}`)}
                   style={{
-                    fontSize: isMobile ? 22 : 30,
-                    fontWeight: 800,
-                    color: healthColor,
-                    fontFamily: "'Space Mono', monospace",
-                    lineHeight: 1.1,
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 14,
+                    padding: isMobile ? "11px 11px 13px 11px" : "16px 18px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    minHeight: isMobile ? 116 : 136,
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
+                    position: "relative",
+                    overflow: "hidden",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
                   }}
                 >
-                  {academicHealthScore}
-                  <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}> /100</span>
-                </div>
-                <span style={{ fontSize: 10.5, color: "#64748b" }}>
-                  {backlogs.length === 0 ? "All Clear · Zero active backlogs" : `${backlogs.length} active backlogs detected`}
-                </span>
-                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3.5, background: "#f1f5f9" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4, minHeight: 20 }}>
+                    <span
+                      title="Cumulative CGPA"
+                      style={{
+                        fontSize: isMobile ? 10 : 11.5,
+                        fontWeight: 700,
+                        color: "#475569",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.4px",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {isMobile ? "Cum. CGPA" : "Cumulative CGPA"}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 9.5,
+                        background: "#f5f3ff",
+                        color: "#7c3aed",
+                        border: "1px solid #ddd6fe",
+                        padding: "1.5px 6px",
+                        borderRadius: 5,
+                        fontWeight: 750,
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                        letterSpacing: "0.2px",
+                      }}
+                    >
+                      Overall
+                    </span>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginTop: 4, marginBottom: 2 }}>
+                    <span
+                      style={{
+                        fontSize: isMobile ? 22 : 30,
+                        fontWeight: 800,
+                        color: "#7c3aed",
+                        fontFamily: "'Space Mono', monospace",
+                        lineHeight: 1,
+                      }}
+                    >
+                      {cgpa ? cgpa.toFixed(2) : "—"}
+                    </span>
+                    <span style={{ fontSize: isMobile ? 10.5 : 11.5, color: "#94a3b8", fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>
+                      /10
+                    </span>
+                  </div>
+
+                  <span
+                    style={{
+                      fontSize: isMobile ? 10 : 11,
+                      color: "#64748b",
+                      fontWeight: 500,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {isMobile ? "Across all sems" : "Across all completed semesters"}
+                  </span>
+
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "#f1f5f9" }}>
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, Math.max(0, ((cgpa || 0) / 10) * 100))}%` }}
+                      transition={{ duration: 0.9, ease: "easeOut" }}
+                      style={{ height: "100%", background: "#7c3aed" }}
+                    />
+                  </div>
+                </motion.div>
+
+                {/* 3. Credits Cleared */}
+                <motion.div
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleTabClick("baskets")}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 14,
+                    padding: isMobile ? "11px 11px 13px 11px" : "16px 18px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    minHeight: isMobile ? 116 : 136,
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
+                    position: "relative",
+                    overflow: "hidden",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4, minHeight: 20 }}>
+                    <span
+                      title="Credits Cleared"
+                      style={{
+                        fontSize: isMobile ? 10 : 11.5,
+                        fontWeight: 700,
+                        color: "#475569",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.4px",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {isMobile ? "Credits" : "Credits Cleared"}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 9.5,
+                        background: "#f8fafc",
+                        color: "#334155",
+                        border: "1px solid #e2e8f0",
+                        padding: "1.5px 6px",
+                        borderRadius: 5,
+                        fontWeight: 750,
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                        letterSpacing: "0.2px",
+                      }}
+                    >
+                      Goal 160
+                    </span>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginTop: 4, marginBottom: 2 }}>
+                    <span
+                      style={{
+                        fontSize: isMobile ? 22 : 30,
+                        fontWeight: 800,
+                        color: "#0f172a",
+                        fontFamily: "'Space Mono', monospace",
+                        lineHeight: 1,
+                      }}
+                    >
+                      {totalCreditsCleared}
+                    </span>
+                    <span style={{ fontSize: isMobile ? 10.5 : 11.5, color: "#94a3b8", fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>
+                      /{totalCreditsGoal}
+                    </span>
+                  </div>
+
+                  <span
+                    style={{
+                      fontSize: isMobile ? 10 : 11,
+                      color: "#64748b",
+                      fontWeight: 500,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {isMobile ? `${totalCreditsCleared} of 160 credits` : "Degree requirement progress"}
+                  </span>
+
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "#f1f5f9" }}>
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{
+                        width: `${Math.min(100, Math.max(0, (totalCreditsCleared / 160) * 100))}%`,
+                      }}
+                      transition={{ duration: 0.9, ease: "easeOut" }}
+                      style={{ height: "100%", background: "#0284c7" }}
+                    />
+                  </div>
+                </motion.div>
+
+                {/* 4. Overall Attendance (For CSE) OR Academic Health (For Non-CSE) */}
+                {isCSE ? (
                   <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(100, academicHealthScore)}%` }}
-                    transition={{ duration: 1, ease: "easeOut" }}
-                    style={{ height: "100%", background: healthColor }}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </div>
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate(`/attendance/${encodeStudentId(regNo)}`)}
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 14,
+                      padding: isMobile ? "11px 11px 13px 11px" : "16px 18px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      minHeight: isMobile ? 116 : 136,
+                      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
+                      position: "relative",
+                      overflow: "hidden",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4, minHeight: 20 }}>
+                      <span
+                        title="Overall Attendance"
+                        style={{
+                          fontSize: isMobile ? 10 : 11.5,
+                          fontWeight: 700,
+                          color: "#475569",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.4px",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {isMobile ? "Attendance" : "Overall Attendance"}
+                      </span>
+                      {attendanceSummary && attendanceSummary.percentage !== null && attendanceSummary.percentage !== undefined ? (
+                        <span
+                          style={{
+                            fontSize: 9.5,
+                            background: attendanceSummary.percentage >= 75 ? "#f0fdf4" : "#fef2f2",
+                            color: attendanceSummary.percentage >= 75 ? "#16a34a" : "#dc2626",
+                            border: `1px solid ${attendanceSummary.percentage >= 75 ? "#bbf7d0" : "#fecaca"}`,
+                            padding: "1.5px 6px",
+                            borderRadius: 5,
+                            fontWeight: 750,
+                            whiteSpace: "nowrap",
+                            flexShrink: 0,
+                            letterSpacing: "0.2px",
+                          }}
+                        >
+                          {attendanceSummary.percentage >= 75 ? "Eligible" : "Shortage"}
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 2,
+                            fontSize: 9.5,
+                            fontWeight: 750,
+                            padding: "1.5px 6px",
+                            borderRadius: 5,
+                            background: "#eff6ff",
+                            color: "#2563eb",
+                            border: "1px solid #bfdbfe",
+                            whiteSpace: "nowrap",
+                            flexShrink: 0,
+                            letterSpacing: "0.2px",
+                          }}
+                        >
+                          Setup <ArrowRight size={9} />
+                        </span>
+                      )}
+                    </div>
+
+                    {attendanceSummary && attendanceSummary.percentage !== null && attendanceSummary.percentage !== undefined ? (
+                      <>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginTop: 4, marginBottom: 2 }}>
+                          <span
+                            style={{
+                              fontSize: isMobile ? 22 : 30,
+                              fontWeight: 800,
+                              color: attendanceSummary.percentage >= 75 ? "#16a34a" : "#dc2626",
+                              fontFamily: "'Space Mono', monospace",
+                              lineHeight: 1,
+                            }}
+                          >
+                            {Number(attendanceSummary.percentage).toFixed(2)}%
+                          </span>
+                        </div>
+                        <span
+                          style={{
+                            fontSize: isMobile ? 10 : 11,
+                            color: "#64748b",
+                            fontWeight: 500,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {isMobile
+                            ? `${attendanceSummary.totalAttended}/${attendanceSummary.totalDelivered} classes · ${attendanceSummary.subjectsCount} subs`
+                            : `${attendanceSummary.totalAttended} / ${attendanceSummary.totalDelivered} classes attended (${attendanceSummary.subjectsCount} subjects)`}
+                        </span>
+                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "#f1f5f9" }}>
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.min(100, Math.max(0, attendanceSummary.percentage))}%` }}
+                            transition={{ duration: 0.9, ease: "easeOut" }}
+                            style={{ height: "100%", background: attendanceSummary.percentage >= 75 ? "#16a34a" : "#dc2626" }}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4, marginBottom: 2 }}>
+                          <span
+                            style={{
+                              fontSize: isMobile ? 18 : 22,
+                              fontWeight: 800,
+                              color: "#2563eb",
+                              fontFamily: "'Space Mono', monospace",
+                              lineHeight: 1,
+                            }}
+                          >
+                            Set Now
+                          </span>
+                          <div
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              width: isMobile ? 18 : 22,
+                              height: isMobile ? 18 : 22,
+                              borderRadius: "50%",
+                              background: "#eff6ff",
+                              border: "1px solid #bfdbfe",
+                              color: "#2563eb",
+                            }}
+                          >
+                            <ArrowRight size={isMobile ? 10 : 12} />
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            fontSize: isMobile ? 10 : 11,
+                            color: "#64748b",
+                            fontWeight: 500,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {isMobile ? "Tap to track & predict" : "Track subjects, timetable & bunk margin"}
+                        </span>
+                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "#eff6ff" }}>
+                          <div style={{ height: "100%", width: "100%", background: "linear-gradient(90deg, #bfdbfe 0%, #3b82f6 100%)", opacity: 0.6 }} />
+                        </div>
+                      </>
+                    )}
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate(`/analytics/${encodeStudentId(regNo)}`)}
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 14,
+                      padding: isMobile ? "11px 11px 13px 11px" : "16px 18px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      minHeight: isMobile ? 116 : 136,
+                      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
+                      position: "relative",
+                      overflow: "hidden",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4, minHeight: 20 }}>
+                      <span
+                        title="Academic Health"
+                        style={{
+                          fontSize: isMobile ? 10 : 11.5,
+                          fontWeight: 700,
+                          color: "#475569",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.4px",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {isMobile ? "Health Score" : "Academic Health"}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 9.5,
+                          background: academicHealthScore >= 80 ? "#f0fdf4" : academicHealthScore >= 60 ? "#fffbeb" : "#fef2f2",
+                          color: healthColor,
+                          border: `1px solid ${academicHealthScore >= 80 ? "#bbf7d0" : academicHealthScore >= 60 ? "#fde68a" : "#fecaca"}`,
+                          padding: "1.5px 6px",
+                          borderRadius: 5,
+                          fontWeight: 750,
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
+                          letterSpacing: "0.2px",
+                        }}
+                      >
+                        {healthLabel}
+                      </span>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginTop: 4, marginBottom: 2 }}>
+                      <span
+                        style={{
+                          fontSize: isMobile ? 22 : 30,
+                          fontWeight: 800,
+                          color: healthColor,
+                          fontFamily: "'Space Mono', monospace",
+                          lineHeight: 1,
+                        }}
+                      >
+                        {academicHealthScore}
+                      </span>
+                      <span style={{ fontSize: isMobile ? 10.5 : 11.5, color: "#94a3b8", fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>
+                        /100
+                      </span>
+                    </div>
+
+                    <span
+                      style={{
+                        fontSize: isMobile ? 10 : 11,
+                        color: "#64748b",
+                        fontWeight: 500,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {isMobile
+                        ? (backlogs.length === 0 ? "Zero active backlogs" : `${backlogs.length} active backlogs`)
+                        : (backlogs.length === 0 ? "All Clear · Zero active backlogs" : `${backlogs.length} active backlogs detected`)}
+                    </span>
+
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "#f1f5f9" }}>
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(100, Math.max(0, academicHealthScore))}%` }}
+                        transition={{ duration: 0.9, ease: "easeOut" }}
+                        style={{ height: "100%", background: healthColor }}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Active Backlogs Alert Accordion */}
           {backlogs.length > 0 && (
