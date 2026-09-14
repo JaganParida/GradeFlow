@@ -53,6 +53,7 @@ import {
   Zap,
   Percent,
   Search,
+  Activity,
 } from "lucide-react";
 import {
   GRADE_POINTS,
@@ -638,6 +639,27 @@ export default function Analytics() {
   const dynamicBranch = getDynamicBranch(regNo, branch);
   const insights = generateInsights(studentData);
 
+  const academicHealthScore = studentData?.academicHealthScore ?? (() => {
+    let score = 0;
+    score += Math.min(cgpa * 5, 50);
+    score += Math.min((latestSgpa || 0) * 2, 20);
+    score += backlogs.length === 0 ? 20 : Math.max(0, 20 - backlogs.length * 5);
+    const totalSubjects = results.reduce((a, r) => a + (r.subjects || []).length, 0);
+    score += Math.min(10, totalSubjects > 0 ? 10 : 0);
+    return Math.round(Math.min(score, 100));
+  })();
+
+  const healthColor =
+    academicHealthScore >= 90 ? "#16a34a" : academicHealthScore >= 75 ? "#2563eb" : academicHealthScore >= 60 ? "#d97706" : "#dc2626";
+  const healthLabel =
+    academicHealthScore >= 90
+      ? "Excellent Standing"
+      : academicHealthScore >= 75
+      ? "Good Standing"
+      : academicHealthScore >= 60
+      ? "Average Standing"
+      : "Needs Attention";
+
   const insightColors = {
     success: { border: "#bbf7d0", bg: "#f0fdf4", text: "#15803d" },
     warning: { border: "#fde68a", bg: "#fef3c7", text: "#b45309" },
@@ -862,8 +884,8 @@ export default function Analytics() {
               transition={{ duration: 0.22, ease: "easeOut" }}
               style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 20 }}
             >
-              {/* 4 Metric Cards (2x2 on Mobile) */}
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(230px, 1fr))", gap: isMobile ? 8 : 16 }}>
+              {/* 5 Metric Cards (2x2 on Mobile, responsive grid on Desktop) */}
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(200px, 1fr))", gap: isMobile ? 8 : 16 }}>
                 <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
                   <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Cumulative CGPA
@@ -912,6 +934,22 @@ export default function Analytics() {
                   </div>
                   <div style={{ fontSize: isMobile ? 10.5 : 12, color: "#64748b", marginTop: 2 }}>
                     {backlogs.length ? "Remedial exams" : "Zero backlogs"}
+                  </div>
+                </div>
+
+                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                      Academic Health
+                    </div>
+                    <Activity size={14} color={healthColor} />
+                  </div>
+                  <div style={{ fontSize: isMobile ? 20 : 26, fontWeight: 900, color: healthColor, marginTop: 2, fontFamily: "'Space Mono', monospace" }}>
+                    {academicHealthScore}
+                    <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}> /100</span>
+                  </div>
+                  <div style={{ fontSize: isMobile ? 10.5 : 12, color: healthColor, fontWeight: 700, marginTop: 2 }}>
+                    {healthLabel}
                   </div>
                 </div>
               </div>

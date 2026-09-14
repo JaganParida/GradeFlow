@@ -144,6 +144,7 @@ export function AppProvider({ children }) {
   // In-flight bootstrap promise ref for 100% request deduplication
   const inFlightBootstrapRef = useRef(null);
   const inFlightStudentFetchRef = useRef({});
+  const lastForceRefreshTsRef = useRef(0);
   const navigate = useNavigate();
 
   // Check live admin device occupancy & portal visibility config
@@ -1001,9 +1002,9 @@ export function AppProvider({ children }) {
       console.warn("[Ably] Realtime connection warning:", err?.message || err);
     }
 
-    // 3. Tab Visibility & Auto-Sync: Keep WebSocket alive in background, auto-sync on tab return
+    // 3. Tab Visibility & Online Recovery: Keep WebSocket alive, auto-sync on tab return or reconnection
     let lastVisibilitySyncTime = Date.now();
-    const handleVisibilityChange = () => {
+    const handleVisibilityOrOnline = () => {
       if (document.visibilityState === "visible") {
         try {
           if (ably && ably.connection.state !== "connected") {
@@ -1011,10 +1012,10 @@ export function AppProvider({ children }) {
           }
         } catch {}
 
-        // SWR focusThrottleInterval: Avoid spamming serverless revalidations on quick tab switching.
-        // WebSocket pushes live changes instantly anyway; background sync only needed if user was away >5min.
         const now = Date.now();
-        if (now - lastVisibilitySyncTime > 300000) {
+        const isAblyLive = ably && ably.connection?.state === "connected";
+        // If Ably is not connected (limit reached, tunnel, offline) OR user was away > 5 minutes:
+        if (!isAblyLive || now - lastVisibilitySyncTime > 300000) {
           lastVisibilitySyncTime = now;
           fetchNotifications();
           if (cleanReg) {
@@ -1024,11 +1025,13 @@ export function AppProvider({ children }) {
       }
     };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityOrOnline);
+    window.addEventListener("online", handleVisibilityOrOnline);
 
     return () => {
       isMounted = false;
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityOrOnline);
+      window.removeEventListener("online", handleVisibilityOrOnline);
       try {
         if (studentChannel) studentChannel.unsubscribe();
         if (broadcastChannel) broadcastChannel.unsubscribe();
@@ -1315,6 +1318,16 @@ export function AppProvider({ children }) {
         sessionStorage.removeItem(k);
       });
       localStorage.removeItem("gf_student_session_hint");
+
+      // Deep purge: completely wipe any student profile, semester, and performance caches from sessionStorage
+      const sessionKeysToPurge = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const k = sessionStorage.key(i);
+        if (k && (k.startsWith("gf_student_profile_") || k.startsWith("gf_sem_") || k.startsWith("gf_perf_"))) {
+          sessionKeysToPurge.push(k);
+        }
+      }
+      sessionKeysToPurge.forEach((k) => sessionStorage.removeItem(k));
     } catch {}
 
     // 2. Clear ONLY this device's session on server
@@ -1548,15 +1561,17 @@ export function AppProvider({ children }) {
     // 1. Instant Cache Hydration (0ms load)
     let cachedData = null;
     let cachedTs = 0;
+    let cachedEtag = "";
     if (!forceRefresh) {
       if (studentData && studentData.regNo === cleanReg) {
         cachedData = studentData;
-        // Try to read timestamp from sessionStorage for TTL check
+        // Try to read timestamp and etag from sessionStorage for TTL check
         try {
           const cachedRaw = sessionStorage.getItem(profileCacheKey);
           if (cachedRaw) {
             const parsed = JSON.parse(cachedRaw);
             if (parsed?.ts) cachedTs = parsed.ts;
+            if (parsed?.etag) cachedEtag = parsed.etag;
           }
         } catch (_) {}
       } else {
@@ -1567,6 +1582,7 @@ export function AppProvider({ children }) {
             if (parsed?.data && parsed.data.regNo === cleanReg) {
               cachedData = parsed.data;
               cachedTs = parsed.ts || 0;
+              cachedEtag = parsed.etag || "";
               setStudentData(parsed.data);
               setLoading(false);
             }
@@ -1581,6 +1597,18 @@ export function AppProvider({ children }) {
       return cachedData;
     }
 
+    // Cooldown Shield: prevent rapid manual refresh / F5 button spamming from hitting serverless repeatedly
+    const now = Date.now();
+    if (forceRefresh && cachedData && (now - lastForceRefreshTsRef.current < 15000)) {
+      return cachedData;
+    }
+    if (forceRefresh) {
+      lastForceRefreshTsRef.current = now;
+      try {
+        sessionStorage.removeItem(profileCacheKey);
+      } catch (_) {}
+    }
+
     // 3. If no cache hit, show initial loading state
     if (!cachedData && backoffMs === 1000) {
       setLoading(true);
@@ -1592,25 +1620,28 @@ export function AppProvider({ children }) {
       return inFlightStudentFetchRef.current[cleanReg];
     }
 
-    if (forceRefresh) {
-      try {
-        sessionStorage.removeItem(profileCacheKey);
-      } catch (_) {}
-    }
-
-    // 4. Background / Foreground Revalidation against MongoDB
+    // 5. Background / Foreground Revalidation against MongoDB
     const fetchPromise = (async () => {
       try {
         const fetchUrl = forceRefresh ? `${API_BASE}/student/${cleanReg}?force=true` : `${API_BASE}/student/${cleanReg}`;
         const fetchHeaders = forceRefresh ? { "Cache-Control": "no-cache", Pragma: "no-cache" } : {};
+        if (cachedEtag && !forceRefresh) {
+          fetchHeaders["If-None-Match"] = cachedEtag;
+        }
         const res = await axios.get(fetchUrl, {
           withCredentials: true,
           headers: fetchHeaders,
+          validateStatus: (status) => (status >= 200 && status < 300) || status === 304,
         });
+        if (res.status === 304 && cachedData) {
+          setLoading(false);
+          return cachedData;
+        }
         if (res.data) {
           setStudentData(res.data);
+          const resEtag = res.headers?.etag || res.headers?.ETag || "";
           try {
-            sessionStorage.setItem(profileCacheKey, JSON.stringify({ data: res.data, ts: Date.now() }));
+            sessionStorage.setItem(profileCacheKey, JSON.stringify({ data: res.data, ts: Date.now(), etag: resEtag }));
           } catch (_) {}
         }
         setLoading(false);

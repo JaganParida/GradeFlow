@@ -97,9 +97,9 @@ router.get("/:regNo", studentSearchLimiter, validateRegNo, requireStudentOrAdmin
       results,
     );
 
-    const [allRankings, studentProfile] = await Promise.all([
+    const [allRankings, attendanceDoc] = await Promise.all([
       Ranking.find({ regNo }).lean(),
-      Student.findOne({ regNo }).lean(),
+      Attendance.findOne({ regNo }).select("targetGoal savedSubjects section lastSyncedAt").lean(),
     ]);
 
     const rankingsMap = {};
@@ -109,12 +109,45 @@ router.get("/:regNo", studentSearchLimiter, validateRegNo, requireStudentOrAdmin
 
     const ranking = rankingsMap[String(latestResult.semester)] || null;
 
+    let attendanceSummary = null;
+    if (attendanceDoc && Array.isArray(attendanceDoc.savedSubjects) && attendanceDoc.savedSubjects.length > 0) {
+      let totalAttended = 0;
+      let totalDelivered = 0;
+      attendanceDoc.savedSubjects.forEach((sub) => {
+        (sub.components || []).forEach((c) => {
+          totalAttended += Number(c.attended) || 0;
+          totalDelivered += Number(c.delivered) || 0;
+        });
+      });
+      if (totalDelivered > 0) {
+        const percentage = Number(((totalAttended / totalDelivered) * 100).toFixed(1));
+        attendanceSummary = {
+          percentage,
+          totalAttended,
+          totalDelivered,
+          targetGoal: attendanceDoc.targetGoal || 75,
+          subjectsCount: attendanceDoc.savedSubjects.length,
+        };
+      }
+    }
+
+    const formattedAttendance = attendanceDoc
+      ? {
+          regNo,
+          section: attendanceDoc.section || getSectionFromRegNo(regNo),
+          targetGoal: attendanceDoc.targetGoal || 75,
+          savedSubjects: attendanceDoc.savedSubjects || [],
+          dailyLogs: {},
+          lastSyncedAt: attendanceDoc.lastSyncedAt || new Date(),
+        }
+      : null;
+
     const responseData = {
       regNo,
       studentName: latestResult.studentName,
-      branch: studentProfile?.branch || latestResult.branch,
-      batch: studentProfile?.batch || latestResult.batch,
-      section: studentProfile?.section || getSectionFromRegNo(regNo),
+      branch: latestResult.branch,
+      batch: latestResult.batch,
+      section: getSectionFromRegNo(regNo),
       cgpa,
       latestSgpa: liveLatestSgpa,
       latestSemester: latestResult.semester,
@@ -133,7 +166,8 @@ router.get("/:regNo", studentSearchLimiter, validateRegNo, requireStudentOrAdmin
       results,
       ranking: ranking || null,
       rankingsMap,
-      allRankings: allRankings || [],
+      attendance: formattedAttendance,
+      attendanceSummary,
     };
 
     setCache(regNo, responseData);

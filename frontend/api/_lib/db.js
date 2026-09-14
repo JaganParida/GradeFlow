@@ -18,8 +18,9 @@ async function connectToDatabase() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      maxPoolSize: 10,
+      maxPoolSize: 3,
       minPoolSize: 0,
+      maxIdleTimeMS: 5000,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
       heartbeatFrequencyMS: 10000,

@@ -49,6 +49,8 @@ import {
   Layers,
   Medal,
   Check,
+  Clock,
+  Percent,
 } from "lucide-react";
 import { calculateSGPA as calcSGPAFromSubjects, calculateSemesterMetrics, calculateCGPA, FAIL_GRADES } from "../utils/gradeCalculations";
 
@@ -344,6 +346,7 @@ export default function Dashboard() {
   const [internalPage, setInternalPage] = useState(1);
   const [semesterRanking, setSemesterRanking] = useState(null);
   const semCacheRef = useRef({});
+  const activeSemRequestRef = useRef(null);
   const mobileTabsRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -616,8 +619,8 @@ export default function Dashboard() {
 
     const cacheKey = `gf_sem_${regNo}_${sem}`;
 
-    // Verify ranking object is complete (has totalStudents, deptStudents, etc.) and not a stale partial payload
-    const isCompleteRanking = (rk) => !rk || (rk.totalStudents !== undefined && rk.deptStudents !== undefined);
+    // Verify ranking object is valid (null/undefined or valid object)
+    const isCompleteRanking = (rk) => !rk || typeof rk === "object";
 
     let hasCachedDetails = false;
 
@@ -694,12 +697,18 @@ export default function Dashboard() {
     }
     setIsInternalLoading(true);
 
+    const reqId = Symbol();
+    activeSemRequestRef.current = reqId;
+
     // 6. Network fetch against MongoDB (only executed on cache-miss or explicit realtime forceRefresh)
     try {
       const [imRes, rankRes] = await Promise.allSettled([
         axios.get(`${API}/student/${regNo}/internal/${sem}`),
         axios.get(`${API}/student/${regNo}/ranking/${sem}`),
       ]);
+
+      // If user switched semesters while request was in flight, discard stale response
+      if (activeSemRequestRef.current !== reqId) return;
 
       const fetchedSemResult = local || studentData?.results?.find((r) => r.semester === sem) || null;
       setSemResult(fetchedSemResult);
@@ -756,7 +765,9 @@ export default function Dashboard() {
     } catch {
       // Fallbacks already in place
     } finally {
-      setIsInternalLoading(false);
+      if (activeSemRequestRef.current === reqId) {
+        setIsInternalLoading(false);
+      }
     }
   };
 
@@ -768,6 +779,18 @@ export default function Dashboard() {
       }
     }
   }, [tab, selectedSem]);
+
+  // Realtime Cache Invalidation: clear in-memory semester caches on Ably push event
+  useEffect(() => {
+    const handleResultsUpdated = () => {
+      semCacheRef.current = {};
+      if (selectedSem) {
+        loadSemester(selectedSem, true);
+      }
+    };
+    window.addEventListener("gradeflow:results-updated", handleResultsUpdated);
+    return () => window.removeEventListener("gradeflow:results-updated", handleResultsUpdated);
+  }, [selectedSem]);
 
   // Real-time synchronization when rankings or academic results are updated in DB
   useEffect(() => {
@@ -890,40 +913,65 @@ export default function Dashboard() {
     );
   }
 
-  const { studentName, branch, batch, results = [], backlogs = [], academicHealth = {} } = studentData;
+  const { studentName, branch, batch, results = [], backlogs = [] } = studentData;
   const dynamicBranch = getDynamicBranch(regNo, branch);
   const section = getSectionFromRegNo(regNo);
 
-  const latestResult = results.find((r) => r.semester === selectedSem) || results[0];
-  const latestMetrics = latestResult?.subjects?.length > 0
-    ? calculateSemesterMetrics(latestResult.subjects, latestResult.semester)
+  // Selected semester result for Card 1 (Semester SGPA) and ledger
+  const selectedSemResult = results.find((r) => r.semester === selectedSem) || results[0];
+  const selectedSemMetrics = selectedSemResult?.subjects?.length > 0
+    ? calculateSemesterMetrics(selectedSemResult.subjects, selectedSemResult.semester)
     : null;
-  const latestSgpa = latestMetrics
-    ? latestMetrics.sgpa
-    : (typeof latestResult?.sgpa === "number" ? latestResult.sgpa : null);
+  const latestSgpa = selectedSemMetrics
+    ? selectedSemMetrics.sgpa
+    : (typeof selectedSemResult?.sgpa === "number" ? selectedSemResult.sgpa : null);
+
+  // True latest semester result for student overall profile and achievement badges
+  const trueLatestResult = results.length > 0 ? results[results.length - 1] : null;
+  const trueLatestMetrics = trueLatestResult?.subjects?.length > 0
+    ? calculateSemesterMetrics(trueLatestResult.subjects, trueLatestResult.semester)
+    : null;
+  const trueLatestSgpa = studentData.latestSgpa ?? (trueLatestMetrics
+    ? trueLatestMetrics.sgpa
+    : (typeof trueLatestResult?.sgpa === "number" ? trueLatestResult.sgpa : null));
 
   const cgpa = results.length > 0 ? calculateCGPA(results) : studentData.cgpa;
-  const academicHealthScore = academicHealth?.score ?? 85;
-  const healthColor =
-    academicHealthScore >= 90 ? "#16a34a" : academicHealthScore >= 75 ? "#2563eb" : academicHealthScore >= 60 ? "#d97706" : "#dc2626";
-  const healthLabel =
-    academicHealthScore >= 90
-      ? "Excellent Standing"
-      : academicHealthScore >= 75
-      ? "Good Standing"
-      : academicHealthScore >= 60
-      ? "Average Standing"
-      : "Needs Attention";
+
+  // Compact Attendance Summary (Resilient: checks attendanceSummary, then attendance object)
+  const attendanceSummary = useMemo(() => {
+    if (studentData?.attendanceSummary) return studentData.attendanceSummary;
+    const att = studentData?.attendance;
+    if (att && Array.isArray(att.savedSubjects) && att.savedSubjects.length > 0) {
+      let totalAttended = 0;
+      let totalDelivered = 0;
+      att.savedSubjects.forEach((sub) => {
+        (sub.components || []).forEach((c) => {
+          totalAttended += Number(c.attended) || 0;
+          totalDelivered += Number(c.delivered) || 0;
+        });
+      });
+      if (totalDelivered > 0) {
+        return {
+          percentage: Number(((totalAttended / totalDelivered) * 100).toFixed(1)),
+          totalAttended,
+          totalDelivered,
+          targetGoal: att.targetGoal || 75,
+          subjectsCount: att.savedSubjects.length,
+        };
+      }
+    }
+    return null;
+  }, [studentData]);
 
   const internalSubjects = getSortedInternalSubjects(internalMarks);
 
-  // SVG Achievement Badges (100% synchronized with Unlockable Academic Badges Scale)
-  const currentRanking = semesterRanking || studentData?.ranking;
+  // SVG Achievement Badges (Evaluates student's true latest academic achievements)
+  const profileRanking = studentData?.ranking || semesterRanking;
   const isTopRanker = Boolean(
-    currentRanking &&
-      ((currentRanking.universityRank && currentRanking.universityRank <= 10) ||
-        (currentRanking.sgpaRank && currentRanking.sgpaRank <= 10) ||
-        (currentRanking.cgpaRank && currentRanking.cgpaRank <= 10))
+    profileRanking &&
+      ((profileRanking.universityRank && profileRanking.universityRank <= 10) ||
+        (profileRanking.sgpaRank && profileRanking.sgpaRank <= 10) ||
+        (profileRanking.cgpaRank && profileRanking.cgpaRank <= 10))
   );
 
   const badges = [
@@ -934,8 +982,8 @@ export default function Dashboard() {
       icon: <Crown size={13} />,
       tier: "Legendary",
     },
-    // 2. Academic Excellence (Gold) - Criteria: Latest SGPA >= 9.0
-    latestSgpa >= 9.0 && {
+    // 2. Academic Excellence (Gold) - Criteria: True Latest SGPA >= 9.0
+    trueLatestSgpa >= 9.0 && {
       label: "Academic Excellence",
       color: "#d97706",
       icon: <Star size={13} />,
@@ -962,8 +1010,8 @@ export default function Dashboard() {
       icon: <Trophy size={13} />,
       tier: "Diamond",
     },
-    // 6. Perfect SGPA (Mythic) - Criteria: Latest SGPA = 10
-    latestSgpa >= 10 && {
+    // 6. Perfect SGPA (Mythic) - Criteria: True Latest SGPA = 10
+    trueLatestSgpa >= 10 && {
       label: "Perfect SGPA",
       color: "#ea580c",
       icon: <Award size={13} />,
@@ -1708,9 +1756,10 @@ export default function Dashboard() {
               </div>
             </motion.div>
 
-            {/* 4. Academic Health */}
+            {/* 4. Overall Attendance */}
             <motion.div
               whileHover={{ y: -2 }}
+              onClick={() => navigate(`/attendance/${encodeStudentId(regNo)}`)}
               style={{
                 background: "#ffffff",
                 border: "1px solid #cbd5e1",
@@ -1719,19 +1768,91 @@ export default function Dashboard() {
                 display: "flex",
                 flexDirection: "column",
                 gap: 4,
+                cursor: "pointer",
+                position: "relative",
+                transition: "all 0.15s ease",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  Academic Health
+                  Overall Attendance
                 </span>
-                <Activity size={14} color={healthColor} />
+                {attendanceSummary && attendanceSummary.percentage !== null && attendanceSummary.percentage !== undefined ? (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      background: attendanceSummary.percentage >= (attendanceSummary.targetGoal || 75) ? "#f0fdf4" : "#fef2f2",
+                      color: attendanceSummary.percentage >= (attendanceSummary.targetGoal || 75) ? "#16a34a" : "#dc2626",
+                      border: `1px solid ${attendanceSummary.percentage >= (attendanceSummary.targetGoal || 75) ? "#bbf7d0" : "#fecaca"}`,
+                      padding: "1px 6px",
+                      borderRadius: 5,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {attendanceSummary.percentage >= (attendanceSummary.targetGoal || 75)
+                      ? `Target Met · ${attendanceSummary.targetGoal || 75}%`
+                      : `Target: ${attendanceSummary.targetGoal || 75}%`}
+                  </span>
+                ) : (
+                  <Clock size={14} color="#2563eb" />
+                )}
               </div>
-              <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 800, color: healthColor, fontFamily: "'Space Mono', monospace", lineHeight: 1.1 }}>
-                {academicHealthScore}
-                <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}> /100</span>
-              </div>
-              <span style={{ fontSize: 10.5, color: healthColor, fontWeight: 700 }}>{healthLabel}</span>
+
+              {attendanceSummary && attendanceSummary.percentage !== null && attendanceSummary.percentage !== undefined ? (
+                <>
+                  <div
+                    style={{
+                      fontSize: isMobile ? 22 : 30,
+                      fontWeight: 800,
+                      color:
+                        attendanceSummary.percentage >= (attendanceSummary.targetGoal || 75)
+                          ? "#16a34a"
+                          : attendanceSummary.percentage >= (attendanceSummary.targetGoal || 75) - 5
+                          ? "#d97706"
+                          : "#dc2626",
+                      fontFamily: "'Space Mono', monospace",
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    {attendanceSummary.percentage}%
+                  </div>
+                  <span style={{ fontSize: 10.5, color: "#64748b" }}>
+                    {attendanceSummary.totalAttended} / {attendanceSummary.totalDelivered} classes attended ({attendanceSummary.subjectsCount} subjects)
+                  </span>
+                </>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/attendance/${encodeStudentId(regNo)}`);
+                    }}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      width: "100%",
+                      padding: isMobile ? "7px 10px" : "9px 12px",
+                      borderRadius: 8,
+                      border: "1px solid #bfdbfe",
+                      background: "#eff6ff",
+                      color: "#1d4ed8",
+                      fontSize: isMobile ? 12 : 12.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      fontFamily: "'DM Sans', sans-serif",
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#dbeafe")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "#eff6ff")}
+                  >
+                    <span>Set Your Attendance</span>
+                    <ArrowRight size={13} color="#2563eb" />
+                  </button>
+                  <span style={{ fontSize: 10.5, color: "#64748b" }}>Track subjects, timetable & bunk margin</span>
+                </div>
+              )}
             </motion.div>
           </div>
 

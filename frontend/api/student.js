@@ -456,11 +456,10 @@ module.exports = async function handler(req, res) {
 
     const healthScore = calcAcademicHealth(cgpa, liveLatestSgpa, backlogs.length, results);
 
-    const [allRankings, allInternals, studentProfile, attendanceDoc] = await Promise.all([
+    const [allRankings, allInternals, attendanceDoc] = await Promise.all([
       Ranking.find({ regNo: cleanRegNo }).lean(),
       InternalMark.find({ regNo: cleanRegNo }).select("semester subjects").lean(),
-      Student.findOne({ regNo: cleanRegNo }).select("branch batch section").lean(),
-      Attendance.findOne({ regNo: cleanRegNo }).lean(),
+      Attendance.findOne({ regNo: cleanRegNo }).select("targetGoal savedSubjects section lastSyncedAt").lean(),
     ]);
 
     const rankingsMap = {};
@@ -475,27 +474,45 @@ module.exports = async function handler(req, res) {
 
     const ranking = rankingsMap[String(latestResult.semester)] || null;
 
+    let attendanceSummary = null;
+    if (attendanceDoc && Array.isArray(attendanceDoc.savedSubjects) && attendanceDoc.savedSubjects.length > 0) {
+      let totalAttended = 0;
+      let totalDelivered = 0;
+      attendanceDoc.savedSubjects.forEach((sub) => {
+        (sub.components || []).forEach((c) => {
+          totalAttended += Number(c.attended) || 0;
+          totalDelivered += Number(c.delivered) || 0;
+        });
+      });
+      if (totalDelivered > 0) {
+        const percentage = Number(((totalAttended / totalDelivered) * 100).toFixed(1));
+        attendanceSummary = {
+          percentage,
+          totalAttended,
+          totalDelivered,
+          targetGoal: attendanceDoc.targetGoal || 75,
+          subjectsCount: attendanceDoc.savedSubjects.length,
+        };
+      }
+    }
+
     const formattedAttendance = attendanceDoc
       ? {
-          regNo: attendanceDoc.regNo,
-          section: attendanceDoc.section,
-          targetGoal: attendanceDoc.targetGoal,
-          savedSubjects: attendanceDoc.savedSubjects,
-          dailyLogs: attendanceDoc.dailyLogs
-            ? attendanceDoc.dailyLogs instanceof Map
-              ? Object.fromEntries(attendanceDoc.dailyLogs)
-              : attendanceDoc.dailyLogs
-            : {},
-          lastSyncedAt: attendanceDoc.lastSyncedAt,
+          regNo: cleanRegNo,
+          section: attendanceDoc.section || getSectionFromRegNo(cleanRegNo),
+          targetGoal: attendanceDoc.targetGoal || 75,
+          savedSubjects: attendanceDoc.savedSubjects || [],
+          dailyLogs: {},
+          lastSyncedAt: attendanceDoc.lastSyncedAt || new Date(),
         }
       : null;
 
     const responseData = {
       regNo: cleanRegNo,
       studentName: latestResult.studentName,
-      branch: studentProfile?.branch || latestResult.branch,
-      batch: studentProfile?.batch || latestResult.batch,
-      section: studentProfile?.section || getSectionFromRegNo(cleanRegNo),
+      branch: latestResult.branch,
+      batch: latestResult.batch,
+      section: getSectionFromRegNo(cleanRegNo),
       cgpa,
       latestSgpa: liveLatestSgpa,
       latestSemester: latestResult.semester,
@@ -513,9 +530,8 @@ module.exports = async function handler(req, res) {
       ranking: ranking || null,
       rankingsMap,
       internalMarksMap,
-      allRankings: allRankings || [],
-      allInternals: allInternals || [],
       attendance: formattedAttendance,
+      attendanceSummary,
     };
 
     // ETag/304 + Memoization Store: Cache the full response for future early returns.
