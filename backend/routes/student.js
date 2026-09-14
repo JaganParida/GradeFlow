@@ -25,15 +25,16 @@ function calcAcademicHealth(cgpa, sgpa, backlogs, results) {
   return Math.round(Math.min(score, 100));
 }
 
+const crypto = require("crypto");
 const { validateRegNoParam } = require("../middleware/validation");
 const validateRegNo = validateRegNoParam;
 
 // In-Memory Cache — short TTL so stale data expires quickly
 const studentCache = new Map();
-const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes (was 15)
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
 
-function setCache(regNo, data) {
-  studentCache.set(regNo, { data, expiry: Date.now() + CACHE_TTL_MS });
+function setCache(regNo, data, etag = "") {
+  studentCache.set(regNo, { data, etag, expiry: Date.now() + CACHE_TTL_MS });
 }
 
 function getCache(regNo) {
@@ -43,7 +44,7 @@ function getCache(regNo) {
     studentCache.delete(regNo);
     return null;
   }
-  return cached.data;
+  return cached;
 }
 
 // Exported so admin routes can invalidate cache immediately after upload
@@ -60,14 +61,20 @@ router.get("/:regNo", studentSearchLimiter, validateRegNo, requireStudentOrAdmin
   try {
     const { regNo } = req.params;
 
-    // Enforce strictly private headers for student academic records
-    res.setHeader("Cache-Control", "private, no-cache, no-store, must-revalidate");
+    // Enforce strictly private headers for student academic records with ETag validation
+    res.setHeader("Cache-Control", "private, no-cache");
     res.setHeader("Pragma", "no-cache");
     
-    // Check Cache First! (Zero CPU load, instant response)
-    const cachedData = getCache(regNo);
-    if (cachedData) {
-      return res.json(cachedData);
+    // Check Cache First! (Zero CPU load, ~1ms instant response)
+    const cached = getCache(regNo);
+    if (cached) {
+      if (cached.etag) {
+        res.setHeader("ETag", cached.etag);
+        if (req.headers["if-none-match"] === cached.etag) {
+          return res.status(304).end();
+        }
+      }
+      return res.json(cached.data);
     }
 
     const results = await globalDbQueue.run(() =>
@@ -170,8 +177,18 @@ router.get("/:regNo", studentSearchLimiter, validateRegNo, requireStudentOrAdmin
       attendanceSummary,
     };
 
-    setCache(regNo, responseData);
-    res.json(responseData);
+    const bodyString = JSON.stringify(responseData);
+    const etag = `"${crypto.createHash("md5").update(bodyString).digest("hex")}"`;
+    res.setHeader("ETag", etag);
+
+    setCache(regNo, responseData, etag);
+
+    if (req.headers["if-none-match"] === etag) {
+      return res.status(304).end();
+    }
+
+    res.setHeader("Content-Type", "application/json");
+    return res.status(200).send(bodyString);
   } catch (err) {
     console.error("Student profile error:", err);
     res.status(500).json({ message: "Server error fetching student profile" });

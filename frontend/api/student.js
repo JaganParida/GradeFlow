@@ -36,7 +36,7 @@ const jwt = require("jsonwebtoken");
 // Persists across warm invocations in the same Vercel container (~15 min).
 // Early ETag check BEFORE any DB queries: cache hit = ~1ms CPU vs ~120ms.
 const profileMemoCache = new Map(); // { regNo: { body, etag, ts } }
-const MEMO_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const MEMO_TTL_MS = 2 * 60 * 1000; // 2 minutes (absorbs traffic bursts while auto-refreshing rapidly)
 const MEMO_MAX_ENTRIES = 200; // Cap memory usage (~200 students × ~80KB = ~16MB max)
 
 function parseCookies(cookieHeader) {

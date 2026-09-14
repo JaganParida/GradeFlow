@@ -145,6 +145,9 @@ export function AppProvider({ children }) {
   const inFlightBootstrapRef = useRef(null);
   const inFlightStudentFetchRef = useRef({});
   const lastForceRefreshTsRef = useRef(0);
+  const lastRevalidateTsRef = useRef(0);
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
+  const isRealtimeConnectedRef = useRef(false);
   const navigate = useNavigate();
 
   // Check live admin device occupancy & portal visibility config
@@ -869,6 +872,20 @@ export function AppProvider({ children }) {
       studentChannel = ably.channels.get(`student-${cleanReg}`);
       broadcastChannel = ably.channels.get("broadcasts-all");
 
+      // Track Ably connection state for Graceful Fallback Mode (Risk 2)
+      ably.connection.on((stateChange) => {
+        if (!isMounted) return;
+        const isConn = stateChange.current === "connected";
+        setIsRealtimeConnected(isConn);
+        isRealtimeConnectedRef.current = isConn;
+        if (isConn) {
+          // Reconnection catch-up: silently check if data changed during disconnection
+          if (cleanReg) {
+            fetchStudent(cleanReg, 1, 500, false).catch(() => {});
+          }
+        }
+      });
+
       // A. Listen for instant login approval requests on active device (<0.1s)
       studentChannel.subscribe("new-notification", (msg) => {
         if (!isMounted || !msg?.data) return;
@@ -1013,9 +1030,9 @@ export function AppProvider({ children }) {
         } catch {}
 
         const now = Date.now();
-        const isAblyLive = ably && ably.connection?.state === "connected";
-        // If Ably is not connected (limit reached, tunnel, offline) OR user was away > 5 minutes:
-        if (!isAblyLive || now - lastVisibilitySyncTime > 300000) {
+        const isAblyLive = isRealtimeConnectedRef.current && ably && ably.connection?.state === "connected";
+        // If Ably is not connected (limit reached, tunnel, offline) OR user was away > 60 seconds:
+        if (!isAblyLive || now - lastVisibilitySyncTime > 60000) {
           lastVisibilitySyncTime = now;
           fetchNotifications();
           if (cleanReg) {
@@ -1032,6 +1049,8 @@ export function AppProvider({ children }) {
       isMounted = false;
       document.removeEventListener("visibilitychange", handleVisibilityOrOnline);
       window.removeEventListener("online", handleVisibilityOrOnline);
+      setIsRealtimeConnected(false);
+      isRealtimeConnectedRef.current = false;
       try {
         if (studentChannel) studentChannel.unsubscribe();
         if (broadcastChannel) broadcastChannel.unsubscribe();
@@ -1318,12 +1337,15 @@ export function AppProvider({ children }) {
         sessionStorage.removeItem(k);
       });
       localStorage.removeItem("gf_student_session_hint");
+      localStorage.removeItem("gf_student_reg");
+      setIsRealtimeConnected(false);
+      isRealtimeConnectedRef.current = false;
 
-      // Deep purge: completely wipe any student profile, semester, and performance caches from sessionStorage
+      // Deep purge: completely wipe any student profile, semester, performance, and notification caches from sessionStorage
       const sessionKeysToPurge = [];
       for (let i = 0; i < sessionStorage.length; i++) {
         const k = sessionStorage.key(i);
-        if (k && (k.startsWith("gf_student_profile_") || k.startsWith("gf_sem_") || k.startsWith("gf_perf_"))) {
+        if (k && (k.startsWith("gf_student_profile_") || k.startsWith("gf_sem_") || k.startsWith("gf_perf_") || k.startsWith("gf_notif_"))) {
           sessionKeysToPurge.push(k);
         }
       }
@@ -1348,6 +1370,7 @@ export function AppProvider({ children }) {
     } finally {
       try {
         localStorage.removeItem("gf_student_session_hint");
+        localStorage.removeItem("gf_student_reg");
       } catch {}
       // Only clear client auth presence cookie if no admin session remains active
       if (!adminTokenRef.current) {
@@ -1552,7 +1575,6 @@ export function AppProvider({ children }) {
   const authHeaders = { "X-Requested-With": "XMLHttpRequest" };
 
   // ─── Student Profile Fetch with SWR (Stale-While-Revalidate & Deduplication) ───
-  const PROFILE_REVALIDATION_TTL_MS = 5 * 60 * 1000; // 5 minutes — skip background revalidation if cache is fresh
   const fetchStudent = async (regNo, retries = 4, backoffMs = 1000, forceRefresh = false) => {
     if (!regNo) return null;
     const cleanReg = regNo.trim().toUpperCase();
@@ -1562,10 +1584,12 @@ export function AppProvider({ children }) {
     let cachedData = null;
     let cachedTs = 0;
     let cachedEtag = "";
+    let isFromMemory = false;
+
     if (!forceRefresh) {
       if (studentData && studentData.regNo === cleanReg) {
         cachedData = studentData;
-        // Try to read timestamp and etag from sessionStorage for TTL check
+        isFromMemory = true;
         try {
           const cachedRaw = sessionStorage.getItem(profileCacheKey);
           if (cachedRaw) {
@@ -1591,15 +1615,30 @@ export function AppProvider({ children }) {
       }
     }
 
-    // 2. TTL Gate: If cache is fresh (< 5 min old), skip background revalidation entirely.
-    //    Ably WebSocket events call fetchStudent with forceRefresh=true, bypassing this gate.
-    if (!forceRefresh && cachedData && cachedTs && (Date.now() - cachedTs < PROFILE_REVALIDATION_TTL_MS)) {
+    const now = Date.now();
+
+    // 2. Intra-Session Optimization:
+    // If data is already in memory (student navigating tabs/views during the same active session),
+    // and Ably WebSocket is connected: return cachedData immediately (0 HTTP requests, 0ms latency).
+    if (!forceRefresh && isFromMemory && cachedData && isRealtimeConnectedRef.current) {
       return cachedData;
     }
 
-    // Cooldown Shield: prevent rapid manual refresh / F5 button spamming from hitting serverless repeatedly
-    const now = Date.now();
-    if (forceRefresh && cachedData && (now - lastForceRefreshTsRef.current < 15000)) {
+    // If data is in memory, but Ably is disconnected (Risk 2: Graceful Fallback Mode):
+    // Throttle background ETag revalidations to once every 60 seconds
+    if (!forceRefresh && isFromMemory && cachedData && !isRealtimeConnectedRef.current && (now - cachedTs < 60000)) {
+      return cachedData;
+    }
+
+    // 3. F5 / Hard Reload Cooldown Shield (Safety Net 1):
+    // When hydrating from sessionStorage on F5/mount, enforce a 15-second cooldown shield
+    // to prevent rapid-fire F5 button mashing from hammering the serverless backend.
+    if (!forceRefresh && cachedData && (now - lastRevalidateTsRef.current < 15000)) {
+      return cachedData;
+    }
+
+    // Explicit force refresh cooldown: 10 seconds
+    if (forceRefresh && cachedData && (now - lastForceRefreshTsRef.current < 10000)) {
       return cachedData;
     }
     if (forceRefresh) {
@@ -1609,18 +1648,20 @@ export function AppProvider({ children }) {
       } catch (_) {}
     }
 
-    // 3. If no cache hit, show initial loading state
+    // 4. If no cache hit at all (cold initial load), show loading spinner
     if (!cachedData && backoffMs === 1000) {
       setLoading(true);
       setError("");
     }
 
-    // 4. Deduplicate concurrent in-flight fetches for the same student
+    // 5. Deduplicate concurrent in-flight fetches for the same student
     if (inFlightStudentFetchRef.current[cleanReg]) {
       return inFlightStudentFetchRef.current[cleanReg];
     }
 
-    // 5. Background / Foreground Revalidation against MongoDB
+    // 6. Background / Foreground Revalidation with ETag (304 = 0 DB queries, 0 bytes)
+    lastRevalidateTsRef.current = now;
+
     const fetchPromise = (async () => {
       try {
         const fetchUrl = forceRefresh ? `${API_BASE}/student/${cleanReg}?force=true` : `${API_BASE}/student/${cleanReg}`;
@@ -1633,10 +1674,17 @@ export function AppProvider({ children }) {
           headers: fetchHeaders,
           validateStatus: (status) => (status >= 200 && status < 300) || status === 304,
         });
+
+        // 304 Not Modified: Data is identical in DB! ~1ms CPU, 0 DB queries, 0 bytes transferred.
         if (res.status === 304 && cachedData) {
           setLoading(false);
+          try {
+            sessionStorage.setItem(profileCacheKey, JSON.stringify({ data: cachedData, ts: Date.now(), etag: cachedEtag }));
+          } catch (_) {}
           return cachedData;
         }
+
+        // 200 OK: Fresh data returned from server!
         if (res.data) {
           setStudentData(res.data);
           const resEtag = res.headers?.etag || res.headers?.ETag || "";
@@ -1831,6 +1879,7 @@ export function AppProvider({ children }) {
         API: API_BASE,
         rankingsVersion,
         setRankingsVersion,
+        isRealtimeConnected,
         stats: null,
         queuePosition: null,
         sessionTimeLeft: null,
