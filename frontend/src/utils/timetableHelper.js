@@ -1700,10 +1700,27 @@ export function is2023CSEBatch(studentData, regNo = "") {
     return true;
   }
 
+  // Explicit transfer checks
+  if (["230301120110", "230301120186", "230301120371", "230301120481"].includes(reg)) return false;
+  if (reg === "230301180026") return true;
+
+  // Explicit Non-CSE branch prefixes:
+  if (
+    reg.startsWith("230301110") || reg.startsWith("230301111") || // CIVIL
+    reg.startsWith("230301130") || reg.startsWith("230301131") || reg.startsWith("230301132") || // ECE
+    reg.startsWith("230301150") || reg.startsWith("230301151") || // EEE
+    reg.startsWith("230301160") || reg.startsWith("230301161") || // ME
+    reg.startsWith("230301180") || // BIO
+    reg.startsWith("230301190") || reg.startsWith("230301191") || // MI
+    reg.startsWith("230301230") || reg === "230301231033" // AERO
+  ) {
+    return false;
+  }
+
   // Check Registration Number (e.g. 230301120001, 23030112...)
   if (reg) {
     const isYear2023 = reg.startsWith("23");
-    const isCSE = reg.includes("030112") || rawBranch.includes("CSE") || rawBranch.includes("COMPUTER") || !rawBranch;
+    const isCSE = reg.includes("030112") || rawBranch.includes("CSE") || rawBranch.includes("COMPUTER");
     return isYear2023 && isCSE;
   }
 

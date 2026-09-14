@@ -101,7 +101,21 @@ export default function Timetable() {
   });
 
   const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 1024 : false));
-  const [viewMode, setViewMode] = useState("day"); // "day" | "week" | "academic" | "holidays"
+  const [viewMode, setViewMode] = useState(() => {
+    const reg = String(decodedParam || "").trim();
+    if (
+      reg.startsWith("230301110") || reg.startsWith("230301111") ||
+      reg.startsWith("230301130") || reg.startsWith("230301131") || reg.startsWith("230301132") ||
+      reg.startsWith("230301150") || reg.startsWith("230301151") ||
+      reg.startsWith("230301160") || reg.startsWith("230301161") ||
+      reg.startsWith("230301180") ||
+      reg.startsWith("230301190") || reg.startsWith("230301191") ||
+      reg.startsWith("230301230") || ["230301120110", "230301120186", "230301120371", "230301120481", "230301231033"].includes(reg)
+    ) {
+      return "academic";
+    }
+    return "day";
+  }); // "day" | "week" | "academic" | "holidays"
   const [subnavAnim, setSubnavAnim] = useState("fade-up");
 
   const animVariants = {
@@ -517,21 +531,25 @@ export default function Timetable() {
     const reg = String(currentRegNo || "").trim();
     if (["230301120110", "230301120186", "230301120371", "230301120481"].includes(reg)) return false;
     if (reg === "230301180026") return true;
+
+    // Explicit Non-CSE branch prefixes
+    if (
+      reg.startsWith("230301110") || reg.startsWith("230301111") || // CIVIL
+      reg.startsWith("230301130") || reg.startsWith("230301131") || reg.startsWith("230301132") || // ECE
+      reg.startsWith("230301150") || reg.startsWith("230301151") || // EEE
+      reg.startsWith("230301160") || reg.startsWith("230301161") || // ME
+      reg.startsWith("230301180") || // BIO
+      reg.startsWith("230301190") || reg.startsWith("230301191") || // MI
+      reg.startsWith("230301230") || reg === "230301231033" // AERO
+    ) {
+      return false;
+    }
+
     const stBranch = (studentData?.branch || "").toUpperCase();
     if (stBranch && !stBranch.includes("CSE") && !stBranch.includes("COMPUTER")) return false;
     if (is2023CSEBatch(studentData, currentRegNo)) return true;
-    if (dynamicSchedules.length > 0) {
-      const stBatch = studentData?.batch || (reg.length >= 2 ? `20${reg.slice(0, 2)}` : "");
-      const hasMatch = dynamicSchedules.some(
-        (s) =>
-          (s.batch === stBatch || s.batch === "ALL") &&
-          (stBranch.includes(s.branch) || s.branch === "ALL") &&
-          (s.branch === "CSE" || s.branch === "ALL")
-      );
-      if (hasMatch) return true;
-    }
     return false;
-  }, [studentData, currentRegNo, dynamicSchedules, adminToken]);
+  }, [studentData, currentRegNo, adminToken]);
 
   const availableViewModes = useMemo(() => {
     if (isEligibleBatch || Boolean(adminToken)) {
@@ -651,7 +669,7 @@ export default function Timetable() {
                   }}
                 >
                   <Building size={13} />
-                  <span>Centurion University · B.Tech 7th Semester</span>
+                  <span>Centurion University · {(isEligibleBatch || Boolean(adminToken)) ? "B.Tech 7th Semester" : "Academic Calendar"}</span>
                 </div>
                 <h1
                   style={{
@@ -671,56 +689,54 @@ export default function Timetable() {
 
             {/* Right: Section Badge / Selector & Student Tag */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              {activeStudentName || currentRegNo ? (
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "6px 12px",
-                    borderRadius: 8,
-                    background: "#eff6ff",
-                    border: "1px solid #bfdbfe",
-                    color: "#1d4ed8",
-                    fontSize: 12.5,
-                    fontWeight: 800,
-                  }}
-                >
-                  <Building size={14} color="#2563eb" />
-                  <span>
-                    {isEligibleBatch || Boolean(adminToken)
-                      ? `Section ${selectedSection}`
-                      : `Branch: ${studentData?.branch || "General"}`}
-                  </span>
-                </div>
-              ) : (
-                <>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>
-                    Section:
-                  </span>
-                  <select
-                    value={selectedSection}
-                    onChange={(e) => setSelectedSection(e.target.value)}
+              {(isEligibleBatch || Boolean(adminToken)) && (
+                activeStudentName || currentRegNo ? (
+                  <div
                     style={{
-                      padding: "7px 12px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "6px 12px",
                       borderRadius: 8,
-                      border: "1px solid #cbd5e1",
-                      background: "#f8fafc",
+                      background: "#eff6ff",
+                      border: "1px solid #bfdbfe",
                       color: "#1d4ed8",
                       fontSize: 12.5,
                       fontWeight: 800,
-                      cursor: "pointer",
-                      outline: "none",
-                      boxShadow: "none",
                     }}
                   >
-                    {ALL_SECTIONS.map((sec) => (
-                      <option key={sec} value={sec}>
-                        {sec}
-                      </option>
-                    ))}
-                  </select>
-                </>
+                    <Building size={14} color="#2563eb" />
+                    <span>Section {selectedSection}</span>
+                  </div>
+                ) : (
+                  <>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>
+                      Section:
+                    </span>
+                    <select
+                      value={selectedSection}
+                      onChange={(e) => setSelectedSection(e.target.value)}
+                      style={{
+                        padding: "7px 12px",
+                        borderRadius: 8,
+                        border: "1px solid #cbd5e1",
+                        background: "#f8fafc",
+                        color: "#1d4ed8",
+                        fontSize: 12.5,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        outline: "none",
+                        boxShadow: "none",
+                      }}
+                    >
+                      {ALL_SECTIONS.map((sec) => (
+                        <option key={sec} value={sec}>
+                          {sec}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                )
               )}
 
               {activeStudentName && (
@@ -746,7 +762,7 @@ export default function Timetable() {
           </div>
 
           {/* Quick Section Switcher Pills (In Guest / Generic Mode) */}
-          {!activeStudentName && !currentRegNo && (
+          {!activeStudentName && !currentRegNo && (isEligibleBatch || Boolean(adminToken)) && (
             <div
               ref={sectionPillsRef}
               style={{
@@ -829,7 +845,10 @@ export default function Timetable() {
                 >
                   <ShieldCheck size={13} color="#16a34a" />
                   <span>
-                    Authorized: <strong>{currentRegNo}</strong> &middot; Section <strong>{selectedSection}</strong>
+                    Authorized: <strong>{currentRegNo}</strong>
+                    {(isEligibleBatch || Boolean(adminToken)) && (
+                      <> &middot; Section <strong>{selectedSection}</strong></>
+                    )}
                   </span>
                 </div>
               ) : adminToken ? (
@@ -944,7 +963,10 @@ export default function Timetable() {
                   >
                     <ShieldCheck size={14} color="#16a34a" />
                     <span>
-                      Authorized Student: <strong>{currentRegNo}</strong> &middot; Section <strong>{selectedSection}</strong>
+                      Authorized Student: <strong>{currentRegNo}</strong>
+                      {(isEligibleBatch || Boolean(adminToken)) && (
+                        <> &middot; Section <strong>{selectedSection}</strong></>
+                      )}
                     </span>
                   </div>
                 ) : adminToken ? (
