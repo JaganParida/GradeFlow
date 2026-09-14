@@ -102,7 +102,7 @@ export default function Timetable() {
 
   const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 1024 : false));
   const [viewMode, setViewMode] = useState(() => {
-    const reg = String(decodedParam || "").trim();
+    const reg = String(decodedParam || studentData?.regNo || studentSession?.regNo || "").trim();
     if (
       reg.startsWith("230301110") || reg.startsWith("230301111") ||
       reg.startsWith("230301130") || reg.startsWith("230301131") || reg.startsWith("230301132") ||
@@ -525,44 +525,80 @@ export default function Timetable() {
   }, [filterHolidayType, selectedHolidayMonth]);
 
   const activeStudentName = studentData?.studentName || "";
-  const isEligibleBatch = useMemo(() => {
-    if (adminToken) return true;
-    if (!currentRegNo && !studentData) return true;
-    const reg = String(currentRegNo || "").trim();
-    if (["230301120110", "230301120186", "230301120371", "230301120481"].includes(reg)) return false;
-    if (reg === "230301180026") return true;
+
+  // Dedicated check: Identifies if the active student belongs to a Non-CSE department/branch
+  const isNonCSEStudent = useMemo(() => {
+    const reg = String(currentRegNo || studentData?.regNo || studentSession?.regNo || "").trim().toUpperCase();
+    const rawBranch = String(studentData?.branch || studentSession?.branch || studentData?.department || "").trim().toUpperCase();
+
+    // If unsearched guest or generic browsing
+    if (!reg && !rawBranch) return false;
+
+    // Explicit transfer into CSE exception
+    if (reg === "230301180026") return false;
+
+    // Explicit transfers out of CSE / known non-CSE IDs
+    if (["230301120110", "230301120186", "230301120371", "230301120481", "230301231033"].includes(reg)) {
+      return true;
+    }
 
     // Explicit Non-CSE branch prefixes
     if (
-      reg.startsWith("230301110") || reg.startsWith("230301111") || // CIVIL
+      reg.startsWith("230301110") || reg.startsWith("230301111") || // CIVIL (e.g. 230301110004)
       reg.startsWith("230301130") || reg.startsWith("230301131") || reg.startsWith("230301132") || // ECE
       reg.startsWith("230301150") || reg.startsWith("230301151") || // EEE
       reg.startsWith("230301160") || reg.startsWith("230301161") || // ME
       reg.startsWith("230301180") || // BIO
       reg.startsWith("230301190") || reg.startsWith("230301191") || // MI
-      reg.startsWith("230301230") || reg === "230301231033" // AERO
+      reg.startsWith("230301230")    // AERO
     ) {
-      return false;
+      return true;
     }
 
-    const stBranch = (studentData?.branch || "").toUpperCase();
-    if (stBranch && !stBranch.includes("CSE") && !stBranch.includes("COMPUTER")) return false;
-    if (is2023CSEBatch(studentData, currentRegNo)) return true;
+    // Any other 230301... branch that is not 23030112 (CSE)
+    if (reg.startsWith("230301") && !reg.startsWith("23030112")) {
+      return true;
+    }
+
+    // Branch text explicitly non-CSE
+    if (rawBranch && !rawBranch.includes("CSE") && !rawBranch.includes("COMPUTER")) {
+      return true;
+    }
+
+    // Fallback cross-check with is2023CSEBatch
+    if (reg && !is2023CSEBatch(studentData || studentSession, reg)) {
+      return true;
+    }
+
     return false;
-  }, [studentData, currentRegNo, adminToken]);
+  }, [studentData, studentSession, currentRegNo]);
+
+  const isEligibleBatch = useMemo(() => {
+    if (isNonCSEStudent) return false;
+    if (adminToken) return true;
+    if (!currentRegNo && !studentData) return true;
+    return is2023CSEBatch(studentData, currentRegNo);
+  }, [isNonCSEStudent, adminToken, currentRegNo, studentData]);
+
+  // Non-CSE students should NEVER show Daily Routine, Weekly Matrix, or Section
+  const canShowRoutineAndSection = useMemo(() => {
+    if (isNonCSEStudent) return false;
+    if (adminToken) return true;
+    return isEligibleBatch;
+  }, [isNonCSEStudent, adminToken, isEligibleBatch]);
 
   const availableViewModes = useMemo(() => {
-    if (isEligibleBatch || Boolean(adminToken)) {
+    if (canShowRoutineAndSection) {
       return TIMETABLE_VIEW_MODES;
     }
     return TIMETABLE_VIEW_MODES.filter((m) => m.id !== "day" && m.id !== "week");
-  }, [isEligibleBatch, adminToken]);
+  }, [canShowRoutineAndSection]);
 
   useEffect(() => {
-    if (!isEligibleBatch && !adminToken && (viewMode === "day" || viewMode === "week")) {
+    if (!canShowRoutineAndSection && (viewMode === "day" || viewMode === "week")) {
       setViewMode("academic");
     }
-  }, [isEligibleBatch, adminToken, viewMode]);
+  }, [canShowRoutineAndSection, viewMode]);
 
   if (pageLoading || isSearching) {
     return (
@@ -669,7 +705,7 @@ export default function Timetable() {
                   }}
                 >
                   <Building size={13} />
-                  <span>Centurion University · {(isEligibleBatch || Boolean(adminToken)) ? "B.Tech 7th Semester" : "Academic Calendar"}</span>
+                  <span>Centurion University · {canShowRoutineAndSection ? "B.Tech 7th Semester" : "Academic Calendar"}</span>
                 </div>
                 <h1
                   style={{
@@ -680,7 +716,7 @@ export default function Timetable() {
                     letterSpacing: "-0.3px",
                   }}
                 >
-                  {isEligibleBatch || Boolean(adminToken)
+                  {canShowRoutineAndSection
                     ? `Section ${selectedSection} Routine & Academic Schedule`
                     : `Academic Calendar & University Timeline`}
                 </h1>
@@ -689,7 +725,7 @@ export default function Timetable() {
 
             {/* Right: Section Badge / Selector & Student Tag */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              {(isEligibleBatch || Boolean(adminToken)) && (
+              {canShowRoutineAndSection && (
                 activeStudentName || currentRegNo ? (
                   <div
                     style={{
@@ -762,7 +798,7 @@ export default function Timetable() {
           </div>
 
           {/* Quick Section Switcher Pills (In Guest / Generic Mode) */}
-          {!activeStudentName && !currentRegNo && (isEligibleBatch || Boolean(adminToken)) && (
+          {!activeStudentName && !currentRegNo && canShowRoutineAndSection && (
             <div
               ref={sectionPillsRef}
               style={{
@@ -846,7 +882,7 @@ export default function Timetable() {
                   <ShieldCheck size={13} color="#16a34a" />
                   <span>
                     Authorized: <strong>{currentRegNo}</strong>
-                    {(isEligibleBatch || Boolean(adminToken)) && (
+                    {canShowRoutineAndSection && (
                       <> &middot; Section <strong>{selectedSection}</strong></>
                     )}
                   </span>
@@ -964,7 +1000,7 @@ export default function Timetable() {
                     <ShieldCheck size={14} color="#16a34a" />
                     <span>
                       Authorized Student: <strong>{currentRegNo}</strong>
-                      {(isEligibleBatch || Boolean(adminToken)) && (
+                      {canShowRoutineAndSection && (
                         <> &middot; Section <strong>{selectedSection}</strong></>
                       )}
                     </span>
@@ -1040,7 +1076,7 @@ export default function Timetable() {
                   flexShrink: 0,
                 }}
               >
-                {(isEligibleBatch || Boolean(adminToken)) && (
+                {canShowRoutineAndSection && (
                   <>
                     <button
                       type="button"
@@ -1168,7 +1204,7 @@ export default function Timetable() {
           )}
         </div>
 
-        {!isEligibleBatch && !adminToken && (
+        {!canShowRoutineAndSection && (
           <div
             style={{
               background: "#eff6ff",
@@ -1182,7 +1218,7 @@ export default function Timetable() {
           >
             <Info size={18} color="#2563eb" style={{ flexShrink: 0 }} />
             <div style={{ fontSize: isMobile ? 12 : 13, color: "#1e40af", lineHeight: 1.45 }}>
-              <strong>Department Notice:</strong> Daily Class Routine &amp; Weekly Matrix are currently configured for Computer Science &amp; Engineering (CSE). Your branch ({studentData?.branch || "General"}) has full access to the official <strong>Academic Calendar</strong> and <strong>University Holidays</strong> below.
+              <strong>Department Notice:</strong> Daily Class Routine &amp; Weekly Matrix are currently configured for Computer Science &amp; Engineering (CSE). Your branch ({studentData?.branch || studentSession?.branch || "General"}) has full access to the official <strong>Academic Calendar</strong> and <strong>University Holidays</strong> below.
             </div>
           </div>
         )}
@@ -1190,7 +1226,7 @@ export default function Timetable() {
         {/* ═══════════════════════════════════════════════════════════════
             LIVE STATUS BANNER (If classes are scheduled today - Mobile: ONLY default 'day' view)
         ═══════════════════════════════════════════════════════════════ */}
-        {(isEligibleBatch || (!studentData && !currentRegNo)) && (!isMobile || viewMode === "day") && (liveOverview?.activeClass ? (
+        {canShowRoutineAndSection && (!isMobile || viewMode === "day") && (liveOverview?.activeClass ? (
           <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1316,7 +1352,7 @@ export default function Timetable() {
         ) : null)}
 
         {/* Notice for non-2023 CSE students */}
-        {!isEligibleBatch && (studentData || currentRegNo) && (viewMode === "day" || viewMode === "week") && (
+        {!canShowRoutineAndSection && (studentData || currentRegNo) && (viewMode === "day" || viewMode === "week") && (
           <div
             style={{
               background: "#fffbeb",
@@ -1388,7 +1424,7 @@ export default function Timetable() {
         )}
 
         {/* ── ERP Master Schedule Variance Disclaimer Banner (Mobile: ONLY default 'day' view) ── */}
-        {(isEligibleBatch || (!studentData && !currentRegNo)) && (!isMobile || viewMode === "day") && (
+        {canShowRoutineAndSection && (!isMobile || viewMode === "day") && (
           <div
             style={{
               background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
@@ -1419,7 +1455,7 @@ export default function Timetable() {
           {/* ═══════════════════════════════════════════════════════════════
               MODE 1: DAILY ROUTINE VIEW
           ═══════════════════════════════════════════════════════════════ */}
-          {viewMode === "day" && (isEligibleBatch || (!studentData && !currentRegNo)) && (
+          {viewMode === "day" && canShowRoutineAndSection && (
             <motion.div
               key="day"
               initial={activeModeMotion.initial}
@@ -2037,7 +2073,7 @@ export default function Timetable() {
         {/* ═══════════════════════════════════════════════════════════════
             MODE 2: WEEKLY TIMETABLE MATRIX (100% Full Width On Desktop)
         ═══════════════════════════════════════════════════════════════ */}
-        {viewMode === "week" && (isEligibleBatch || (!studentData && !currentRegNo)) && (
+        {viewMode === "week" && canShowRoutineAndSection && (
           <motion.div
             key="week"
             initial={activeModeMotion.initial}
