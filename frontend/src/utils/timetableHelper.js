@@ -12,13 +12,23 @@ import {
 
 // ── Custom Dynamic Timetable Schedules Store (Synced with MongoDB Atlas) ────
 let customSchedulesStore = {};
+let rawActiveSchedulesList = [];
+let dynamicCalendarsStore = null;
+let dynamicHolidaysStore = null;
+let memoryBundleCache = null;
 
-// Auto-hydrate from localStorage if running in browser
-if (typeof window !== "undefined" && window.localStorage) {
+const BUNDLE_CACHE_KEY = "gf_timetable_bundle_cache";
+const LEGACY_CACHE_KEY = "gf_schedules_cache";
+const CACHE_TTL_MS = 1800000; // 30 minutes
+
+// Auto-hydrate from localStorage / sessionStorage if running in browser
+if (typeof window !== "undefined") {
   try {
-    const cached = window.localStorage.getItem("gradeflow_custom_schedules");
-    if (cached) {
-      customSchedulesStore = JSON.parse(cached) || {};
+    if (window.localStorage) {
+      const cached = window.localStorage.getItem("gradeflow_custom_schedules");
+      if (cached) {
+        customSchedulesStore = JSON.parse(cached) || {};
+      }
     }
   } catch (e) {
     console.warn("Failed to load cached custom schedules:", e);
@@ -26,19 +36,108 @@ if (typeof window !== "undefined" && window.localStorage) {
 }
 
 /**
- * Set and cache active published schedules from backend API
+ * Retrieve cached bundle data (Memory singleton first, sessionStorage second)
+ */
+export function getCachedTimetableBundle() {
+  if (memoryBundleCache && Date.now() - (memoryBundleCache.ts || 0) < CACHE_TTL_MS) {
+    return memoryBundleCache;
+  }
+  if (typeof window !== "undefined" && window.sessionStorage) {
+    try {
+      const raw = window.sessionStorage.getItem(BUNDLE_CACHE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && Date.now() - (parsed.ts || 0) < CACHE_TTL_MS) {
+          memoryBundleCache = parsed;
+          if (parsed.schedules) setCustomSchedulesStore(parsed.schedules);
+          if (parsed.calendars) dynamicCalendarsStore = parsed.calendars;
+          if (parsed.holidayDoc) dynamicHolidaysStore = parsed.holidayDoc;
+          return parsed;
+        }
+      }
+      const legacyRaw = window.sessionStorage.getItem(LEGACY_CACHE_KEY);
+      if (legacyRaw) {
+        const parsedLegacy = JSON.parse(legacyRaw);
+        if (parsedLegacy && Date.now() - (parsedLegacy.ts || 0) < CACHE_TTL_MS && Array.isArray(parsedLegacy.schedules)) {
+          const bundleFallback = { schedules: parsedLegacy.schedules, calendars: null, holidayDoc: null, ts: parsedLegacy.ts };
+          memoryBundleCache = bundleFallback;
+          setCustomSchedulesStore(parsedLegacy.schedules);
+          return bundleFallback;
+        }
+      }
+    } catch (_) {}
+  }
+  return null;
+}
+
+/**
+ * Save active timetable bundle into memory singleton and sessionStorage
+ */
+export function saveCachedTimetableBundle(bundleData) {
+  if (!bundleData) return;
+  const payload = {
+    ...bundleData,
+    ts: Date.now(),
+  };
+  memoryBundleCache = payload;
+  if (bundleData.schedules) setCustomSchedulesStore(bundleData.schedules);
+  if (bundleData.calendars) dynamicCalendarsStore = bundleData.calendars;
+  if (bundleData.holidayDoc) dynamicHolidaysStore = bundleData.holidayDoc;
+
+  if (typeof window !== "undefined" && window.sessionStorage) {
+    try {
+      window.sessionStorage.setItem(BUNDLE_CACHE_KEY, JSON.stringify(payload));
+      if (bundleData.schedules) {
+        window.sessionStorage.setItem(LEGACY_CACHE_KEY, JSON.stringify({ schedules: bundleData.schedules, ts: payload.ts }));
+      }
+    } catch (_) {}
+  }
+}
+
+/**
+ * Invalidate cache when realtime event occurs
+ */
+export function clearCachedTimetableBundle() {
+  memoryBundleCache = null;
+  if (typeof window !== "undefined" && window.sessionStorage) {
+    try {
+      window.sessionStorage.removeItem(BUNDLE_CACHE_KEY);
+      window.sessionStorage.removeItem(LEGACY_CACHE_KEY);
+    } catch (_) {}
+  }
+}
+
+/**
+ * Synchronous getter for raw schedules list for instant zero-skeleton initialization
+ */
+export function getRawActiveSchedulesList() {
+  if (rawActiveSchedulesList.length > 0) return rawActiveSchedulesList;
+  const cached = getCachedTimetableBundle();
+  if (cached?.schedules && Array.isArray(cached.schedules)) {
+    return cached.schedules;
+  }
+  return [];
+}
+
+/**
+ * Set and cache active published schedules from backend API (batch-aware)
  */
 export function setCustomSchedulesStore(schedules) {
   if (!schedules) return;
   const store = {};
 
   if (Array.isArray(schedules)) {
+    rawActiveSchedulesList = schedules;
     schedules.forEach((s) => {
       if (s && s.section && s.schedule) {
         const norm = normalizeSection(s.section);
         store[norm] = s.schedule;
         if (s.section !== norm) {
           store[s.section.toUpperCase()] = s.schedule;
+        }
+        if (s.batch) {
+          store[`${norm}_${s.batch}`] = s.schedule;
+          store[`${s.section.toUpperCase()}_${s.batch}`] = s.schedule;
         }
       }
     });
@@ -61,12 +160,31 @@ export function setCustomSchedulesStore(schedules) {
 }
 
 /**
+ * Set dynamic calendar and holiday stores
+ */
+export function setDynamicCalendarStore(calendars) {
+  dynamicCalendarsStore = calendars;
+}
+
+export function setDynamicHolidaysStore(holidayDoc) {
+  dynamicHolidaysStore = holidayDoc;
+}
+
+/**
  * Retrieve the active section schedule (Custom Published -> fallback to Default JSON)
  */
-export function getActiveSectionSchedule(sectionName = "CSE-A") {
+export function getActiveSectionSchedule(sectionName = "CSE-A", batch = null) {
   const normSec = normalizeSection(sectionName);
   
-  // 1. Check in-memory / cached custom published schedule
+  // 1. Check batch-specific custom published schedule
+  if (batch) {
+    const batchKey = `${normSec}_${batch}`;
+    if (customSchedulesStore[batchKey]) {
+      return customSchedulesStore[batchKey];
+    }
+  }
+
+  // 2. Check in-memory / cached custom published schedule by section
   if (customSchedulesStore[normSec]) {
     return customSchedulesStore[normSec];
   }
@@ -74,7 +192,7 @@ export function getActiveSectionSchedule(sectionName = "CSE-A") {
     return customSchedulesStore[String(sectionName).toUpperCase()];
   }
 
-  // 2. Fallback to bundled standard JSON timetable
+  // 3. Fallback to bundled standard JSON timetable
   return timetableData[normSec] || timetableData["CSE-A"] || {};
 }
 
@@ -386,6 +504,43 @@ export const CUTM_OPTIONAL_HOLIDAYS_RULES = {
 };
 
 /**
+ * Returns merged Academic Calendar data (Dynamic from MongoDB -> fallback to constant)
+ */
+export function getAcademicCalendarData() {
+  if (!dynamicCalendarsStore || !Array.isArray(dynamicCalendarsStore) || dynamicCalendarsStore.length === 0) {
+    return CUTM_ACADEMIC_CALENDAR_2026_27;
+  }
+  const result = { ...CUTM_ACADEMIC_CALENDAR_2026_27 };
+  const odd = dynamicCalendarsStore.find((c) => c.semesterType === "odd");
+  const even = dynamicCalendarsStore.find((c) => c.semesterType === "even");
+  if (odd && Array.isArray(odd.activities) && odd.activities.length > 0) {
+    result.oddSemester = {
+      title: odd.title || result.oddSemester.title,
+      semestersLabel: odd.semestersLabel || result.oddSemester.semestersLabel,
+      activities: odd.activities,
+    };
+  }
+  if (even && Array.isArray(even.activities) && even.activities.length > 0) {
+    result.evenSemester = {
+      title: even.title || result.evenSemester.title,
+      semestersLabel: even.semestersLabel || result.evenSemester.semestersLabel,
+      activities: even.activities,
+    };
+  }
+  return result;
+}
+
+/**
+ * Returns merged Academic Holidays list (Dynamic from MongoDB -> fallback to constant)
+ */
+export function getAcademicHolidaysData() {
+  if (dynamicHolidaysStore && Array.isArray(dynamicHolidaysStore.holidays) && dynamicHolidaysStore.holidays.length > 0) {
+    return dynamicHolidaysStore.holidays;
+  }
+  return ACADEMIC_HOLIDAYS_2026_27;
+}
+
+/**
  * Checks if a given date is the 2nd Saturday of that month
  * (Falls on day 8 to 14 of the month)
  */
@@ -403,8 +558,9 @@ export function getHolidayInfo(dateObj) {
   const d = new Date(dateObj);
   const dateKey = formatDateKey(d);
 
-  // 1. Check Official Academic Calendar Holidays
-  const matchedHoliday = ACADEMIC_HOLIDAYS_2026_27.find((h) => h.date === dateKey);
+  // 1. Check Official Academic Calendar Holidays (Dynamic prioritized)
+  const activeHolidays = getAcademicHolidaysData();
+  const matchedHoliday = activeHolidays.find((h) => h.date === dateKey);
   if (matchedHoliday) {
     const isOptional = matchedHoliday.type === "optional";
     const isObservation = matchedHoliday.type === "observation";
@@ -504,8 +660,9 @@ export function getAcademicCalendarDateStatus(dateObj) {
   }
 
   // Check if date is after the Last Date of Instruction (Post-Instruction & Examinations)
+  const activeCalendar = getAcademicCalendarData();
   if (dateStr > lastInstructionDateStr) {
-    const oddActivities = CUTM_ACADEMIC_CALENDAR_2026_27?.oddSemester?.activities || [];
+    const oddActivities = activeCalendar?.oddSemester?.activities || [];
     for (const act of oddActivities) {
       if (dateStr >= act.startDate && dateStr <= act.endDate) {
         return {
@@ -532,7 +689,7 @@ export function getAcademicCalendarDateStatus(dateObj) {
   }
 
   // Check if date falls in Mid-Semester Exam or other within-session activities
-  const oddActivities = CUTM_ACADEMIC_CALENDAR_2026_27?.oddSemester?.activities || [];
+  const oddActivities = activeCalendar?.oddSemester?.activities || [];
   for (const act of oddActivities) {
     if (dateStr >= act.startDate && dateStr <= act.endDate) {
       if (act.category === "exam") {
@@ -551,7 +708,7 @@ export function getAcademicCalendarDateStatus(dateObj) {
   }
 
   // Check University Events
-  const events = CUTM_ACADEMIC_CALENDAR_2026_27?.events?.items || [];
+  const events = activeCalendar?.events?.items || [];
   for (const ev of events) {
     if (dateStr >= ev.startDate && dateStr <= ev.endDate) {
       return {
@@ -764,7 +921,7 @@ export function getDateInstructionalContext(dateObj = new Date()) {
  * Returns the exact scheduled classes and academic calendar context for any section and date.
  * Single source of truth for Daily Check-In, Predictor, Safe Bunk Analyzer, and Timetable.
  */
-export function getSectionScheduleForDate(section = "CSE-A", dateObj = new Date()) {
+export function getSectionScheduleForDate(section = "CSE-A", dateObj = new Date(), customScheduleObj = null) {
   const normSec = normalizeSection(section);
   const context = getDateInstructionalContext(dateObj);
 
@@ -778,8 +935,13 @@ export function getSectionScheduleForDate(section = "CSE-A", dateObj = new Date(
     };
   }
 
-  // Active instructional day (regular weekday or optional holiday)
-  const daySchedule = getDaySchedule(normSec, context.dayName) || [];
+  // Active instructional day: use custom published schedule if provided, otherwise check cached store/default
+  let daySchedule = [];
+  if (customScheduleObj?.schedule?.[context.dayName]?.length > 0) {
+    daySchedule = customScheduleObj.schedule[context.dayName];
+  } else {
+    daySchedule = getDaySchedule(normSec, context.dayName) || [];
+  }
   const classes = daySchedule
     .map((period, idx) => ({
       ...period,
@@ -808,8 +970,8 @@ export function getSectionScheduleForDate(section = "CSE-A", dateObj = new Date(
 /**
  * Find Current Active Period & Next Upcoming Period (Strictly aligned with unified master schedule)
  */
-export function getLiveScheduleOverview(section, dateObj = new Date()) {
-  const schedCtx = getSectionScheduleForDate(section, dateObj);
+export function getLiveScheduleOverview(section, dateObj = new Date(), customScheduleObj = null) {
+  const schedCtx = getSectionScheduleForDate(section, dateObj, customScheduleObj);
 
   if (!schedCtx.isInstructional) {
     return {
@@ -1842,4 +2004,12 @@ export default {
   isSecondSaturday,
   isSunday,
   normalizeSection,
+  getCachedTimetableBundle,
+  saveCachedTimetableBundle,
+  clearCachedTimetableBundle,
+  getRawActiveSchedulesList,
+  getAcademicCalendarData,
+  getAcademicHolidaysData,
+  setDynamicCalendarStore,
+  setDynamicHolidaysStore,
 };

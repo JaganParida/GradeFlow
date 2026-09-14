@@ -160,6 +160,47 @@ module.exports = async function handler(req, res) {
       return res.json({ success: true, count: schedules.length, schedules });
     }
 
+    // 2.5 GET /api/timetable/bundle (Consolidated 1-call endpoint for schedules, calendar, holidays)
+    if (action === "bundle" || cleanUrl.includes("/timetable/bundle")) {
+      const { academicYear } = req.query;
+      const calQuery = { isActive: true };
+      if (academicYear) calQuery.academicYear = academicYear;
+      const holQuery = { isActive: true };
+      if (academicYear) holQuery.academicYear = academicYear;
+
+      const [schedules, calendars, holidayDoc] = await Promise.all([
+        TimetableSchedule.find({ isActive: true }).sort({ batch: -1, section: 1 }).lean(),
+        AcademicCalendar.find(calQuery).sort({ updatedAt: -1 }).lean(),
+        AcademicHoliday.findOne(holQuery).sort({ updatedAt: -1 }).lean(),
+      ]);
+
+      const latestTs = Math.max(
+        ...schedules.map((s) => (s.updatedAt ? new Date(s.updatedAt).getTime() : 0)),
+        ...calendars.map((c) => (c.updatedAt ? new Date(c.updatedAt).getTime() : 0)),
+        holidayDoc?.updatedAt ? new Date(holidayDoc.updatedAt).getTime() : 0,
+        0
+      );
+      const etag = `W/"tt-bundle-${latestTs}-${schedules.length}"`;
+
+      if (req.headers["if-none-match"] === etag) {
+        res.setHeader("ETag", etag);
+        res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
+        return res.status(304).end();
+      }
+
+      res.setHeader("ETag", etag);
+      res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
+      return res.json({
+        success: true,
+        etag,
+        timestamp: Date.now(),
+        count: schedules.length,
+        schedules,
+        calendars,
+        holidayDoc,
+      });
+    }
+
     // 3. GET /api/timetable/calendar
     if (action === "calendar" && req.method === "GET") {
       const { academicYear } = req.query;

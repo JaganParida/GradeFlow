@@ -59,6 +59,12 @@ import {
   resolveSubjectCode,
   cleanSubjectBaseName,
   formatDurationMinutes,
+  getCachedTimetableBundle,
+  saveCachedTimetableBundle,
+  clearCachedTimetableBundle,
+  getRawActiveSchedulesList,
+  getAcademicCalendarData,
+  getAcademicHolidaysData,
 } from "../utils/timetableHelper";
 import { TimetableSkeleton } from "../components/LoadingSpinner";
 
@@ -276,17 +282,44 @@ export default function Timetable() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Update clock every 30 seconds for live period tracking
+  // Update clock every 30 seconds for live period tracking only when tab is visible
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 30000);
-    return () => clearInterval(timer);
+    const handleVisibility = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        setCurrentTime(new Date());
+      }
+    };
+
+    const timer = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        setCurrentTime(new Date());
+      }
+    }, 30000);
+
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", handleVisibility);
+    }
+    return () => {
+      clearInterval(timer);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", handleVisibility);
+      }
+    };
   }, []);
 
-  // Unified Loading State (Single smooth continuous loader, zero flicker)
-  const [pageLoading, setPageLoading] = useState(true);
+  // Synchronous, zero-skeleton lazy state hydration from in-memory cache / sessionStorage
+  const [dynamicSchedules, setDynamicSchedules] = useState(() => getRawActiveSchedulesList());
 
-  // Dynamic custom schedules from server
-  const [dynamicSchedules, setDynamicSchedules] = useState([]);
+  // Determine initial loading state: if data already available, start immediately with false (0ms load, zero flicker)
+  const [pageLoading, setPageLoading] = useState(() => {
+    const target = decodedParam || studentData?.regNo || studentSession?.regNo;
+    if (!target) {
+      return getRawActiveSchedulesList().length === 0;
+    }
+    const hasStudent = studentData && studentData.regNo === target;
+    const hasSchedules = getRawActiveSchedulesList().length > 0;
+    return !(hasStudent && hasSchedules);
+  });
 
   // Normalize URL token if plain regNo was passed in route
   useEffect(() => {
@@ -295,52 +328,59 @@ export default function Timetable() {
     }
   }, [decodedParam, urlParam, navigate]);
 
-  // Load student profile and timetable schedules in one smooth pass
+  // Load student profile and timetable schedules bundle in one smooth pass
   useEffect(() => {
     const targetReg = decodedParam || studentSession?.regNo || studentData?.regNo;
-    if (!targetReg) {
-      setPageLoading(false);
-      return;
-    }
     let isMounted = true;
-    setPageLoading(true);
 
     async function loadAllTimetableData() {
       try {
-        // 1. Fetch student profile if not already in memory
-        let sData = studentData;
-        if (!studentData || studentData.regNo !== targetReg) {
-          sData = await fetchStudent(targetReg, 2, 800);
+        // 1. Check local / in-memory cached bundle first (0 HTTP requests!)
+        const cachedBundle = getCachedTimetableBundle();
+        if (cachedBundle?.schedules?.length > 0 && isMounted) {
+          setDynamicSchedules(cachedBundle.schedules);
+          setCustomSchedulesStore(cachedBundle.schedules);
         }
+
+        // 2. Fetch student profile if a targetReg is present and not already matched in memory
+        let sData = studentData;
+        if (targetReg && (!studentData || studentData.regNo !== targetReg)) {
+          try {
+            sData = await fetchStudent(targetReg, 2, 800);
+            if (!sData && isMounted && isSearching) {
+              setSearchError(`Student record not found for "${targetReg}". Showing standard schedule.`);
+            }
+          } catch (_) {
+            if (isMounted && isSearching) {
+              setSearchError(`Unable to fetch record for "${targetReg}".`);
+            }
+          }
+        }
+
         if (sData && isMounted) {
           const detected = normalizeSection(sData.section || sData.branch, sData.regNo);
           setSelectedSection(detected);
         }
 
-        // 2. Fetch dynamic active schedules (with sessionStorage caching)
-        const CACHE_KEY = "gf_schedules_cache";
-        let cached = null;
-        try {
-          const raw = sessionStorage.getItem(CACHE_KEY);
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (parsed && Date.now() - parsed.ts < 1800000 && Array.isArray(parsed.schedules)) {
-              cached = parsed.schedules;
-            }
-          }
-        } catch (_) {}
-
-        if (cached && isMounted) {
-          setDynamicSchedules(cached);
-          setCustomSchedulesStore(cached);
-        } else {
+        // 3. If bundle was not cached or expired, fetch consolidated bundle in 1 single call
+        if (!cachedBundle || !cachedBundle.schedules || cachedBundle.schedules.length === 0) {
           const API = import.meta.env.VITE_API_URL || "/api";
-          const { data } = await axios.get(`${API}/timetable/active-all`);
-          if (data?.schedules && isMounted) {
-            setDynamicSchedules(data.schedules);
-            setCustomSchedulesStore(data.schedules);
+          try {
+            const { data } = await axios.get(`${API}/timetable/bundle`);
+            if (data?.success && isMounted) {
+              if (Array.isArray(data.schedules)) {
+                setDynamicSchedules(data.schedules);
+              }
+              saveCachedTimetableBundle(data);
+            }
+          } catch (_) {
+            // Fallback to active-all if /bundle was not supported
             try {
-              sessionStorage.setItem(CACHE_KEY, JSON.stringify({ schedules: data.schedules, ts: Date.now() }));
+              const { data } = await axios.get(`${API}/timetable/active-all`);
+              if (data?.schedules && isMounted) {
+                setDynamicSchedules(data.schedules);
+                saveCachedTimetableBundle({ schedules: data.schedules });
+              }
             } catch (_) {}
           }
         }
@@ -363,19 +403,29 @@ export default function Timetable() {
   // Real-time synchronization when admin publishes or updates timetable schedule (<1s)
   useEffect(() => {
     const handleTimetableUpdated = () => {
-      try {
-        sessionStorage.removeItem("gf_schedules_cache");
-      } catch (_) {}
+      clearCachedTimetableBundle();
       const API = import.meta.env.VITE_API_URL || "/api";
-      axios.get(`${API}/timetable/active-all?t=${Date.now()}`).then(({ data }) => {
-        if (data?.schedules) {
-          setDynamicSchedules(data.schedules);
-          setCustomSchedulesStore(data.schedules);
-          try {
-            sessionStorage.setItem("gf_schedules_cache", JSON.stringify({ schedules: data.schedules, ts: Date.now() }));
-          } catch (_) {}
-        }
-      }).catch(() => {});
+      axios
+        .get(`${API}/timetable/bundle?t=${Date.now()}`)
+        .then(({ data }) => {
+          if (data?.success) {
+            if (Array.isArray(data.schedules)) {
+              setDynamicSchedules(data.schedules);
+            }
+            saveCachedTimetableBundle(data);
+          }
+        })
+        .catch(() => {
+          axios
+            .get(`${API}/timetable/active-all?t=${Date.now()}`)
+            .then(({ data }) => {
+              if (data?.schedules) {
+                setDynamicSchedules(data.schedules);
+                saveCachedTimetableBundle({ schedules: data.schedules });
+              }
+            })
+            .catch(() => {});
+        });
     };
 
     window.addEventListener("gradeflow:timetable-updated", handleTimetableUpdated);
@@ -400,8 +450,8 @@ export default function Timetable() {
 
   // Derived date & routine helpers
   const selectedDayName = useMemo(() => getDayName(selectedDate), [selectedDate]);
-  const holidayInfo = useMemo(() => getHolidayInfo(selectedDate), [selectedDate]);
-  const academicDateStatus = useMemo(() => getAcademicCalendarDateStatus(selectedDate), [selectedDate]);
+  const holidayInfo = useMemo(() => getHolidayInfo(selectedDate), [selectedDate, dynamicSchedules]);
+  const academicDateStatus = useMemo(() => getAcademicCalendarDateStatus(selectedDate), [selectedDate, dynamicSchedules]);
 
   const daySchedule = useMemo(() => {
     if (activeCustomSchedule?.schedule?.[selectedDayName]?.length > 0) {
@@ -410,10 +460,10 @@ export default function Timetable() {
     return getDaySchedule(selectedSection, selectedDayName);
   }, [activeCustomSchedule, selectedSection, selectedDayName]);
 
-  // Live class overview for today
+  // Live class overview for today (passing activeCustomSchedule for 100% batch consistency)
   const liveOverview = useMemo(() => {
-    return getLiveScheduleOverview(selectedSection, currentTime);
-  }, [selectedSection, currentTime]);
+    return getLiveScheduleOverview(selectedSection, currentTime, activeCustomSchedule);
+  }, [selectedSection, currentTime, activeCustomSchedule]);
 
   // Date Navigation Steppers
   function changeDateByOffset(offset) {
@@ -468,11 +518,15 @@ export default function Timetable() {
     return { status: "UPCOMING", label: `In ${diffDays} days`, color: "#2563eb", bg: "#eff6ff" };
   }
 
+  // Dynamic Academic Calendar & Holidays synced from database
+  const activeAcademicCalendar = useMemo(() => getAcademicCalendarData(), [dynamicSchedules]);
+  const activeHolidaysList = useMemo(() => getAcademicHolidaysData(), [dynamicSchedules]);
+
   // Available Holiday Months list with counts
   const availableHolidayMonths = useMemo(() => {
     const monthMap = new Map();
 
-    ACADEMIC_HOLIDAYS_2026_27.forEach((h) => {
+    activeHolidaysList.forEach((h) => {
       const parts = h.date.split("-");
       const monthKey = `${parts[0]}-${parts[1]}`;
       const d = new Date(h.date);
@@ -491,14 +545,14 @@ export default function Timetable() {
     });
 
     return Array.from(monthMap.values()).sort((a, b) => a.key.localeCompare(b.key));
-  }, []);
+  }, [activeHolidaysList]);
 
   // Enriched holidays list with countdown and dual filtering (type + month)
   const enrichedHolidays = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    return ACADEMIC_HOLIDAYS_2026_27.map((h) => {
+    return activeHolidaysList.map((h) => {
       const hDate = new Date(h.date);
       hDate.setHours(0, 0, 0, 0);
       const diffDays = Math.ceil((hDate - today) / (1000 * 60 * 60 * 24));
@@ -522,7 +576,7 @@ export default function Timetable() {
       if (selectedHolidayMonth !== "all" && h.monthKey !== selectedHolidayMonth) return false;
       return true;
     });
-  }, [filterHolidayType, selectedHolidayMonth]);
+  }, [activeHolidaysList, filterHolidayType, selectedHolidayMonth]);
 
   const activeStudentName = studentData?.studentName || "";
 
@@ -2247,7 +2301,9 @@ export default function Timetable() {
                   </thead>
                   <tbody>
                     {DAYS_LIST.map((day) => {
-                      const schedule = getDaySchedule(selectedSection, day);
+                      const schedule = (activeCustomSchedule?.schedule?.[day]?.length > 0)
+                        ? activeCustomSchedule.schedule[day]
+                        : getDaySchedule(selectedSection, day);
                       const isCurrentDay = day === getDayName(currentTime);
 
                       return (
@@ -2405,7 +2461,10 @@ export default function Timetable() {
             ) : (
               /* Mobile View: Clean Divided Schedule List (No Nested Boxes) */
               <div style={{ display: "flex", flexDirection: "column" }}>
-                {getDaySchedule(selectedSection, mobileWeekDay).map((period, idx, arr) => {
+                {((activeCustomSchedule?.schedule?.[mobileWeekDay]?.length > 0)
+                  ? activeCustomSchedule.schedule[mobileWeekDay]
+                  : getDaySchedule(selectedSection, mobileWeekDay)
+                ).map((period, idx, arr) => {
                   const slot = TIME_SLOTS[idx] || {};
                   const isLast = idx === arr.length - 1;
                   return (
@@ -2589,21 +2648,21 @@ export default function Timetable() {
                     </div>
                     <div>
                       <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                        {CUTM_ACADEMIC_CALENDAR_2026_27.oddSemester.title} Activities
+                        {activeAcademicCalendar.oddSemester.title} Activities
                       </h4>
                       <div style={{ fontSize: 11.5, color: "#64748b" }}>
-                        Applicable for: <strong>{CUTM_ACADEMIC_CALENDAR_2026_27.oddSemester.semestersLabel}</strong>
+                        Applicable for: <strong>{activeAcademicCalendar.oddSemester.semestersLabel}</strong>
                       </div>
                     </div>
                   </div>
 
                   <span style={{ fontSize: 11, fontWeight: 800, background: "#dbeafe", color: "#1e40af", padding: "3px 10px", borderRadius: 999 }}>
-                    8 Academic Milestones
+                    {(activeAcademicCalendar.oddSemester.activities || []).length} Academic Milestones
                   </span>
                 </div>
 
                 <div style={{ padding: "14px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
-                  {CUTM_ACADEMIC_CALENDAR_2026_27.oddSemester.activities.map((act) => {
+                  {(activeAcademicCalendar.oddSemester.activities || []).map((act) => {
                     const statusInfo = getActivityStatus(act.startDate, act.endDate);
                     const isExam = act.category === "exam";
 
@@ -2732,21 +2791,21 @@ export default function Timetable() {
                     </div>
                     <div>
                       <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                        {CUTM_ACADEMIC_CALENDAR_2026_27.evenSemester.title} Activities
+                        {activeAcademicCalendar.evenSemester.title} Activities
                       </h4>
                       <div style={{ fontSize: 11.5, color: "#64748b" }}>
-                        Applicable for: <strong>{CUTM_ACADEMIC_CALENDAR_2026_27.evenSemester.semestersLabel}</strong>
+                        Applicable for: <strong>{activeAcademicCalendar.evenSemester.semestersLabel}</strong>
                       </div>
                     </div>
                   </div>
 
                   <span style={{ fontSize: 11, fontWeight: 800, background: "#ede9fe", color: "#6d28d9", padding: "3px 10px", borderRadius: 999 }}>
-                    8 Academic Milestones
+                    {(activeAcademicCalendar.evenSemester.activities || []).length} Academic Milestones
                   </span>
                 </div>
 
                 <div style={{ padding: "14px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
-                  {CUTM_ACADEMIC_CALENDAR_2026_27.evenSemester.activities.map((act) => {
+                  {(activeAcademicCalendar.evenSemester.activities || []).map((act) => {
                     const statusInfo = getActivityStatus(act.startDate, act.endDate);
                     const isExam = act.category === "exam";
 
@@ -2847,7 +2906,7 @@ export default function Timetable() {
                     }}
                   >
                     <Info size={15} color="#b45309" style={{ flexShrink: 0 }} />
-                    <span>{CUTM_ACADEMIC_CALENDAR_2026_27.evenSemester.lateralEntryNote}</span>
+                    <span>{activeAcademicCalendar.evenSemester.lateralEntryNote || "For Lateral Entry students, 2 weeks of Bridge Courses will be offered."}</span>
                   </div>
                 </div>
               </div>
@@ -2895,7 +2954,7 @@ export default function Timetable() {
                     </div>
                     <div>
                       <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                        {CUTM_ACADEMIC_CALENDAR_2026_27.events.title}
+                        {activeAcademicCalendar.events.title}
                       </h4>
                       <div style={{ fontSize: 11.5, color: "#64748b" }}>
                         Sports, Gajajyoti Campus Festivals & Summer Internships
@@ -2904,7 +2963,7 @@ export default function Timetable() {
                   </div>
 
                   <span style={{ fontSize: 11, fontWeight: 800, background: "#ffedd5", color: "#c2410c", padding: "3px 10px", borderRadius: 999 }}>
-                    7 Campus Events
+                    {(activeAcademicCalendar.events.items || []).length} Campus Events
                   </span>
                 </div>
 
@@ -2916,7 +2975,7 @@ export default function Timetable() {
                     gap: 12,
                   }}
                 >
-                  {CUTM_ACADEMIC_CALENDAR_2026_27.events.items.map((event) => {
+                  {(activeAcademicCalendar.events.items || []).map((event) => {
                     const statusInfo = getActivityStatus(event.startDate, event.endDate);
                     const isGajajyoti = event.category === "festival";
                     const isInternship = event.category === "internship";

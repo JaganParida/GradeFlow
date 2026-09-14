@@ -96,6 +96,10 @@
       "destination": "/api/timetable.js?action=active-all"
     },
     {
+      "source": "/api/timetable/bundle",
+      "destination": "/api/timetable.js?action=bundle"
+    },
+    {
       "source": "/api/timetable/calendar",
       "destination": "/api/timetable.js?action=calendar"
     },

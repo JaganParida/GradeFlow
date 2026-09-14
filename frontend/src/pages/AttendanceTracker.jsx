@@ -76,6 +76,8 @@ import {
   getSectionScheduleForDate,
   getDateInstructionalContext,
   CUTM_SESSION_BOUNDARIES,
+  getCachedTimetableBundle,
+  saveCachedTimetableBundle,
 } from "../utils/timetableHelper";
 import { isMatch } from "../utils/basketLogic";
 import FuturePredictor from "../components/FuturePredictor";
@@ -220,30 +222,29 @@ export default function AttendanceTracker() {
   useEffect(() => {
     let isMounted = true;
     async function fetchLiveTimetableSchedules() {
-      const CACHE_KEY = "gf_schedules_cache";
-      try {
-        const raw = sessionStorage.getItem(CACHE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed && Date.now() - parsed.ts < 1800000 && Array.isArray(parsed.schedules)) {
-            setCustomSchedulesStore(parsed.schedules);
-            setTimetableVersion((v) => v + 1);
-            return;
-          }
-        }
-      } catch (_) {}
+      const cachedBundle = getCachedTimetableBundle();
+      if (cachedBundle && Array.isArray(cachedBundle.schedules) && cachedBundle.schedules.length > 0) {
+        setCustomSchedulesStore(cachedBundle.schedules);
+        setTimetableVersion((v) => v + 1);
+        return;
+      }
 
       try {
-        const { data } = await axios.get(`${API}/timetable/active-all`);
+        const { data } = await axios.get(`${API}/timetable/bundle`);
         if (data && data.success && Array.isArray(data.schedules) && isMounted) {
-          setCustomSchedulesStore(data.schedules);
+          saveCachedTimetableBundle(data);
           setTimetableVersion((v) => v + 1);
-          try {
-            sessionStorage.setItem(CACHE_KEY, JSON.stringify({ schedules: data.schedules, ts: Date.now() }));
-          } catch (_) {}
         }
-      } catch (err) {
-        console.warn("Could not fetch live timetable schedules:", err.message);
+      } catch (_) {
+        try {
+          const { data } = await axios.get(`${API}/timetable/active-all`);
+          if (data && data.success && Array.isArray(data.schedules) && isMounted) {
+            saveCachedTimetableBundle({ schedules: data.schedules });
+            setTimetableVersion((v) => v + 1);
+          }
+        } catch (err) {
+          console.warn("Could not fetch live timetable schedules:", err.message);
+        }
       }
     }
     fetchLiveTimetableSchedules();

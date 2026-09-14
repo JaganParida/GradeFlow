@@ -79,6 +79,51 @@ router.get("/active-all", publicLimiter, async (req, res) => {
   }
 });
 
+// 2.5 Get Consolidated Timetable Bundle (Schedules + Calendar + Holidays)
+router.get("/bundle", publicLimiter, async (req, res) => {
+  try {
+    res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+    const { academicYear } = req.query;
+    const calQuery = { isActive: true };
+    if (academicYear) calQuery.academicYear = academicYear;
+    const holQuery = { isActive: true };
+    if (academicYear) holQuery.academicYear = academicYear;
+
+    const [schedules, calendars, holidayDoc] = await Promise.all([
+      globalDbQueue.run(() => TimetableSchedule.find({ isActive: true }).sort({ batch: -1, section: 1 }).lean()),
+      globalDbQueue.run(() => AcademicCalendar.find(calQuery).sort({ updatedAt: -1 }).lean()),
+      globalDbQueue.run(() => AcademicHoliday.findOne(holQuery).sort({ updatedAt: -1 }).lean()),
+    ]);
+
+    const latestTs = Math.max(
+      ...schedules.map((s) => (s.updatedAt ? new Date(s.updatedAt).getTime() : 0)),
+      ...calendars.map((c) => (c.updatedAt ? new Date(c.updatedAt).getTime() : 0)),
+      holidayDoc?.updatedAt ? new Date(holidayDoc.updatedAt).getTime() : 0,
+      0
+    );
+    const etag = `W/"tt-bundle-${latestTs}-${schedules.length}"`;
+
+    if (req.headers["if-none-match"] === etag) {
+      res.setHeader("ETag", etag);
+      return res.status(304).end();
+    }
+
+    res.setHeader("ETag", etag);
+    res.json({
+      success: true,
+      etag,
+      timestamp: Date.now(),
+      count: schedules.length,
+      schedules,
+      calendars,
+      holidayDoc,
+    });
+  } catch (err) {
+    console.error("Error fetching timetable bundle:", err);
+    res.status(500).json({ success: false, message: "Server error fetching timetable bundle." });
+  }
+});
+
 // 3. Get Active Academic Calendar
 router.get("/calendar", async (req, res) => {
   try {
