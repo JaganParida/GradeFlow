@@ -239,6 +239,7 @@ export default function App() {
     setStudentSession,
     setStudentData,
     studentSession,
+    studentData,
     adminToken,
     adminLogout,
     isOldDomain,
