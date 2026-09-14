@@ -512,21 +512,39 @@ export default function Timetable() {
 
   const activeStudentName = studentData?.studentName || "";
   const isEligibleBatch = useMemo(() => {
+    if (adminToken) return true;
     if (!currentRegNo && !studentData) return true;
+    const reg = String(currentRegNo || "").trim();
+    if (["230301120110", "230301120186", "230301120371", "230301120481"].includes(reg)) return false;
+    if (reg === "230301180026") return true;
+    const stBranch = (studentData?.branch || "").toUpperCase();
+    if (stBranch && !stBranch.includes("CSE") && !stBranch.includes("COMPUTER")) return false;
     if (is2023CSEBatch(studentData, currentRegNo)) return true;
     if (dynamicSchedules.length > 0) {
-      const reg = String(currentRegNo || "").trim();
       const stBatch = studentData?.batch || (reg.length >= 2 ? `20${reg.slice(0, 2)}` : "");
-      const stBranch = (studentData?.branch || "").toUpperCase();
       const hasMatch = dynamicSchedules.some(
         (s) =>
           (s.batch === stBatch || s.batch === "ALL") &&
-          (stBranch.includes(s.branch) || s.branch === "ALL")
+          (stBranch.includes(s.branch) || s.branch === "ALL") &&
+          (s.branch === "CSE" || s.branch === "ALL")
       );
       if (hasMatch) return true;
     }
     return false;
-  }, [studentData, currentRegNo, dynamicSchedules]);
+  }, [studentData, currentRegNo, dynamicSchedules, adminToken]);
+
+  const availableViewModes = useMemo(() => {
+    if (isEligibleBatch || Boolean(adminToken)) {
+      return TIMETABLE_VIEW_MODES;
+    }
+    return TIMETABLE_VIEW_MODES.filter((m) => m.id !== "day" && m.id !== "week");
+  }, [isEligibleBatch, adminToken]);
+
+  useEffect(() => {
+    if (!isEligibleBatch && !adminToken && (viewMode === "day" || viewMode === "week")) {
+      setViewMode("academic");
+    }
+  }, [isEligibleBatch, adminToken, viewMode]);
 
   if (pageLoading || isSearching) {
     return (
@@ -644,7 +662,9 @@ export default function Timetable() {
                     letterSpacing: "-0.3px",
                   }}
                 >
-                  Section {selectedSection} Routine & Academic Schedule
+                  {isEligibleBatch || Boolean(adminToken)
+                    ? `Section ${selectedSection} Routine & Academic Schedule`
+                    : `Academic Calendar & University Timeline`}
                 </h1>
               </div>
             </div>
@@ -667,7 +687,11 @@ export default function Timetable() {
                   }}
                 >
                   <Building size={14} color="#2563eb" />
-                  <span>Section {selectedSection}</span>
+                  <span>
+                    {isEligibleBatch || Boolean(adminToken)
+                      ? `Section ${selectedSection}`
+                      : `Branch: ${studentData?.branch || "General"}`}
+                  </span>
                 </div>
               ) : (
                 <>
@@ -876,7 +900,7 @@ export default function Timetable() {
               {/* View Mode Switcher: ModernMobileSubNav on Mobile */}
               <div style={{ width: "100%" }}>
                 <ModernMobileSubNav
-                  items={TIMETABLE_VIEW_MODES}
+                  items={availableViewModes}
                   activeTab={viewMode}
                   onChange={(newMode, meta) => {
                     if (meta?.animation) setSubnavAnim(meta.animation);
@@ -994,55 +1018,59 @@ export default function Timetable() {
                   flexShrink: 0,
                 }}
               >
-                <button
-                  type="button"
-                  onClick={() => setViewMode("day")}
-                  style={{
-                    padding: "7px 14px",
-                    borderRadius: 8,
-                    border: viewMode === "day" ? "1px solid #cbd5e1" : "1px solid transparent",
-                    background: viewMode === "day" ? "#ffffff" : "transparent",
-                    color: viewMode === "day" ? "#2563eb" : "#64748b",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    boxShadow: viewMode === "day" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
-                    whiteSpace: "nowrap",
-                    flexShrink: 0,
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  <Clock size={14} />
-                  <span>Daily Routine</span>
-                </button>
+                {(isEligibleBatch || Boolean(adminToken)) && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("day")}
+                      style={{
+                        padding: "7px 14px",
+                        borderRadius: 8,
+                        border: viewMode === "day" ? "1px solid #cbd5e1" : "1px solid transparent",
+                        background: viewMode === "day" ? "#ffffff" : "transparent",
+                        color: viewMode === "day" ? "#2563eb" : "#64748b",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        boxShadow: viewMode === "day" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <Clock size={14} />
+                      <span>Daily Routine</span>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => setViewMode("week")}
-                  style={{
-                    padding: "7px 14px",
-                    borderRadius: 8,
-                    border: viewMode === "week" ? "1px solid #cbd5e1" : "1px solid transparent",
-                    background: viewMode === "week" ? "#ffffff" : "transparent",
-                    color: viewMode === "week" ? "#2563eb" : "#64748b",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    boxShadow: viewMode === "week" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
-                    whiteSpace: "nowrap",
-                    flexShrink: 0,
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  <Grid size={14} />
-                  <span>Weekly Matrix</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("week")}
+                      style={{
+                        padding: "7px 14px",
+                        borderRadius: 8,
+                        border: viewMode === "week" ? "1px solid #cbd5e1" : "1px solid transparent",
+                        background: viewMode === "week" ? "#ffffff" : "transparent",
+                        color: viewMode === "week" ? "#2563eb" : "#64748b",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        boxShadow: viewMode === "week" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <Grid size={14} />
+                      <span>Weekly Matrix</span>
+                    </button>
+                  </>
+                )}
 
                 <button
                   type="button"
@@ -1117,6 +1145,25 @@ export default function Timetable() {
             </div>
           )}
         </div>
+
+        {!isEligibleBatch && !adminToken && (
+          <div
+            style={{
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              borderRadius: 12,
+              padding: isMobile ? "10px 14px" : "12px 18px",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
+            <Info size={18} color="#2563eb" style={{ flexShrink: 0 }} />
+            <div style={{ fontSize: isMobile ? 12 : 13, color: "#1e40af", lineHeight: 1.45 }}>
+              <strong>Department Notice:</strong> Daily Class Routine &amp; Weekly Matrix are currently configured for Computer Science &amp; Engineering (CSE). Your branch ({studentData?.branch || "General"}) has full access to the official <strong>Academic Calendar</strong> and <strong>University Holidays</strong> below.
+            </div>
+          </div>
+        )}
 
         {/* ═══════════════════════════════════════════════════════════════
             LIVE STATUS BANNER (If classes are scheduled today - Mobile: ONLY default 'day' view)

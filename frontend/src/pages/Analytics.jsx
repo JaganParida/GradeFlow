@@ -884,8 +884,8 @@ export default function Analytics() {
               transition={{ duration: 0.22, ease: "easeOut" }}
               style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 20 }}
             >
-              {/* 5 Metric Cards (2x2 on Mobile, responsive grid on Desktop) */}
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(200px, 1fr))", gap: isMobile ? 8 : 16 }}>
+              {/* 4 Core Academic Metric Cards (2x2 on Mobile, 4-col on Desktop) */}
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: isMobile ? 8 : 16 }}>
                 <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
                   <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Cumulative CGPA
@@ -936,20 +936,132 @@ export default function Analytics() {
                     {backlogs.length ? "Remedial exams" : "Zero backlogs"}
                   </div>
                 </div>
+              </div>
 
-                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
-                      Academic Health
+              {/* Full-Width Responsive Academic Health Index Hero Banner */}
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 16,
+                  padding: isMobile ? "14px 16px" : "18px 22px",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                  display: "flex",
+                  flexDirection: isMobile ? "column" : "row",
+                  alignItems: isMobile ? "stretch" : "center",
+                  justifyContent: "space-between",
+                  gap: isMobile ? 12 : 24,
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+              >
+                {/* Left Section: Score & Badges */}
+                <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 12 : 18, minWidth: isMobile ? "auto" : 260 }}>
+                  <div
+                    style={{
+                      width: isMobile ? 48 : 54,
+                      height: isMobile ? 48 : 54,
+                      borderRadius: 14,
+                      background: academicHealthScore >= 80 ? "#f0fdf4" : academicHealthScore >= 60 ? "#fffbeb" : "#fef2f2",
+                      border: `1.5px solid ${academicHealthScore >= 80 ? "#bbf7d0" : academicHealthScore >= 60 ? "#fde68a" : "#fecaca"}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Activity size={isMobile ? 22 : 26} color={healthColor} />
+                  </div>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: isMobile ? 10 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                        Academic Health Index
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 750,
+                          padding: "1.5px 7px",
+                          borderRadius: 6,
+                          background: academicHealthScore >= 80 ? "#f0fdf4" : academicHealthScore >= 60 ? "#fffbeb" : "#fef2f2",
+                          color: healthColor,
+                          border: `1px solid ${academicHealthScore >= 80 ? "#bbf7d0" : academicHealthScore >= 60 ? "#fde68a" : "#fecaca"}`,
+                        }}
+                      >
+                        {healthLabel}
+                      </span>
                     </div>
-                    <Activity size={14} color={healthColor} />
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginTop: 2 }}>
+                      <span style={{ fontSize: isMobile ? 24 : 30, fontWeight: 900, color: healthColor, fontFamily: "'Space Mono', monospace", lineHeight: 1.1 }}>
+                        {academicHealthScore}
+                      </span>
+                      <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 600 }}>/ 100</span>
+                    </div>
                   </div>
-                  <div style={{ fontSize: isMobile ? 20 : 26, fontWeight: 900, color: healthColor, marginTop: 2, fontFamily: "'Space Mono', monospace" }}>
-                    {academicHealthScore}
-                    <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}> /100</span>
+                </div>
+
+                {/* Middle/Right Section: Dynamic Progress Bar & Factor Chips */}
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4, fontSize: 11, color: "#64748b", fontWeight: 600 }}>
+                      <span>System Risk Assessment</span>
+                      <span style={{ color: healthColor, fontWeight: 750 }}>
+                        {academicHealthScore >= 80 ? "Optimal Academic Vitality" : academicHealthScore >= 60 ? "Moderate Stability" : "Attention Required"}
+                      </span>
+                    </div>
+                    <div style={{ width: "100%", height: 7, background: "#f1f5f9", borderRadius: 6, overflow: "hidden" }}>
+                      <div
+                        style={{
+                          width: `${Math.min(100, Math.max(0, academicHealthScore))}%`,
+                          height: "100%",
+                          background: healthColor,
+                          borderRadius: 6,
+                          transition: "width 0.8s ease",
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div style={{ fontSize: isMobile ? 10.5 : 12, color: healthColor, fontWeight: 700, marginTop: 2 }}>
-                    {healthLabel}
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 650,
+                        padding: "3px 8px",
+                        borderRadius: 6,
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        color: "#475569",
+                      }}
+                    >
+                      CGPA {cgpa || "—"} (Max 50 pts)
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 650,
+                        padding: "3px 8px",
+                        borderRadius: 6,
+                        background: backlogs.length === 0 ? "#f0fdf4" : "#fef2f2",
+                        border: `1px solid ${backlogs.length === 0 ? "#bbf7d0" : "#fecaca"}`,
+                        color: backlogs.length === 0 ? "#16a34a" : "#dc2626",
+                      }}
+                    >
+                      {backlogs.length === 0 ? "Zero Backlogs (+30 pts)" : `${backlogs.length} Backlogs (-${Math.min(30, backlogs.length * 15)} pts)`}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 650,
+                        padding: "3px 8px",
+                        borderRadius: 6,
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        color: "#475569",
+                      }}
+                    >
+                      {creditsCleared} / {totalCredits} Credits Cleared
+                    </span>
                   </div>
                 </div>
               </div>

@@ -18,6 +18,15 @@ router.get("/schedule", publicLimiter, async (req, res) => {
     res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
     const { batch, branch, section } = req.query;
 
+    if (branch && branch !== "ALL" && branch.toUpperCase() !== "CSE") {
+      return res.status(403).json({
+        success: false,
+        found: false,
+        message: "Class routine and weekly matrix are restricted to Computer Science & Engineering (CSE) students.",
+        code: "BRANCH_NOT_ALLOWED"
+      });
+    }
+
     const query = { isActive: true };
     if (batch && batch !== "ALL") query.batch = { $in: [batch, "ALL"] };
     if (branch && branch !== "ALL") query.branch = { $in: [branch.toUpperCase(), "ALL"] };

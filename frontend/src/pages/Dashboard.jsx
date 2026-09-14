@@ -988,6 +988,30 @@ export default function Dashboard() {
   // Compact Attendance Summary (Resilient: checks attendanceSummary, then attendance object)
   const attendanceSummary = computeAttendanceSummary(studentData);
 
+  const studentBranch = getDynamicBranch(regNo, studentData?.branch);
+  const isCSE = studentBranch === "CSE" || (!studentData?.branch && (regNo.startsWith("23030112") || regNo === "230301180026"));
+
+  const academicHealthScore = studentData?.academicHealthScore ?? (() => {
+    let score = 0;
+    score += Math.min((cgpa || 0) * 5, 50);
+    score += Math.min((trueLatestSgpa || 0) * 2, 20);
+    score += backlogs.length === 0 ? 20 : Math.max(0, 20 - backlogs.length * 5);
+    const totalSubjects = results.reduce((a, r) => a + (r.subjects || []).length, 0);
+    score += Math.min(10, totalSubjects > 0 ? 10 : 0);
+    return Math.round(Math.min(score, 100));
+  })();
+
+  const healthColor =
+    academicHealthScore >= 90 ? "#16a34a" : academicHealthScore >= 75 ? "#2563eb" : academicHealthScore >= 60 ? "#d97706" : "#dc2626";
+  const healthLabel =
+    academicHealthScore >= 90
+      ? "Excellent"
+      : academicHealthScore >= 75
+      ? "Good"
+      : academicHealthScore >= 60
+      ? "Average"
+      : "Needs Attention";
+
   const internalSubjects = getSortedInternalSubjects(internalMarks);
 
   // SVG Achievement Badges (Evaluates student's true latest academic achievements)
@@ -1781,97 +1805,159 @@ export default function Dashboard() {
               </div>
             </motion.div>
 
-            {/* 4. Overall Attendance */}
-            <motion.div
-              whileHover={{ y: -2 }}
-              onClick={() => navigate(`/attendance/${encodeStudentId(regNo)}`)}
-              style={{
-                background: "#ffffff",
-                border: "1px solid #cbd5e1",
-                borderRadius: 14,
-                padding: isMobile ? "12px 12px" : "18px 18px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-                cursor: "pointer",
-                position: "relative",
-                transition: "all 0.15s ease",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  Overall Attendance
-                </span>
+            {/* 4. Overall Attendance (For CSE) OR Academic Health (For Non-CSE) */}
+            {isCSE ? (
+              <motion.div
+                whileHover={{ y: -2 }}
+                onClick={() => navigate(`/attendance/${encodeStudentId(regNo)}`)}
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 14,
+                  padding: isMobile ? "12px 12px" : "18px 18px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  cursor: "pointer",
+                  position: "relative",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    Overall Attendance
+                  </span>
+                  {attendanceSummary && attendanceSummary.percentage !== null && attendanceSummary.percentage !== undefined ? (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        background: attendanceSummary.percentage >= 75 ? "#f0fdf4" : "#fef2f2",
+                        color: attendanceSummary.percentage >= 75 ? "#16a34a" : "#dc2626",
+                        border: `1px solid ${attendanceSummary.percentage >= 75 ? "#bbf7d0" : "#fecaca"}`,
+                        padding: "1px 6px",
+                        borderRadius: 5,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {attendanceSummary.percentage >= 75 ? "Eligible" : "Shortage"}
+                    </span>
+                  ) : (
+                    <Clock size={14} color="#2563eb" />
+                  )}
+                </div>
+
                 {attendanceSummary && attendanceSummary.percentage !== null && attendanceSummary.percentage !== undefined ? (
+                  <>
+                    <div
+                      style={{
+                        fontSize: isMobile ? 22 : 30,
+                        fontWeight: 800,
+                        color: attendanceSummary.percentage >= 75 ? "#16a34a" : "#dc2626",
+                        fontFamily: "'Space Mono', monospace",
+                        lineHeight: 1.1,
+                      }}
+                    >
+                      {Number(attendanceSummary.percentage).toFixed(2)}%
+                    </div>
+                    <span style={{ fontSize: 10.5, color: "#64748b" }}>
+                      {attendanceSummary.totalAttended} / {attendanceSummary.totalDelivered} classes attended ({attendanceSummary.subjectsCount} subjects)
+                    </span>
+                  </>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/attendance/${encodeStudentId(regNo)}`);
+                      }}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        width: "100%",
+                        padding: isMobile ? "7px 10px" : "9px 12px",
+                        borderRadius: 8,
+                        border: "1px solid #bfdbfe",
+                        background: "#eff6ff",
+                        color: "#1d4ed8",
+                        fontSize: isMobile ? 12 : 12.5,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        fontFamily: "'DM Sans', sans-serif",
+                        transition: "all 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#dbeafe")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "#eff6ff")}
+                    >
+                      <span>Set Your Attendance</span>
+                      <ArrowRight size={13} color="#2563eb" />
+                    </button>
+                    <span style={{ fontSize: 10.5, color: "#64748b" }}>Track subjects, timetable & bunk margin</span>
+                  </div>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div
+                whileHover={{ y: -2 }}
+                onClick={() => navigate(`/analytics/${encodeStudentId(regNo)}`)}
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 14,
+                  padding: isMobile ? "12px 12px" : "18px 18px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  cursor: "pointer",
+                  position: "relative",
+                  overflow: "hidden",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    Academic Health
+                  </span>
                   <span
                     style={{
                       fontSize: 10,
-                      background: attendanceSummary.percentage >= 75 ? "#f0fdf4" : "#fef2f2",
-                      color: attendanceSummary.percentage >= 75 ? "#16a34a" : "#dc2626",
-                      border: `1px solid ${attendanceSummary.percentage >= 75 ? "#bbf7d0" : "#fecaca"}`,
+                      background: academicHealthScore >= 80 ? "#f0fdf4" : academicHealthScore >= 60 ? "#fffbeb" : "#fef2f2",
+                      color: healthColor,
+                      border: `1px solid ${academicHealthScore >= 80 ? "#bbf7d0" : academicHealthScore >= 60 ? "#fde68a" : "#fecaca"}`,
                       padding: "1px 6px",
                       borderRadius: 5,
                       fontWeight: 700,
                     }}
                   >
-                    {attendanceSummary.percentage >= 75 ? "Eligible" : "Shortage"}
+                    {healthLabel}
                   </span>
-                ) : (
-                  <Clock size={14} color="#2563eb" />
-                )}
-              </div>
-
-              {attendanceSummary && attendanceSummary.percentage !== null && attendanceSummary.percentage !== undefined ? (
-                <>
-                  <div
-                    style={{
-                      fontSize: isMobile ? 22 : 30,
-                      fontWeight: 800,
-                      color: attendanceSummary.percentage >= 75 ? "#16a34a" : "#dc2626",
-                      fontFamily: "'Space Mono', monospace",
-                      lineHeight: 1.1,
-                    }}
-                  >
-                    {Number(attendanceSummary.percentage).toFixed(2)}%
-                  </div>
-                  <span style={{ fontSize: 10.5, color: "#64748b" }}>
-                    {attendanceSummary.totalAttended} / {attendanceSummary.totalDelivered} classes attended ({attendanceSummary.subjectsCount} subjects)
-                  </span>
-                </>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/attendance/${encodeStudentId(regNo)}`);
-                    }}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      width: "100%",
-                      padding: isMobile ? "7px 10px" : "9px 12px",
-                      borderRadius: 8,
-                      border: "1px solid #bfdbfe",
-                      background: "#eff6ff",
-                      color: "#1d4ed8",
-                      fontSize: isMobile ? 12 : 12.5,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      fontFamily: "'DM Sans', sans-serif",
-                      transition: "all 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#dbeafe")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "#eff6ff")}
-                  >
-                    <span>Set Your Attendance</span>
-                    <ArrowRight size={13} color="#2563eb" />
-                  </button>
-                  <span style={{ fontSize: 10.5, color: "#64748b" }}>Track subjects, timetable & bunk margin</span>
                 </div>
-              )}
-            </motion.div>
+                <div
+                  style={{
+                    fontSize: isMobile ? 22 : 30,
+                    fontWeight: 800,
+                    color: healthColor,
+                    fontFamily: "'Space Mono', monospace",
+                    lineHeight: 1.1,
+                  }}
+                >
+                  {academicHealthScore}
+                  <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}> /100</span>
+                </div>
+                <span style={{ fontSize: 10.5, color: "#64748b" }}>
+                  {backlogs.length === 0 ? "All Clear · Zero active backlogs" : `${backlogs.length} active backlogs detected`}
+                </span>
+                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3.5, background: "#f1f5f9" }}>
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, academicHealthScore)}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    style={{ height: "100%", background: healthColor }}
+                  />
+                </div>
+              </motion.div>
+            )}
           </div>
 
           {/* Active Backlogs Alert Accordion */}

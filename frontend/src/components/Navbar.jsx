@@ -197,7 +197,16 @@ export default function Navbar() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const isEligibleForTimetable = is2023CSEBatch(studentData, getActiveViewedRegNo());
+  const activeReg = getActiveViewedRegNo() || studentData?.regNo || studentSession?.regNo || "";
+  const isCSEStudent = (() => {
+    if (["230301120110", "230301120186", "230301120371", "230301120481"].includes(activeReg)) return false;
+    if (activeReg === "230301180026") return true;
+    const branch = String(studentData?.branch || studentSession?.branch || "").trim().toUpperCase();
+    if (branch) return branch === "CSE" || branch.includes("COMPUTER");
+    if (activeReg.startsWith("230301120") || activeReg.startsWith("230301121")) return true;
+    if (activeReg && !activeReg.startsWith("23030112")) return false;
+    return true; // guest / unsearched default
+  })();
 
   const requireAuthFor = (destination) => {
     setPendingDestination(destination);
@@ -459,58 +468,18 @@ export default function Navbar() {
               )}
             </button>
 
-            {/* Timetable - Only for 2023 CSE Batch or Guest Mode */}
-            {isEligibleForTimetable && (
-              <button
-                onClick={handleTimetableClick}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  textDecoration: "none",
-                  fontSize: 14,
-                  fontWeight: location.pathname.startsWith("/timetable")
-                    ? 700
-                    : 500,
-                  color: location.pathname.startsWith("/timetable")
-                    ? "#0f172a"
-                    : "#64748b",
-                  cursor: "pointer",
-                  padding: "8px 0",
-                  position: "relative",
-                  fontFamily: "'DM Sans', sans-serif",
-                  transition: "color 0.2s ease",
-                }}
-              >
-                Timetable
-                {location.pathname.startsWith("/timetable") && (
-                  <motion.div
-                    layoutId="nav-indicator"
-                    style={{
-                      position: "absolute",
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      height: 2.5,
-                      background: "#2563eb",
-                      borderRadius: 99,
-                    }}
-                  />
-                )}
-              </button>
-            )}
-
-            {/* Attendance */}
+            {/* Timetable - Visible to all students */}
             <button
-              onClick={handleAttendanceClick}
+              onClick={handleTimetableClick}
               style={{
                 background: "transparent",
                 border: "none",
                 textDecoration: "none",
                 fontSize: 14,
-                fontWeight: location.pathname.startsWith("/attendance")
+                fontWeight: location.pathname.startsWith("/timetable")
                   ? 700
                   : 500,
-                color: location.pathname.startsWith("/attendance")
+                color: location.pathname.startsWith("/timetable")
                   ? "#0f172a"
                   : "#64748b",
                 cursor: "pointer",
@@ -520,8 +489,8 @@ export default function Navbar() {
                 transition: "color 0.2s ease",
               }}
             >
-              Attendance
-              {location.pathname.startsWith("/attendance") && (
+              Timetable
+              {location.pathname.startsWith("/timetable") && (
                 <motion.div
                   layoutId="nav-indicator"
                   style={{
@@ -530,12 +499,52 @@ export default function Navbar() {
                     left: 0,
                     right: 0,
                     height: 2.5,
-                    background: "#059669",
+                    background: "#2563eb",
                     borderRadius: 99,
                   }}
                 />
               )}
             </button>
+
+            {/* Attendance - Exclusive to CSE Students */}
+            {isCSEStudent && (
+              <button
+                onClick={handleAttendanceClick}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  textDecoration: "none",
+                  fontSize: 14,
+                  fontWeight: location.pathname.startsWith("/attendance")
+                    ? 700
+                    : 500,
+                  color: location.pathname.startsWith("/attendance")
+                    ? "#0f172a"
+                    : "#64748b",
+                  cursor: "pointer",
+                  padding: "8px 0",
+                  position: "relative",
+                  fontFamily: "'DM Sans', sans-serif",
+                  transition: "color 0.2s ease",
+                }}
+              >
+                Attendance
+                {location.pathname.startsWith("/attendance") && (
+                  <motion.div
+                    layoutId="nav-indicator"
+                    style={{
+                      position: "absolute",
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: 2.5,
+                      background: "#059669",
+                      borderRadius: 99,
+                    }}
+                  />
+                )}
+              </button>
+            )}
 
             {/* Analytics with Subnav Dropdown */}
             <div
@@ -1329,71 +1338,12 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Class Timetable - Only for 2023 CSE Batch or Guest Mode */}
-          {isEligibleForTimetable && (
-            <div>
-              <button
-                onClick={(e) => {
-                  setMobileMenuOpen(false);
-                  handleTimetableClick(e);
-                }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  width: "100%",
-                  padding: "11px 12px",
-                  borderRadius: 10,
-                  border: "none",
-                  background: location.pathname.startsWith("/timetable")
-                    ? "#eff6ff"
-                    : "transparent",
-                  color: location.pathname.startsWith("/timetable")
-                    ? "#2563eb"
-                    : "#1e293b",
-                  fontSize: 14.5,
-                  fontWeight: location.pathname.startsWith("/timetable")
-                    ? 700
-                    : 600,
-                  cursor: "pointer",
-                  textAlign: "left",
-                }}
-              >
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: 10 }}
-                >
-                  <Clock
-                    size={17}
-                    color={
-                      location.pathname.startsWith("/timetable")
-                        ? "#2563eb"
-                        : "#64748b"
-                    }
-                  />
-                  <span>Class Timetable</span>
-                </div>
-                {location.pathname.startsWith("/timetable") ? (
-                  <span
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: "50%",
-                      background: "#2563eb",
-                    }}
-                  />
-                ) : (
-                  <ChevronRight size={15} color="#cbd5e1" />
-                )}
-              </button>
-            </div>
-          )}
-
-          {/* Attendance Tracker */}
+          {/* Class Timetable - Visible to all students */}
           <div>
             <button
               onClick={(e) => {
                 setMobileMenuOpen(false);
-                handleAttendanceClick(e);
+                handleTimetableClick(e);
               }}
               style={{
                 display: "flex",
@@ -1403,14 +1353,14 @@ export default function Navbar() {
                 padding: "11px 12px",
                 borderRadius: 10,
                 border: "none",
-                background: location.pathname.startsWith("/attendance")
-                  ? "#ecfdf5"
+                background: location.pathname.startsWith("/timetable")
+                  ? "#eff6ff"
                   : "transparent",
-                color: location.pathname.startsWith("/attendance")
-                  ? "#059669"
+                color: location.pathname.startsWith("/timetable")
+                  ? "#2563eb"
                   : "#1e293b",
                 fontSize: 14.5,
-                fontWeight: location.pathname.startsWith("/attendance")
+                fontWeight: location.pathname.startsWith("/timetable")
                   ? 700
                   : 600,
                 cursor: "pointer",
@@ -1420,23 +1370,23 @@ export default function Navbar() {
               <div
                 style={{ display: "flex", alignItems: "center", gap: 10 }}
               >
-                <Percent
+                <Clock
                   size={17}
                   color={
-                    location.pathname.startsWith("/attendance")
-                      ? "#059669"
+                    location.pathname.startsWith("/timetable")
+                      ? "#2563eb"
                       : "#64748b"
                   }
                 />
-                <span>Attendance Tracker</span>
+                <span>Class Timetable</span>
               </div>
-              {location.pathname.startsWith("/attendance") ? (
+              {location.pathname.startsWith("/timetable") ? (
                 <span
                   style={{
                     width: 6,
                     height: 6,
                     borderRadius: "50%",
-                    background: "#059669",
+                    background: "#2563eb",
                   }}
                 />
               ) : (
@@ -1444,6 +1394,65 @@ export default function Navbar() {
               )}
             </button>
           </div>
+
+          {/* Attendance Tracker - Exclusive to CSE Students */}
+          {isCSEStudent && (
+            <div>
+              <button
+                onClick={(e) => {
+                  setMobileMenuOpen(false);
+                  handleAttendanceClick(e);
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  width: "100%",
+                  padding: "11px 12px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: location.pathname.startsWith("/attendance")
+                    ? "#ecfdf5"
+                    : "transparent",
+                  color: location.pathname.startsWith("/attendance")
+                    ? "#059669"
+                    : "#1e293b",
+                  fontSize: 14.5,
+                  fontWeight: location.pathname.startsWith("/attendance")
+                    ? 700
+                    : 600,
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+              >
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: 10 }}
+                >
+                  <Percent
+                    size={17}
+                    color={
+                      location.pathname.startsWith("/attendance")
+                        ? "#059669"
+                        : "#64748b"
+                    }
+                  />
+                  <span>Attendance Tracker</span>
+                </div>
+                {location.pathname.startsWith("/attendance") ? (
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: "#059669",
+                    }}
+                  />
+                ) : (
+                  <ChevronRight size={15} color="#cbd5e1" />
+                )}
+              </button>
+            </div>
+          )}
 
           {/* Analytics Accordion */}
           <div>

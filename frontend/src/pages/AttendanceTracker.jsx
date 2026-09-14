@@ -19,6 +19,7 @@ import {
   BookOpen,
   Layers,
   ShieldCheck,
+  ShieldAlert,
   User,
   Search,
   ArrowRight,
@@ -1961,6 +1962,185 @@ export default function AttendanceTracker() {
         }}
       >
         <AttendanceSkeleton />
+      </div>
+    );
+  }
+
+  const studentBranch = String(studentData?.branch || studentSession?.branch || "").trim().toUpperCase();
+  const isCSE = (() => {
+    if (["230301120110", "230301120186", "230301120371", "230301120481"].includes(currentRegNo)) return false;
+    if (currentRegNo === "230301180026") return true;
+    if (studentBranch) return studentBranch === "CSE" || studentBranch.includes("COMPUTER");
+    if (currentRegNo.startsWith("230301120") || currentRegNo.startsWith("230301121")) return true;
+    if (currentRegNo && !currentRegNo.startsWith("23030112")) return false;
+    return true;
+  })();
+
+  if (!adminToken && currentRegNo && !isCSE) {
+    return (
+      <div
+        style={{
+          background: "#f8fafc",
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: isMobile ? "24px 16px 80px 16px" : "40px 24px 80px 24px",
+          fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+          boxSizing: "border-box",
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 12 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          style={{
+            maxWidth: 540,
+            width: "100%",
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: 20,
+            padding: isMobile ? "28px 20px" : "36px 32px",
+            textAlign: "center",
+            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 16,
+          }}
+        >
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: "50%",
+              background: "#eff6ff",
+              border: "1.5px solid #bfdbfe",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <ShieldAlert size={30} color="#2563eb" />
+          </div>
+
+          <div>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                background: "#f1f5f9",
+                border: "1px solid #e2e8f0",
+                padding: "3px 10px",
+                borderRadius: 99,
+                fontSize: 11,
+                fontWeight: 750,
+                color: "#64748b",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                marginBottom: 8,
+              }}
+            >
+              <span>Branch Access Policy</span>
+            </div>
+            <h2
+              style={{
+                fontSize: isMobile ? 20 : 23,
+                fontWeight: 800,
+                color: "#0f172a",
+                margin: "0 0 6px 0",
+                letterSpacing: "-0.4px",
+              }}
+            >
+              Attendance Tracker Access Restricted
+            </h2>
+            <p
+              style={{
+                fontSize: isMobile ? 12.5 : 13.5,
+                color: "#64748b",
+                lineHeight: 1.5,
+                margin: 0,
+              }}
+            >
+              Attendance Intelligence &amp; section routine logging are currently published exclusively for <strong>B.Tech Computer Science &amp; Engineering (CSE)</strong>.
+            </p>
+          </div>
+
+          <div
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: 12,
+              padding: "10px 16px",
+              width: "100%",
+              boxSizing: "border-box",
+              display: "flex",
+              justifyContent: "space-around",
+              alignItems: "center",
+              fontSize: 12,
+            }}
+          >
+            <div>
+              <span style={{ color: "#94a3b8", display: "block", fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>Your Reg No</span>
+              <strong style={{ color: "#0f172a", fontFamily: "'Space Mono', monospace" }}>{currentRegNo}</strong>
+            </div>
+            <div style={{ width: 1, height: 24, background: "#e2e8f0" }} />
+            <div>
+              <span style={{ color: "#94a3b8", display: "block", fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>Your Branch</span>
+              <strong style={{ color: "#dc2626" }}>{studentBranch || "Non-CSE"}</strong>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", marginTop: 6 }}>
+            <button
+              type="button"
+              onClick={() => navigate(`/dashboard/${encodeStudentId(currentRegNo)}`)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                width: "100%",
+                padding: "11px 18px",
+                background: "#2563eb",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: 10,
+                fontSize: 13.5,
+                fontWeight: 700,
+                cursor: "pointer",
+                boxShadow: "0 2px 4px rgba(37, 99, 235, 0.2)",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <span>Back to Dashboard</span>
+              <ArrowRight size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(`/timetable/${encodeStudentId(currentRegNo)}`)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                width: "100%",
+                padding: "10px 18px",
+                background: "#ffffff",
+                color: "#0f172a",
+                border: "1px solid #cbd5e1",
+                borderRadius: 10,
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <span>View Academic Calendar &amp; Holidays</span>
+            </button>
+          </div>
+        </motion.div>
       </div>
     );
   }

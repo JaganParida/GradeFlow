@@ -125,6 +125,16 @@ module.exports = async function handler(req, res) {
     // 1. GET /api/timetable/schedule
     if (action === "schedule" || (cleanUrl.includes("/timetable/schedule") && !cleanUrl.includes("admin"))) {
       const { batch, branch, section } = req.query;
+
+      if (branch && branch !== "ALL" && branch.toUpperCase() !== "CSE") {
+        return res.status(403).json({
+          success: false,
+          found: false,
+          message: "Class routine and weekly matrix are restricted to Computer Science & Engineering (CSE) students.",
+          code: "BRANCH_NOT_ALLOWED"
+        });
+      }
+
       const query = { isActive: true };
       if (batch && batch !== "ALL") query.batch = { $in: [batch, "ALL"] };
       if (branch && branch !== "ALL") query.branch = { $in: [branch.toUpperCase(), "ALL"] };
