@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import {
@@ -284,6 +284,32 @@ function getSectionFromRegNo(regNo) {
      if (num >= 481 && num <= 549) return "I";
   }
   return "J";
+}
+
+function computeAttendanceSummary(data) {
+  if (!data) return null;
+  if (data.attendanceSummary) return data.attendanceSummary;
+  const att = data.attendance;
+  if (att && Array.isArray(att.savedSubjects) && att.savedSubjects.length > 0) {
+    let totalAttended = 0;
+    let totalDelivered = 0;
+    att.savedSubjects.forEach((sub) => {
+      (sub.components || []).forEach((c) => {
+        totalAttended += Number(c.attended) || 0;
+        totalDelivered += Number(c.delivered) || 0;
+      });
+    });
+    if (totalDelivered > 0) {
+      return {
+        percentage: Number(((totalAttended / totalDelivered) * 100).toFixed(1)),
+        totalAttended,
+        totalDelivered,
+        targetGoal: att.targetGoal || 75,
+        subjectsCount: att.savedSubjects.length,
+      };
+    }
+  }
+  return null;
 }
 
 export default function Dashboard() {
@@ -938,30 +964,7 @@ export default function Dashboard() {
   const cgpa = results.length > 0 ? calculateCGPA(results) : studentData.cgpa;
 
   // Compact Attendance Summary (Resilient: checks attendanceSummary, then attendance object)
-  const attendanceSummary = useMemo(() => {
-    if (studentData?.attendanceSummary) return studentData.attendanceSummary;
-    const att = studentData?.attendance;
-    if (att && Array.isArray(att.savedSubjects) && att.savedSubjects.length > 0) {
-      let totalAttended = 0;
-      let totalDelivered = 0;
-      att.savedSubjects.forEach((sub) => {
-        (sub.components || []).forEach((c) => {
-          totalAttended += Number(c.attended) || 0;
-          totalDelivered += Number(c.delivered) || 0;
-        });
-      });
-      if (totalDelivered > 0) {
-        return {
-          percentage: Number(((totalAttended / totalDelivered) * 100).toFixed(1)),
-          totalAttended,
-          totalDelivered,
-          targetGoal: att.targetGoal || 75,
-          subjectsCount: att.savedSubjects.length,
-        };
-      }
-    }
-    return null;
-  }, [studentData]);
+  const attendanceSummary = computeAttendanceSummary(studentData);
 
   const internalSubjects = getSortedInternalSubjects(internalMarks);
 

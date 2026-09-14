@@ -1054,7 +1054,10 @@ export function AppProvider({ children }) {
       try {
         if (studentChannel) studentChannel.unsubscribe();
         if (broadcastChannel) broadcastChannel.unsubscribe();
-        if (ably) ably.close();
+        if (ably) {
+          try { ably.connection?.off(); } catch (_) {}
+          try { ably.close(); } catch (_) {}
+        }
       } catch {}
     };
   }, [studentSession?.sessionId, studentSession?.regNo]);
