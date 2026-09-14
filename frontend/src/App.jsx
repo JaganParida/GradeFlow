@@ -239,9 +239,9 @@ export default function App() {
     setStudentSession,
     setStudentData,
     studentSession,
-    studentData,
     adminToken,
     adminLogout,
+    isOldDomain,
   } = useApp();
 
   const { queueState, leaveQueue, isAuthorizedAdmin } = useTrafficTracker({
@@ -339,8 +339,8 @@ export default function App() {
           leaveQueue={leaveQueue}
           isAuthorizedAdmin={isAuthorizedAdmin}
         >
-          <FeedbackModal />
-          <UpgradeModal />
+          {!isOldDomain && <FeedbackModal />}
+          {!isOldDomain && <UpgradeModal />}
         <Suspense fallback={<RouteLoadingFallback />}>
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>

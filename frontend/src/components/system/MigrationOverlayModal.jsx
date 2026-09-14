@@ -8,69 +8,65 @@ import {
   CheckCircle2
 } from "lucide-react";
 
-const NEW_ORIGIN = "https://grade-flow-six.vercel.app";
+import { NEW_ORIGIN, isOldDomainEnvironment } from "../../utils/domainHelper";
 
 export default function MigrationOverlayModal() {
-  const [isOldDomain, setIsOldDomain] = useState(false);
+  const [isOldDomain, setIsOldDomain] = useState(() => isOldDomainEnvironment());
   const [copied, setCopied] = useState(false);
-  const [targetUrl, setTargetUrl] = useState(NEW_ORIGIN);
+  const [targetUrl, setTargetUrl] = useState(() => {
+    if (typeof window === "undefined") return NEW_ORIGIN;
+    let cleanSearch = window.location.search;
+    try {
+      const searchObj = new URLSearchParams(window.location.search);
+      searchObj.delete("migration");
+      searchObj.delete("domain");
+      const remaining = searchObj.toString();
+      cleanSearch = remaining ? `?${remaining}` : "";
+    } catch (_) {}
+    return `${NEW_ORIGIN}${window.location.pathname}${cleanSearch}${window.location.hash}`;
+  });
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (!isOldDomain) return;
 
-    const host = window.location.hostname.toLowerCase();
-    const isOld = host.includes("grade-flow-navy") || host.includes("gradeflow-navy");
+    // Modal stays permanently on screen until the student clicks the action button
 
-    let isPreview = false;
-    try {
-      const params = new URLSearchParams(window.location.search);
-      isPreview = params.get("migration") === "1" || params.get("migration") === "true" || params.get("domain") === "1";
-    } catch (_) {}
+    // Bulletproof mobile & desktop background scroll lock
+    const origBodyOverflow = document.body.style.overflow;
+    const origBodyPosition = document.body.style.position;
+    const origBodyWidth = document.body.style.width;
+    const origBodyHeight = document.body.style.height;
+    const origHtmlOverflow = document.documentElement.style.overflow;
 
-    if (isOld || isPreview) {
-      setIsOldDomain(true);
-      const fullTarget = `${NEW_ORIGIN}${window.location.pathname}${window.location.search}${window.location.hash}`;
-      setTargetUrl(fullTarget);
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.width = "100%";
+    document.body.style.height = "100%";
+    document.body.style.top = "0";
+    document.body.style.left = "0";
+    document.documentElement.style.overflow = "hidden";
 
-      // Modal stays permanently on screen until the student clicks the action button
+    const preventTouchMove = (e) => {
+      const viewport = document.querySelector(".gf-migration-viewport");
+      if (viewport && viewport.contains(e.target) && viewport.scrollHeight > viewport.clientHeight) {
+        return; // Allow internal modal scroll if screen is extremely small
+      }
+      e.preventDefault();
+    };
 
-      // Bulletproof mobile & desktop background scroll lock
-      const origBodyOverflow = document.body.style.overflow;
-      const origBodyPosition = document.body.style.position;
-      const origBodyWidth = document.body.style.width;
-      const origBodyHeight = document.body.style.height;
-      const origHtmlOverflow = document.documentElement.style.overflow;
+    document.addEventListener("touchmove", preventTouchMove, { passive: false });
 
-      document.body.style.overflow = "hidden";
-      document.body.style.position = "fixed";
-      document.body.style.width = "100%";
-      document.body.style.height = "100%";
-      document.body.style.top = "0";
-      document.body.style.left = "0";
-      document.documentElement.style.overflow = "hidden";
-
-      const preventTouchMove = (e) => {
-        const viewport = document.querySelector(".gf-migration-viewport");
-        if (viewport && viewport.contains(e.target) && viewport.scrollHeight > viewport.clientHeight) {
-          return; // Allow internal modal scroll if screen is extremely small
-        }
-        e.preventDefault();
-      };
-
-      document.addEventListener("touchmove", preventTouchMove, { passive: false });
-
-      return () => {
-        document.body.style.overflow = origBodyOverflow;
-        document.body.style.position = origBodyPosition;
-        document.body.style.width = origBodyWidth;
-        document.body.style.height = origBodyHeight;
-        document.body.style.top = "";
-        document.body.style.left = "";
-        document.documentElement.style.overflow = origHtmlOverflow;
-        document.removeEventListener("touchmove", preventTouchMove);
-      };
-    }
-  }, []);
+    return () => {
+      document.body.style.overflow = origBodyOverflow;
+      document.body.style.position = origBodyPosition;
+      document.body.style.width = origBodyWidth;
+      document.body.style.height = origBodyHeight;
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.documentElement.style.overflow = origHtmlOverflow;
+      document.removeEventListener("touchmove", preventTouchMove);
+    };
+  }, [isOldDomain]);
 
   if (!isOldDomain) {
     return null;

@@ -10,6 +10,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
+import { isOldDomainEnvironment } from "../utils/domainHelper";
 
 export default function UpgradeModal() {
   const {
@@ -20,6 +21,7 @@ export default function UpgradeModal() {
     openStudentAuthModal,
   } = useApp();
   const isMaintenanceBlocked = Boolean(maintenance?.enabled && !adminToken);
+  const isOldDomain = isOldDomainEnvironment();
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -64,7 +66,7 @@ export default function UpgradeModal() {
   }, [isOpen]);
 
   useEffect(() => {
-    if (isMaintenanceBlocked) {
+    if (isOldDomain || isMaintenanceBlocked) {
       setIsOpen(false);
       return;
     }
@@ -86,16 +88,17 @@ export default function UpgradeModal() {
       }, 700);
       return () => clearTimeout(timer);
     }
-  }, [isMaintenanceBlocked]);
+  }, [isMaintenanceBlocked, isOldDomain]);
 
   // Support programmatic triggering via custom event across the app
   useEffect(() => {
+    if (isOldDomain) return;
     const handleOpen = () => setIsOpen(true);
     window.addEventListener("open-upgrade-modal", handleOpen);
     return () => window.removeEventListener("open-upgrade-modal", handleOpen);
-  }, []);
+  }, [isOldDomain]);
 
-  if (isMaintenanceBlocked) return null;
+  if (isOldDomain || isMaintenanceBlocked) return null;
 
   const handleDismiss = () => {
     setIsOpen(false);

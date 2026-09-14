@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { createAblyRealtime, subscribeAdminChannel, closeSharedAdminAbly } from "../services/ablyClient";
 import { invalidateAdminCache, AdminCacheScopes } from "../utils/adminRealtimeCache";
+import { isOldDomainEnvironment } from "../utils/domainHelper";
 
 export const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
@@ -76,10 +77,7 @@ export function AppProvider({ children }) {
   }, []);
 
   // Detect if running on old retired domain (saves 100% serverless CPU on old Vercel deployment)
-  const isOldDomain = typeof window !== "undefined" && (
-    window.location.hostname.toLowerCase().includes("grade-flow-navy") ||
-    window.location.hostname.toLowerCase().includes("gradeflow-navy")
-  );
+  const isOldDomain = isOldDomainEnvironment();
 
   // ─── Explicit Authentication Lifecycle States ───────────────────
   // authStatus: "BOOTSTRAPPING" | "AUTHENTICATED" | "UNAUTHENTICATED" | "AUTH_ERROR"
@@ -1889,6 +1887,7 @@ export function AppProvider({ children }) {
         cooldownRemaining: 0,
         joinQueue: () => {},
         leaveQueue: () => {},
+        isOldDomain,
       }}
     >
       {children}

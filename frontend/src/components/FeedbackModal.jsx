@@ -12,6 +12,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
+import { isOldDomainEnvironment } from "../utils/domainHelper";
 
 export default function FeedbackModal() {
   const [show, setShow] = useState(false);
@@ -33,6 +34,7 @@ export default function FeedbackModal() {
     adminToken,
   } = useApp();
 
+  const isOldDomain = isOldDomainEnvironment();
   const isMaintenanceBlocked = Boolean(maintenance?.enabled && !adminToken);
   const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
   const currentStudentName =
@@ -97,11 +99,12 @@ export default function FeedbackModal() {
       if (e?.detail?.rating) setRating(e.detail.rating);
     };
 
+    if (isOldDomain) return;
     window.addEventListener("open-feedback-modal", handleOpen);
     return () => window.removeEventListener("open-feedback-modal", handleOpen);
-  }, [hasActiveSession, studentSession, studentData, isMaintenanceBlocked, openStudentAuthModal]);
+  }, [hasActiveSession, studentSession, studentData, isMaintenanceBlocked, isOldDomain, openStudentAuthModal]);
 
-  if (isMaintenanceBlocked) return null;
+  if (isOldDomain || isMaintenanceBlocked) return null;
 
   const handleClose = () => {
     setShow(false);

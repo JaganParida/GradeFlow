@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import axios from "axios";
 import { parseDeviceDetails } from "./deviceHelper";
+import { isOldDomainEnvironment } from "./domainHelper";
 import { API_BASE } from "../context/AppContext";
 
 // Special student regNo to strictly NEVER track
@@ -44,10 +45,7 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
     if (isAuthorizedAdmin || isFlushingRef.current) return;
 
     // Domain check
-    if (typeof window !== "undefined") {
-      const host = window.location.hostname.toLowerCase();
-      if (host.includes("grade-flow-navy") || host.includes("gradeflow-navy")) return;
-    }
+    if (isOldDomainEnvironment()) return;
 
     const regNo = resolveRegNo();
     if (!regNo || regNo === EXCLUDED_STUDENT_REG) return;
@@ -129,10 +127,7 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
   useEffect(() => {
     if (isAuthorizedAdmin) return;
 
-    if (typeof window !== "undefined") {
-      const host = window.location.hostname.toLowerCase();
-      if (host.includes("grade-flow-navy") || host.includes("gradeflow-navy")) return;
-    }
+    if (isOldDomainEnvironment()) return;
 
     const regNo = resolveRegNo();
     if (!regNo || regNo === EXCLUDED_STUDENT_REG) return;
