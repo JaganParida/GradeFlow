@@ -288,27 +288,49 @@ function getSectionFromRegNo(regNo) {
 
 function computeAttendanceSummary(data) {
   if (!data) return null;
-  if (data.attendanceSummary) return data.attendanceSummary;
   const att = data.attendance;
-  if (att && Array.isArray(att.savedSubjects) && att.savedSubjects.length > 0) {
-    let totalAttended = 0;
-    let totalDelivered = 0;
-    att.savedSubjects.forEach((sub) => {
+  const subjects = att?.savedSubjects || [];
+
+  let totalAttended = 0;
+  let totalDelivered = 0;
+  let activeSubjectsCount = 0;
+
+  if (Array.isArray(subjects) && subjects.length > 0) {
+    subjects.forEach((sub) => {
+      let subAttended = 0;
+      let subDelivered = 0;
       (sub.components || []).forEach((c) => {
-        totalAttended += Number(c.attended) || 0;
-        totalDelivered += Number(c.delivered) || 0;
+        subAttended += Number(c.attended) || 0;
+        subDelivered += Number(c.delivered) || 0;
       });
+      totalAttended += subAttended;
+      totalDelivered += subDelivered;
+      if (subDelivered > 0) {
+        activeSubjectsCount++;
+      }
     });
-    if (totalDelivered > 0) {
-      return {
-        percentage: Number(((totalAttended / totalDelivered) * 100).toFixed(1)),
-        totalAttended,
-        totalDelivered,
-        targetGoal: att.targetGoal || 75,
-        subjectsCount: att.savedSubjects.length,
-      };
-    }
   }
+
+  if (totalDelivered > 0) {
+    const percentage = Number(((totalAttended / totalDelivered) * 100).toFixed(2));
+    return {
+      percentage,
+      totalAttended,
+      totalDelivered,
+      targetGoal: att?.targetGoal || 75,
+      subjectsCount: activeSubjectsCount > 0 ? activeSubjectsCount : subjects.length,
+    };
+  }
+
+  const summary = data.attendanceSummary;
+  if (summary && summary.totalDelivered > 0) {
+    return {
+      ...summary,
+      percentage: Number(Number(summary.percentage).toFixed(2)),
+      subjectsCount: summary.subjectsCount,
+    };
+  }
+
   return null;
 }
 
@@ -1784,17 +1806,15 @@ export default function Dashboard() {
                   <span
                     style={{
                       fontSize: 10,
-                      background: attendanceSummary.percentage >= (attendanceSummary.targetGoal || 75) ? "#f0fdf4" : "#fef2f2",
-                      color: attendanceSummary.percentage >= (attendanceSummary.targetGoal || 75) ? "#16a34a" : "#dc2626",
-                      border: `1px solid ${attendanceSummary.percentage >= (attendanceSummary.targetGoal || 75) ? "#bbf7d0" : "#fecaca"}`,
+                      background: attendanceSummary.percentage >= 75 ? "#f0fdf4" : "#fef2f2",
+                      color: attendanceSummary.percentage >= 75 ? "#16a34a" : "#dc2626",
+                      border: `1px solid ${attendanceSummary.percentage >= 75 ? "#bbf7d0" : "#fecaca"}`,
                       padding: "1px 6px",
                       borderRadius: 5,
                       fontWeight: 700,
                     }}
                   >
-                    {attendanceSummary.percentage >= (attendanceSummary.targetGoal || 75)
-                      ? `Target Met · ${attendanceSummary.targetGoal || 75}%`
-                      : `Target: ${attendanceSummary.targetGoal || 75}%`}
+                    {attendanceSummary.percentage >= 75 ? "Eligible" : "Shortage"}
                   </span>
                 ) : (
                   <Clock size={14} color="#2563eb" />
@@ -1807,17 +1827,12 @@ export default function Dashboard() {
                     style={{
                       fontSize: isMobile ? 22 : 30,
                       fontWeight: 800,
-                      color:
-                        attendanceSummary.percentage >= (attendanceSummary.targetGoal || 75)
-                          ? "#16a34a"
-                          : attendanceSummary.percentage >= (attendanceSummary.targetGoal || 75) - 5
-                          ? "#d97706"
-                          : "#dc2626",
+                      color: attendanceSummary.percentage >= 75 ? "#16a34a" : "#dc2626",
                       fontFamily: "'Space Mono', monospace",
                       lineHeight: 1.1,
                     }}
                   >
-                    {attendanceSummary.percentage}%
+                    {Number(attendanceSummary.percentage).toFixed(2)}%
                   </div>
                   <span style={{ fontSize: 10.5, color: "#64748b" }}>
                     {attendanceSummary.totalAttended} / {attendanceSummary.totalDelivered} classes attended ({attendanceSummary.subjectsCount} subjects)

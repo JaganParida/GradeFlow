@@ -478,20 +478,30 @@ module.exports = async function handler(req, res) {
     if (attendanceDoc && Array.isArray(attendanceDoc.savedSubjects) && attendanceDoc.savedSubjects.length > 0) {
       let totalAttended = 0;
       let totalDelivered = 0;
+      let activeSubjectsCount = 0;
+
       attendanceDoc.savedSubjects.forEach((sub) => {
+        let subDelivered = 0;
+        let subAttended = 0;
         (sub.components || []).forEach((c) => {
-          totalAttended += Number(c.attended) || 0;
-          totalDelivered += Number(c.delivered) || 0;
+          subAttended += Number(c.attended) || 0;
+          subDelivered += Number(c.delivered) || 0;
         });
+        totalAttended += subAttended;
+        totalDelivered += subDelivered;
+        if (subDelivered > 0) {
+          activeSubjectsCount++;
+        }
       });
+
       if (totalDelivered > 0) {
-        const percentage = Number(((totalAttended / totalDelivered) * 100).toFixed(1));
+        const percentage = Number(((totalAttended / totalDelivered) * 100).toFixed(2));
         attendanceSummary = {
           percentage,
           totalAttended,
           totalDelivered,
           targetGoal: attendanceDoc.targetGoal || 75,
-          subjectsCount: attendanceDoc.savedSubjects.length,
+          subjectsCount: activeSubjectsCount > 0 ? activeSubjectsCount : attendanceDoc.savedSubjects.length,
         };
       }
     }
