@@ -83,6 +83,12 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
   const allResults = studentData?.results || [];
   const cgpaUpToNow = calculateCGPA(allResults, result.semester);
 
+  const displayRegNo = result?.regNo || studentData?.regNo || "";
+  const displayStudentName = result?.studentName || studentData?.studentName || "—";
+  const rawBranch = result?.branch || studentData?.branch || "";
+  const displayBranch = getDynamicBranch(displayRegNo, rawBranch);
+  const displayBatch = result?.batch || studentData?.batch || "—";
+
   const today = new Date().toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -110,7 +116,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
     const w = pdf.internal.pageSize.getWidth();
     const h = (canvas.height * w) / canvas.width;
     pdf.addImage(imgData, "PNG", 0, 0, w, h);
-    pdf.save(`GradeSheet_${result.regNo}_Sem${result.semester}.pdf`);
+    pdf.save(`GradeSheet_${displayRegNo || "Student"}_Sem${result.semester}.pdf`);
   }
 
   async function saveImage() {
@@ -121,7 +127,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
       useCORS: true,
     });
     const link = document.createElement("a");
-    link.download = `GradeSheet_${result.regNo}_Sem${result.semester}.png`;
+    link.download = `GradeSheet_${displayRegNo || "Student"}_Sem${result.semester}.png`;
     link.href = canvas.toDataURL();
     link.click();
   }
@@ -308,11 +314,11 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
           }}
         >
           {[
-            ["Student Regd. No", result.regNo],
-            ["Student Name", result.studentName],
-            ["Branch", getDynamicBranch(result.regNo, result.branch)],
-            ["Batch", result.batch || "—"],
-            ["Semester", `Sem ${result.semester}`],
+            ["Student Regd. No", displayRegNo || "—"],
+            ["Student Name", displayStudentName || "—"],
+            ["Branch", displayBranch || "—"],
+            ["Batch", displayBatch || "—"],
+            ["Semester", result.semester ? `Sem ${result.semester}` : "—"],
           ].map(([label, value]) => (
             <div key={label} style={{ display: "flex", marginBottom: 5 }}>
               <span
