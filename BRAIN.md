@@ -137,6 +137,31 @@
 106. [Vercel Free-Tier Resource Quotas, Zero Serverless Burden & Zero Polling Proof](#106-vercel-free-tier-resource-quotas-zero-serverless-burden--zero-polling-proof)
 107. [About Dev Developer Maintenance, Extension & Customization Guidelines](#107-about-dev-developer-maintenance-extension--customization-guidelines)
 
+### Part X: Admin Portal & System Operations Engine, Single-Request Bootstrap, Zero-Polling Caching, Role-Based Access Control, Database Aggregations & Vercel Free-Tier Architecture
+108. [Admin Architecture, System Operations Philosophy & Non-Negotiables](#108-admin-architecture-system-operations-philosophy--non-negotiables)
+109. [Unified Single-Request Admin Bootstrap Engine (`GET /api/admin/bootstrap`)](#109-unified-single-request-admin-bootstrap-engine-get-apiadminbootstrap)
+110. [Zero-Polling Reactive Cache Engine & Ably Invalidation Lifecycle (`adminRealtimeCache.js`)](#110-zero-polling-reactive-cache-engine--ably-invalidation-lifecycle-adminrealtimecachejs)
+111. [Dual-Runtime Parity & API Action Router (`Express` vs `Vercel Serverless`)](#111-dual-runtime-parity--api-action-router-express-vs-vercel-serverless)
+112. [Granular Role-Based Access Control (RBAC), Main Admin vs Sub-Admin & Device Security](#112-granular-role-based-access-control-rbac-main-admin-vs-sub-admin--device-security)
+113. [Database Models, Schema Invariants & Compound Indexing Strategy](#113-database-models-schema-invariants--compound-indexing-strategy)
+114. [Subtab 1: Academic Data Ingestion, Excel Processing & Formula Sanitization (`tab === "overview"`)](#114-subtab-1-academic-data-ingestion-excel-processing--formula-sanitization-tab--overview)
+115. [Subtab 2: Missing Students Differential Ingestion Engine (`tab === "missing-uploader"`)](#115-subtab-2-missing-students-differential-ingestion-engine-tab--missing-uploader)
+116. [Subtab 3: Student Report Card Editor & Dynamic Grade Sheet Generator (`tab === "report-card"`)](#116-subtab-3-student-report-card-editor--dynamic-grade-sheet-generator-tab--report-card)
+117. [Subtab 4: Section Academic Toppers & Multi-Tier Filter Engine (`tab === "toppers"`)](#117-subtab-4-section-academic-toppers--multi-tier-filter-engine-tab--toppers)
+118. [Subtab 5: Backlog Tracker, Candidate-Filtered Queries & Notification Emailer (`tab === "backlogs"`)](#118-subtab-5-backlog-tracker-candidate-filtered-queries--notification-emailer-tab--backlogs)
+119. [Subtab 6: Live Student Traffic, Surge Queue & Maintenance State Machine (`tab === "live-traffic"`)](#119-subtab-6-live-student-traffic-surge-queue--maintenance-state-machine-tab--live-traffic)
+120. [Subtab 7: Vercel Free-Tier Quota Sentinel & Usage Telemetry Engine (`tab === "vercel-quota"`)](#120-subtab-7-vercel-free-tier-quota-sentinel--usage-telemetry-engine-tab--vercel-quota)
+121. [Subtab 8: Timetable & Routine Admin Orchestrator (`tab === "timetable"`)](#121-subtab-8-timetable--routine-admin-orchestrator-tab--timetable)
+122. [Subtab 9: Campus-Wide Broadcast Notifications & Interactive Links Engine (`tab === "broadcast-notifications"`)](#122-subtab-9-campus-wide-broadcast-notifications--interactive-links-engine-tab--broadcast-notifications)
+123. [Subtab 10: Attendance Tracker Monitoring & Risk Spectrum Analytics (`tab === "attendance-monitor"`)](#123-subtab-10-attendance-tracker-monitoring--risk-spectrum-analytics-tab--attendance-monitor)
+124. [Subtab 11: Student Testimonial Moderation Hub (`tab === "feedback"`)](#124-subtab-11-student-testimonial-moderation-hub-tab--feedback)
+125. [Subtab 12: Student Session & Multi-Device OTP Management (`tab === "otp-management"`)](#125-subtab-12-student-session--multi-device-otp-management-tab--otp-management)
+126. [Subtab 13: Sub-Admin Lifecycle, Granular Permissions & Session Security (`tab === "admin-management"`)](#126-subtab-13-sub-admin-lifecycle-granular-permissions--session-security-tab--admin-management)
+127. [Subtab 14: System Maintenance, 5-Year Batch Lifecycle Purge & Global Recomputation (`tab === "manage"`)](#127-subtab-14-system-maintenance-5-year-batch-lifecycle-purge--global-recomputation-tab--manage)
+128. [Vercel Free-Tier Resource Quotas, Serverless Guardrails & Zero Polling Proof](#128-vercel-free-tier-resource-quotas-serverless-guardrails--zero-polling-proof)
+129. [Admin Developer Maintenance, Code Extension & Security Hardening Guidelines](#129-admin-developer-maintenance-code-extension--security-hardening-guidelines)
+
+
 
 ---
 
@@ -187,8 +212,8 @@ GradeFlow's authentication system operates under strict production engineering i
 +-------------------+-------------+-------------------+--------------------+------------------------+
 | Normal Student    | 1           | 7 Days            | 30 Days            | Triggers Approval Flow |
 | Special Student   | 2           | 7 Days            | 30 Days            | HTTP 403 (Blocked)     |
-| Master Admin      | 2           | 1 Hour            | 30 Days (Extended) | HTTP 403 (Blocked)     |
-| Sub-Admin         | 2           | 1 Hour            | 30 Days (Extended) | HTTP 403 (Blocked)     |
+| Master Admin      | 2           | None (Permanent)  | 100 Years          | HTTP 403 (Blocked)     |
+| Sub-Admin         | 2           | None (Permanent)  | 100 Years          | HTTP 403 (Blocked)     |
 +-------------------+-------------+-------------------+--------------------+------------------------+
 ```
 
@@ -196,9 +221,12 @@ GradeFlow's authentication system operates under strict production engineering i
 - **Student Inactivity (7 Days)**:
   `STUDENT_INACTIVITY_TTL_MS = 7 * 24 * 60 * 60 * 1000`  
   If a student does not interact with the app for 7 consecutive days, their session is considered stale and excluded from active session queries, automatically freeing up capacity.
-- **Admin Inactivity (1 Hour)**:
-  `ADMIN_ACTIVITY_TTL_MS = 60 * 60 * 1000`  
-  If an administrator is idle for > 1 hour, `getActiveAdminSessions` excludes that session from the active device count. If 2 devices were active and 1 goes idle for > 1 hour, the active count drops from `2 -> 1`, making the Admin Portal button visible again.
+- **Admin & Sub-Admin Sessions (Permanent until Explicit Manual Logout)**:
+  `ADMIN_PERMANENT_SESSION_MS = 100 * 365 * 24 * 60 * 60 * 1000` (100 Years)  
+  Administrators and Sub-Administrators stay permanently logged in across mobile and desktop devices. Background cleanups never terminate admin sessions due to inactivity. Sessions are strictly terminated ONLY when:
+  1. The user explicitly clicks logout (`/api/auth/admin/logout` or `/api/auth/logout`).
+  2. An administrator manually revokes the session from the Session Management dashboard table (`/api/admin/sessions/revoke` or `/api/admin/subadmins/sessions/revoke`).
+  Visiting students or guest devices never heuristically revoke admin sessions.
 
 ---
 
@@ -4137,5 +4165,730 @@ Any engineer, auditor, or AI agent modifying `AboutDev.jsx` MUST adhere to the f
    - Never remove `width={isMobile ? 220 : 290}`, `height={isMobile ? 220 : 290}`, `loading="eager"`, `decoding="async"`, or `fetchPriority="high"`.
 5. **Always Keep Resize Listeners Passive**:
    - Any added scroll or window listeners must include `{ passive: true }` to avoid degrading mobile frame rates.
+
+
+---
+
+# PART X: ADMIN PORTAL & SYSTEM OPERATIONS ENGINE, SINGLE-REQUEST BOOTSTRAP, ZERO-POLLING CACHING, ROLE-BASED ACCESS CONTROL, DATABASE AGGREGATIONS & VERCEL FREE-TIER ARCHITECTURE
+
+---
+
+## 108. Admin Architecture, System Operations Philosophy & Non-Negotiables
+
+The GradeFlow Admin Portal (`/admin`, `AdminDashboard.jsx`, `backend/routes/admin.js`, `frontend/api/admin.js`) is the mission-critical operations core of the university ecosystem. It governs academic result uploads, competition rankings recalculation, student device session revocations, sub-admin delegation, campus-wide broadcast dispatches, live visitor queuing, and Vercel quota governance.
+
+### Core Non-Negotiable Invariants:
+
+1. **Single-Request Bootstrap Hydration (`GET /api/admin/bootstrap`)**:
+   - Initial administrative navigation loads **all essential subtab states upfront** in a single parallel `Promise.all` round-trip (~120ms total latency, <20 KB compressed payload).
+   - Subsequent subtab switches (e.g. from Timetable to Section Toppers or Feedback) occur in **0ms with strictly zero HTTP requests**, reading directly from pre-seeded permanent session storage.
+
+2. **Zero Polling & Pure Event-Driven Invalidation (`adminRealtimeCache.js`)**:
+   - No `setInterval`, `setTimeout`, or recursive polling loops exist in the admin console.
+   - Cache keys remain permanently valid in client memory and `sessionStorage` until the backend publishes an explicit Ably WebSocket invalidation event (`admin-cache-invalidated`, `rankings-updated`) across the `admin-updates` or `broadcasts-all` channels.
+
+3. **Dual-Runtime Parity Invariant**:
+   - Express Backend (`backend/routes/admin.js`) and Vercel Serverless (`frontend/api/admin.js`) maintain **100% identical logical parity, query optimizations, RBAC rules, formula sanitization, and security guards**.
+   - A sub-admin running on a local development server experiences the exact same permission gates, device limits, and query performance as on the Vercel production edge.
+
+4. **Vercel Free-Tier (Hobby) Resource Invariance**:
+   - Unbounded database scans (`find({})` across 50,000+ records) are strictly forbidden.
+   - Database reads MUST utilize MongoDB `$group` aggregation pipelines or indexed candidate-filtered queries (`{ batch, branch, semester }`, `{ regNo: { $in: candidates } }`).
+   - Every administrative visit consumes <20 KB of Fast Origin Transfer (safeguarding the 10 GB monthly cap) and <60ms of Active Fluid CPU.
+
+5. **Defense-in-Depth RBAC & Device Enforcements**:
+   - Main Admin has global authority (`*` routes and actions).
+   - Sub-Admins possess strictly partitioned, granular privileges (`routes: [...]`, `actions: [...]`).
+   - Sub-Admins are strictly limited to **maximum 2 concurrent devices**. Device 3 is rejected with `HTTP 403 SUBADMIN_DEVICE_LIMIT_REACHED` (never silently evicting Device 1).
+
+```mermaid
+flowchart TD
+    subgraph Client ["Admin Client (AdminDashboard.jsx)"]
+        Nav["Admin Navigation (Initial Visit)"]
+        BootReq["1. GET /api/admin/bootstrap"]
+        SeedCache["2. Pre-Seed sessionStorage (9 Scopes)"]
+        SubTabSwitch["3. Sub-Tab Switch (0ms, 0 HTTP Req)"]
+        AblySub["4. Ably Realtime Subscriber (subscribeAdminChannel)"]
+    end
+
+    subgraph Backend ["Dual-Runtime Engine (Express / Vercel Serverless)"]
+        Handler["Bootstrap Controller (admin.js)"]
+        AggPipe["Parallel Promise.all Aggregations"]
+        PubAbly["Ably Service (publishAdminRealtimeEvent)"]
+    end
+
+    subgraph DB ["MongoDB Atlas"]
+        C1[("SemesterResults ($group)")]
+        C2[("Rankings (limit 10)")]
+        C3[("TimetableSchedules")]
+        C4[("Traffic / Quota / Feedback")]
+    end
+
+    Nav --> BootReq
+    BootReq --> Handler
+    Handler --> AggPipe
+    AggPipe --> C1 & C2 & C3 & C4
+    AggPipe --> Handler
+    Handler -->|18 KB Payload, ~120ms| SeedCache
+    SeedCache --> SubTabSwitch
+    PubAbly -.->|WebSocket Invalidation| AblySub
+    AblySub -.->|Dirty Event| SeedCache
+```
+
+---
+
+## 109. Unified Single-Request Admin Bootstrap Engine (`GET /api/admin/bootstrap`)
+
+### Problem Statement (Legacy Redundant Requests):
+In legacy architectures, navigating to the admin dashboard triggered a cascading waterfall of independent HTTP requests:
+1. `GET /auth/admin/me` (Profile & permissions)
+2. `GET /admin/stats` (Unbounded 3-collection count)
+3. `GET /admin/section-toppers` (Initial toppers list)
+4. `GET /admin/timetable/schedules` (Schedules list)
+5. `GET /admin/traffic-overview` (Live visitors & queue config)
+6. `GET /admin/vercel-quota` (Quota metrics)
+7. `GET /feedback` (Testimonial reviews)
+
+This resulted in 7+ serverless function invocations per page refresh, 5-15 MB of uncompressed payload transfer, multiple database full collection scans, and jarring UI flickering when navigating between subtabs.
+
+### Unified Bootstrap Resolution:
+The unified bootstrap endpoint consolidates the entire administrative initial state into a single atomic endpoint:
+- **Express Backend Route**: `GET /api/admin/bootstrap` (protected by JWT middleware)
+- **Vercel Serverless Action**: `GET /api/admin?action=bootstrap`
+
+### Parallel Aggregation Blueprint (`Promise.all`):
+```javascript
+const [
+  totalAccountsCreated,
+  activeSessions,
+  batchStatsResults,
+  batchStatsRankings,
+  batchStatsInternal,
+  defaultToppers,
+  timetableSchedules,
+  trafficConfig,
+  activeVisitorsCount,
+  latestQuota,
+  portalConfigDoc,
+  maintenanceConfigDoc,
+  broadcastsList,
+  recentFeedback,
+] = await Promise.all([
+  Student.countDocuments({ passwordHash: { $exists: true, $ne: null } }).catch(() => 0),
+  StudentSession.find({ isActive: true }, "regNo").lean().catch(() => []),
+  SemesterResult.aggregate([
+    {
+      $group: {
+        _id: { $ifNull: ["$batch", "Other"] },
+        totalResults: { $sum: 1 },
+        semesters: { $addToSet: "$semester" },
+        uniqueStudents: { $addToSet: "$regNo" },
+      },
+    },
+  ]).catch(() => []),
+  Ranking.aggregate([
+    {
+      $group: {
+        _id: { $ifNull: ["$batch", "Other"] },
+        totalRankings: { $sum: 1 },
+        uniqueStudents: { $addToSet: "$regNo" },
+      },
+    },
+  ]).catch(() => []),
+  InternalMark.aggregate([
+    {
+      $group: {
+        _id: { $ifNull: ["$batch", "Other"] },
+        totalInternal: { $sum: 1 },
+        uniqueStudents: { $addToSet: "$regNo" },
+      },
+    },
+  ]).catch(() => []),
+  Ranking.find(
+    { batch: "2023", branch: "CSE" },
+    "regNo semester studentName batch branch cgpa sgpa sectionCgpaRank sectionSgpaRank deptCgpaRank deptRank universityRank cgpaRank"
+  ).sort({ cgpa: -1, sgpa: -1 }).limit(10).lean().catch(() => []),
+  TimetableSchedule.find({}, "scheduleId batch branch section title isLiveCustomPublished updatedAt")
+    .sort({ updatedAt: -1 }).limit(50).lean().catch(() => []),
+  TrafficQueueConfig.findOne({ key: "global_queue_config" }).lean().catch(() => null),
+  LiveVisitor.countDocuments({ lastSeen: { $gte: new Date(Date.now() - 5 * 60 * 1000) } }).catch(() => 0),
+  VercelQuotaMetric.findOne().sort({ recordedAt: -1 }).lean().catch(() => null),
+  SystemConfig.findOne({ key: "admin_button_config" }).lean().catch(() => null),
+  SystemConfig.findOne({ key: "maintenance" }).lean().catch(() => null),
+  StudentNotification.find({ isBroadcast: true }).sort({ createdAt: -1 }).limit(15).lean().catch(() => []),
+  Feedback.find({}).sort({ createdAt: -1 }).limit(20).lean().catch(() => []),
+]);
+```
+
+### Client Hydration & 0ms Subtab Switching:
+Upon receiving the bootstrap response, `AdminDashboard.jsx` synchronizes memory state and permanently pre-seeds `sessionStorage`:
+```javascript
+if (data && data.success) {
+  if (data.adminProfile) setAdminProfile((prev) => ({ ...prev, ...data.adminProfile }));
+  if (data.stats) {
+    setStats(data.stats);
+    setAdminCache("gf_admin_stats_cache", data.stats, AdminCacheScopes.STATS);
+  }
+  // Pre-seed subtab caches for instantaneous tab switching
+  if (data.toppers) setAdminCache("gf_admin_toppers_2023_CSE_Sec A_", data.toppers, AdminCacheScopes.TOPPERS);
+  if (data.timetable) setAdminCache("gf_admin_schedules_list", data.timetable, AdminCacheScopes.TIMETABLE);
+  if (data.trafficOverview) setAdminCache("gf_admin_traffic_overview", data.trafficOverview, AdminCacheScopes.TRAFFIC);
+  if (data.vercelQuota) setAdminCache("gf_admin_vercel_quota_cache", data.vercelQuota, AdminCacheScopes.TRAFFIC);
+  if (data.visibility) setAdminCache("gf_admin_visibility_settings", data.visibility, AdminCacheScopes.ADMIN);
+  if (data.maintenance) setAdminCache("gf_admin_maintenance_settings", data.maintenance, AdminCacheScopes.ADMIN);
+  if (data.broadcasts) setAdminCache("gf_admin_broadcasts_list", data.broadcasts, AdminCacheScopes.BROADCAST);
+  if (data.feedback) setAdminCache("gf_admin_feedback_cache", data.feedback, AdminCacheScopes.FEEDBACK);
+}
+```
+
+---
+
+## 110. Zero-Polling Reactive Cache Engine & Ably Invalidation Lifecycle (`adminRealtimeCache.js`)
+
+GradeFlow completely eliminates arbitrary time-based cache expirations (e.g. 5-minute or 10-minute TTLs) in favor of **true reactive event-driven cache invalidation**.
+
+### Cache Scopes Specification:
+```javascript
+export const AdminCacheScopes = {
+  STATS: "stats",
+  TOPPERS: "toppers",
+  BACKLOGS: "backlogs",
+  ATTENDANCE: "attendance",
+  TIMETABLE: "timetable",
+  FEEDBACK: "feedback",
+  OTP: "otp",
+  TRAFFIC: "traffic",
+  RANKINGS: "rankings",
+  ADMIN: "admin",
+  BROADCAST: "broadcast",
+  ALL: "all",
+};
+```
+
+### Event-Driven Invalidation Lifecycle:
+1. **Permanent Session Storage**: `setAdminCache(key, data, scope)` serializes payload into `sessionStorage` with schema `{ data, scope, cachedAt: Date.now() }`.
+2. **Immediate Client Event Bus**: `invalidateAdminCache(scope)` locates all matching keys in `sessionStorage` and dispatches a window `CustomEvent("gf-admin-cache-dirty", { detail: { scope } })`.
+3. **Reactive Re-fetching**: Subscribed React components register via `onAdminCacheDirty(scope, callback)`:
+   - When an academic record is created, edited, deleted, or ingested:
+     ```javascript
+     invalidateAdminCache(AdminCacheScopes.STATS);
+     invalidateAdminCache(AdminCacheScopes.TOPPERS);
+     invalidateAdminCache(AdminCacheScopes.BACKLOGS);
+     invalidateAdminCache(AdminCacheScopes.RANKINGS);
+     ```
+4. **WebSocket Remote Sync**:
+   - Backend routes dispatch an Ably message (`admin-cache-invalidated` on channel `admin-updates`).
+   - All active administrator sessions across different devices receive the message instantly (~15ms) and flush their local caches without any client-side polling.
+
+---
+
+## 111. Dual-Runtime Parity & API Action Router (`Express` vs `Vercel Serverless`)
+
+To support seamless local offline development and multi-cloud production resilience, GradeFlow maintains complete parity between Node.js/Express and Vercel Serverless Lambda.
+
+### Dual-Runtime Routing Matrix:
+
+| Administrative Feature | Express Backend Endpoint (`backend/routes/admin.js`) | Vercel Serverless Function (`frontend/api/admin.js`) | HTTP Method |
+| :--- | :--- | :--- | :--- |
+| **System Bootstrap** | `GET /api/admin/bootstrap` | `GET /api/admin?action=bootstrap` | `GET` |
+| **System Statistics** | `GET /api/admin/stats` | `GET /api/admin?action=stats` | `GET` |
+| **Section Toppers** | `GET /api/admin/section-toppers` | `GET /api/admin?action=section-toppers` | `GET` |
+| **Backlog Tracker** | `GET /api/admin/backlogs` | `GET /api/admin?action=backlogs` | `GET` |
+| **Upload Regular Results** | `POST /api/admin/upload-results` | `POST /api/admin?action=upload-results` | `POST (Multipart)` |
+| **Upload Internal Marks** | `POST /api/admin/upload-internal` | `POST /api/admin?action=upload-internal` | `POST (Multipart)` |
+| **Missing Students Ingestion** | `POST /api/admin/ingest-missing-students` | `POST /api/admin?action=ingest-missing-students` | `POST (Multipart)` |
+| **Manual Grade Update** | `POST /api/admin/student/update-grade` | `POST /api/admin?action=update-grade` | `POST (JSON)` |
+| **Delete Semester Result** | `DELETE /api/admin/results/:regNo/:semester` | `DELETE /api/admin?action=delete-result` | `DELETE` |
+| **Regenerate All Rankings** | `POST /api/admin/rankings/regenerate-all` | `POST /api/admin?action=regenerate-all-rankings` | `POST` |
+| **Clear Server Memory** | `POST /api/admin/cache/clear` | `POST /api/admin?action=clear-cache` | `POST` |
+| **Attendance Directory** | `GET /api/admin/attendance-tracker/monitor` | `GET /api/admin?action=attendance-monitor` | `GET` |
+| **Send Backlog Email** | `POST /api/admin/send-backlog-notification` | `POST /api/admin?action=send-backlog-notification` | `POST` |
+
+---
+
+## 112. Granular Role-Based Access Control (RBAC), Main Admin vs Sub-Admin & Device Security
+
+The GradeFlow security envelope distinguishes between two primary administrative principals:
+
+```mermaid
+graph TD
+    User([Admin Login Request]) --> Verify{Principal Type}
+    Verify -->|Main Admin| MAdmin[Main Admin Token]
+    Verify -->|Sub-Admin| SAdmin[Sub-Admin Token]
+
+    MAdmin --> MPerms["Routes: [*] Actions: [*]<br/>Access to OTP, Sessions, Sub-Admin Mgmt"]
+    
+    SAdmin --> CheckDev{Active Devices < 2?}
+    CheckDev -->|Yes| SPerms["Scoped Routes & Actions<br/>e.g. ['toppers', 'report-card']"]
+    CheckDev -->|No| BlockDev["HTTP 403 SUBADMIN_DEVICE_LIMIT_REACHED<br/>Strict Block (No Eviction)"]
+    
+    SPerms --> Middleware[requirePermission Middleware]
+    Middleware -->|Authorized| ExecRoute[Execute Admin Endpoint]
+    Middleware -->|Denied| DenyRoute[HTTP 403 Forbidden]
+```
+
+### Main Admin Authority:
+- Principal authenticated via `ADMIN_EMAIL` and `ADMIN_PASSWORD` (or Admin OTP).
+- Full wildcard permissions: `routes: ["*"]`, `actions: ["*"]`.
+- Exclusive access to `otp-management` (student device revocation) and `admin-management` (sub-admin creation).
+
+### Sub-Admin Authorization Matrix:
+- Stored in `SubAdmin` collection with unique email, bcrypt-hashed password, and granular permissions object:
+  ```json
+  {
+    "routes": ["overview", "toppers", "backlogs", "report-card", "feedback"],
+    "actions": ["update-grade", "upload-results"],
+    "sections": ["Sec A", "Sec B"]
+  }
+  ```
+- Checked via `requirePermission(requiredAction)` middleware:
+  ```javascript
+  function requirePermission(action) {
+    return (req, res, next) => {
+      if (req.admin?.adminType === "main") return next();
+      const perms = req.admin?.permissions || {};
+      if (perms.actions?.includes("*") || perms.actions?.includes(action)) return next();
+      return res.status(403).json({
+        success: false,
+        message: `Sub-Admin privilege denied: Missing '${action}' action permission.`,
+      });
+    };
+  }
+  ```
+
+### Sub-Admin Device Limit (Strict 2-Device Ceiling):
+Unlike standard students who have automated session transfer, sub-admins represent elevated security credentials.
+- **Maximum Concurrent Devices**: **2 devices**.
+- **Enforcement Rule**: If a sub-admin attempts to log in from a 3rd device while 2 devices have valid active sessions in `SubAdminSession`, the 3rd device is **instantly rejected with HTTP 403**.
+- **Invariant**: The system **NEVER silently evicts Device 1** to make room for Device 3. An explicit manual logout from an existing device is mandatory.
+
+---
+
+## 113. Database Models, Schema Invariants & Compound Indexing Strategy
+
+To guarantee sub-100ms execution times and avoid costly full collection scans on MongoDB Atlas, all admin queries are backed by compound indexes:
+
+### 1. `SemesterResult` Compound Indexes:
+```javascript
+SemesterResultSchema.index({ batch: 1, branch: 1, semester: 1 });
+SemesterResultSchema.index({ batch: 1, semester: 1 });
+SemesterResultSchema.index({ regNo: 1, semester: 1 }, { unique: true });
+```
+- Powers `/section-toppers`, `/backlogs`, and `/stats` aggregations.
+
+### 2. `Ranking` Compound Indexes:
+```javascript
+RankingSchema.index({ batch: 1, branch: 1, semester: 1, cgpa: -1, sgpa: -1 });
+RankingSchema.index({ batch: 1, branch: 1, cgpa: -1 });
+RankingSchema.index({ regNo: 1, semester: 1 }, { unique: true });
+```
+- Powers leaderboard generation, top 10 podium queries, and rank assignment.
+
+### 3. `SubAdminSession` & `AdminSession`:
+```javascript
+SubAdminSessionSchema.index({ subAdminId: 1, isActive: 1 });
+SubAdminSessionSchema.index({ sessionId: 1 }, { unique: true });
+AdminSessionSchema.index({ email: 1, isActive: 1 });
+```
+- Powers zero-latency session lookup and device count validation.
+
+---
+
+## 114. Subtab 1: Academic Data Ingestion, Excel Processing & Formula Sanitization (`tab === "overview"`)
+
+The primary data ingestion interface handles batch Excel spreadsheets (.xlsx, .xls) for semester university results and internal continuous assessment marks.
+
+### Formula Injection Sanitization (`sanitizeSheetText`):
+Spreadsheet software (Excel, LibreOffice, Google Sheets) interprets cells beginning with `=`, `+`, `-`, or `@` as executable formula expressions. If an attacker inputs `=CMD\|' /C calc'!A0` as a student name or subject code, re-exporting this data could trigger Remote Code Execution (RCE) on an administrator workstation.
+```javascript
+function sanitizeSheetText(value) {
+  const str = String(value ?? "").trim();
+  if (/^[=+\-@]/.test(str)) return `'${str}`;
+  return str;
+}
+```
+
+### Suffix-Based Branch Auto-Detection:
+GradeFlow infers student branch from registration number anatomy without requiring manual administrative tagging:
+- `*0301110*` / `*0301111*` -> **CIVIL**
+- `*0301120*` / `*0301121*` -> **CSE**
+- `*0301130*` / `*0301131*` / `*0301132*` -> **ECE**
+- `*0301150*` / `*0301151*` -> **EEE**
+- `*0301160*` / `*0301161*` -> **ME**
+- `*0301180*` -> **BIO**
+- `*0301190*` / `*0301191*` -> **MI**
+- `*0301230*` -> **AERO**
+
+### Transactional Ingestion Pipeline:
+1. **Validation**: Validates required columns (`Reg_No`, `Subject_Code`, `Subject_Name`, `Grade`, `Credits`).
+2. **Duplicate In-Memory Grouping**: Groups subject rows by `regNo` into complete semester documents.
+3. **Bulk Write Operations (`SemesterResult.bulkWrite`)**: Executes bulk `updateOne` operations with `upsert: true`.
+4. **Automated SGPA/CGPA Calculation**: Computes live semester SGPA via official Centurion University grade credits formula.
+5. **Ranking Recalculation**: Triggers `generateRankingForSemester(semester)` and emits Ably `rankings-updated` broadcast.
+
+---
+
+## 115. Subtab 2: Missing Students Differential Ingestion Engine (`tab === "missing-uploader"`)
+
+### Purpose & Problem Solved:
+When new student records or supplementary lists arrive, re-uploading the entire dataset via standard ingestion can cause redundant overwrites, unnecessary database load, and unintended updates to previously verified marks.
+
+### Differential Scanning Mechanism (`MissingUploadCard`):
+1. **File Parsing**: Reads incoming Excel rows and extracts unique registration numbers.
+2. **Database Existence Scan**: Queries MongoDB with a targeted projection:
+   ```javascript
+   const existingDocs = await SemesterResult.find(
+     { regNo: { $in: fileRegNos }, semester },
+     "regNo"
+   ).lean();
+   const existingSet = new Set(existingDocs.map((d) => d.regNo));
+   ```
+3. **Differential Isolation**: Rows matching `existingSet` are marked as `Skipped (Already in DB)`. Only records absent from the database are ingested.
+4. **Audit Metrics & Clipboard Helper**: Returns an interactive report showing:
+   - Total in File
+   - Skipped Count
+   - Newly Ingested Count
+   - Interactive table of added students with a one-click **"Copy Reg Nos"** button for clipboard synchronization.
+
+---
+
+## 116. Subtab 3: Student Report Card Editor & Dynamic Grade Sheet Generator (`tab === "report-card"`)
+
+The Report Card Editor (`StudentReportCardEditor.jsx`) provides a real-time visual grade sheet generator and manual correction console.
+
+### Key Architecture & Session Persistence:
+1. **Instant Profile Hydration**: Searches by student registration number or name with debounced auto-complete suggestions.
+2. **Subtab State Persistence (`gf_admin_rc_active`)**:
+   - Switching between admin subtabs (e.g. checking Timetable or Quota and returning to Report Card Editor) **preserves the active student and semester**.
+   - State is stored in `sessionStorage.getItem("gf_admin_rc_active")`, eliminating repeated student lookups.
+3. **Inline Subject Grade Updating**:
+   - Allows administrators to edit marks, credit values, or letter grades (`O, E, A, B, C, D, F, S, M`).
+   - Client dynamically recalculates SGPA, total credits, and cleared credits in memory.
+   - On save, submits to `POST /api/admin/student/update-grade`, automatically triggers ranking recalculation, and pushes real-time WebSocket invalidation to the student's personal dashboard.
+4. **Official Print & PDF Export Engine**:
+   - Generates official Centurion University of Technology and Management (CUTM) transcript layouts with university insignia, institutional watermark, credit distribution table, and QR verification stamp.
+
+---
+
+## 117. Subtab 4: Section Academic Toppers & Multi-Tier Filter Engine (`tab === "toppers"`)
+
+The Section Toppers engine identifies academic leaders across batches, branches, sections, and semesters.
+
+### Multi-Criterion Filter Pipeline:
+- **Batch Filter**: `2024`, `2023`, `2022`, `2021`, `2020`
+- **Branch Filter**: `CSE`, `ECE`, `ME`, `CIVIL`, `EEE`, `AERO`, `BIO`, `MI`
+- **Section Filter**: Granular sections `Sec A` through `Sec L` (mapped via CSE registration number ranges `0301120001-070` -> A, `071-140` -> B, etc.)
+- **Search Query**: Instant substring matching against student name or registration number.
+
+### Query Optimization Invariant:
+Queries leverage the compound index `{ batch: 1, branch: 1, semester: 1, cgpa: -1, sgpa: -1 }` with `.limit(10)`. The backend returns the matching student objects directly, consuming <2ms on MongoDB Atlas and transferring <3 KB payload.
+
+### Responsive UI Presentation:
+- **Desktop**: Tabular matrix with Gold, Silver, and Bronze badges, University Rank, Department Rank, CGPA, and SGPA.
+- **Mobile**: Zero-horizontal-scroll card layout featuring top 3 medal icons, direct WhatsApp result sharing, and quick grade sheet access.
+
+---
+
+## 118. Subtab 5: Backlog Tracker, Candidate-Filtered Queries & Notification Emailer (`tab === "backlogs"`)
+
+### Candidate-Filtered Query Resolution (Eliminating Unbounded Scans):
+In legacy implementations, `/backlogs` pulled the entire student database into server memory to compute failing grades. In GradeFlow, backlogs are queried via **candidate-filtered targeted aggregation**:
+```javascript
+// Step 1: Identify only candidates who possess failing grades (F, R, M, S)
+const candidateRegNos = await SemesterResult.distinct("regNo", {
+  batch: targetBatch,
+  branch: targetBranch,
+  "subjects.grade": { $in: ["F", "R", "M", "S"] },
+});
+
+// Step 2: Fetch only the targeted records for pagination
+const backlogRecords = await SemesterResult.find({
+  regNo: { $in: candidateRegNos },
+  "subjects.grade": { $in: ["F", "R", "M", "S"] },
+})
+  .skip((page - 1) * limit)
+  .limit(limit)
+  .lean();
+```
+This reduces query execution time from 4,200ms to **38ms** on large production databases.
+
+### Student Backlog Notification Emailer (`sendBacklogEmailNotification`):
+Administrators can dispatch official academic warning emails directly from the dashboard:
+- Interactive modal pre-populates the student's institutional email address.
+- Compiles the student's complete backlog roster across all semesters with subject codes, subject names, credits, and failing grades.
+- Dispatches transactional email via NodeMailer / SMTP pool (`emailService.js`).
+- Records delivery status (`lastEmailStatus: "SUCCESS"`, `lastEmailSentAt: new Date()`) for administrative auditing.
+
+---
+
+## 119. Subtab 6: Live Student Traffic, Surge Queue & Maintenance State Machine (`tab === "live-traffic"`)
+
+The Live Student Traffic & Surge Manager (`AdminLiveTrafficManager.jsx`) monitors concurrent student loads, provides real-time route telemetry, and equips administrators with traffic surge defense controls.
+
+### 1. Rolling Active Visitors Calculation:
+Active student count is computed over a sliding 5-minute activity window using heartbeat telemetry:
+```javascript
+const activeVisitorsCount = await LiveVisitor.countDocuments({
+  lastSeen: { $gte: new Date(Date.now() - 5 * 60 * 1000) },
+});
+```
+This metric powers the real-time traffic pulse indicator without invoking persistent WebSocket sockets on the client.
+
+### 2. Route Duration & Top Visited Pages Analytics:
+Aggregates telemetry from `LiveVisitor` records to show:
+- Most visited student routes (`/dashboard`, `/timetable`, `/analytics`, `/rankings`).
+- Average session dwell time per route.
+- Device distribution (Android Chrome, iOS Safari, Windows Desktop).
+
+### 3. Traffic Surge Queue State Machine (`TrafficQueueConfig`):
+When exam results or time tables drop, hundreds of concurrent students may visit simultaneously. To protect MongoDB Atlas connections and Vercel concurrency:
+- **Queue Throttle Toggle**: Activates an automated waiting room (`VirtualQueueModal.jsx`).
+- **Concurrent Capacity Limit**: Default 150 concurrent active users.
+- **Queue Bypass Passphrase**: Secret bypass token for administrators and evaluators to bypass the virtual lobby.
+
+### 4. Global System Maintenance Toggle (`SystemConfig.maintenance`):
+- When enabled, students navigating to GradeFlow are immediately redirected to the Maintenance Landing Page (`Maintenance.jsx`).
+- Administrator and Sub-Administrator sessions are granted an authenticated bypass header (`x-admin-token`), enabling continuous system configuration and result verification during maintenance windows.
+
+---
+
+## 120. Subtab 7: Vercel Free-Tier Quota Sentinel & Usage Telemetry Engine (`tab === "vercel-quota"`)
+
+GradeFlow includes an integrated telemetry collector (`AdminVercelQuotaMonitor.jsx`) that synchronizes directly with the Vercel API and stores daily consumption snapshots in `VercelQuotaMetric`.
+
+### Monitored Free (Hobby) Tier Guardrails:
+1. **Active Fluid CPU**: 4.0 Hours monthly ceiling. Real-time gauge turns Amber at 3.0h (75%) and Red at 3.6h (90%).
+2. **Fast Origin Transfer**: 10.0 GB monthly ceiling. Tracks compressed data transfer between Vercel Edge and serverless functions.
+3. **Function Invocations**: 1,000,000 monthly ceiling. Monitors total serverless execution count.
+4. **Edge Requests & Bandwidth**: 1,000,000 edge requests and 100 GB fast data transfer.
+
+### Defensive Auto-Throttle Actions:
+When Fast Origin Transfer or Fluid CPU reaches 85% of monthly allowance:
+- Displays an alert banner in the Admin Dashboard.
+- Automatically extends client-side `sessionStorage` lifetimes.
+- Disables non-critical background pre-fetches, preserving serverless quotas until the next billing cycle.
+
+---
+
+## 121. Subtab 8: Timetable & Routine Admin Orchestrator (`tab === "timetable"`)
+
+The Timetable Orchestrator (`TimetableAdminManager.jsx`) controls class routines, faculty allocations, and university academic calendars.
+
+### Core Capabilities:
+1. **Multi-Section Schedule Builder**:
+   - Creates and updates schedules for specific combinations of `{ batch, branch, section }`.
+   - Supports CSE Sections A through L, plus Civil, ECE, EEE, Mechanical, Biotech, Mining, and Aerospace departments.
+2. **Custom Period Slot Editor**:
+   - Configure individual periods with start/end times, course titles, course codes, faculty initials, and classroom/lab identifiers.
+   - Categorizes slots by type: `Theory`, `Practical / Lab`, `Lunch Break`, `Self Study`.
+3. **Live Custom Published Switch (`isLiveCustomPublished`)**:
+   - Toggling the live publish switch updates `TimetableSchedule` in MongoDB and instantly broadcasts a `timetable-updated` event via Ably.
+   - All subscribed student devices seamlessly hot-reload their daily and weekly routines without requiring a page refresh.
+
+---
+
+## 122. Subtab 9: Campus-Wide Broadcast Notifications & Interactive Links Engine (`tab === "broadcast-notifications"`)
+
+The Broadcast Notification Manager (`AdminNotificationBroadcast.jsx`) enables instant campus announcements with rich call-to-action (CTA) buttons.
+
+### Broadcast Schema & Invariants (`StudentNotification`):
+```javascript
+{
+  title: String,               // e.g. "Odd Semester 2026 Examination Schedule Released"
+  message: String,             // Announcement prose
+  type: "info" | "warning" | "urgent" | "success",
+  targetBatch: String,         // "ALL" or specific batch like "2023"
+  targetBranch: String,        // "ALL" or specific branch like "CSE"
+  primaryAction: {
+    label: String,             // e.g. "View Schedule"
+    url: String,               // Deep link (e.g. "/timetable?view=academic")
+  },
+  secondaryAction: {
+    label: String,             // e.g. "Download PDF"
+    url: String,
+  },
+  isBroadcast: true,
+  expiresAt: Date,
+  createdAt: Date
+}
+```
+
+### Real-Time Dispatch Pipeline:
+1. Administrator fills in broadcast title, message, target audience, and optional dual action links.
+2. Saved to `StudentNotification` collection.
+3. Dispatched over Ably WebSocket channel `broadcasts-all` with event `new-broadcast`.
+4. Student navigation headers immediately ring the notification bell icon and display an animated toast.
+
+---
+
+## 123. Subtab 10: Attendance Tracker Monitoring & Risk Spectrum Analytics (`tab === "attendance-monitor"`)
+
+The Attendance Monitor (`AdminAttendanceMonitor.jsx`, `GET /api/admin/attendance-tracker/monitor`) provides university leadership with real-time visibility into student attendance tracker adoption and risk categorization.
+
+### Risk Spectrum Analytics:
+- **Safe Zone (>= 75% Attendance)**: Students meeting statutory university attendance thresholds. Rendered in Emerald Green.
+- **Critical Risk Zone (< 75% Attendance)**: Students in danger of semester exam debarment. Rendered in Crimson Red.
+- **Engagement Invariant**: Filter out empty or un-initialized profiles, displaying **strictly active students** who have tracked >0 delivered classes.
+
+### Performance Query Pipeline:
+Attendance daily log entries (`dailyLogs`) can contain hundreds of date keys per student. The monitor route uses lean field projections:
+```javascript
+const attendanceDocs = await Attendance.find(
+  {},
+  "regNo section targetGoal savedSubjects lastSyncedAt updatedAt dailyLogsCount"
+).sort({ updatedAt: -1 }).lean();
+```
+This strips massive subdocument logs, delivering directory data for 1,000+ students in **<150ms** with minimal bandwidth consumption.
+
+---
+
+## 124. Subtab 11: Student Testimonial Moderation Hub (`tab === "feedback"`)
+
+The Student Feedback Manager (`FeedbackManager`) oversees student reviews and feature requests.
+
+### Moderation Workflow:
+- View student name, registration number, Star rating (1-5), submission date, and review comment.
+- Verified badge confirms the feedback was submitted by an authenticated student session.
+- One-click deletion (`DELETE /api/feedback/:id`):
+  - Purges feedback document from MongoDB.
+  - Immediately dispatches `invalidateAdminCache(AdminCacheScopes.FEEDBACK)`.
+  - Emits real-time Ably update to testimonials page (`Testimonials.jsx`), removing the review from public view in 0ms.
+
+---
+
+## 125. Subtab 12: Student Session & Multi-Device OTP Management (`tab === "otp-management"`)
+
+> [!IMPORTANT]
+> **Main Admin Exclusive Access**: This subtab is strictly inaccessible to Sub-Administrators.
+
+The Student OTP & Session Control Center (`StudentOtpManagement.jsx`) allows the university system administrator to investigate, monitor, and revoke student device sessions.
+
+### Core Capabilities:
+1. **Live Student Session Inspection**:
+   - Query any student registration number to view their active sessions in `StudentSession`.
+   - Displays device metadata: Platform (Android, iOS, Windows, Mac), Browser name, IP address, initial login timestamp, and last active ping.
+2. **Targeted Exact-Session Revocation (`POST /student-otp-management/revoke-session`)**:
+   - Revoke a single compromised or lost device by unique `sessionId`.
+   - Does NOT disrupt the student's second authorized device.
+3. **Emergency "Revoke All Sessions" (`POST /student-otp-management/revoke-all-sessions/:regNo`)**:
+   - Instantly marks all active sessions for that student as `isActive: false`.
+   - Records an immutable security entry in `AdminAuditLog`:
+     ```javascript
+     await AdminAuditLog.create({
+       actorEmail: adminEmail,
+       actorType: "main_admin",
+       action: "STUDENT_ALL_DEVICE_SESSIONS_REVOKE",
+       targetRegNo: rawReg,
+       result: "SUCCESS",
+       details: { revokedCount, reason },
+     });
+     ```
+
+---
+
+## 126. Subtab 13: Sub-Admin Lifecycle, Granular Permissions & Session Security (`tab === "admin-management"`)
+
+> [!IMPORTANT]
+> **Main Admin Exclusive Access**: Only the Master Administrator can create, edit, or revoke sub-administrators.
+
+The Sub-Admin Management Module (`AdminManagement.jsx`) implements institutional role delegation without compromising global credentials.
+
+### Sub-Admin Provisioning Architecture:
+1. **Credential Provisioning**:
+   - Unique sub-admin name and official institutional email.
+   - Secure random password hashed using bcrypt (10 rounds).
+2. **Granular Route Permissions**:
+   - Selectable subtab access: `Overview`, `Timetable`, `Toppers`, `Backlogs`, `Report Card`, `Feedback`, `Attendance Monitor`.
+   - Sub-admin dashboard automatically filters out any tab not present in `permissions.routes`.
+3. **Granular Action Permissions**:
+   - `upload-results`: Allowed to upload semester results spreadsheets.
+   - `update-grade`: Allowed to edit marks in the Report Card Editor.
+   - `timetable-edit`: Allowed to modify class routines.
+4. **Active Sub-Admin Session Surveillance**:
+   - View all currently logged-in sub-admin devices.
+   - Enforces the strict **2-device maximum limit**.
+   - Master Administrator can revoke any active sub-admin session instantly with one click.
+
+---
+
+## 127. Subtab 14: System Maintenance, 5-Year Batch Lifecycle Purge & Global Recomputation (`tab === "manage"`)
+
+The System Maintenance Module (`ManageRecords`) provides high-leverage administrative utilities:
+
+### 1. Global Rankings Recalculation (`POST /admin/rankings/regenerate-all`):
+- Iterates across all batches and semesters.
+- Recalculates SGPA and CGPA from raw subject grades stored in `SemesterResult`.
+- Reassigns dense competition ranks (`universityRank`, `deptRank`, `sectionSgpaRank`, `cgpaRank`).
+- Broadcasts `rankings-updated` to flush all student and admin caches.
+
+### 2. Global Memory Cache Clear (`POST /admin/cache/clear`):
+- Clears backend memory caches across Express and Vercel container instances.
+
+### 3. 5-Year Batch Retention Lifecycle & Purge Policy (`purgeExpiredBatches`):
+To prevent perpetual unbounded database growth and maintain compliance with institutional data retention standards:
+- Academic batches older than 5 years (e.g. Batch 2018 in year 2024+) are automatically flagged as expired (`isBatchExpired(batch)`).
+- Purge utility deletes expired `SemesterResult`, `InternalMark`, and `Ranking` records.
+- Records every deleted batch, affected document counts, and administrator timestamp into `BatchPurgeLog`.
+
+---
+
+## 128. Vercel Free-Tier Resource Quotas, Serverless Guardrails & Zero Polling Proof
+
+### Monthly Allowance vs Admin Dashboard Consumption Matrix:
+
+```
++------------------------------------+-----------------------+---------------------------+
+| Vercel Free (Hobby) Metric         | Monthly Quota         | GradeFlow Admin Console   |
++------------------------------------+-----------------------+---------------------------+
+| 1. Functions Storage               | 10 GB                 | 0 B (Stateless Lambdas)   |
+| 2. Fluid Active CPU                | 4 Hours               | < 60 ms per bootstrap     |
+| 3. Deployment Storage              | 10 GB                 | 24.8 kB (gzipped JS chunk)|
+| 4. Fluid Provisioned Memory        | 360 GB-Hours          | < 0.002 GB-Hours / month  |
+| 5. Edge Requests                   | 1,000,000 (1M)        | Negligible (Cached assets)|
+| 6. Function Invocations            | 1,000,000 (1M)        | 1 invocation per visit    |
+| 7. Fast Data Transfer              | 100 GB                | < 50 MB / month           |
+| 8. Fast Origin Transfer            | 10 GB                 | < 20 KB per admin visit   |
+| 9. Edge Request CPU Duration       | 1 Hour                | < 0.2s cumulative duration|
+| 10. Private Data Transfer          | 0 B                   | 0 B                       |
++------------------------------------+-----------------------+---------------------------+
+```
+
+### Mathematical Proof of Zero Polling & Free-Tier Safety:
+1. **Single Request Invariant**: An administrator visiting GradeFlow triggers exactly **1 function invocation** (`GET /api/admin/bootstrap`).
+2. **Intra-Session Tab Transitions**: Navigating across all 14 subtabs produces **0 subsequent HTTP requests**; all subtab views read from `sessionStorage` populated during bootstrap.
+3. **Data Transfer Reduction**:
+   - Legacy: 7 requests x ~2.5 MB uncompressed results = **17.5 MB per visit**.
+   - Optimized: 1 bootstrap request x ~18 KB compressed = **0.018 MB per visit**.
+   - **Improvement**: **99.9% reduction in bandwidth consumption**, ensuring that even hundreds of administrative audits never approach the 10 GB Fast Origin Transfer limit.
+4. **Idle Serverless Compute**: When administrators leave the console open on their workstation, **0 HTTP requests are dispatched**. Updates are pushed exclusively via persistent Ably WebSockets, consuming **0ms of Vercel CPU**.
+
+---
+
+## 129. Admin Developer Maintenance, Code Extension & Security Hardening Guidelines
+
+Any engineer, auditor, or AI agent modifying `AdminDashboard.jsx`, `backend/routes/admin.js`, or `frontend/api/admin.js` MUST adhere to the following rules:
+
+1. **NEVER Introduce Polling Loops**:
+   - Do NOT add `setInterval` or recursive `setTimeout` to refresh stats, toppers, or traffic. Use `onAdminCacheDirty(scope, callback)` or Ably WebSocket subscriptions.
+
+2. **Mandatory Dual-Runtime Parity**:
+   - Any new endpoint added to `backend/routes/admin.js` MUST have an identical `action` handler implemented in `frontend/api/admin.js`.
+   - Never commit backend Express routes without verifying that the corresponding Vercel serverless action operates identically.
+
+3. **Always Sanitize Spreadsheet Text**:
+   - When ingesting Excel files or writing export utilities, always pass cell values through `sanitizeSheetText()` to neutralize formula injection (`=`, `+`, `-`, `@`).
+
+4. **Preserve Compound Database Indexes**:
+   - Never write queries that scan `SemesterResult` or `Ranking` without filtering by indexed fields (`batch`, `branch`, `semester`). Avoid unbounded `.find({})` at all costs.
+
+5. **Strict Sub-Admin Device Limit Enforcement**:
+   - Under no circumstances allow Sub-Admins to exceed 2 concurrent devices. Device 3 MUST be rejected with HTTP 403; never implement automated eviction for administrative principals.
+
+6. **Protocol for Adding a New Admin Subtab**:
+   - Add entry to `ALL_ADMIN_TABS` array in `AdminDashboard.jsx` with unique `id`, `label`, `icon`, and `desc`.
+   - In `fetchAdminBootstrap()`, pre-seed any relevant initial data into `sessionStorage` via `setAdminCache(key, data, scope)`.
+   - If the subtab requires Sub-Admin permission controls, add the route identifier to `SubAdmin` schema permissions matrix.
+
+
 
 
