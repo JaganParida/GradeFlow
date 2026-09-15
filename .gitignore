@@ -42,6 +42,7 @@ scratch/
 *.traineddata
 backend/scripts/
 
-
-.vercel
-.env*
+# Spreadsheets & Data Files (prevent student records leakage)
+*.xlsx
+*.xls
+*.csv
