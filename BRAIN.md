@@ -71,6 +71,22 @@
 50. [AI Vision ERP Screenshot OCR Scanner (`AttendanceScreenshotModal`)](#50-ai-vision-erp-screenshot-ocr-scanner-attendancescreenshotmodal)
 51. [Attendance Developer Maintenance & Extension Guidelines](#51-attendance-developer-maintenance--extension-guidelines)
 
+### Part V: Analytics Engine, Performance Intelligence, Caching & Architectural Specification
+52. [Analytics Architecture & Zero-Request Intra-Session Caching](#52-analytics-architecture--zero-request-intra-session-caching)
+53. [URL Obfuscation, Cryptographic Token Normalization & Redirection Guards](#53-url-obfuscation-cryptographic-token-normalization--redirection-guards)
+54. [Academic Health Score & Dynamic Trajectory Computation Engine](#54-academic-health-score--dynamic-trajectory-computation-engine)
+55. [Branch Detection & Curriculum Categorization Algorithms](#55-branch-detection--curriculum-categorization-algorithms)
+56. [Subtab 1: Performance Trajectory & Momentum Analytics (`tab === "overview"`)](#56-subtab-1-performance-trajectory--momentum-analytics-tab--overview)
+57. [Subtab 2: Grade Distribution & Interactive Course Explorer (`tab === "grades"`)](#57-subtab-2-grade-distribution--interactive-course-explorer-tab--grades)
+58. [Subtab 3: Placement Readiness & Corporate Eligibility Engine (`tab === "placement"`)](#58-subtab-3-placement-readiness--corporate-eligibility-engine-tab--placement)
+59. [Subtab 4: Subject Mastery Radar & Curriculum Dominance Matrix (`tab === "mastery"`)](#59-subtab-4-subject-mastery-radar--curriculum-dominance-matrix-tab--mastery)
+60. [Subtab 5: CGPA Goal Predictor & Graduation Ceiling Engine (`tab === "predictor"`)](#60-subtab-5-cgpa-goal-predictor--graduation-ceiling-engine-tab--predictor)
+61. [Subtab 6: What-If Simulation Lab & Real-Time Impact Projection (`tab === "whatif"`)](#61-subtab-6-what-if-simulation-lab--real-time-impact-projection-tab--whatif)
+62. [Client Render Performance & Memoization Blueprint (`useMemo` & Animated UI)](#62-client-render-performance--memoization-blueprint-usememo--animated-ui)
+63. [Vercel Free Tier Quota Invariants & Serverless Optimization](#63-vercel-free-tier-quota-invariants--serverless-optimization)
+64. [Real-Time Result Invalidation & WebSocket Ably Pipeline](#64-real-time-result-invalidation--websocket-ably-pipeline)
+65. [Analytics Developer Maintenance & Extension Guidelines](#65-analytics-developer-maintenance--extension-guidelines)
+
 ---
 
 # PART I: AUTHENTICATION, MULTI-DEVICE SESSIONS & SECURITY
@@ -1894,4 +1910,513 @@ Any engineer, auditor, or AI agent modifying or extending the attendance subsyst
 
 5. **Dual-Runtime Parity Invariant:**
    - Any schema changes or endpoint modifications in `frontend/api/student.js` must be replicated in `backend/routes/student.js`.
+
+---
+
+# PART V: ANALYTICS ENGINE, PERFORMANCE INTELLIGENCE, CACHING & ARCHITECTURAL SPECIFICATION
+
+---
+
+## 52. Analytics Architecture & Zero-Request Intra-Session Caching
+
+GradeFlow's Analytics Engine (`frontend/src/pages/Analytics.jsx`) provides deep academic diagnostics, GPA forecasting, placement eligibility audits, and curriculum mastery matrices. The system is engineered to operate strictly within the bounds of Vercel Serverless Free Tier limitations by decoupling visual intelligence from server computational overhead.
+
+```
++-----------------------------------------------------------------------------------------------+
+|                                  DATA LIFECYCLE IN ANALYTICS                                  |
++-----------------------------------------------------------------------------------------------+
+| 1. Initial Page Entry:                                                                        |
+|    AppContext.studentData  ──(Available in Memory)──> Direct Hydration (0ms, 0 Network)       |
+|    Fallback: sessionStorage["gf_student_profile_{cleanReg}"] ──> Instant Load (0ms)           |
+|                                                                                               |
+| 2. Intra-Session Navigation:                                                                  |
+|    Subtab Switching (Overview <-> Grades <-> Placement <-> Mastery <-> Predictor <-> WhatIf)  |
+|    ===> 100% Client-Side React State & useSearchParams ('?tab=...')                           |
+|    ===> ZERO Network Requests | ZERO Serverless Invocations | ZERO Database Queries           |
+|                                                                                               |
+| 3. Cross-Page Navigation:                                                                     |
+|    Timetable <──> Dashboard <──> Attendance <──> Analytics                                    |
+|    ===> Shared AppContext Student Profile Cache                                               |
+|    ===> ZERO Duplicate GET /api/student Requests                                             |
+|                                                                                               |
+| 4. Hard Refresh (F5):                                                                         |
+|    Instant SessionStorage Render ──> Background Conditional Fetch with If-None-Match: <ETag>  |
+|    ===> Server responds HTTP 304 Not Modified (~1ms runtime, 0 Mongo queries, 0 payload bytes)|
+|                                                                                               |
+| 5. Real-Time Invalidation:                                                                    |
+|    No Polling Loops (setInterval = 0). Updates pushed via Ably: "gradeflow:results-updated"   |
++-----------------------------------------------------------------------------------------------+
+```
+
+### Core Architectural Invariants:
+1. **Zero Intra-Session Network Fetching**: Once a student record is hydrated in `AppContext`, switching between any of the 6 subtabs (`overview`, `grades`, `placement`, `mastery`, `predictor`, `whatif`) executes completely in client memory. No API routes or external services are called.
+2. **Deterministic Pre-Hydration**: The component lazily verifies `regNo && (!studentData || studentData.regNo !== regNo)`. If the student profile is already in memory, `fetchStudent(regNo)` is never called.
+3. **Zero Polling Principle**: The analytics page contains zero `setInterval`, `setTimeout` loops, or background polling workers. Real-time updates rely exclusively on reactive Ably WebSocket events.
+4. **Instant First Paint**: By pairing `AppContext` memory state with `sessionStorage` fallback, the analytics interface renders in under 5ms with zero layout shift, completely bypassing server roundtrips.
+
+---
+
+## 53. URL Obfuscation, Cryptographic Token Normalization & Redirection Guards
+
+All student routes in GradeFlow mandate privacy-preserving obfuscation to prevent sequential scrapers or URL-based snooping on public terminals.
+
+### Cryptographic Token Mechanics (`studentIdEncoder.js`):
+- **Raw Registration Numbers** (e.g. `230301120000`) are encrypted into base64url XOR-masked strings prefixed with `GF8_` (e.g. `GF8_k7X2m9A...`).
+- When accessing `/analytics/:regNo`, the param is evaluated via `decodeStudentId(paramRegNo)`.
+
+### Redirection Loop Prevention Engine:
+```javascript
+// Analytics.jsx
+useEffect(() => {
+  if (decodedRegNo && paramRegNo && !isEncryptedToken(paramRegNo)) {
+    const query = location.search || "";
+    const hash = location.hash || "";
+    navigate(`/analytics/${encodeStudentId(decodedRegNo)}${query}${hash}`, { replace: true });
+  }
+}, [paramRegNo, decodedRegNo, navigate, location.search, location.hash]);
+```
+- **The Guard Invariant**: If a student or browser bookmark enters the raw registration number directly, the router transparently normalizes the URL to the obfuscated token with `{ replace: true }`.
+- **Recursion Terminator**: `isEncryptedToken(paramRegNo)` ensures that once normalized, no secondary navigation is triggered, preventing browser call-stack exhaustion.
+- **Query & Hash Preservation**: Any existing query parameters (such as `?tab=whatif`) or URL hashes are maintained across the replace transition.
+
+### Dynamic Tab & Hash Resolution:
+The engine provides an alias resolution function `resolveTab(raw)` to maintain 100% backwards compatibility with old links, external bookmarks, or search query parameters:
+
+| Input Alias / Hash / Query | Resolved Internal State | Target Subtab |
+| :--- | :--- | :--- |
+| `trajectory`, `overview`, `comparescores`, `compare`, `scores` | `"overview"` | Performance Trajectory |
+| `grades`, `distribution` | `"grades"` | Grade Distribution |
+| `placement`, `companies`, `placementinsights` | `"placement"` | Placement & Companies |
+| `mastery`, `subjects`, `subjectmastery`, `insights` | `"mastery"` | Subject Mastery & Insights |
+| `predictor`, `goal`, `gpapredictor`, `gpa-predictor` | `"predictor"` | CGPA Goal Predictor |
+| `whatif`, `simulator`, `what-if`, `simulation` | `"whatif"` | What-If Simulator |
+| *Unknown / Null / Empty* | `"overview"` | Default Safe Fallback |
+
+---
+
+## 54. Academic Health Score & Dynamic Trajectory Computation Engine
+
+### 1. Academic Health Score Algorithm (0–100 Scale)
+The Academic Health Score ($S_{\text{health}}$) provides an immediate heuristic index of a student's scholastic standing. It evaluates cumulative CGPA, recent momentum, backlog status, and credit clearance:
+
+$$S_{\text{health}} = \min(5 \times \text{CGPA}, 50) + \min(2 \times \text{SGPA}_{\text{latest}}, 20) + S_{\text{backlog}} + S_{\text{clearance}}$$
+
+Where:
+- **CGPA Pillar (Max 50 pts)**: $\min(\text{CGPA} \times 5, 50)$ — Rewards sustained multi-semester performance (a CGPA of 10.0 yields full 50 points).
+- **Latest SGPA Pillar (Max 20 pts)**: $\min(\text{SGPA}_{\text{latest}} \times 2, 20)$ — Rewards current-semester velocity.
+- **Backlog Penalty Pillar (Max 20 pts)**:
+  $$S_{\text{backlog}} = \begin{cases} 20 & \text{if } N_{\text{backlogs}} = 0 \\ \max(0, 20 - 5 \times N_{\text{backlogs}}) & \text{if } N_{\text{backlogs}} > 0 \end{cases}$$
+- **Course Clearance Pillar (Max 10 pts)**:
+  $$S_{\text{clearance}} = \begin{cases} 10 & \text{if Total Graded Subjects} > 0 \\ 0 & \text{otherwise} \end{cases}$$
+
+```javascript
+const academicHealthScore = useMemo(() => {
+  if (studentData?.academicHealthScore !== undefined && studentData?.academicHealthScore !== null) {
+    return studentData.academicHealthScore;
+  }
+  let score = 0;
+  score += Math.min(cgpa * 5, 50);
+  score += Math.min((latestSgpa || 0) * 2, 20);
+  score += backlogs.length === 0 ? 20 : Math.max(0, 20 - backlogs.length * 5);
+  const totalSubjects = results.reduce((a, r) => a + (r.subjects || []).length, 0);
+  score += Math.min(10, totalSubjects > 0 ? 10 : 0);
+  return Math.round(Math.min(score, 100));
+}, [studentData?.academicHealthScore, cgpa, latestSgpa, backlogs.length, results]);
+```
+
+#### Health Status Thresholds:
+- **Score $\ge 90$**: *"Excellent Standing"* — Emerald `#16a34a`
+- **Score $\ge 75$**: *"Good Standing"* — Royal Blue `#2563eb`
+- **Score $\ge 60$**: *"Average Standing"* — Amber `#d97706`
+- **Score $< 60$**: *"Needs Attention"* — Crimson `#dc2626`
+
+---
+
+### 2. Automated Smart Insights Engine (`generateInsights`)
+`generateInsights(studentData)` processes academic history through rule-based inference heuristics:
+
+1. **Velocity / Momentum Tracking**:
+   - Compares latest semester SGPA with penultimate semester SGPA: $\Delta = \text{SGPA}_n - \text{SGPA}_{n-1}$.
+   - If $\Delta > 0$: Emits positive trajectory insight with exact improvement figure.
+   - If $\Delta < 0$: Emits cautionary advisory highlighting high-credit course focus.
+2. **Peak Semester Identification**:
+   - Scans all completed semesters to determine maximum SGPA peak and reports the benchmark semester.
+3. **Distinction Standing**:
+   - If $\text{CGPA} \ge 8.5$: Flags High-Distinction standing above department benchmark.
+4. **Remedial & Backlog Auditing**:
+   - If backlogs $= 0$: Emits clearance certificate badge.
+   - If backlogs $> 0$: Flags exact backlog count with urgent remedial exam cycle recommendations.
+5. **Competitive Institutional Ranking**:
+   - University Rank $\le 10$: Highlights institutional elite badge.
+   - Department Rank $\le 5$: Highlights department top-5 leadership badge.
+6. **Semester Honours Eligibility**:
+   - If $\text{SGPA}_{\text{latest}} \ge 9.0$: Grants Academic Excellence Honours notice.
+
+---
+
+## 55. Branch Detection & Curriculum Categorization Algorithms
+
+### 1. Dynamic Branch Detection (`getDynamicBranch`)
+Universities frequently encounter lateral entries, departmental transfers, and edge-case registration numbers where database branch fields may be generic or blank. The engine performs deterministic branch classification:
+
+```javascript
+function getDynamicBranch(regNo, fallbackBranch) {
+  if (!regNo) return fallbackBranch;
+  const r = String(regNo).trim();
+
+  // 1. Direct Explicit Overrides (Lateral Entries & Institutional Adjustments)
+  if (r === "230301180026") return "CSE";
+  if (["230301120110", "230301120186", "230301120371", "230301120481"].includes(r)) return "ECE";
+  if (r === "230301231033") return "AERO";
+
+  // 2. BPUT Standard Branch Prefix Invariants
+  if (r.startsWith("230301110") || r.startsWith("230301111")) return "CIVIL";
+  if (r.startsWith("230301120") || r.startsWith("230301121")) return "CSE";
+  if (r.startsWith("230301130") || r.startsWith("230301131") || r.startsWith("230301132")) return "ECE";
+  if (r.startsWith("230301150") || r.startsWith("230301151")) return "EEE";
+  if (r.startsWith("230301160") || r.startsWith("230301161")) return "ME";
+  if (r.startsWith("230301180")) return "BIO";
+  if (r.startsWith("230301190") || r.startsWith("230301191")) return "MI";
+  if (r.startsWith("230301230")) return "AERO";
+
+  return fallbackBranch || "-";
+}
+```
+
+---
+
+### 2. Robust Curriculum Categorization (`getSubjectCurriculumCategory`)
+Courses are dynamically classified into 3 structural pillars to feed the Subject Mastery Radar and Grade Analytics:
+
+1. **Project Work (`"project"`)**:
+   - `type` contains: `TUT`, `TUTORIAL`, `PROJECT`, `PROJ`, `PW`.
+   - `subName` contains: `PROJECT`, `CAPSTONE`, `INTERNSHIP`, `DISSERTATION`.
+2. **Practicals & Laboratory Work (`"practical"`)**:
+   - `type` contains: `PR`, `PRACTICAL`, `PRACTICALS`, `PRACTICE`, `LAB`, `LABS`, `SESSIONAL`, `PRAC`, `P`.
+   - `subName` ends with or contains: ` LAB`, ` LABORATORY`, ` PRACTICAL`.
+3. **Theory Courses (`"theory"`)**:
+   - Default classification covering lecture courses (`PP`, `THEORY`, `TH`, `T+P`).
+
+**Defensive Null-Safety**: The function accepts default parameter `subject = {}` and safely coerces missing properties with optional chaining, ensuring zero runtime crashes even on malformed or legacy syllabus objects.
+
+---
+
+## 56. Subtab 1: Performance Trajectory & Momentum Analytics (`tab === "overview"`)
+
+The Performance Trajectory subtab serves as the master overview of academic progression across all evaluated semesters.
+
+```
++-----------------------------------------------------------------------------------------------+
+|                               SUBTAB 1: PERFORMANCE TRAJECTORY                                |
++-----------------------------------------------------------------------------------------------+
+| [ HERO METRIC CARDS ]                                                                         |
+| 1. Cumulative CGPA (Framer AnimatedNumber)  2. Latest SGPA & Semester Delta                   |
+| 3. Academic Health Score (0-100 Gauge)      4. Total Cleared Credits vs Required Total        |
+|                                                                                               |
+| [ RECHARTS DUAL TRAJECTORY VISUALIZATION ]                                                    |
+| - SGPA Trend Line (Smooth Blue Curve with Data Dots)                                          |
+| - Cumulative CGPA Line (Emerald Curve showing multi-sem stabilization)                         |
+| - Reference Lines: Distinction Threshold (8.50) & First Class (7.50)                          |
+|                                                                                               |
+| [ SEMESTER MOMENTUM TABLE ]                                                                   |
+| Sem | SGPA  | Cumulative CGPA | Velocity (Δ) | Credits | Academic Standing                    |
+| Sem 1| 8.42 | 8.42            | Baseline     | 22.0    | First Class                          |
+| Sem 2| 8.95 | 8.68            | +0.53        | 22.0    | Distinction                          |
+|                                                                                               |
+| [ CONTEXTUAL INSIGHT DRAWER ]                                                                 |
+| Rule-generated cards: Trajectory trend, Honours eligibility, Peak sem, Remedial alerts.       |
++-----------------------------------------------------------------------------------------------+
+```
+
+### Key Technical Implementations:
+1. **Framer Motion Animated Number**: Numerical values (CGPA, SGPA) animate via canvas interpolation on load with an unmount cleanup handler (`return controls.stop`) to prevent React state leaks.
+2. **Dual-Series Coordinate Plotting**:
+   ```javascript
+   const chartData = useMemo(() => {
+     if (!studentData || !results.length) return [];
+     return results.map((r, i) => ({
+       sem: `Sem ${r.semester}`,
+       SGPA: typeof r.sgpa === "number" ? r.sgpa : parseFloat(calcSGPA(r.subjects, r.semester).toFixed(2)),
+       CGPA: calcCGPAUpTo(results, i),
+     }));
+   }, [studentData, results]);
+   ```
+3. **Momentum Delta**: For semester $i$, $\Delta_i = \text{SGPA}_i - \text{SGPA}_{i-1}$. Positive values render in green with up-arrows; declines render in amber.
+
+---
+
+## 57. Subtab 2: Grade Distribution & Interactive Course Explorer (`tab === "grades"`)
+
+Provides an exhaustive audit of letter grades earned throughout the degree program.
+
+### Grade Meta Configuration:
+```javascript
+const GRADE_META = {
+  O: { pts: 10, label: "Outstanding", color: "#b45309", bg: "#fef3c7", border: "#fde68a" },
+  E: { pts: 9,  label: "Excellent",   color: "#15803d", bg: "#dcfce7", border: "#bbf7d0" },
+  A: { pts: 8,  label: "Very Good",   color: "#1d4ed8", bg: "#dbeafe", border: "#bfdbfe" },
+  B: { pts: 7,  label: "Good",        color: "#7e22ce", bg: "#f3e8ff", border: "#e9d5ff" },
+  C: { pts: 6,  label: "Fair",        color: "#c2410c", bg: "#ffedd5", border: "#fed7aa" },
+  D: { pts: 5,  label: "Pass",        color: "#475569", bg: "#f1f5f9", border: "#cbd5e1" },
+  F: { pts: 2,  label: "Fail",        color: "#b91c1c", bg: "#fee2e2", border: "#fecaca" },
+  R: { pts: 0,  label: "Repeat",      color: "#dc2626", bg: "#fef2f2", border: "#fca5a5" },
+  S: { pts: 0,  label: "Absent",      color: "#dc2626", bg: "#fef2f2", border: "#fca5a5" },
+  M: { pts: 0,  label: "Malpractice", color: "#dc2626", bg: "#fef2f2", border: "#fca5a5" },
+};
+```
+
+### Analytical Capabilities:
+1. **Honours Grade Ratio**:
+   $$\text{Honours Ratio} = \frac{\sum \text{Count}(O) + \text{Count}(E) + \text{Count}(A)}{\text{Total Graded Subjects}} \times 100$$
+2. **Frequency Histogram**: Recharts `BarChart` displaying letter grade frequencies with customized SVG bar fills corresponding to `GRADE_META[g].color`.
+3. **Interactive Filter Pills**: Clicking any grade chip (e.g. `'O'`) filters the subject registry to reveal all courses awarded that grade.
+4. **Course Explorer Search**: Real-time debounced query filtering across course name and university course code with defensive string normalization (`String(s.subName || "").toLowerCase()`).
+5. **Course Card Metrics**: Displays course semester, subject code, credit units, type, grade, and total earned grade points ($C \times P$).
+
+---
+
+## 58. Subtab 3: Placement Readiness & Corporate Eligibility Engine (`tab === "placement"`)
+
+Subtab 3 embeds the `<CompanyEligibility />` intelligence engine, matching the student's academic profile against real-world campus recruitment criteria.
+
+### Corporate Recruitment Tier Matrix:
+| Placement Tier | Typical Hiring Organizations | Min CGPA | Backlog Policy | Historical Backlogs Allowed? |
+| :--- | :--- | :--- | :--- | :--- |
+| **Tier-1 / Super Dream** | Google, Microsoft, Amazon, Atlassian, Adobe | $\ge 8.50$ or $8.00$ | 0 Active Backlogs | Strictly No |
+| **Dream / Product** | Cisco, Oracle, Dell, SAP, Samsung R&D | $\ge 7.50$ | 0 Active Backlogs | Usually No |
+| **Core Engineering** | Tata Motors, L&T, Schneider Electric, Maruti | $\ge 7.00$ | 0 Active Backlogs | Department Specific |
+| **IT Services / Mass** | TCS Digital/Ninja, Infosys, Wipro, Cognizant | $\ge 6.00$ - $6.50$ | Max 1-2 Backlogs | Often Allowed if Cleared |
+| **PSU / Government** | IOCL, ONGC, NTPC, BEL, DRDO | $\ge 6.50$ - $7.00$ | 0 Active Backlogs | Strictly No |
+
+### Profile Audit Features:
+- **Instant Eligibility Gate**: Evaluates current CGPA and active backlog array against each corporate tier.
+- **Actionable Gap Analysis**: Identifies exact CGPA delta required to unlock higher corporate recruitment tiers.
+- **Remedial Flags**: Alerts students if an active backlog disqualifies them from campus hiring drives regardless of CGPA.
+
+---
+
+## 59. Subtab 4: Subject Mastery Radar & Curriculum Dominance Matrix (`tab === "mastery"`)
+
+Subtab 4 evaluates the student's mastery across the three fundamental pillars of the university syllabus: Theory Courses, Practicals & Labs, and Project Work.
+
+### Normalized Pillar Mastery Formula:
+For each category $k \in \{\text{Theory}, \text{Practical}, \text{Project}\}$:
+
+$$\text{Mastery Score}_k = \frac{\sum_{i \in k} (C_i \times P_i)}{\sum_{i \in k} C_i} \times 10$$
+
+Where:
+- $C_i$ is the credit weight of course $i$.
+- $P_i$ is the grade point awarded in course $i$ ($O=10, E=9, \dots$).
+- Scaling by $10$ maps the standard $10.0$ GPA scale onto a clean $0–100$ percentage benchmark.
+
+### Radar Visualization:
+- Rendered via Recharts `RadarChart`, `PolarGrid`, `PolarAngleAxis`, `PolarRadiusAxis`, and `Radar`.
+- The closed polygon illustrates relative curriculum strengths (e.g. practical dominance vs theoretical retention).
+- Includes automated feedback cards identifying strongest competencies and recommended growth areas.
+
+---
+
+## 60. Subtab 5: CGPA Goal Predictor & Graduation Ceiling Engine (`tab === "predictor"`)
+
+The CGPA Goal Predictor enables students to set target graduation CGPAs and compute the exact semester-by-semester SGPA required in all remaining semesters.
+
+```
++-----------------------------------------------------------------------------------------------+
+|                                SUBTAB 5: CGPA GOAL PREDICTOR                                  |
++-----------------------------------------------------------------------------------------------+
+| [ TARGET INPUT INTERFACE ]                                                                    |
+| Preset Quick Buttons: [ 8.00 ] [ 8.50 ] [ 9.00 ] [ 9.50 ]  |  Custom Target Number Input      |
+|                                                                                               |
+| [ MATHEMATICAL PROJECTION ENGINE ]                                                            |
+| Current Credits: 88.0  | Remaining Sems: 4  | Projected Future Credits: 88.0                  |
+| Mathematical Ceiling (All 10.0s): 9.34 CGPA | Mathematical Floor (All 0.0s): 4.34 CGPA        |
+|                                                                                               |
+| [ FEASIBILITY CLASSIFICATION BANNER ]                                                         |
+| - SECURED: Target <= Min Possible CGPA ("Goal already locked in regardless of future grades")  |
+| - ACHIEVABLE: 0.00 < Required SGPA <= 10.00 ("Requires 8.75 SGPA in each remaining semester") |
+| - IMPOSSIBLE: Required SGPA > 10.00 ("Mathematically unattainable; exceeds 10.00 ceiling")    |
+|                                                                                               |
+| [ GRADUATION / 8TH SEMESTER GUARD ]                                                           |
+| If remainingSems <= 0: Displays Degree Completed Banner with Finalized Graduation CGPA.       |
++-----------------------------------------------------------------------------------------------+
+```
+
+### Mathematical Formulation:
+1. **Remaining Semesters**:
+   $$S_{\text{future}} = \max(0, 8 - \text{latestSemester})$$
+2. **Credit Projections**:
+   $$C_{\text{curr}} = \text{creditsCleared} > 0 \; ? \; \text{creditsCleared} : \max(1, \text{latestSemester} \times 22)$$
+   $$C_{\text{avg}} = \frac{C_{\text{curr}}}{\text{latestSemester}}, \quad C_{\text{future}} = S_{\text{future}} \times C_{\text{avg}}$$
+   $$C_{\text{total}} = C_{\text{curr}} + C_{\text{future}}$$
+3. **Current Weighted Points**:
+   $$W_{\text{curr}} = \text{CGPA}_{\text{curr}} \times C_{\text{curr}}$$
+4. **Required SGPA Calculation**:
+   $$\text{SGPA}_{\text{required}} = \frac{\text{Target} \times C_{\text{total}} - W_{\text{curr}}}{C_{\text{future}}}$$
+5. **Graduation Limits**:
+   $$\text{CGPA}_{\min} = \frac{W_{\text{curr}} + (0.0 \times C_{\text{future}})}{C_{\text{total}}}, \quad \text{CGPA}_{\max} = \frac{W_{\text{curr}} + (10.0 \times C_{\text{future}})}{C_{\text{total}}}$$
+
+### Completed Degree Guard:
+When $\text{latestSemester} \ge 8$, $S_{\text{future}} = 0$. The engine detects $S_{\text{future}} \le 0$ and renders a celebratory Degree Concluded notice displaying final CGPA and class honors, preventing division-by-zero (`NaN`) crashes.
+
+---
+
+## 61. Subtab 6: What-If Simulation Lab & Real-Time Impact Projection (`tab === "whatif"`)
+
+The What-If Simulator provides an interactive sandbox allowing students to test hypothetical grade outcomes for their latest semester subjects and observe instant effects on SGPA and CGPA.
+
+### Core Calculation Engine:
+```javascript
+// Analytics.jsx
+results.forEach((r, ri) => {
+  const isLatest = ri === results.length - 1;
+  let semTW = 0, semTC = 0;
+
+  r.subjects?.forEach((s) => {
+    // Substitute hypothetical grade if modified in simulator
+    const grade = isLatest && whatIfGrades[s.subCode] ? whatIfGrades[s.subCode] : s.grade;
+
+    if (isSem5ProjectException(s, r.semester)) return;
+
+    // Strict numeric coercion prevents string concatenation ("043" denominator)
+    const credit = Number(s.credit !== undefined ? s.credit : s.credits) || 0;
+    const normalizedGrade = String(grade || "").trim().toUpperCase();
+    const gradePoint = GRADE_POINTS[normalizedGrade];
+
+    if (credit > 0 && gradePoint !== undefined) {
+      semTW += credit * gradePoint;
+      semTC += credit;
+      if (isLatest) {
+        sgpa_tw += credit * gradePoint;
+        sgpa_tc += credit;
+      }
+    }
+  });
+
+  if (semTC > 0) {
+    let semSGPA = trunc2(semTW / semTC);
+    cgpaNumerator += semSGPA * semTC;
+    cgpaDenominator += semTC;
+  }
+});
+```
+
+### Critical Simulation Safeguards:
+1. **Numeric Credit Coercion**: Values are coerced with `Number(s.credit) || 0`. Without this, credit numbers loaded as strings (`"4"`, `"3"`) concatenate into string `"043"`, causing catastrophic denominator distortion.
+2. **Grade Normalization**: Input grades are strictly sanitized via `.trim().toUpperCase()`, preventing key-lookup misses in `GRADE_POINTS`.
+3. **BPUT Truncation Compliance**: Uses university-mandated two-decimal truncation (`trunc2`) for semester SGPA before weighting into cumulative CGPA, guaranteeing 100% parity with official university grade sheets.
+4. **Semester 5 Project Exemption**: Automatically honors `isSem5ProjectException(s, r.semester)` to prevent duplicate credit weighting on non-credited project assessments.
+5. **Quick Preset Handlers**: Provides one-click action buttons:
+   - *"All Outstanding (O)"*: Simulates 10.0 SGPA across all latest courses.
+   - *"All Excellent (E)"*: Simulates 9.0 SGPA across all latest courses.
+   - *"Reset to Original"*: Restores actual historical transcript grades.
+
+---
+
+## 62. Client Render Performance & Memoization Blueprint (`useMemo` & Animated UI)
+
+To guarantee 60fps rendering on low-spec mobile devices and prevent redundant CPU recalculations during UI interactions:
+
+### Memoization Registry:
+| Memoized Value | Dependencies | Purpose |
+| :--- | :--- | :--- |
+| `gradeDistributionData` | `[studentData]` | Recomputes grade frequencies only when student profile updates |
+| `subjectsByGrade` | `[studentData]` | Pre-indexes courses by letter grade for instant modal lookups |
+| `totalGradedCount` | `[gradeDistributionData]` | Aggregates graded subject count |
+| `honorsGradeRatio` | `[gradeDistributionData, totalGradedCount]` | Computes percentage of O, E, and A grades |
+| `radarData` | `[studentData]` | Aggregates theory, lab, and project weights |
+| `chartData` | `[studentData, results]` | Formats Recharts trajectory coordinate array |
+| `possibleGradCGPARange` | `[studentData, remainingSems, creditsCleared, latestSemester, cgpa]` | Calculates min/max graduation boundary |
+| `goalPrediction` | `[studentData, targetCGPA, remainingSems, creditsCleared, latestSemester, cgpa]` | Re-runs required SGPA only on target input change |
+| `dynamicBranch` | `[regNo, branch]` | Evaluates regex/lookup branch rules |
+| `insights` | `[studentData]` | Evaluates heuristic trajectory rules |
+| `academicHealthScore` | `[studentData?.academicHealthScore, cgpa, latestSgpa, backlogs.length, results]` | Computes composite 0-100 score |
+| `navTabs` | `[]` | Static tab definitions (cached across all renders) |
+
+### Responsive Navigation UX:
+- **Mobile SubNav (`ModernMobileSubNav`)**: Renders horizontally scrollable sub-navigation with dynamic scroll indicators (`canScrollLeft`, `canScrollRight`) and automated center-alignment (`centerActiveTab`) on tab selection.
+- **Scroll Cleanups**: Resize listeners and layout timeouts (`setTimeout(..., 120)`) feature explicit cleanup hooks to prevent memory retention on unmount.
+
+---
+
+## 63. Vercel Free Tier Quota Invariants & Serverless Optimization
+
+Deploying high-traffic academic platforms on Vercel Hobby (Free) Tier presents strict operational constraints:
+- **Max Serverless Invocations**: 1,000,000 / month
+- **Max Daily Requests**: 100,000 / day
+- **Max Serverless Execution Duration**: 10–15 seconds timeout
+- **Bandwidth Quota**: 100 GB / month
+- **Serverless Concurrency & Cold Starts**: Shared CPU cores with ephemeral runtime lifetimes
+
+### GradeFlow Analytics Safety Blueprint:
+```
++-----------------------------------------------------------------------------------------------+
+|                                VERCEL FREE TIER PROTECTION                                    |
++-----------------------------------------------------------------------------------------------+
+| 1. Subtab Hopping (Overview, Grades, Placement, Mastery, Predictor, WhatIf):                  |
+|    - Serverless Invocations: ZERO (0)                                                         |
+|    - Database Queries: ZERO (0)                                                               |
+|    - Server Compute Consumed: ZERO (0 ms)                                                     |
+|                                                                                               |
+| 2. Inter-Page Navigation (Dashboard -> Analytics -> Attendance):                             |
+|    - Served directly from AppContext memory & sessionStorage                                  |
+|    - Serverless Invocations: ZERO (0)                                                         |
+|                                                                                               |
+| 3. Browser Refresh (F5):                                                                      |
+|    - If-None-Match ETag Header Sent                                                           |
+|    - Backend validates in-memory hash -> HTTP 304 Not Modified                                |
+|    - Execution Time: ~1ms | DB Queries: ZERO (0) | Bandwidth: ~150 bytes headers only         |
+|                                                                                               |
+| 4. Database Connection Pool Protection:                                                       |
+|    - MongoDB configured with maxPoolSize: 3, minPoolSize: 0, maxIdleTimeMS: 5000              |
+|    - Prevents "Too Many Connections" crashes during campus exam result publication spikes     |
++-----------------------------------------------------------------------------------------------+
+```
+
+---
+
+## 64. Real-Time Result Invalidation & WebSocket Ably Pipeline
+
+GradeFlow completely eliminates traditional polling (`setInterval` / `fetch` loops). Instead, it implements a reactive WebSocket event architecture powered by Ably:
+
+```
++------------------+          +--------------------+          +--------------------+
+|  Admin Result    |  PubSub  |    Ably Realtime   |  Pushed  |  Active Student    |
+|  Publication     | -------> |    Message Bus     | -------> |  Browsers          |
+|  (Backend API)   |          | ("gradeflow:main") |          | (Analytics Page)   |
++------------------+          +--------------------+          +--------------------+
+                                                                        |
+                                                                        v
+                                                              Update AppContext Cache
+                                                              (Zero Polling Overhead)
+```
+
+1. When university examination results are published or updated, the backend issues an event on the shared Ably channel: `gradeflow:results-updated`.
+2. All connected student clients receive the lightweight payload via WebSocket.
+3. `AppContext` receives the notification, re-fetches the latest profile in a single atomic query, and updates local state.
+4. All active analytics screens (Trajectory, What-If, Health Score) re-render immediately with the new data.
+
+---
+
+## 65. Analytics Developer Maintenance & Extension Guidelines
+
+Any developer, auditor, or AI agent modifying or extending the Analytics subsystem MUST adhere to these five architectural rules:
+
+1. **NEVER Introduce Network Requests to Subtab State**:
+   - Subtabs (`tab === "overview"`, `"grades"`, etc.) MUST remain pure client-side state transitions.
+   - Do NOT add `fetch()` calls or query-based API fetches inside subtab change handlers or tab-switching effects.
+
+2. **Always Enforce Numeric Credit Coercion**:
+   - Always wrap credit calculations with `Number(s.credit !== undefined ? s.credit : s.credits) || 0`.
+   - Never assume course credits are pure JavaScript numbers; legacy database records may store credits as string characters (`"3"`).
+
+3. **Preserve BPUT Two-Decimal Truncation Invariants**:
+   - Official BPUT semester SGPA calculations mandate two-decimal truncation (`trunc2`), NOT standard mathematical rounding (`round2`), before multiplying into cumulative CGPA. Changing this introduces official transcript mismatches.
+
+4. **Preserve Memoization on Derived Datasets**:
+   - Any new calculation (e.g. branch percentiles, remedial roadmaps) MUST be wrapped in `useMemo`.
+   - Never compute heavy array transformations directly inside the React render body.
+
+5. **Strict Registration Number Document Isolation**:
+   - When extending any backend analytics endpoints, always filter database queries strictly by `{ regNo: cleanRegNo }`. Never trigger un-indexed collection scans.
+
 
