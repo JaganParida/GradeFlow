@@ -128,12 +128,13 @@ module.exports = async function handler(req, res) {
       }
 
       const meta = metaDoc?.rankingsMeta || {};
-      res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=300");
+      const version = meta.version || (meta.updatedAt ? new Date(meta.updatedAt).getTime() : 1);
+      res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=600");
       return res.json({
         semesters: (meta.semesters || []).map(Number).sort((a, b) => a - b),
         batches: (meta.batches || []).filter(Boolean).sort(),
         branches: meta.branches || ["CSE", "CIVIL", "ME", "ECE", "EEE", "BIO", "MI", "AERO"],
-        version: meta.version || Date.now(),
+        version,
       });
     }
 
@@ -182,26 +183,82 @@ module.exports = async function handler(req, res) {
       res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=86400");
     } else {
       // Fallback for unversioned legacy calls
-      res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+      res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=300");
     }
 
-    let rankings = await globalDbQueue.run(() =>
-      Ranking.find(query).lean()
-    );
+    const projectionFields =
+      "regNo studentName branch batch semester sgpa cgpa deptRank deptCgpaRank universityRank cgpaRank sgpaRank percentile totalStudents deptStudents sectionSgpaRank sectionCgpaRank";
+
+    const primaryScore = cleanSortBy === "cgpa" ? "cgpa" : "sgpa";
+    const secondaryScore = cleanSortBy === "cgpa" ? "sgpa" : "cgpa";
+
+    let rankings = [];
+
+    if (!semester) {
+      // Cumulative CGPA mode across latest semester per student
+      // High-performance index-assisted aggregation instead of full database scan
+      const pipeline = [
+        { $match: query },
+        { $sort: { semester: -1 } },
+        {
+          $group: {
+            _id: "$regNo",
+            doc: { $first: "$$ROOT" },
+          },
+        },
+        { $replaceRoot: { newRoot: "$doc" } },
+        {
+          $project: {
+            regNo: 1,
+            studentName: 1,
+            branch: 1,
+            batch: 1,
+            semester: 1,
+            sgpa: 1,
+            cgpa: 1,
+            deptRank: 1,
+            deptCgpaRank: 1,
+            universityRank: 1,
+            cgpaRank: 1,
+            sgpaRank: 1,
+            percentile: 1,
+            totalStudents: 1,
+            deptStudents: 1,
+            sectionSgpaRank: 1,
+            sectionCgpaRank: 1,
+          },
+        },
+        { $sort: { [primaryScore]: -1, [secondaryScore]: -1, regNo: 1 } },
+      ];
+
+      if (!cleanSection && !cleanSearch && !cleanBranch) {
+        pipeline.push({ $limit: maxRank });
+      } else if (cleanSection) {
+        pipeline.push({ $limit: 300 });
+      } else {
+        pipeline.push({ $limit: Math.max(maxRank, 150) });
+      }
+
+      rankings = await globalDbQueue.run(() => Ranking.aggregate(pipeline));
+    } else {
+      // Semester specified: query directly with DB-level sorting and limits
+      let dbQuery = Ranking.find(query)
+        .select(projectionFields)
+        .sort({ [primaryScore]: -1, [secondaryScore]: -1, regNo: 1 });
+
+      if (!cleanSection && !cleanSearch && !cleanBranch) {
+        dbQuery = dbQuery.limit(maxRank);
+      } else if (cleanSection) {
+        dbQuery = dbQuery.limit(300);
+      } else {
+        dbQuery = dbQuery.limit(Math.max(maxRank, 150));
+      }
+
+      rankings = await globalDbQueue.run(() => dbQuery.lean());
+    }
 
     if (branch === "CSE" && section) {
       rankings = rankings.filter(r => getSectionFromRegNo(r.regNo) === section);
-    }
-
-    if (!semester) {
-      const latestByRegNo = new Map();
-      rankings.forEach((ranking) => {
-        const existing = latestByRegNo.get(ranking.regNo);
-        if (!existing || Number(ranking.semester) > Number(existing.semester)) {
-          latestByRegNo.set(ranking.regNo, ranking);
-        }
-      });
-      rankings = Array.from(latestByRegNo.values());
     }
 
     if (sortBy === "cgpa") {
@@ -249,6 +306,10 @@ module.exports = async function handler(req, res) {
         const rank = Number(ranking[rankKey] || ranking.universityRank);
         return Number.isFinite(rank) && rank <= maxRank;
       });
+      // Fallback if precomputed ranks are unpopulated
+      if (!bounded.length && rankings.length) {
+        bounded = rankings.slice(0, maxRank);
+      }
     }
 
     return res.json(bounded);

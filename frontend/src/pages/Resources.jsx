@@ -1,8 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate, Link, useLocation, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ResourcesSkeleton } from "../components/LoadingSpinner";
 import ModernMobileSubNav from "../components/ModernMobileSubNav";
+import { useApp } from "../context/AppContext";
+import { encodeStudentId } from "../utils/studentIdEncoder";
+import { calculateSemesterMetrics } from "../utils/gradeCalculations";
+import { applyRouteMetadata } from "../utils/seo";
 import {
   Calculator,
   BarChart2,
@@ -132,6 +136,7 @@ export default function Resources() {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const { studentData, hasActiveSession } = useApp() || {};
 
   const [activeTab, setActiveTab] = useState(() => {
     const fromQuery = new URLSearchParams(window.location.search).get("tab");
@@ -154,6 +159,11 @@ export default function Resources() {
       setActiveTab(resolved);
     }
   }, [searchParams, location.search, location.hash]);
+
+  // Set SEO metadata on mount
+  useEffect(() => {
+    applyRouteMetadata("/resources");
+  }, []);
 
   const [openFaq, setOpenFaq] = useState(null);
   const [gradeSearch, setGradeSearch] = useState("");
@@ -216,55 +226,126 @@ export default function Resources() {
 
   const gradeToPointsMap = { O: 10, E: 9, "A+": 9, A: 8, "B+": 7, B: 7, C: 6, D: 5, F: 2, R: 0, M: 0, S: 0 };
 
-  // Calculate live SGPA
-  const calculatedSgpa = () => {
+  // Calculate live SGPA — Official Centurion University Formula
+  // Denominator is total registered course credits. Backlog course credits remain in denominator.
+  const calculatedSgpa = useMemo(() => {
     let totalCredits = 0;
-    let creditsCleared = 0;
     let totalPoints = 0;
     sgpaSubjects.forEach((sub) => {
       const cr = Number(sub.credit) || 0;
-      const gp = gradeToPointsMap[sub.grade] ?? 0;
-      totalCredits += cr;
-      totalPoints += cr * gp;
-      if (!["F", "R", "S", "M"].includes(String(sub.grade || "").trim().toUpperCase())) {
-        creditsCleared += cr;
+      const gr = String(sub.grade || "").trim().toUpperCase();
+      const gp = gradeToPointsMap[gr] ?? 0;
+      if (cr > 0) {
+        totalCredits += cr;
+        totalPoints += cr * gp;
       }
     });
-    const divisor = creditsCleared > 0 ? creditsCleared : totalCredits;
-    return divisor > 0 ? (totalPoints / divisor).toFixed(2) : "0.00";
-  };
+    return totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : "0.00";
+  }, [sgpaSubjects]);
 
-  // Calculate live CGPA
-  const calculatedCgpa = () => {
+  // Calculate live CGPA — Multi-semester weighted average
+  const calculatedCgpa = useMemo(() => {
     let totalCredits = 0;
     let totalWeightedPoints = 0;
     cgpaSemesters.forEach((sem) => {
       const cr = Number(sem.credits) || 0;
       const sg = Number(sem.sgpa) || 0;
-      totalCredits += cr;
-      totalWeightedPoints += cr * sg;
+      if (cr > 0) {
+        totalCredits += cr;
+        totalWeightedPoints += cr * sg;
+      }
     });
     return totalCredits > 0 ? (totalWeightedPoints / totalCredits).toFixed(2) : "0.00";
-  };
+  }, [cgpaSemesters]);
 
-  // Calculate live Health Score
-  const calculateHealthScore = () => {
-    const cgpaPt = Math.min(50, Math.max(0, healthCgpa * 5));
-    const sgpaPt = Math.min(20, Math.max(0, healthSgpa * 2));
-    const backlogPt = Math.max(0, 20 - healthBacklogs * 5);
+  // Calculate live Health Score (0-100 pts)
+  const healthScore = useMemo(() => {
+    const cgpaPt = Math.min(50, Math.max(0, (Number(healthCgpa) || 0) * 5));
+    const sgpaPt = Math.min(20, Math.max(0, (Number(healthSgpa) || 0) * 2));
+    const backlogPt = Math.max(0, 20 - (Number(healthBacklogs) || 0) * 5);
     const partPt = 10;
     return Math.min(100, Math.round(cgpaPt + sgpaPt + backlogPt + partPt));
-  };
+  }, [healthCgpa, healthSgpa, healthBacklogs]);
 
-  // Calculate Required Next SGPA
-  const calculateRequiredSgpa = () => {
-    const totalCurrentPoints = completedCredits * currentCgpaInput;
-    const targetTotalCredits = completedCredits + nextSemCredits;
-    const targetTotalPoints = targetTotalCredits * targetCgpaGoal;
+  // Calculate Required Next SGPA (with division by zero and range guards)
+  const requiredSgpa = useMemo(() => {
+    const completed = Math.max(0, Number(completedCredits) || 0);
+    const curCgpa = Math.max(0, Math.min(10, Number(currentCgpaInput) || 0));
+    const nextCredits = Number(nextSemCredits) || 0;
+    const target = Math.max(0, Math.min(10, Number(targetCgpaGoal) || 0));
+
+    if (nextCredits <= 0) return "0.00";
+
+    const totalCurrentPoints = completed * curCgpa;
+    const targetTotalCredits = completed + nextCredits;
+    const targetTotalPoints = targetTotalCredits * target;
     const neededPoints = targetTotalPoints - totalCurrentPoints;
-    const req = neededPoints / nextSemCredits;
+    const req = neededPoints / nextCredits;
     return req.toFixed(2);
-  };
+  }, [completedCredits, currentCgpaInput, nextSemCredits, targetCgpaGoal]);
+
+  // Auto-import handlers from active student profile (0 network requests)
+  const handleImportLatestSemester = useCallback(() => {
+    if (!studentData?.results || studentData.results.length === 0) return;
+    const latest = studentData.results[studentData.results.length - 1];
+    if (!latest?.subjects || latest.subjects.length === 0) return;
+    const mapped = latest.subjects.map((s) => ({
+      name: s.subName || s.subjectName || "Subject",
+      credit: Number(s.credit) || 3,
+      grade: s.grade || "A",
+    }));
+    setSgpaSubjects(mapped);
+  }, [studentData]);
+
+  const handleImportSemesterHistory = useCallback(() => {
+    if (!studentData?.results || studentData.results.length === 0) return;
+    const mapped = studentData.results.map((r) => {
+      const metrics = calculateSemesterMetrics(r.subjects || [], r.semester);
+      return {
+        sem: `Semester ${r.semester}`,
+        credits: metrics.totalCredits || 22,
+        sgpa: metrics.sgpa || (typeof r.sgpa === "number" ? r.sgpa : 8.0),
+      };
+    });
+    setCgpaSemesters(mapped);
+  }, [studentData]);
+
+  const handleSyncHealthProfile = useCallback(() => {
+    if (!studentData) return;
+    if (typeof studentData.cgpa === "number") setHealthCgpa(Number(studentData.cgpa.toFixed(2)));
+    const latestResult = studentData.results?.[studentData.results.length - 1];
+    if (latestResult) {
+      const metrics = calculateSemesterMetrics(latestResult.subjects || [], latestResult.semester);
+      setHealthSgpa(Number(metrics.sgpa.toFixed(2)));
+    }
+    const backlogsCount = Array.isArray(studentData.backlogs) ? studentData.backlogs.length : 0;
+    setHealthBacklogs(Math.min(4, backlogsCount));
+  }, [studentData]);
+
+  const handleAutoFillPredictor = useCallback(() => {
+    if (!studentData) return;
+    if (typeof studentData.cgpa === "number") setCurrentCgpaInput(Number(studentData.cgpa.toFixed(2)));
+    let credits = 0;
+    (studentData.results || []).forEach((r) => {
+      const m = calculateSemesterMetrics(r.subjects || [], r.semester);
+      credits += m.creditsCleared || 0;
+    });
+    if (credits > 0) setCompletedCredits(credits);
+    setNextSemCredits(22);
+    setTargetCgpaGoal(Math.min(10, Number(((studentData.cgpa || 8.5) + 0.2).toFixed(2))));
+  }, [studentData]);
+
+  const studentTotalCredits = useMemo(() => {
+    if (!studentData?.results) return 0;
+    return studentData.results.reduce((acc, r) => {
+      const m = calculateSemesterMetrics(r.subjects || [], r.semester);
+      return acc + (m.creditsCleared || 0);
+    }, 0);
+  }, [studentData]);
+
+  const studentBacklogsCount = useMemo(() => {
+    return Array.isArray(studentData?.backlogs) ? studentData.backlogs.length : 0;
+  }, [studentData]);
 
   const faqs = [
     {
@@ -287,16 +368,19 @@ export default function Resources() {
 
   const [gradeFilterCategory, setGradeFilterCategory] = useState("all");
 
-  const filteredGrades = GRADE_SCALE.filter((g) => {
-    const matchesSearch =
-      g.grade.toLowerCase().includes(gradeSearch.toLowerCase()) ||
-      g.qual.toLowerCase().includes(gradeSearch.toLowerCase()) ||
-      g.desc.toLowerCase().includes(gradeSearch.toLowerCase());
-    if (!matchesSearch) return false;
-    if (gradeFilterCategory === "pass") return g.pts >= 4;
-    if (gradeFilterCategory === "backlog") return g.pts < 4;
-    return true;
-  });
+  const filteredGrades = useMemo(() => {
+    const q = (gradeSearch || "").toLowerCase();
+    return GRADE_SCALE.filter((g) => {
+      const matchesSearch =
+        g.grade.toLowerCase().includes(q) ||
+        g.qual.toLowerCase().includes(q) ||
+        g.desc.toLowerCase().includes(q);
+      if (!matchesSearch) return false;
+      if (gradeFilterCategory === "pass") return g.pts >= 4;
+      if (gradeFilterCategory === "backlog") return g.pts < 4;
+      return true;
+    });
+  }, [gradeSearch, gradeFilterCategory]);
 
   return (
     <div

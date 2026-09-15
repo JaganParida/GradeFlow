@@ -1,22 +1,21 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   User,
   ArrowRight,
-  ExternalLink,
   Mail,
   Globe,
   Code,
   BarChart2,
   Heart,
   Quote,
-  MessageCircle,
-  Award,
-  Layers,
-  Send,
-  Zap,
 } from "lucide-react";
+
+/* ─── Static Contact URLs (Hoisted for zero render overhead) ────── */
+const WHATSAPP_MESSAGE = encodeURIComponent(
+  "Hi Jagan, I checked out GradeFlow and wanted to connect with you!"
+);
+const WHATSAPP_URL = `https://wa.me/919124540575?text=${WHATSAPP_MESSAGE}`;
 
 /* ─── Custom Social SVG Icons ───────────────────────────────────── */
 const LinkedInIcon = ({ size = 20, color = "#0a66c2" }) => (
@@ -44,19 +43,21 @@ export default function AboutDev() {
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
-    window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", handleResize, { passive: true });
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
+    const previousTheme =
+      document.documentElement.getAttribute("data-theme") ||
+      localStorage.getItem("gf_theme") ||
+      "light";
     document.documentElement.setAttribute("data-theme", "light");
     window.scrollTo({ top: 0, behavior: "smooth" });
+    return () => {
+      document.documentElement.setAttribute("data-theme", previousTheme);
+    };
   }, []);
-
-  const whatsappMessage = encodeURIComponent(
-    "Hi Jagan, I checked out GradeFlow and wanted to connect with you!"
-  );
-  const whatsappUrl = `https://wa.me/919124540575?text=${whatsappMessage}`;
 
   return (
     <div
@@ -227,6 +228,11 @@ export default function AboutDev() {
               <img
                 src="https://github.com/JaganParida.png"
                 alt="Jagan Parida - Developer"
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+                width={isMobile ? 220 : 290}
+                height={isMobile ? 220 : 290}
                 style={{
                   width: "100%",
                   height: "100%",
@@ -362,7 +368,7 @@ export default function AboutDev() {
 
             {/* Say Hello on WhatsApp Action Button */}
             <a
-              href={whatsappUrl}
+              href={WHATSAPP_URL}
               target="_blank"
               rel="noopener noreferrer"
               style={{

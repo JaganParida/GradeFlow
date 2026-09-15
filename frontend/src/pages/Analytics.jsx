@@ -110,7 +110,10 @@ function calcCGPAUpTo(results, upToIdx) {
 
 function generateInsights(data) {
   const insights = [];
-  const { results, cgpa, latestSgpa, backlogs, ranking, branch } = data;
+  if (!data) return insights;
+  const { results = [], cgpa = 0, latestSgpa = 0, backlogs = [], ranking, branch } = data;
+  if (!Array.isArray(results) || results.length === 0) return insights;
+
   const liveSGPAs = results.map((r) =>
     typeof r.sgpa === "number" ? r.sgpa : calcSGPA(r.subjects, r.semester)
   );
@@ -153,7 +156,7 @@ function generateInsights(data) {
       type: "success",
     });
 
-  if (backlogs.length === 0)
+  if (results.length > 0 && backlogs.length === 0)
     insights.push({
       icon: <CheckCircle size={18} color="#15803d" />,
       text: "Outstanding! All course credits are successfully cleared with zero active backlogs.",
@@ -517,17 +520,21 @@ export default function Analytics() {
       const isLatest = ri === results.length - 1;
       let semTW = 0, semTC = 0;
 
-      r.subjects.forEach((s) => {
+      r.subjects?.forEach((s) => {
         const grade = isLatest && whatIfGrades[s.subCode] ? whatIfGrades[s.subCode] : s.grade;
 
         if (isSem5ProjectException(s, r.semester)) return;
 
-        if (s.credit && GRADE_POINTS[grade] !== undefined) {
-          semTW += s.credit * GRADE_POINTS[grade];
-          semTC += s.credit;
+        const credit = Number(s.credit !== undefined ? s.credit : s.credits) || 0;
+        const normalizedGrade = String(grade || "").trim().toUpperCase();
+        const gradePoint = GRADE_POINTS[normalizedGrade];
+
+        if (credit > 0 && gradePoint !== undefined) {
+          semTW += credit * gradePoint;
+          semTC += credit;
           if (isLatest) {
-            sgpa_tw += s.credit * GRADE_POINTS[grade];
-            sgpa_tc += s.credit;
+            sgpa_tw += credit * gradePoint;
+            sgpa_tc += credit;
           }
         }
       });
@@ -636,10 +643,13 @@ export default function Analytics() {
 
   const latestResult = results[results.length - 1];
   const latestSubjects = latestResult?.subjects || [];
-  const dynamicBranch = getDynamicBranch(regNo, branch);
-  const insights = generateInsights(studentData);
+  const dynamicBranch = useMemo(() => getDynamicBranch(regNo, branch), [regNo, branch]);
+  const insights = useMemo(() => generateInsights(studentData), [studentData]);
 
-  const academicHealthScore = studentData?.academicHealthScore ?? (() => {
+  const academicHealthScore = useMemo(() => {
+    if (studentData?.academicHealthScore !== undefined && studentData?.academicHealthScore !== null) {
+      return studentData.academicHealthScore;
+    }
     let score = 0;
     score += Math.min(cgpa * 5, 50);
     score += Math.min((latestSgpa || 0) * 2, 20);
@@ -647,7 +657,7 @@ export default function Analytics() {
     const totalSubjects = results.reduce((a, r) => a + (r.subjects || []).length, 0);
     score += Math.min(10, totalSubjects > 0 ? 10 : 0);
     return Math.round(Math.min(score, 100));
-  })();
+  }, [studentData?.academicHealthScore, cgpa, latestSgpa, backlogs.length, results]);
 
   const healthColor =
     academicHealthScore >= 90 ? "#16a34a" : academicHealthScore >= 75 ? "#2563eb" : academicHealthScore >= 60 ? "#d97706" : "#dc2626";
@@ -667,14 +677,14 @@ export default function Analytics() {
     info: { border: "#bfdbfe", bg: "#eff6ff", text: "#1d4ed8" },
   };
 
-  const navTabs = [
+  const navTabs = useMemo(() => [
     { id: "overview", label: "Performance Trajectory", icon: <TrendingUp size={16} color="#2563eb" />, desc: "SGPA, CGPA trends & semester momentum" },
     { id: "grades", label: "Grade Distribution", icon: <BarChart2 size={16} color="#8b5cf6" />, desc: "Grade frequency, breakdown & credits" },
     { id: "placement", label: "Placement & Companies", icon: <Briefcase size={16} color="#10b981" />, desc: "Tier-1 eligibility & company criteria" },
     { id: "mastery", label: "Subject Mastery & Insights", icon: <Target size={16} color="#d97706" />, desc: "Strongest vs growth areas & feedback" },
     { id: "predictor", label: "CGPA Goal Predictor", icon: <Award size={16} color="#16a34a" />, desc: "Required grades to reach target CGPA" },
     { id: "whatif", label: "What-If Simulator", icon: <PieChart size={16} color="#6366f1" />, desc: "Simulate grades for upcoming sems" },
-  ];
+  ], []);
 
   return (
     <div
@@ -1427,10 +1437,10 @@ export default function Analytics() {
                           const filtered = q
                             ? allSubjects.filter(
                                 (s) =>
-                                  s.subName.toLowerCase().includes(q) ||
-                                  s.subCode.toLowerCase().includes(q) ||
-                                  String(s.semester).includes(q) ||
-                                  `sem ${s.semester}`.includes(q)
+                                  String(s.subName || "").toLowerCase().includes(q) ||
+                                  String(s.subCode || "").toLowerCase().includes(q) ||
+                                  String(s.semester || "").includes(q) ||
+                                  `sem ${s.semester || ""}`.includes(q)
                               )
                             : allSubjects;
 
@@ -1767,7 +1777,7 @@ export default function Analytics() {
                       CURRENT CUMULATIVE CGPA
                     </label>
                     <input
-                      value={cgpa}
+                      value={typeof cgpa === "number" ? cgpa.toFixed(2) : cgpa || "0.00"}
                       disabled
                       style={{
                         width: "100%",
@@ -1815,24 +1825,48 @@ export default function Analytics() {
                       max="10"
                       step="0.01"
                       value={targetCGPA}
+                      disabled={remainingSems <= 0}
                       onChange={(e) => setTargetCGPA(e.target.value)}
-                      placeholder="e.g. 9.20"
+                      placeholder={remainingSems <= 0 ? "Degree completed" : "e.g. 9.20"}
                       style={{
                         width: "100%",
                         boxSizing: "border-box",
                         padding: "10px 12px",
-                        background: "#ffffff",
-                        border: "1.5px solid #16a34a",
+                        background: remainingSems <= 0 ? "#f1f5f9" : "#ffffff",
+                        border: remainingSems <= 0 ? "1px solid #cbd5e1" : "1.5px solid #16a34a",
                         borderRadius: 10,
                         fontWeight: 800,
                         color: "#0f172a",
                         fontSize: 15,
                         outline: "none",
                         fontFamily: "'Space Mono', monospace",
+                        cursor: remainingSems <= 0 ? "not-allowed" : "text",
                       }}
                     />
                   </div>
                 </div>
+
+                {remainingSems <= 0 && (
+                  <div
+                    style={{
+                      background: "#f0fdf4",
+                      border: "1px solid #bbf7d0",
+                      borderRadius: 14,
+                      padding: isMobile ? "14px 16px" : "18px 22px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      color: "#15803d",
+                      fontSize: isMobile ? 12 : 13,
+                      fontWeight: 700,
+                    }}
+                  >
+                    <CheckCircle size={18} color="#16a34a" />
+                    <span>
+                      Degree Curriculum Concluded: All 8 semesters are completed. Final graduation CGPA is finalized at <strong>{typeof cgpa === "number" ? cgpa.toFixed(2) : cgpa}</strong>.
+                    </span>
+                  </div>
+                )}
 
                 {/* Prediction Result Display */}
                 {goalPrediction && (

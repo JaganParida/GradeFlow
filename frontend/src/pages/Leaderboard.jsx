@@ -21,27 +21,117 @@ import {
   RotateCcw,
 } from "lucide-react";
 
-export default function Leaderboard() {
-  const { API, rankingsVersion } = useApp();
-  const location = useLocation();
-  const [rankings, setRankings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [meta, setMeta] = useState({ semesters: [], branches: [], batches: [], version: null });
-  const [showCount, setShowCount] = useState(10);
-  const [highlightRegNo, setHighlightRegNo] = useState("");
-  const [searchInput, setSearchInput] = useState("");
-  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+// Persistent module-level in-memory cache singleton (Survives route changes like Timetable -> Dashboard -> Leaderboard)
+const leaderboardMemoryCache = new Map();
+let cachedMetaMemory = null;
 
-  const [filters, setFilters] = useState({
-    semester: "6",
+const META_CACHE_KEY = "gf_rankings_meta";
+const FILTER_STORAGE_KEY = "gf_rankings_active_filter";
+
+function getCachedMetaSynchronous() {
+  if (cachedMetaMemory) return cachedMetaMemory;
+  if (typeof window !== "undefined" && window.sessionStorage) {
+    try {
+      const raw = sessionStorage.getItem(META_CACHE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && Date.now() - parsed.ts < 900000 && parsed.data) {
+          cachedMetaMemory = parsed.data;
+          return parsed.data;
+        }
+      }
+    } catch (_) {}
+  }
+  return null;
+}
+
+function getInitialFilters(searchParams) {
+  const meta = getCachedMetaSynchronous();
+  const defaultSem = meta?.semesters?.length > 0 ? Math.max(...meta.semesters).toString() : "6";
+
+  let savedFilter = null;
+  if (typeof window !== "undefined" && window.sessionStorage) {
+    try {
+      const raw = sessionStorage.getItem(FILTER_STORAGE_KEY);
+      if (raw) savedFilter = JSON.parse(raw);
+    } catch (_) {}
+  }
+
+  const initTab = searchParams.get("tab");
+  const initBranch = searchParams.get("branch");
+  const initSection = searchParams.get("section");
+
+  const base = savedFilter || {
+    semester: defaultSem,
     branch: "",
     section: "",
     batch: "",
     search: "",
     sortBy: "sgpa",
-  });
+  };
+
+  if (initBranch) base.branch = initBranch;
+  if (initSection) base.section = initSection;
+  if (initTab === "cgpa") {
+    base.sortBy = "cgpa";
+    base.semester = "";
+  } else if (initTab === "sgpa") {
+    base.sortBy = "sgpa";
+    if (!base.semester) base.semester = defaultSem;
+  }
+
+  return base;
+}
+
+function buildCacheKey(filter, version) {
+  const target = { ...filter };
+  if (target.sortBy === "sgpa" && !target.semester) {
+    const meta = getCachedMetaSynchronous();
+    target.semester = meta?.semesters?.length > 0 ? Math.max(...meta.semesters).toString() : "6";
+  }
+  return JSON.stringify({ ...target, v: version || "" });
+}
+
+function getInitialRankings(initialFilter, version) {
+  const cacheKey = buildCacheKey(initialFilter, version);
+  if (leaderboardMemoryCache.has(cacheKey)) {
+    return leaderboardMemoryCache.get(cacheKey);
+  }
+  if (typeof window !== "undefined" && window.sessionStorage) {
+    try {
+      const raw = sessionStorage.getItem(`gf_rank_data_${cacheKey}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && Date.now() - parsed.ts < 300000 && Array.isArray(parsed.data)) {
+          leaderboardMemoryCache.set(cacheKey, parsed.data);
+          return parsed.data;
+        }
+      }
+    } catch (_) {}
+  }
+  return null;
+}
+
+export default function Leaderboard() {
+  const { API, rankingsVersion } = useApp();
+  const location = useLocation();
+
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const initialMeta = useMemo(() => getCachedMetaSynchronous() || { semesters: [], branches: [], batches: [], version: null }, []);
+  const initialFilters = useMemo(() => getInitialFilters(searchParams), [searchParams]);
+  const initialRankings = useMemo(() => getInitialRankings(initialFilters, initialMeta?.version || rankingsVersion || ""), [initialFilters, initialMeta, rankingsVersion]);
+
+  const [meta, setMeta] = useState(initialMeta);
+  const [filters, setFilters] = useState(initialFilters);
+  const [rankings, setRankings] = useState(() => initialRankings || []);
+  const [loading, setLoading] = useState(() => !initialRankings || initialRankings.length === 0);
+  const [showCount, setShowCount] = useState(10);
+  const [highlightRegNo, setHighlightRegNo] = useState("");
+  const [searchInput, setSearchInput] = useState(() => initialFilters.search || "");
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
 
   const isSGPA = filters.sortBy === "sgpa";
+  const abortControllerRef = useRef(null);
 
   // Window resize listener
   useEffect(() => {
@@ -56,27 +146,16 @@ export default function Leaderboard() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const hl = params.get("highlight");
-    const initTab = params.get("tab");
-
     if (hl) {
       setHighlightRegNo(hl);
       setShowCount(50);
     }
 
-    const META_CACHE_KEY = "gf_rankings_meta";
-    let cachedMeta = null;
-    try {
-      const raw = sessionStorage.getItem(META_CACHE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && Date.now() - parsed.ts < 900000 && parsed.data) {
-          cachedMeta = parsed.data;
-        }
-      }
-    } catch (_) {}
+    const cachedMeta = getCachedMetaSynchronous();
 
     const initializeWithMeta = (metaData) => {
       setMeta(metaData);
+      cachedMetaMemory = metaData;
 
       let f = { ...filters };
 
@@ -91,21 +170,30 @@ export default function Leaderboard() {
           ? Math.max(...metaData.semesters).toString()
           : "6";
 
+      const initTab = params.get("tab");
       if (initTab === "cgpa") {
         f.sortBy = "cgpa";
         f.semester = "";
-      } else {
+      } else if (initTab === "sgpa") {
         f.sortBy = "sgpa";
+        f.semester = defaultSem;
+      } else if (!f.semester && f.sortBy === "sgpa") {
         f.semester = defaultSem;
       }
 
       setFilters(f);
-      fetchRankings(f, metaData);
+      try {
+        sessionStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(f));
+      } catch (_) {}
+
+      // If initial rankings were not already cached, fetch now
+      const cacheKey = buildCacheKey(f, metaData?.version || rankingsVersion || "");
+      if (!leaderboardMemoryCache.has(cacheKey)) {
+        fetchRankings(f, metaData);
+      }
     };
 
-    if (cachedMeta) {
-      // 0ms instant display from session cache — skip background revalidation.
-      // Ably `rankings-updated` event wipes gf_rankings_meta, so next mount auto-fetches fresh data.
+    if (cachedMeta && cachedMeta.semesters?.length > 0) {
       initializeWithMeta(cachedMeta);
     } else {
       // Cold start: no cache — fetch meta from network
@@ -113,6 +201,7 @@ export default function Leaderboard() {
         .get(`${API}/rankings/meta`)
         .then((r) => {
           const metaData = r.data || { semesters: [], branches: [], batches: [] };
+          cachedMetaMemory = metaData;
           try {
             sessionStorage.setItem(META_CACHE_KEY, JSON.stringify({ data: metaData, ts: Date.now() }));
           } catch (_) {}
@@ -140,8 +229,6 @@ export default function Leaderboard() {
     }
   }, [rankings, highlightRegNo, isMobile]);
 
-  const leaderboardCacheRef = useRef(new Map());
-
   async function fetchRankings(f = filters, metaData = meta, forceBust = false) {
     let targetFilter = { ...f };
 
@@ -155,12 +242,12 @@ export default function Leaderboard() {
     }
 
     const currentVersion = metaData?.version || rankingsVersion || "";
-    const cacheKey = JSON.stringify({ ...targetFilter, v: currentVersion });
+    const cacheKey = buildCacheKey(targetFilter, currentVersion);
     const storageKey = `gf_rank_data_${cacheKey}`;
 
     if (!forceBust) {
-      if (leaderboardCacheRef.current.has(cacheKey)) {
-        setRankings(leaderboardCacheRef.current.get(cacheKey));
+      if (leaderboardMemoryCache.has(cacheKey)) {
+        setRankings(leaderboardMemoryCache.get(cacheKey));
         setLoading(false);
         return;
       }
@@ -169,7 +256,7 @@ export default function Leaderboard() {
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed && Date.now() - parsed.ts < 300000 && Array.isArray(parsed.data)) {
-            leaderboardCacheRef.current.set(cacheKey, parsed.data);
+            leaderboardMemoryCache.set(cacheKey, parsed.data);
             setRankings(parsed.data);
             setLoading(false);
             return;
@@ -177,6 +264,13 @@ export default function Leaderboard() {
         }
       } catch (_) {}
     }
+
+    // Abort pending request if user is rapidly switching tabs/filters
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     setLoading(true);
     try {
@@ -196,26 +290,35 @@ export default function Leaderboard() {
         params.append("v", currentVersion);
       }
 
-      const { data } = await axios.get(`${API}/rankings/top?${params}`);
+      const { data } = await axios.get(`${API}/rankings/top?${params}`, {
+        signal: controller.signal,
+      });
       const list = data || [];
-      leaderboardCacheRef.current.set(cacheKey, list);
+      leaderboardMemoryCache.set(cacheKey, list);
       try {
         sessionStorage.setItem(storageKey, JSON.stringify({ data: list, ts: Date.now() }));
       } catch (_) {}
       setRankings(list);
-    } catch {
-      setRankings([]);
+    } catch (err) {
+      if (axios.isCancel(err)) {
+        // Request cancelled by user switching to another tab/filter, do nothing
+        return;
+      }
+      setRankings((prev) => (prev.length > 0 ? prev : []));
     } finally {
-      setLoading(false);
+      if (abortControllerRef.current === controller) {
+        setLoading(false);
+      }
     }
   }
 
   // Listen for real-time ranking updates (<1s live refresh without manual reload)
   useEffect(() => {
     if (!rankingsVersion) return;
-    leaderboardCacheRef.current.clear();
+    leaderboardMemoryCache.clear();
+    cachedMetaMemory = null;
     try {
-      sessionStorage.removeItem("gf_rankings_meta");
+      sessionStorage.removeItem(META_CACHE_KEY);
       Object.keys(sessionStorage).forEach((k) => {
         if (k.startsWith("gf_rank_data_")) sessionStorage.removeItem(k);
       });
@@ -237,6 +340,9 @@ export default function Leaderboard() {
       f.semester = "";
     }
     setFilters(f);
+    try {
+      sessionStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(f));
+    } catch (_) {}
     setShowCount(10);
     fetchRankings(f);
   };
@@ -253,6 +359,9 @@ export default function Leaderboard() {
     }
 
     setFilters(f);
+    try {
+      sessionStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(f));
+    } catch (_) {}
     setShowCount(count);
     fetchRankings(f);
   }
@@ -270,6 +379,9 @@ export default function Leaderboard() {
     };
     setSearchInput("");
     setFilters(f);
+    try {
+      sessionStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(f));
+    } catch (_) {}
     setShowCount(10);
     fetchRankings(f);
   };
