@@ -125,6 +125,18 @@
 96. [Vercel Free-Tier Resource Quotas, Serverless Guardrails & Zero-Polling Proof](#96-vercel-free-tier-resource-quotas-serverless-guardrails--zero-polling-proof)
 97. [Testimonials Developer Maintenance & Extension Guidelines](#97-testimonials-developer-maintenance--extension-guidelines)
 
+### Part IX: Developer Bio & Portfolio Subsystem (About Dev), Zero-Server Edge Delivery, Performance Invariants & Architectural Specification
+98. [About Dev Architecture, Philosophy & Zero-Server Edge Invariant](#98-about-dev-architecture-philosophy--zero-server-edge-invariant)
+99. [Complete UI/UX Visual Component Matrix & Section Blueprint](#99-complete-uiux-visual-component-matrix--section-blueprint)
+100. [Section 1: Developer Hero, Halo Portrait, Fluid Typography & Floating Badges Engine](#100-section-1-developer-hero-halo-portrait-fluid-typography--floating-badges-engine)
+101. [Section 2: Multi-Channel Connect Hub, Pre-Filled WhatsApp Deep-Link & Social Cards Matrix](#101-section-2-multi-channel-connect-hub-pre-filled-whatsapp-deep-link--social-cards-matrix)
+102. [Section 3: Impact Quote Banner & Aesthetic Branding Specification](#102-section-3-impact-quote-banner--aesthetic-branding-specification)
+103. [Theme Isolation State Machine & Non-Destructive Cleanup Protocol](#103-theme-isolation-state-machine--non-destructive-cleanup-protocol)
+104. [High-Priority Avatar Delivery, GitHub CDN Fallback Chain & Zero CLS Guarantee](#104-high-priority-avatar-delivery-github-cdn-fallback-chain--zero-cls-guarantee)
+105. [Responsive Adaptive Layout Engine & Passive Resize Optimization](#105-responsive-adaptive-layout-engine--passive-resize-optimization)
+106. [Vercel Free-Tier Resource Quotas, Zero Serverless Burden & Zero Polling Proof](#106-vercel-free-tier-resource-quotas-zero-serverless-burden--zero-polling-proof)
+107. [About Dev Developer Maintenance, Extension & Customization Guidelines](#107-about-dev-developer-maintenance-extension--customization-guidelines)
+
 
 ---
 
@@ -3772,4 +3784,358 @@ Any developer, auditor, or AI assistant modifying the Testimonials subsystem MUS
    - Any modification to Mongoose schemas in `backend/models/Feedback.js` or `frontend/api/_lib/models/Feedback.js` must preserve `feedbackSchema.index({ createdAt: -1 })`.
 6. **Ensure Unicode Safety for Comment Slicing**:
    - Always slice comments using `Array.from(str).slice(...)` rather than primitive `str.slice(...)` to protect multi-byte unicode emojis from surrogate pair splitting.
+
+
+---
+
+# PART IX: DEVELOPER BIO & PORTFOLIO SUBSYSTEM (ABOUT DEV), ZERO-SERVER EDGE DELIVERY, PERFORMANCE INVARIANTS & ARCHITECTURAL SPECIFICATION
+
+---
+
+## 98. About Dev Architecture, Philosophy & Zero-Server Edge Invariant
+
+GradeFlow's **About Developer Subsystem** (`/about-dev`, implemented in `frontend/src/pages/AboutDev.jsx`) is the personal showcase, vision manifesto, and multi-channel communication gateway between the creator (**Jagan Parida**) and the university student community.
+
+### Core Architectural Philosophy:
+1. **Humanizing the Software & Building Institutional Trust**:
+   - Academic tools often feel cold, bureaucratic, and distant. The About Developer page humanizes GradeFlow by transparently presenting the student origin story: a student who experienced the confusion and inefficiency of university semester tracking firsthand, and engineered a modern, free, and privacy-focused solution to give back to the community.
+2. **Direct, Frictionless Communication**:
+   - Provides verified, direct communication avenues (WhatsApp one-tap messaging, LinkedIn professional network, GitHub open-source repositories, portfolio project showcase, and direct email) without requiring students to fill out contact forms or navigate ticketing systems.
+3. **Zero-Server Invariant (Absolute Zero-Burden Delivery)**:
+   - The About Developer page operates under a strict **Zero-Server Invariant**:
+     - **0 API Endpoints**: Makes no calls to Express backend (`http://localhost:5000/api/*`) or Vercel Serverless functions (`/api/*`).
+     - **0 Database Queries**: Zero MongoDB connection or collection touches.
+     - **0 Real-Time Sockets**: Does not initiate or consume Ably Pub/Sub WebSocket quotas.
+     - **0 Polling**: Contains zero `setInterval` or recursive `setTimeout` fetch operations.
+     - **100% Client-Side Static Asset**: The compiled chunk (`AboutDev-[hash].js`, ~16.66 kB raw, **4.62 kB gzipped**) is served entirely from Vercel's Global Edge Network with immutable HTTP cache headers (`Cache-Control: public, max-age=31536000, immutable`).
+
+---
+
+## 99. Complete UI/UX Visual Component Matrix & Section Blueprint
+
+### Master Page Spatial Blueprint (Desktop 1280px Grid vs Mobile Adaptive Layout):
+
+```
++───────────────────────────────────────────────────────────────────────────────────────────+
+| GRADEFLOW ABOUT DEV SUBSYSTEM (/about-dev) — MASTER SPATIAL BLUEPRINT                      |
++───────────────────────────────────────────────────────────────────────────────────────────+
+|                                                                                           |
+| SECTION 1: HERO (Developer Story & Profile Halo Portrait)                                 |
+| ┌───────────────────────────────────────────────┐ ┌─────────────────────────────────────┐ |
+| │ [User Pill: The Developer Behind GradeFlow]   │ │           Outer Halo Ring           │ |
+| │                                               │ │        (380px / 290px Dashed)       │ |
+| │ Headline: Hi, I'm Jagan Parida                │ │    ┌───────────────────────────┐    │ |
+| │ [— Developer • Problem Solver • Learner]      │ │    │ [Code </> Badge]          │    │ |
+| │                                               │ │    │   ┌───────────────────┐   │    │ |
+| │ Story Narrative:                              │ │    │   │ 290px/220px Inner │   │    │ |
+| │ "I built GradeFlow to solve a real problem    │ │    │   │ Profile Avatar    │   │    │ |
+| │  I faced as a student—tracking academic       │ │    │   │ (GitHub / PNG)    │   │    │ |
+| │  performance across semesters was confusing   │ │    │   └───────────────────┘   │    │ |
+| │  and time-consuming..."                       │ │    │          [BarChart2 Badge]│    │ |
+| │                                               │ │    └───────────────────────────┘    │ |
+| │ Handwritten Signature: Jagan Parida           │ │    [Floating Philosophy Quote Card] │ |
+| │ (Cursive, Royal Blue #2563eb, -3deg rotation) │ │    "Code is not just what I write..."│|
+| └───────────────────────────────────────────────┘ └─────────────────────────────────────┘ |
+|                                                                                           |
+| SECTION 2: "LET'S CONNECT" & 4 MULTI-CHANNEL SOCIAL CARDS                                 |
+| ┌───────────────────────────────────────────────┐ ┌─────────────────────────────────────┐ |
+| │ [User Icon] Let's Connect                     │ │ 4x1 Desktop Grid / 2x2 Mobile Grid  │ |
+| │ "I'm always open to new opportunities..."     │ │ ┌─────────┐ ┌─────────┐ ┌─────────┐ │ |
+| │                                               │ │ │LinkedIn │ │ GitHub  │ │Portfolio│ │ |
+| │ [💬 Say Hello on WhatsApp Action Button]      │ │ │#eff6ff  │ │#f8fafc  │ │#f5f3ff  │ │ |
+| │ (WhatsApp Green #25D366, Pre-filled message)  │ │ └─────────┘ └─────────┘ └─────────┘ │ |
+| │                                               │ │ ┌─────────┐                         │ |
+| │                                               │ │ │ Email   │                         │ |
+| │                                               │ │ │#fef2f2  │                         │ |
+| └───────────────────────────────────────────────┘ └─┴─────────┴─────────────────────────┘ |
+|                                                                                           |
+| SECTION 3: BOTTOM IMPACT QUOTE BANNER                                                     |
+| ┌───────────────────────────────────────────────────────────────────────────────────────┐ |
+| │ [Quote Icon #93c5fd]  "Striving to build digital experiences that create real impact."│ |
+| └───────────────────────────────────────────────────────────────────────────────────────┘ |
++───────────────────────────────────────────────────────────────────────────────────────────+
+```
+
+---
+
+## 100. Section 1: Developer Hero, Halo Portrait, Fluid Typography & Floating Badges Engine
+
+Section 1 utilizes a responsive 2-column CSS Grid (`gridTemplateColumns: isMobile ? "1fr" : "1.15fr 1fr"`, gap: `isMobile ? 32 : 56`) enveloped in a `motion.div` transition (`duration: 0.5s`).
+
+### 1. Left Column: Typography, Narrative & Signature
+* **Pill Badge**:
+  - Encapsulated badge: `padding: "6px 14px"`, background `#eff6ff`, border `1px solid #dbeafe`, border-radius `999px`.
+  - Icon: Lucide `User` (`size: 13`, color: `#2563eb`).
+  - Label: `"The Developer Behind "` with highlighted brand text `<span style={{ color: "#1e40af", fontWeight: 800 }}>GradeFlow</span>`.
+* **Fluid Headline**:
+  - `fontSize: isMobile ? "32px" : "clamp(38px, 4.4vw, 56px)"`, `fontWeight: 800`, `lineHeight: 1.12`, `letterSpacing: "-1px"`.
+  - Text: `"Hi, I'm "` with accent text `<span style={{ color: "#2563eb" }}>Jagan Parida</span>`.
+* **Role Subtitle & Accent Rule**:
+  - Accent dash: `<span style={{ color: "#2563eb", fontWeight: 800, fontSize: 18 }}>—</span>`.
+  - Content: `"Developer • Problem Solver • Lifelong Learner"`.
+* **Narrative Copy**:
+  - Paragraph 1: Addresses student pain points (semester tracking confusion, wasted time) and the motivation to create GradeFlow as a free community utility.
+  - Paragraph 2: Core engineering philosophy (building digital products that make life easier, smarter, and more efficient).
+* **Handwritten Signature Simulation**:
+  - Rendered with CSS cursive typography fallbacks: `fontFamily: "'Caveat', 'Dancing Script', 'Brush Script MT', cursive"`.
+  - Visual dynamics: `fontSize: isMobile ? 28 : 34`, `color: "#2563eb"`, `transform: "rotate(-3deg)"`, `letterSpacing: "1px"`.
+
+### 2. Right Column: Halo Portrait & Floating Badges Engine
+The right column creates an artistic halo depth effect using layered absolute positioning:
+
+```
+[Outer Dashed Circle (380px)]
+    └── [Inner Gradient Container (290px) + Box Shadow (0 20px 45px rgba(37,99,235,0.14))]
+             └── [High-Priority Avatar Image]
+                      ├── [Top-Left Code Badge </>]
+                      ├── [Bottom-Right Analytics Badge 📊]
+                      └── [Bottom-Left Philosophy Card “...”]
+```
+
+1. **Outer Circular Halo Ring**:
+   - Dimensions: `width: isMobile ? 290 : 380`, `height: isMobile ? 290 : 380`.
+   - Visual: `borderRadius: "50%"`, `background: "radial-gradient(circle, rgba(37, 99, 235, 0.08) 0%, rgba(240, 244, 255, 0) 70%)"`, `border: "1px dashed rgba(37, 99, 235, 0.2)"`.
+2. **Inner Profile Container**:
+   - Animated scale-in: Framer Motion `initial={{ scale: 0.9, opacity: 0 }}` -> `animate={{ scale: 1, opacity: 1 }}` (`duration: 0.6s`).
+   - Dimensions: `width: isMobile ? 220 : 290`, `height: isMobile ? 220 : 290`.
+   - Triple ring aesthetic: `background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)"`, outer shadow `0 20px 45px rgba(37, 99, 235, 0.14)`, border ring `0 0 0 8px rgba(255, 255, 255, 0.9)`.
+3. **Floating Interactive Badges**:
+   - **Badge 1 (Top-Left)**: Absolute position (`top: 40px, left: 10px`). Contains Lucide `Code` (`size: 18`, color: `#2563eb`). Enclosed in white rounded pill (`border: "1px solid #e2e8f0"`, shadow `0 8px 20px rgba(15, 23, 42, 0.08)`).
+   - **Badge 2 (Bottom-Right)**: Absolute position (`bottom: 60px, right: 15px`). Contains Lucide `BarChart2` (`size: 20`, color: `#2563eb`). Represents the analytics and grade calculation intelligence of GradeFlow.
+   - **Badge 3 (Bottom-Left Philosophy Card)**: Absolute position (`bottom: 10px, left: 0px`, `maxWidth: 220px`, z-index `4`). Features large royal blue quotation mark (`“`), italicized quote (`"Code is not just what I write, it's how I solve problems."`), and a vibrant purple heart icon (`Heart`, color/fill `#8b5cf6`).
+
+---
+
+## 101. Section 2: Multi-Channel Connect Hub, Pre-Filled WhatsApp Deep-Link & Social Cards Matrix
+
+Section 2 provides a consolidated communication terminal enclosed in a card (`background: "#ffffff"`, `border: "1px solid #f1f5f9"`, `borderRadius: 24`, `boxShadow: "0 4px 20px rgba(0,0,0,0.02)"`).
+
+### 1. Left Block: Direct WhatsApp Action Call
+* **Hoisted Static URL Architecture**:
+  - To prevent continuous garbage collection and memory allocations on re-renders, WhatsApp URL generation is hoisted into module-level constants:
+```javascript
+/* ─── Static Contact URLs (Hoisted for zero render overhead) ────── */
+const WHATSAPP_MESSAGE = encodeURIComponent(
+  "Hi Jagan, I checked out GradeFlow and wanted to connect with you!"
+);
+const WHATSAPP_URL = `https://wa.me/919124540575?text=${WHATSAPP_MESSAGE}`;
+```
+* **CTA Button Specifications**:
+  - Background: `#25D366` (Official WhatsApp Brand Hex).
+  - Hover state: Shifts smoothly to `#1ebc59` with elevated box shadow `0 6px 18px rgba(37, 211, 102, 0.45)`.
+  - Icon: Inline custom high-precision `WhatsAppIcon` SVG.
+  - Security attributes: `target="_blank"`, `rel="noopener noreferrer"`.
+
+### 2. Right Block: 4 Social Hub Cards Matrix
+The grid automatically shifts from a desktop 4-column horizontal strip (`repeat(4, 1fr)`) to a mobile 2x2 card matrix (`repeat(2, 1fr)`, gap: `12px`).
+
+#### Social Channels Specifications Table:
+
+```
++-----------+-----------------------------------------------+---------------+---------------+----------------------+------------------+
+| Channel   | Target Destination URL                        | Icon Component| Icon Color    | Icon Box Tint        | Description Copy |
++-----------+-----------------------------------------------+---------------+---------------+----------------------+------------------+
+| LinkedIn  | https://www.linkedin.com/in/jagan-parida04/   | LinkedInIcon  | #0a66c2 (Blue)| #eff6ff (Light Blue) | Professional     |
+|           |                                               | (Custom SVG)  |               |                      | profile          |
++-----------+-----------------------------------------------+---------------+---------------+----------------------+------------------+
+| GitHub    | https://github.com/JaganParida                | GitHubIcon    | #0f172a(Slate)| #f8fafc (Light Slate)| Code repositories|
+|           |                                               | (Custom SVG)  |               |                      |                  |
++-----------+-----------------------------------------------+---------------+---------------+----------------------+------------------+
+| Portfolio | https://www.jaganparida.com/                  | Globe         | #8b5cf6(Purple)| #f5f3ff (Light Purple)| Featured       |
+|           |                                               | (Lucide)      |               |                      | projects         |
++-----------+-----------------------------------------------+---------------+---------------+----------------------+------------------+
+| Email     | mailto:jagan.parida.dev@gmail.com             | Mail          | #ef4444 (Red) | #fef2f2 (Light Red)  | Drop a message   |
+|           |                                               | (Lucide)      |               |                      |                  |
++-----------+-----------------------------------------------+---------------+---------------+----------------------+------------------+
+```
+
+#### Card Interaction & Micro-Interactions:
+- **Hover Physics**:
+  - `transform: "translateY(-3px)"`
+  - `borderColor: "#cbd5e1"`
+  - `boxShadow: "0 8px 20px rgba(0,0,0,0.05)"`
+  - Transition duration: `all 0.2s ease`.
+- **Action Footers**: Each card features a directional prompt (`Connect ->`, `Profile ->`, `Explore ->`, `Contact ->`) equipped with Lucide `ArrowRight` (`size: 12`), signaling interactive navigation.
+
+---
+
+## 102. Section 3: Impact Quote Banner & Aesthetic Branding Specification
+
+At the bottom of the page sits the brand philosophy banner:
+* **Container Geometry**:
+  - `background: "#f8faff"`
+  - `border: "1px solid #edf2f7"`
+  - `borderRadius: 18`
+  - `padding: isMobile ? "16px 18px" : "20px 32px"`
+  - Layout: `display: "flex"`, `alignItems: "center"`, `justifyContent: "center"`, `gap: 10`.
+* **Visual Elements**:
+  - Lucide `Quote` icon (`size: 18`, color `#93c5fd`, flex-shrink `0`).
+  - Text: `"Striving to build digital experiences that create real impact."` (`fontSize: isMobile ? 13.5 : 15.5`, `fontWeight: 600`, `color: "#334155"`).
+
+---
+
+## 103. Theme Isolation State Machine & Non-Destructive Cleanup Protocol
+
+### 1. The Theme Leak Vulnerability (History & Threat Model)
+In earlier revisions, the About Developer page forced the application theme to `"light"` upon mounting (`document.documentElement.setAttribute("data-theme", "light")`) so that its clean editorial layout, light shadows, and portrait halo rendered with intended color contrast.
+However, because it omitted an unmount cleanup function, any student visiting `/about-dev` while in **Dark Mode** had their dark theme permanently wiped out for the remainder of their session when navigating back to `/dashboard`, `/timetable`, or `/analytics`.
+
+### 2. State Machine Transition Diagram:
+
+```
+[User on /dashboard in Dark Mode] (data-theme="dark")
+                  │
+                  ▼ (Navigates to /about-dev)
+[Mount Hook Executes]
+  1. previousTheme = readAttribute("data-theme") || localStorage || "light" ("dark")
+  2. setAttribute("data-theme", "light")
+  3. window.scrollTo({ top: 0, behavior: "smooth" })
+                  │
+                  ▼ (Browses About Dev in pristine light theme)
+                  │
+                  ▼ (Clicks Back or Navigates to /timetable)
+[Unmount Cleanup Hook Executes]
+  1. setAttribute("data-theme", previousTheme) ("dark" restored!)
+                  │
+                  ▼
+[User on /timetable with Original Theme Intact]
+```
+
+### 3. Authoritative Implementation:
+```javascript
+useEffect(() => {
+  // Capture the student's active theme prior to mount
+  const previousTheme =
+    document.documentElement.getAttribute("data-theme") ||
+    localStorage.getItem("gf_theme") ||
+    "light";
+
+  // Enforce editorial light theme for About Dev layout
+  document.documentElement.setAttribute("data-theme", "light");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+
+  // STRICT INVARIANT: Restore user's original theme upon route unmount
+  return () => {
+    document.documentElement.setAttribute("data-theme", previousTheme);
+  };
+}, []);
+```
+
+---
+
+## 104. High-Priority Avatar Delivery, GitHub CDN Fallback Chain & Zero CLS Guarantee
+
+### 1. Cumulative Layout Shift (CLS = 0) Invariant
+Images without explicit aspect ratio or width/height attributes cause reflows and cumulative layout shifts when loading.
+The developer profile avatar enforces strict dimensional reservations:
+* **Explicit HTML Dimension Props**: `width={isMobile ? 220 : 290}` and `height={isMobile ? 220 : 290}`.
+* **Aspect Ratio Reservation**: Container circle has identical fixed width/height matching the image props, guaranteeing that layout calculation allocates exact pixel dimensions before the image network request resolves.
+
+### 2. Modern Browser Loading & Prioritization Hints:
+```jsx
+<img
+  src="https://github.com/JaganParida.png"
+  alt="Jagan Parida - Developer"
+  loading="eager"
+  decoding="async"
+  fetchPriority="high"
+  width={isMobile ? 220 : 290}
+  height={isMobile ? 220 : 290}
+  style={{
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  }}
+  onError={(e) => {
+    e.currentTarget.src =
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80";
+  }}
+/>
+```
+
+* `loading="eager"`: Overrides lazy-loading defaults; ensures immediate retrieval above the fold.
+* `decoding="async"`: Offloads image decoding from the main browser thread to prevent UI stutter during framer-motion hero animations.
+* `fetchPriority="high"`: Hints to Chrome/WebKit network schedulers to prioritize the developer avatar over non-critical background assets.
+* `onError Fallback Chain`: If GitHub CDN encounters downtime, rate-limiting, or DNS failures, the `onError` event automatically swaps the source to a verified, high-availability CDN asset.
+
+---
+
+## 105. Responsive Adaptive Layout Engine & Passive Resize Optimization
+
+### 1. Breakpoint Invariant (< 1024px)
+The layout splits behavior at `1024px` (`isMobile = window.innerWidth < 1024`):
+* **Desktop (>= 1024px)**:
+  - Hero Grid: `1.15fr 1fr` (56px gap)
+  - Profile Circle: `290px` diameter with `380px` halo
+  - Connect Section: `1.1fr 2.4fr` (32px gap)
+  - Social Cards: 4 columns inline (`repeat(4, 1fr)`)
+* **Mobile (< 1024px)**:
+  - Hero Grid: `1fr` stacked (32px gap)
+  - Profile Circle: `220px` diameter with `290px` halo
+  - Connect Section: `1fr` stacked (24px gap)
+  - Social Cards: 2x2 grid (`repeat(2, 1fr)`)
+
+### 2. Lazy Initialization & Passive Resize Listener:
+```javascript
+// Lazy state initialization prevents hydration mismatch and redundant initial layout checks
+const [isMobile, setIsMobile] = useState(() =>
+  typeof window !== "undefined" ? window.innerWidth < 1024 : false
+);
+
+useEffect(() => {
+  const handleResize = () => setIsMobile(window.innerWidth < 1024);
+  // { passive: true } guarantees smooth 60fps scrolling on touch devices
+  window.addEventListener("resize", handleResize, { passive: true });
+  return () => window.removeEventListener("resize", handleResize);
+}, []);
+```
+
+---
+
+## 106. Vercel Free-Tier Resource Quotas, Zero Serverless Burden & Zero Polling Proof
+
+### Monthly Allowance vs About Developer Consumption Matrix:
+
+```
++------------------------------------+-----------------------+---------------------------+
+| Vercel Free (Hobby) Metric         | Monthly Quota         | GradeFlow About Dev Page  |
++------------------------------------+-----------------------+---------------------------+
+| 1. Functions Storage               | 10 GB                 | 0 B (No backend function) |
+| 2. Fluid Active CPU                | 4 Hours               | 0 ms (0 serverless compute)|
+| 3. Deployment Storage              | 10 GB                 | 4.62 kB (gzipped JS chunk)|
+| 4. Fluid Provisioned Memory        | 360 GB-Hours          | 0 GB-Hours                |
+| 5. Edge Requests                   | 1,000,000 (1M)        | Negligible (Cached at Edge)|
+| 6. Function Invocations            | 1,000,000 (1M)        | STRICT ZERO (0) INVOCATIONS|
+| 7. Fast Data Transfer              | 100 GB                | < 5 MB / month            |
+| 8. Fast Origin Transfer            | 10 GB                 | 0 B                       |
+| 9. Edge Request CPU Duration       | 1 Hour                | < 0.1s cumulative duration|
+| 10. Private Data Transfer          | 0 B                   | 0 B                       |
++------------------------------------+-----------------------+---------------------------+
+```
+
+### Complete Proof of Zero Polling & Edge Invariance:
+1. **Zero `setInterval` Loops**: There are no intervals, timeouts, or recursive microtasks polling the backend.
+2. **Zero Route Transition Burden**: Navigating from `/dashboard` or `/timetable` to `/about-dev` occurs purely client-side within React Router memory.
+3. **Infinite HTTP Caching**: Vite hashes the compiled output (`AboutDev-e9288c8c.js`). Vercel CDN tags it with `immutable`, ensuring that repeat visits by the same student consume **zero network bandwidth** (served from HTTP disk cache / 304 Not Modified).
+
+---
+
+## 107. About Dev Developer Maintenance, Extension & Customization Guidelines
+
+Any engineer, auditor, or AI agent modifying `AboutDev.jsx` MUST adhere to the following rules:
+
+1. **NEVER Eliminate the Theme Restoration Cleanup Hook**:
+   - The unmount cleanup function in `useEffect` (`document.documentElement.setAttribute("data-theme", previousTheme)`) is essential. Removing it introduces a critical UI regression for all dark mode users across the rest of GradeFlow.
+2. **NEVER Introduce Serverless API Calls or DB Lookups**:
+   - The page MUST remain 100% static client-side React. Under no circumstances introduce `axios.get('/api/...')` or database queries on this route.
+3. **Protocol for Adding a New Social Channel**:
+   - To add a new channel (e.g. Twitter/X, Discord, YouTube):
+     - If adding 1 channel on desktop, adjust grid column template from `repeat(4, 1fr)` to `repeat(5, 1fr)`.
+     - Ensure the anchor tag includes `target="_blank"` and `rel="noopener noreferrer"`.
+     - Follow the standard card design pattern: container padding `18px 16px`, icon box `34x34` with border radius `10px`, brand icon color, title, subtitle, and directional `ArrowRight` CTA.
+4. **Preserve Image Optimization Attributes for Zero CLS**:
+   - Never remove `width={isMobile ? 220 : 290}`, `height={isMobile ? 220 : 290}`, `loading="eager"`, `decoding="async"`, or `fetchPriority="high"`.
+5. **Always Keep Resize Listeners Passive**:
+   - Any added scroll or window listeners must include `{ passive: true }` to avoid degrading mobile frame rates.
+
 
