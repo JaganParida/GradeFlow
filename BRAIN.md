@@ -24,6 +24,8 @@
 9. [OTP Rate Limiting, Cooldowns & Daily Quotas](#9-otp-rate-limiting-cooldowns--daily-quotas)
 10. [Dual-Runtime Parity (Express Backend vs Vercel Serverless)](#10-dual-runtime-parity-express-backend-vs-vercel-serverless)
 11. [Complete Forensic Test Matrix & Expected Outcomes](#11-complete-forensic-test-matrix--expected-outcomes)
+11A. [Normal Student 2-Failed-Password Protocol & 5-Minute One-Time Recovery OTP](#11a-normal-student-2-failed-password-protocol-5-minute-one-time-recovery-otp--24-hour-lockout-engine)
+11B. [Permanent Administrator & Sub-Administrator Session Architecture](#11b-permanent-administrator--sub-administrator-session-architecture)
 
 ### Part II: Dashboard Engine, 5 Subtabs, Caching & Performance
 12. [Dashboard Architecture & Design Principles](#12-dashboard-architecture--design-principles)
@@ -469,7 +471,7 @@ All 22 core test scenarios must pass without regressions:
 | **3** | Master Admin 2nd device login | Device 2 authenticated; count = 2 | `activeAdminCount == 2`, button hidden on other tabs |
 | **4** | Master Admin 3rd device attempt | HTTP 403 `DEVICE_LIMIT_REACHED` | Devices 1 & 2 remain active; 3rd blocked |
 | **5** | Admin A explicit logout | Device A revoked; Device B stays active | Count drops `2 -> 1`; Device B button visible |
-| **6** | Stale Admin session (>1h idle) | Stale session filtered out by TTL | Count drops `2 -> 1`; capacity freed |
+| **6** | Admin session under extended inactivity | Session remains active (Permanent 100y) | Never auto-evicts; only manual logout/revocation |
 | **7** | Sub-Admin login & 2-device cap | SubAdmin isolated; max 2 devices | SubAdmin cannot access Master Admin settings |
 | **8** | SubAdmin RBAC routes | Overview/Toppers allowed; Settings denied | HTTP 403 on unauthorized SubAdmin action |
 | **9** | Normal Student login (Device 1) | Exactly 1 active session created | `isSessionValid == true` |
@@ -486,6 +488,72 @@ All 22 core test scenarios must pass without regressions:
 | **20** | Forged `gf_auth_present=1` | Server rejects request (HTTP 401) | Presence cookie grants 0 authorization |
 | **21** | Session resurrection attack | Calling `touchSession` on revoked session | Revoked session remains `isActive: false` |
 | **22** | SPA Route Navigation | Home -> Admin -> Dashboard -> Home | 0 unnecessary auth requests; 0 count changes |
+| **23** | Student 1st Failed Password | HTTP 401 with remaining attempts warning | `failedPasswordAttempts: 1`, 1 attempt left |
+| **24** | Student 2nd Failed Password | Auto-transfer to 5-min one-time recovery OTP | `failedPasswordAttempts: 2`, 24h lockout set |
+| **25** | Student Page 1 Bypass with Active OTP | `check-status` redirects directly to OTP screen | Password input completely bypassed |
+| **26** | Student Page 1 Bypass with Expired OTP | `check-status` blocks with unlock timestamp | Shows exact lock expiration time |
+| **27** | Mobile Admin Permanent Session | Phone idle/locked > 1h, visitor accesses site | Admin remains logged in; 0 auto-revocations |
+
+---
+
+## 11A. Normal Student 2-Failed-Password Protocol, 5-Minute One-Time Recovery OTP & 24-Hour Lockout Engine
+
+### 11A.1 Workflow & State Transitions
+For all normal students (`rawReg !== "230301120327"`):
+1. **First Failed Password:**
+   - Increments `failedPasswordAttempts` to 1.
+   - Returns HTTP 401: `Incorrect password. 1 attempt remaining.`
+2. **Second Failed Password:**
+   - Increments `failedPasswordAttempts` to 2.
+   - Sets `recoveryRestrictedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000)` (24-hour lockout).
+   - Generates a 6-digit one-time recovery OTP valid for exactly 5 minutes (`expiresAt = new Date(Date.now() + 5 * 60 * 1000)`).
+   - Dispatches OTP to university email.
+   - Response payload:
+     ```json
+     {
+       "success": false,
+       "code": "FAILED_ATTEMPTS_EXCEEDED",
+       "step": "OTP",
+       "oneTimeOtpOnly": true,
+       "cooldownRemaining": 300,
+       "maskedEmail": "s***@cutm.ac.in",
+       "message": "Maximum failed password attempts reached. A one-time verification code has been sent to your email (valid for 5 minutes). After verification, you can set a new password."
+     }
+     ```
+3. **Resend Prevention (`ONE_TIME_OTP_ONLY`):**
+   - Resending recovery OTP is strictly forbidden. Attempting to call `/student/send-otp` returns HTTP 400:
+     `"A one-time verification code is already active for your account (valid for 5 minutes). Resending is not permitted under security policy."`
+   - UI resend button is permanently disabled with caption *"Single-use code (No resend)"*.
+4. **Anti-Bypass Guard (Page 1 Interception):**
+   - If a student tries to bypass the OTP screen by refreshing or navigating back to Page 1 and re-entering their registration number:
+     - **If 5-Minute OTP is Active:** `/student/check-status` detects `pendingRecoveryOtpActive` and returns `step: "OTP"` with remaining countdown seconds. The frontend immediately redirects to the OTP verification screen. Password entry is unreachable.
+     - **If 5-Minute OTP has Expired:** `/student/check-status` detects `recoveryRestrictedUntil > Date.now()` and returns `isBlocked: true`, `code: "ACCOUNT_TEMPORARILY_LOCKED"`, and `unlockAt`. The frontend displays the temporary lockout screen showing the exact unlock time.
+5. **Password Overwrite & Lockout Clearance:**
+   - Once verified, student enters new password and confirmation.
+   - `/student/reset-password` hashes new password with bcrypt (12 rounds) and atomically clears:
+     `{ failedPasswordAttempts: 0, lastFailedPasswordAt: null, recoveryRestrictedUntil: null, recoveryOtpSentAt: null }`.
+   - Creates a fresh `StudentSession` and issues HttpOnly auth cookies immediately.
+
+---
+
+## 11B. Permanent Administrator & Sub-Administrator Session Architecture
+
+### 11B.1 Core Tenet: Manual Logout Only
+Administrators (`role: "admin"`, both Master Admin and Sub-Admin) stay **permanently logged in** across all devices (Mobile and Desktop) until:
+1. The user explicitly performs a manual logout (`POST /api/auth/admin/logout` or `POST /api/auth/logout`).
+2. An administrator manually clicks "Revoke Session" from the Session Management dashboard table (`/api/admin/sessions/revoke` or `/api/admin/subadmins/sessions/revoke`).
+
+### 11B.2 Invariants & Defenses Against Auto-Revocation
+- **Zero Inactivity Expiration:**
+  `ADMIN_PERMANENT_SESSION_MS = 100 * 365 * 24 * 60 * 60 * 1000` (100 Years).
+  `cleanExpiredAdminSessions` never revokes active sessions due to inactivity (`lastActiveAt` cutoffs removed).
+- **Zero Device-Heuristic Eviction:**
+  `/auth/bootstrap` never matches or revokes admin sessions by physical device characteristics when anonymous visitors or students visit GradeFlow.
+- **Zero Premature Cookie-Clearing Revocation:**
+  `/admin/check-status` is a read-only endpoint that never deletes or revokes sessions in MongoDB if a request arrives temporarily without a cookie.
+- **100-Year Token & Cookie TTLs:**
+  `jwt.sign` uses `{ expiresIn: "36500d" }`.
+  Cookie `Set-Cookie` headers use `Max-Age=3153600000` (100 years) and matching UTC `Expires` headers.
 
 ---
 
