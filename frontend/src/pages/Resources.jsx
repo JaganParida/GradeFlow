@@ -1778,13 +1778,39 @@ export default function Resources() {
                   margin: 0,
                 }}
               >
-                <div>
-                  <h2 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0", letterSpacing: "-0.3px" }}>
-                    Live Academic Health Meter
-                  </h2>
-                  <p style={{ fontSize: isMobile ? 12 : 13.5, color: "#64748b", margin: "0 0 20px 0", lineHeight: 1.4 }}>
-                    Adjust your metrics below to see your real-time computed health index (0 to 100 points).
-                  </p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-start", flexDirection: isMobile ? "column" : "row", gap: 12 }}>
+                  <div>
+                    <h2 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0", letterSpacing: "-0.3px" }}>
+                      Live Academic Health Meter
+                    </h2>
+                    <p style={{ fontSize: isMobile ? 12 : 13.5, color: "#64748b", margin: 0, lineHeight: 1.4 }}>
+                      Adjust your metrics below to see your real-time computed health index (0 to 100 points).
+                    </p>
+                  </div>
+                  {studentData && (
+                    <button
+                      type="button"
+                      onClick={handleSyncHealthProfile}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "8px 14px",
+                        borderRadius: 10,
+                        background: "#f5f3ff",
+                        color: "#6d28d9",
+                        border: "1px solid #ddd6fe",
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        alignSelf: isMobile ? "flex-start" : "center",
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Zap size={14} /> Sync With My Profile
+                    </button>
+                  )}
                 </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr", gap: isMobile ? 18 : 32, alignItems: "center" }}>
@@ -1852,7 +1878,7 @@ export default function Resources() {
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
                             <span style={{ fontSize: isMobile ? 12.5 : 13.5, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap" }}>
-                              Latest SGPA
+                              Latest Semester SGPA
                             </span>
                             <span
                               style={{
@@ -1980,19 +2006,19 @@ export default function Resources() {
                         Health Score
                       </div>
                       <div style={{ fontSize: isMobile ? 42 : 54, fontWeight: 800, color: "#0f172a", lineHeight: 1.1, margin: "6px 0" }}>
-                        {calculateHealthScore()} <span style={{ fontSize: 16, color: "#94a3b8" }}>/100</span>
+                        {healthScore} <span style={{ fontSize: 16, color: "#94a3b8" }}>/100</span>
                       </div>
                       <div
                         style={{
                           padding: "4px 14px",
                           borderRadius: 99,
-                          background: calculateHealthScore() >= 80 ? "#dcfce7" : calculateHealthScore() >= 60 ? "#fef3c7" : "#fee2e2",
-                          color: calculateHealthScore() >= 80 ? "#15803d" : calculateHealthScore() >= 60 ? "#d97706" : "#b91c1c",
+                          background: healthScore >= 80 ? "#dcfce7" : healthScore >= 60 ? "#fef3c7" : "#fee2e2",
+                          color: healthScore >= 80 ? "#15803d" : healthScore >= 60 ? "#d97706" : "#b91c1c",
                           fontSize: 12,
                           fontWeight: 700,
                         }}
                       >
-                        {calculateHealthScore() >= 80 ? "Excellent Standing" : calculateHealthScore() >= 60 ? "Good Progress" : "Needs Attention"}
+                        {healthScore >= 80 ? "Excellent Standing" : healthScore >= 60 ? "Good Progress" : "Needs Attention"}
                       </div>
                     </div>
                   </div>
@@ -2065,12 +2091,40 @@ export default function Resources() {
                 transition={{ duration: 0.22, ease: "easeInOut" }}
                 style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)", margin: 0 }}
               >
-                <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
-                  Target GPA Goal Predictor
-                </h2>
-                <p style={{ fontSize: 13.5, color: "#64748b", margin: "0 0 20px 0" }}>
-                  Calculate exactly what SGPA you need to score in your next semester to achieve your target graduation CGPA.
-                </p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-start", flexDirection: isMobile ? "column" : "row", gap: 12, marginBottom: 16 }}>
+                  <div>
+                    <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
+                      Target GPA Goal Predictor
+                    </h2>
+                    <p style={{ fontSize: 13.5, color: "#64748b", margin: 0 }}>
+                      Calculate exactly what SGPA you need to score in your next semester to achieve your target graduation CGPA.
+                    </p>
+                  </div>
+                  {studentData && (
+                    <button
+                      type="button"
+                      onClick={handleAutoFillPredictor}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "8px 14px",
+                        borderRadius: 10,
+                        background: "#eff6ff",
+                        color: "#1d4ed8",
+                        border: "1px solid #bfdbfe",
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        alignSelf: isMobile ? "flex-start" : "center",
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Zap size={14} /> Auto-Fill With My Profile
+                    </button>
+                  )}
+                </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr", gap: isMobile ? 20 : 28, alignItems: "center" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -2116,9 +2170,9 @@ export default function Resources() {
 
                   <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 20, padding: isMobile ? "24px 16px" : "32px", textAlign: "center" }}>
                     <div style={{ fontSize: 11.5, fontWeight: 800, color: "#1e40af", textTransform: "uppercase" }}>Required Next Semester SGPA</div>
-                    <div style={{ fontSize: isMobile ? 42 : 52, fontWeight: 800, color: "#1d4ed8", margin: "8px 0" }}>{calculateRequiredSgpa()}</div>
+                    <div style={{ fontSize: isMobile ? 42 : 52, fontWeight: 800, color: "#1d4ed8", margin: "8px 0" }}>{requiredSgpa}</div>
                     <p style={{ fontSize: 12.5, color: "#475569", margin: 0, lineHeight: 1.45 }}>
-                      {Number(calculateRequiredSgpa()) > 10 ? "Target is mathematically unreachable in 1 semester. Strive for consistent 9+ SGPAs across remaining semesters." : `Scoring a ${calculateRequiredSgpa()} SGPA next semester will elevate your CGPA to ${targetCgpaGoal}!`}
+                      {Number(requiredSgpa) > 10 ? "Target is mathematically unreachable in 1 semester. Strive for consistent 9+ SGPAs across remaining semesters." : `Scoring a ${requiredSgpa} SGPA next semester will elevate your CGPA to ${targetCgpaGoal}!`}
                     </p>
                   </div>
                 </div>
@@ -2146,7 +2200,7 @@ export default function Resources() {
                   </div>
                   <div style={{ textAlign: isMobile ? "left" : "right", background: "#eff6ff", padding: "8px 16px", borderRadius: 12, border: "1px solid #bfdbfe", width: isMobile ? "100%" : "auto", boxSizing: "border-box" }}>
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "#1e40af", textTransform: "uppercase" }}>Calculated SGPA</span>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: "#1d4ed8" }}>{calculatedSgpa()} <span style={{ fontSize: 13, color: "#60a5fa" }}>/10</span></div>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: "#1d4ed8" }}>{calculatedSgpa} <span style={{ fontSize: 13, color: "#60a5fa" }}>/10</span></div>
                   </div>
                 </div>
 
@@ -2224,6 +2278,27 @@ export default function Resources() {
                   >
                     <Plus size={15} /> Add Subject
                   </button>
+                  {studentData?.results?.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleImportLatestSemester}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "10px 16px",
+                        borderRadius: 10,
+                        background: "#eff6ff",
+                        color: "#2563eb",
+                        border: "1px solid #bfdbfe",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Zap size={15} /> Import My Latest Semester
+                    </button>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -2249,7 +2324,7 @@ export default function Resources() {
                   </div>
                   <div style={{ textAlign: isMobile ? "left" : "right", background: "#f5f3ff", padding: "8px 16px", borderRadius: 12, border: "1px solid #ddd6fe", width: isMobile ? "100%" : "auto", boxSizing: "border-box" }}>
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "#6d28d9", textTransform: "uppercase" }}>Calculated CGPA</span>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: "#7c3aed" }}>{calculatedCgpa()} <span style={{ fontSize: 13, color: "#c4b5fd" }}>/10</span></div>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: "#7c3aed" }}>{calculatedCgpa} <span style={{ fontSize: 13, color: "#c4b5fd" }}>/10</span></div>
                   </div>
                 </div>
 
@@ -2312,7 +2387,7 @@ export default function Resources() {
                   ))}
                 </div>
 
-                <div style={{ marginTop: 16 }}>
+                <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <button
                     type="button"
                     onClick={() => setCgpaSemesters([...cgpaSemesters, { sem: `Semester ${cgpaSemesters.length + 1}`, credits: 22, sgpa: 8.5 }])}
@@ -2320,6 +2395,27 @@ export default function Resources() {
                   >
                     <Plus size={15} /> Add Semester
                   </button>
+                  {studentData?.results?.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleImportSemesterHistory}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "10px 16px",
+                        borderRadius: 10,
+                        background: "#f5f3ff",
+                        color: "#7c3aed",
+                        border: "1px solid #ddd6fe",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Zap size={15} /> Import My Semester History
+                    </button>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -2336,35 +2432,62 @@ export default function Resources() {
                 transition={{ duration: 0.22, ease: "easeInOut" }}
                 style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)", margin: 0 }}
               >
-                <h2 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
-                  Academic Report Card Overview
-                </h2>
-                <p style={{ fontSize: 13.5, color: "#64748b", margin: "0 0 20px 0" }}>
-                  Detailed breakdown of semester progress, cumulative performance, and course credits.
-                </p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 20, flexDirection: isMobile ? "column" : "row", gap: 10 }}>
+                  <div>
+                    <h2 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
+                      {studentData ? `${studentData.studentName}'s Academic Report` : "Academic Report Card Overview"}
+                    </h2>
+                    <p style={{ fontSize: 13.5, color: "#64748b", margin: 0 }}>
+                      {studentData
+                        ? `Registration: ${studentData.regNo} · Branch: ${studentData.branch || "Engineering"} (Official University Ledger)`
+                        : "Detailed breakdown of semester progress, cumulative performance, and course credits."}
+                    </p>
+                  </div>
+                  {studentData && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 99, background: "#dcfce7", color: "#15803d", fontSize: 12, fontWeight: 700 }}>
+                      <CheckCircle2 size={14} /> Verified Student Record
+                    </span>
+                  )}
+                </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: isMobile ? 12 : 16, marginBottom: 20 }}>
                   <div style={{ background: "#f8fafc", padding: "16px 18px", borderRadius: 14, border: "1px solid #f1f5f9" }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b" }}>CURRENT CGPA</div>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>8.72 <span style={{ fontSize: 13, color: "#94a3b8" }}>/10</span></div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b" }}>
+                      {studentData ? "YOUR CURRENT CGPA" : "CURRENT CGPA"}
+                    </div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>
+                      {studentData?.cgpa !== undefined ? Number(studentData.cgpa).toFixed(2) : "8.72"} <span style={{ fontSize: 13, color: "#94a3b8" }}>/10</span>
+                    </div>
                   </div>
                   <div style={{ background: "#f8fafc", padding: "16px 18px", borderRadius: 14, border: "1px solid #f1f5f9" }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b" }}>TOTAL CREDITS EARNED</div>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: "#2563eb", marginTop: 4 }}>138</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b" }}>
+                      {studentData ? "TOTAL CREDITS CLEARED" : "TOTAL CREDITS EARNED"}
+                    </div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: "#2563eb", marginTop: 4 }}>
+                      {studentData ? studentTotalCredits : "138"}
+                    </div>
                   </div>
                   <div style={{ background: "#f8fafc", padding: "16px 18px", borderRadius: 14, border: "1px solid #f1f5f9" }}>
                     <div style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b" }}>ACTIVE BACKLOGS</div>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: "#16a34a", marginTop: 4 }}>0</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: (studentData ? studentBacklogsCount : 0) === 0 ? "#16a34a" : "#ef4444", marginTop: 4 }}>
+                      {studentData ? studentBacklogsCount : "0"}
+                    </div>
                   </div>
                 </div>
 
                 <div style={{ textAlign: "center", padding: "12px 0" }}>
                   <button
                     type="button"
-                    onClick={() => navigate("/")}
+                    onClick={() => {
+                      if (studentData?.regNo) {
+                        navigate(`/dashboard/${encodeStudentId(studentData.regNo)}`);
+                      } else {
+                        navigate("/");
+                      }
+                    }}
                     style={{ padding: "12px 22px", borderRadius: 10, background: "#0f172a", color: "#fff", border: "none", fontWeight: 700, fontSize: 13.5, cursor: "pointer", width: isMobile ? "100%" : "auto", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
                   >
-                    View Your Official Dashboard <ArrowRight size={15} />
+                    {studentData ? "Open My Verified GradeFlow Dashboard" : "View Your Official Dashboard"} <ArrowRight size={15} />
                   </button>
                 </div>
               </motion.div>
