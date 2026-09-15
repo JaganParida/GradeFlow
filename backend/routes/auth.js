@@ -23,6 +23,7 @@ const { sendStudentOtpEmail } = require("../utils/emailProviderManager");
 const { globalDbQueue } = require("../utils/dbProtection");
 const {
   PERMANENT_SESSION_MS,
+  ADMIN_PERMANENT_SESSION_MS,
   DEFAULT_SESSION_TTL_MS,
   STUDENT_INACTIVITY_TTL_MS,
   MAX_ADMIN_DEVICES,
@@ -325,15 +326,42 @@ function clearStudentAuthCookies(res, req) {
   }
 }
 
+function getAdminCookieOptions(req, customExpires = null) {
+  const isProd = process.env.NODE_ENV === "production";
+  const expires = customExpires || new Date(Date.now() + ADMIN_PERMANENT_SESSION_MS);
+  return {
+    maxAge: ADMIN_PERMANENT_SESSION_MS,
+    expires,
+    httpOnly: true,
+    secure: isProd || req.secure || req.headers["x-forwarded-proto"] === "https",
+    sameSite: "lax",
+    path: "/",
+  };
+}
+
+function getAdminPresenceCookieOptions(req, customExpires = null) {
+  const isProd = process.env.NODE_ENV === "production";
+  const expires = customExpires || new Date(Date.now() + ADMIN_PERMANENT_SESSION_MS);
+  return {
+    maxAge: ADMIN_PERMANENT_SESSION_MS,
+    expires,
+    httpOnly: false, // Non-HttpOnly UI hint readable by browser
+    secure: isProd || req.secure || req.headers["x-forwarded-proto"] === "https",
+    sameSite: "lax",
+    path: "/",
+  };
+}
+
 function setAdminAuthCookies(res, req, token, expiresAt = null) {
-  res.cookie("jwt", token, getCookieOptions(req, expiresAt));
-  res.cookie("gf_auth_present", "1", getPresenceCookieOptions(req, expiresAt));
+  const adminExpires = expiresAt || new Date(Date.now() + ADMIN_PERMANENT_SESSION_MS);
+  res.cookie("jwt", token, getAdminCookieOptions(req, adminExpires));
+  res.cookie("gf_auth_present", "1", getAdminPresenceCookieOptions(req, adminExpires));
 }
 
 function clearAdminAuthCookies(res, req) {
-  res.clearCookie("jwt", getCookieOptions(req, new Date(0)));
+  res.clearCookie("jwt", getAdminCookieOptions(req, new Date(0)));
   if (!req.cookies?.student_jwt || req.cookies.student_jwt === "none") {
-    res.clearCookie("gf_auth_present", getPresenceCookieOptions(req, new Date(0)));
+    res.clearCookie("gf_auth_present", getAdminPresenceCookieOptions(req, new Date(0)));
   }
 }
 
@@ -1962,39 +1990,8 @@ router.get("/bootstrap", async (req, res) => {
     let activeAdminCount = 0;
     let maintenanceState = { enabled: false, message: "", enabledAt: null };
 
-    // Check if client previously had an admin session on this device but cookies were cleared
-    const clientLastSession = req.headers["x-admin-last-session"] || req.query?.lastAdminSession;
+    // Admin and Sub-Admin sessions are permanent and never auto-revoked by visiting clients.
     let sessionWasRevoked = false;
-    if (!adminAuth && clientLastSession) {
-      try {
-        const orphanedSession = await AdminSession.findOneAndUpdate(
-          { sessionId: clientLastSession, isActive: true },
-          { $set: { isActive: false, revokedAt: new Date(), revokeReason: "COOKIE_CLEARED_ON_CLIENT" } }
-        );
-        const orphanedSubSession = await SubAdminSession.findOneAndUpdate(
-          { sessionId: clientLastSession, isActive: true },
-          { $set: { isActive: false, revokedAt: new Date(), revokeReason: "COOKIE_CLEARED_ON_CLIENT" } }
-        );
-        if (orphanedSession || orphanedSubSession) {
-          sessionWasRevoked = true;
-        }
-      } catch {}
-    }
-
-    // Fallback: If localStorage was also cleared, check physical device fingerprint for orphaned admin session
-    if (!adminAuth && !clientLastSession) {
-      try {
-        const activeAdminList = await getActiveAdminSessions(AdminSession);
-        const match = findMatchingSessionByDevice(activeAdminList, req);
-        if (match) {
-          match.isActive = false;
-          match.revokedAt = new Date();
-          match.revokeReason = "COOKIE_CLEARED_ON_CLIENT";
-          await match.save();
-          sessionWasRevoked = true;
-        }
-      } catch {}
-    }
 
     // Check if client previously had a student session on this device but cookies were cleared
     const clientLastStudentSession = req.headers["x-student-last-session"] || req.query?.lastStudentSession;
@@ -2246,33 +2243,7 @@ router.get("/admin/check-status", async (req, res) => {
       } catch {}
     }
 
-    let revokedOrphan = false;
-    if (clientLastSession && (!decodedAdmin || decodedAdmin.sessionId !== clientLastSession)) {
-      try {
-        const resRevoke = await AdminSession.findOneAndUpdate(
-          { sessionId: clientLastSession, isActive: true },
-          {
-            $set: {
-              isActive: false,
-              revokedAt: new Date(),
-              revokeReason: "COOKIE_CLEARED_BY_CLIENT",
-            },
-          }
-        );
-        if (resRevoke) revokedOrphan = true;
-      } catch {}
-    }
-
     const activeSessions = await getActiveAdminSessions(AdminSession);
-
-    if (revokedOrphan) {
-      try {
-        authEventBus.emit("admin-availability-updated", {
-          activeDeviceCount: activeSessions.length,
-          isAdminButtonVisible: activeSessions.length < MAX_ADMIN_DEVICES,
-        });
-      } catch {}
-    }
 
     let isCurrentDevice = false;
     if (decodedAdmin && decodedAdmin.role === "admin" && decodedAdmin.sessionId) {
@@ -2696,7 +2667,7 @@ router.post("/admin/verify-otp", async (req, res) => {
 
     const sessionId = crypto.randomUUID();
     const now = new Date();
-    const expiresAt = new Date(Date.now() + PERMANENT_SESSION_MS);
+    const expiresAt = new Date(Date.now() + ADMIN_PERMANENT_SESSION_MS);
 
     await AdminSession.create({
       sessionId,
@@ -2710,7 +2681,7 @@ router.post("/admin/verify-otp", async (req, res) => {
     const token = jwt.sign(
       { role: "admin", sessionId, loggedInAt: now },
       process.env.JWT_SECRET,
-      { expiresIn: "60d" }
+      { expiresIn: "36500d" }
     );
 
     setAdminAuthCookies(res, req, token, expiresAt);
@@ -2998,7 +2969,7 @@ router.post("/subadmin/verify-otp", async (req, res) => {
 
     const sessionId = crypto.randomUUID();
     const now = new Date();
-    const expiresAt = new Date(Date.now() + PERMANENT_SESSION_MS);
+    const expiresAt = new Date(Date.now() + ADMIN_PERMANENT_SESSION_MS);
 
     await SubAdminSession.create({
       subAdminId: subAdmin._id,

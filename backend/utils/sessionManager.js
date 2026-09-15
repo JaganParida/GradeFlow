@@ -600,39 +600,36 @@ async function touchSession(session) {
 ═══════════════════════════════════════════════════════════════════ */
 
 async function cleanExpiredAdminSessions(AdminSession) {
-  const activeCutoff = new Date(Date.now() - ADMIN_ACTIVITY_TTL_MS);
   try {
+    // Only clean sessions whose explicit expiresAt has elapsed. Admin sessions are permanent and never expire from inactivity.
     await AdminSession.updateMany(
       {
         isActive: true,
-        $or: [
-          { expiresAt: { $lte: new Date() } },
-          { lastActiveAt: { $lt: activeCutoff } },
-        ],
+        expiresAt: { $lte: new Date() },
       },
       {
         $set: {
           isActive: false,
           revokedAt: new Date(),
-          revokeReason: "EXPIRED_OR_INACTIVE",
+          revokeReason: "EXPIRED",
         },
       }
     );
   } catch (_) {}
 }
 
-const ADMIN_ACTIVITY_TTL_MS = 60 * 60 * 1000; // 1 hour rolling session window for inactive/abandoned devices
+const ADMIN_PERMANENT_SESSION_MS = 100 * 365 * 24 * 60 * 60 * 1000; // 100 years - truly permanent until explicit logout
+const ADMIN_ACTIVITY_TTL_MS = ADMIN_PERMANENT_SESSION_MS; // Permanent: Admin & Sub-Admin never auto-expire from inactivity
 
 /**
  * Authoritative Server-Side Query for Active Admin Sessions.
  * Pure read-only query; zero write locks on read.
+ * Sessions remain active permanently until explicit manual logout or manual dashboard revocation.
  */
 async function getActiveAdminSessions(AdminSession) {
-  const activeCutoff = new Date(Date.now() - ADMIN_ACTIVITY_TTL_MS);
   return AdminSession.find({
     isActive: true,
     expiresAt: { $gt: new Date() },
-    lastActiveAt: { $gte: activeCutoff },
   }).sort({ lastActiveAt: -1 });
 }
 
@@ -645,7 +642,7 @@ function isAdminSessionValid(session) {
 async function touchAdminSession(session) {
   if (!session || !session.isActive || !session._id) return session;
   const now = Date.now();
-  // Throttled to 15 seconds to support live 30s heartbeats efficiently
+  // Throttled to 15 seconds to support live heartbeats efficiently
   if (session.lastActiveAt && (now - new Date(session.lastActiveAt).getTime()) < 15 * 1000) {
     return session;
   }
@@ -654,9 +651,9 @@ async function touchAdminSession(session) {
       lastActiveAt: new Date(now),
     },
   };
-  const thirtyDaysFromNow = now + 30 * 24 * 60 * 60 * 1000;
-  if (!session.expiresAt || new Date(session.expiresAt).getTime() < thirtyDaysFromNow) {
-    update.$set.expiresAt = new Date(now + DEFAULT_SESSION_TTL_MS);
+  const oneYearFromNow = now + 365 * 24 * 60 * 60 * 1000;
+  if (!session.expiresAt || new Date(session.expiresAt).getTime() < oneYearFromNow) {
+    update.$set.expiresAt = new Date(now + ADMIN_PERMANENT_SESSION_MS);
   }
   // Atomic query: update only if isActive is still true, preventing resurrection of revoked sessions
   await session.constructor.updateOne({ _id: session._id, isActive: true }, update);
@@ -679,20 +676,16 @@ async function cleanExpiredSubAdminSessions(SubAdminSession, subAdminId = null) 
 }
 
 async function getActiveSubAdminSessions(SubAdminSession, subAdminId) {
-  const activeCutoff = new Date(Date.now() - ADMIN_ACTIVITY_TTL_MS);
   return SubAdminSession.find({
     subAdminId,
     isActive: true,
     expiresAt: { $gt: new Date() },
-    lastActiveAt: { $gte: activeCutoff },
   }).sort({ lastActiveAt: -1 });
 }
 
 function isSubAdminSessionValid(session) {
   if (!session || !session.isActive) return false;
   if (session.expiresAt && new Date(session.expiresAt) <= new Date()) return false;
-  const activeCutoff = new Date(Date.now() - ADMIN_ACTIVITY_TTL_MS);
-  if (session.lastActiveAt && new Date(session.lastActiveAt) < activeCutoff) return false;
   return true;
 }
 
@@ -707,14 +700,20 @@ async function touchSubAdminSession(session) {
       lastActiveAt: new Date(now),
     },
   };
+  const oneYearFromNow = now + 365 * 24 * 60 * 60 * 1000;
+  if (!session.expiresAt || new Date(session.expiresAt).getTime() < oneYearFromNow) {
+    update.$set.expiresAt = new Date(now + ADMIN_PERMANENT_SESSION_MS);
+  }
   await session.constructor.updateOne({ _id: session._id, isActive: true }, update);
   session.lastActiveAt = update.$set.lastActiveAt;
+  if (update.$set.expiresAt) session.expiresAt = update.$set.expiresAt;
   return session;
 }
 
 module.exports = {
   DEFAULT_SESSION_TTL_MS,
   PERMANENT_SESSION_MS,
+  ADMIN_PERMANENT_SESSION_MS,
   STUDENT_INACTIVITY_TTL_MS,
   ADMIN_ACTIVITY_TTL_MS,
   MAX_ADMIN_DEVICES,

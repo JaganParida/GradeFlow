@@ -22,6 +22,7 @@ const { sendStudentOtpEmail, sendAdminOtpEmail, sendSubAdminOtpEmail } = require
 const { globalDbQueue } = require("./_lib/dbProtection");
 const {
   PERMANENT_SESSION_MS,
+  ADMIN_PERMANENT_SESSION_MS,
   DEFAULT_SESSION_TTL_MS,
   MAX_ADMIN_DEVICES,
   getMaxAllowedDevices,
@@ -86,9 +87,10 @@ function setAdminCookie(res, token) {
   const maxAge = 100 * 365 * 24 * 60 * 60;
   const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
   const secureFlag = isProd ? " Secure;" : "";
+  const expiresDate = new Date(Date.now() + maxAge * 1000).toUTCString();
   res.setHeader("Set-Cookie", [
-    `jwt=${token}; Path=/; HttpOnly;${secureFlag} SameSite=Lax; Max-Age=${maxAge}`,
-    `gf_auth_present=1; Path=/;${secureFlag} SameSite=Lax; Max-Age=${maxAge}`,
+    `jwt=${token}; Path=/; HttpOnly;${secureFlag} SameSite=Lax; Max-Age=${maxAge}; Expires=${expiresDate}`,
+    `gf_auth_present=1; Path=/;${secureFlag} SameSite=Lax; Max-Age=${maxAge}; Expires=${expiresDate}`,
   ]);
 }
 
@@ -2103,53 +2105,8 @@ module.exports = async function handler(req, res) {
         },
       };
 
-      // Check if client previously had an admin session on this device but cookies were cleared
-      const clientLastSession = req.headers["x-admin-last-session"] || req.query?.lastAdminSession;
+      // Admin and Sub-Admin sessions are permanent and never auto-revoked by visiting clients.
       let sessionWasRevoked = false;
-      if (!adminAuth) {
-        try {
-          if (clientLastSession) {
-            const orphanedSession = await AdminSession.findOneAndUpdate(
-              { sessionId: clientLastSession, isActive: true },
-              {
-                $set: {
-                  isActive: false,
-                  revokedAt: new Date(),
-                  revokeReason: "COOKIE_CLEARED_BY_CLIENT",
-                },
-              }
-            );
-            const orphanedSubSession = await SubAdminSession.findOneAndUpdate(
-              { sessionId: clientLastSession, isActive: true },
-              {
-                $set: {
-                  isActive: false,
-                  revokedAt: new Date(),
-                  revokeReason: "COOKIE_CLEARED_BY_CLIENT",
-                },
-              }
-            );
-            if (orphanedSession || orphanedSubSession) {
-              sessionWasRevoked = true;
-            }
-          }
-        } catch (_) {}
-      }
-
-      // Fallback: If localStorage was also cleared, check physical device fingerprint for orphaned admin session
-      if (!adminAuth && !clientLastSession) {
-        try {
-          const activeAdminList = await getActiveAdminSessions(AdminSession);
-          const match = findMatchingSessionByDevice(activeAdminList, req);
-          if (match) {
-            match.isActive = false;
-            match.revokedAt = new Date();
-            match.revokeReason = "COOKIE_CLEARED_ON_CLIENT";
-            await match.save();
-            sessionWasRevoked = true;
-          }
-        } catch (_) {}
-      }
 
       // Check if client previously had a student session on this device but cookies were cleared
       const clientLastStudentSession = req.headers["x-student-last-session"] || req.query?.lastStudentSession;
@@ -2375,34 +2332,7 @@ module.exports = async function handler(req, res) {
         } catch {}
       }
 
-      // If client reports an admin session on this device, but there is no valid admin token matching it:
-      let revokedOrphan = false;
-      if (clientLastSession && (!decodedAdmin || decodedAdmin.sessionId !== clientLastSession)) {
-        try {
-          const resRevoke = await AdminSession.findOneAndUpdate(
-            { sessionId: clientLastSession, isActive: true },
-            {
-              $set: {
-                isActive: false,
-                revokedAt: new Date(),
-                revokeReason: "COOKIE_CLEARED_BY_CLIENT",
-              },
-            }
-          );
-          if (resRevoke) revokedOrphan = true;
-        } catch {}
-      }
-
       const activeSessions = await getActiveAdminSessions(AdminSession);
-
-      if (revokedOrphan) {
-        try {
-          await broadcastRealtimeEvent("admin-availability-updated", {
-            activeDeviceCount: activeSessions.length,
-            isAdminButtonVisible: activeSessions.length < MAX_ADMIN_DEVICES,
-          });
-        } catch {}
-      }
 
       let isCurrentDevice = false;
       if (decodedAdmin && decodedAdmin.role === "admin" && decodedAdmin.sessionId) {
@@ -2797,7 +2727,7 @@ module.exports = async function handler(req, res) {
 
       const sessionId = crypto.randomUUID();
       const now = new Date();
-      const expiresAt = new Date(Date.now() + PERMANENT_SESSION_MS);
+      const expiresAt = new Date(Date.now() + ADMIN_PERMANENT_SESSION_MS);
 
       await AdminSession.create({
         sessionId,
@@ -2811,7 +2741,7 @@ module.exports = async function handler(req, res) {
       const token = jwt.sign(
         { role: "admin", sessionId, loggedInAt: now },
         process.env.JWT_SECRET,
-        { expiresIn: "60d" }
+        { expiresIn: "36500d" }
       );
 
       setAdminCookie(res, token);
@@ -3022,7 +2952,7 @@ module.exports = async function handler(req, res) {
 
       const sessionId = crypto.randomUUID();
       const now = new Date();
-      const expiresAt = new Date(Date.now() + PERMANENT_SESSION_MS);
+      const expiresAt = new Date(Date.now() + ADMIN_PERMANENT_SESSION_MS);
 
       await SubAdminSession.create({
         subAdminId: subAdmin._id,
