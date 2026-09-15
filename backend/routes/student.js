@@ -8,6 +8,7 @@ const Attendance = require("../models/Attendance");
 const { requireStudentOrAdmin } = require("../middleware/auth");
 const { studentSearchLimiter } = require("../middleware/rateLimiters");
 const { globalDbQueue } = require("../utils/dbProtection");
+const { publishStudentRealtimeEvent, publishAdminRealtimeEvent } = require("../utils/ablyService");
 const {
   calculateBacklogs,
   calculateCGPA,
@@ -311,7 +312,7 @@ router.post("/:regNo/attendance", validateRegNo, requireStudentOrAdmin, async (r
   try {
     const { regNo } = req.params;
     const cleanReg = regNo.toUpperCase();
-    const { section, targetGoal, savedSubjects, dailyLogs } = req.body;
+    const { section, targetGoal, savedSubjects, dailyLogs, syncId } = req.body;
 
     const cleanSavedSubjects = Array.isArray(savedSubjects)
       ? savedSubjects.map((s) => ({
@@ -363,21 +364,43 @@ router.post("/:regNo/attendance", validateRegNo, requireStudentOrAdmin, async (r
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
+    const attendanceData = {
+      regNo: updatedAttendance.regNo,
+      section: updatedAttendance.section,
+      targetGoal: updatedAttendance.targetGoal,
+      savedSubjects: updatedAttendance.savedSubjects,
+      dailyLogs: updatedAttendance.dailyLogs
+        ? (updatedAttendance.dailyLogs instanceof Map
+            ? Object.fromEntries(updatedAttendance.dailyLogs)
+            : updatedAttendance.dailyLogs)
+        : {},
+      lastSyncedAt: updatedAttendance.lastSyncedAt,
+    };
+
+    try {
+      await Promise.allSettled([
+        publishAdminRealtimeEvent("attendance-updated", {
+          regNo: cleanReg,
+          syncId: syncId || null,
+          lastSyncedAt: updatedAttendance.lastSyncedAt,
+          timestamp: Date.now(),
+        }),
+        publishStudentRealtimeEvent(cleanReg, "attendance-updated", {
+          regNo: cleanReg,
+          syncId: syncId || null,
+          lastSyncedAt: updatedAttendance.lastSyncedAt,
+          attendance: attendanceData,
+          timestamp: Date.now(),
+        }),
+      ]);
+    } catch (e) {
+      console.warn("Realtime attendance broadcast warning:", e.message);
+    }
+
     res.json({
       success: true,
       message: "Attendance data saved successfully to database.",
-      attendance: {
-        regNo: updatedAttendance.regNo,
-        section: updatedAttendance.section,
-        targetGoal: updatedAttendance.targetGoal,
-        savedSubjects: updatedAttendance.savedSubjects,
-        dailyLogs: updatedAttendance.dailyLogs
-          ? (updatedAttendance.dailyLogs instanceof Map
-              ? Object.fromEntries(updatedAttendance.dailyLogs)
-              : updatedAttendance.dailyLogs)
-          : {},
-        lastSyncedAt: updatedAttendance.lastSyncedAt,
-      },
+      attendance: attendanceData,
     });
   } catch (err) {
     console.error("Attendance save error:", err);

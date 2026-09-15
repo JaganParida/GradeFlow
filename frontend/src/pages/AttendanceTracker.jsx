@@ -467,6 +467,12 @@ export default function AttendanceTracker() {
   });
   const lastAttendanceEtagRef = useRef("");
 
+  // Synchronous mutable refs to guarantee zero race conditions on rapid (2-5x) multi-clicks
+  const savedSubjectsRef = useRef(savedSubjects);
+  savedSubjectsRef.current = savedSubjects;
+  const allDailyLogsRef = useRef(allDailyLogs);
+  allDailyLogsRef.current = allDailyLogs;
+
   // Check if student has actual non-zero saved attendance data in DB
   const hasSavedAttendance = useMemo(() => {
     return (
@@ -891,13 +897,17 @@ export default function AttendanceTracker() {
 
   // Debounced auto-sync with instant optimistic UI (Aggregates rapid clicks into 1 save)
   const syncAttendanceToDb = (
-    updatedSaved = savedSubjects,
-    updatedAllLogs = allDailyLogs,
+    updatedSaved = savedSubjectsRef.current || savedSubjects,
+    updatedAllLogs = allDailyLogsRef.current || allDailyLogs,
     goal = targetGoal,
     sectionToSync = selectedSection
   ) => {
     const regToSync = currentRegNo || studentSession?.regNo || studentData?.regNo;
     if (!regToSync) return;
+
+    // Keep refs in lockstep synchronously
+    savedSubjectsRef.current = updatedSaved;
+    allDailyLogsRef.current = updatedAllLogs;
 
     // 1. Instant optimistic state update for 0ms visual feedback
     setAllDailyLogs(updatedAllLogs);
@@ -966,6 +976,7 @@ export default function AttendanceTracker() {
     function applyAttendance(att, sData) {
       if (!att || !isMounted) return;
       const loadedSubs = Array.isArray(att.savedSubjects) ? att.savedSubjects : [];
+      savedSubjectsRef.current = loadedSubs;
       setSavedSubjects(loadedSubs);
 
       // Restore saved section from Database, student profile, or saved subject metadata
@@ -1014,6 +1025,7 @@ export default function AttendanceTracker() {
             cleanDailyLogs[key] = rawLogs[key];
           }
         });
+        allDailyLogsRef.current = cleanDailyLogs;
         setAllDailyLogs(cleanDailyLogs);
         const todayLogs = cleanDailyLogs[todayDateKey];
         if (todayLogs && typeof todayLogs === "object" && Object.keys(todayLogs).length > 0) {
@@ -1032,6 +1044,7 @@ export default function AttendanceTracker() {
         const resolvedMin = cKey && earliestLog ? (cKey < earliestLog ? cKey : earliestLog) : (cKey || earliestLog || defaultMinTrackingDateKey);
         setMinTrackingDateKey(resolvedMin < defaultMinTrackingDateKey ? resolvedMin : defaultMinTrackingDateKey);
       } else {
+        allDailyLogsRef.current = {};
         setAllDailyLogs({});
         setDailyAttendanceLogs({});
         if (att.createdAt) {
@@ -1338,7 +1351,8 @@ export default function AttendanceTracker() {
   // Dedicated robust handler for marking Present or Absent on classes for the selected date
   function handleMarkDailyAttendance(period, targetStatus) {
     const slotIdx = period.slotIndex;
-    const currentDateLogs = allDailyLogs[selectedCheckInDateKey] || {};
+    const currentAllLogs = allDailyLogsRef.current || allDailyLogs || {};
+    const currentDateLogs = currentAllLogs[selectedCheckInDateKey] || {};
     const currentStatus = currentDateLogs[slotIdx]; // "present" | "absent" | undefined
     const cleanName = period.cleanName || cleanSubjectBaseName(period.subject);
     const compType = (period.type || "PP").toUpperCase();
@@ -1385,19 +1399,20 @@ export default function AttendanceTracker() {
       delete nextDateLogs[slotIdx];
     }
 
-    const nextAllLogs = { ...allDailyLogs };
+    const nextAllLogs = { ...currentAllLogs };
     if (Object.keys(nextDateLogs).length > 0) {
       nextAllLogs[selectedCheckInDateKey] = nextDateLogs;
     } else {
       delete nextAllLogs[selectedCheckInDateKey];
     }
+    allDailyLogsRef.current = nextAllLogs;
     setAllDailyLogs(nextAllLogs);
     if (selectedCheckInDateKey === todayDateKey) {
       setDailyAttendanceLogs(nextDateLogs);
     }
 
     // Update savedSubjects store
-    let nextSavedList = [...savedSubjects];
+    let nextSavedList = [...(savedSubjectsRef.current || savedSubjects)];
     const existingIdx = nextSavedList.findIndex((s) => isSameSubject(s, cleanName));
 
     if (existingIdx !== -1) {
@@ -1442,6 +1457,7 @@ export default function AttendanceTracker() {
         weeklyOccurrences: [],
       });
     }
+    savedSubjectsRef.current = nextSavedList;
     setSavedSubjects(nextSavedList);
     syncAttendanceToDb(nextSavedList, nextAllLogs, targetGoal);
 
@@ -1474,14 +1490,15 @@ export default function AttendanceTracker() {
 
   // Clear all check-ins for the selected date and rollback attended/delivered counts
   function handleResetDateCheckins(dateKey = selectedCheckInDateKey) {
-    const dateLogs = allDailyLogs[dateKey];
+    const currentAllLogs = allDailyLogsRef.current || allDailyLogs || {};
+    const dateLogs = currentAllLogs[dateKey];
     if (!dateLogs || Object.keys(dateLogs).length === 0) return;
 
     const targetDateObj = new Date(dateKey + "T00:00:00");
     const targetSchedCtx = getSectionScheduleForDate(selectedSection, targetDateObj);
     const dayClasses = targetSchedCtx.classes || [];
 
-    let nextSavedList = [...savedSubjects];
+    let nextSavedList = [...(savedSubjectsRef.current || savedSubjects)];
 
     dayClasses.forEach((period) => {
       const status = dateLogs[period.slotIndex];
@@ -1510,8 +1527,10 @@ export default function AttendanceTracker() {
       }
     });
 
-    const nextAllLogs = { ...allDailyLogs };
+    const nextAllLogs = { ...currentAllLogs };
     delete nextAllLogs[dateKey];
+    allDailyLogsRef.current = nextAllLogs;
+    savedSubjectsRef.current = nextSavedList;
     setAllDailyLogs(nextAllLogs);
     if (dateKey === todayDateKey) {
       setDailyAttendanceLogs({});
@@ -1545,7 +1564,8 @@ export default function AttendanceTracker() {
   function handleSaveActiveSubject() {
     if (!selectedSubjectName) return;
 
-    const filtered = savedSubjects.filter((s) => !isSameSubject(s, selectedSubjectName));
+    const currentSaved = savedSubjectsRef.current || savedSubjects;
+    const filtered = currentSaved.filter((s) => !isSameSubject(s, selectedSubjectName));
     const cleanComps = (componentInputs || []).map((c) => ({
       type: (c.type || "PP").toUpperCase(),
       attended: Math.max(0, parseInt(c.attended, 10) || 0),
@@ -1564,16 +1584,19 @@ export default function AttendanceTracker() {
       },
     ];
 
+    savedSubjectsRef.current = updatedList;
     setSavedSubjects(updatedList);
-    syncAttendanceToDb(updatedList, allDailyLogs, targetGoal);
+    syncAttendanceToDb(updatedList, allDailyLogsRef.current || allDailyLogs, targetGoal);
     setSaveSuccessAlert(true);
     setTimeout(() => setSaveSuccessAlert(false), 3500);
   }
 
   function handleDeleteSavedSubject(subjectName) {
-    const updatedList = savedSubjects.filter((s) => !isSameSubject(s, subjectName));
+    const currentSaved = savedSubjectsRef.current || savedSubjects;
+    const updatedList = currentSaved.filter((s) => !isSameSubject(s, subjectName));
+    savedSubjectsRef.current = updatedList;
     setSavedSubjects(updatedList);
-    syncAttendanceToDb(updatedList, allDailyLogs, targetGoal);
+    syncAttendanceToDb(updatedList, allDailyLogsRef.current || allDailyLogs, targetGoal);
   }
 
   // Complete List of Section Subjects with Detected Components & Saved Overrides (Strict Section Timetable Scoped)
