@@ -159,9 +159,22 @@ export default function Testimonials() {
     if (likedFeedbacks.includes(id)) return;
 
     // Optimistic UI update
-    setFeedbacks((prev) =>
-      prev.map((f) => (f._id === id ? { ...f, likes: (f.likes || 0) + 1 } : f)),
-    );
+    setFeedbacks((prev) => {
+      const next = prev.map((f) =>
+        f._id === id ? { ...f, likes: (f.likes || 0) + 1 } : f,
+      );
+      try {
+        const raw = sessionStorage.getItem("gf_feedbacks_cache");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.feedbacks)) {
+            parsed.feedbacks = next;
+            sessionStorage.setItem("gf_feedbacks_cache", JSON.stringify(parsed));
+          }
+        }
+      } catch (_) {}
+      return next;
+    });
 
     const updatedLikes = [...likedFeedbacks, id];
     setLikedFeedbacks(updatedLikes);
@@ -170,9 +183,22 @@ export default function Testimonials() {
     try {
       const res = await axios.post(`${API}/feedback/${id}/like`);
       if (res.data && res.data.likes !== undefined) {
-        setFeedbacks((prev) =>
-          prev.map((f) => (f._id === id ? { ...f, likes: res.data.likes } : f)),
-        );
+        setFeedbacks((prev) => {
+          const next = prev.map((f) =>
+            f._id === id ? { ...f, likes: res.data.likes } : f,
+          );
+          try {
+            const raw = sessionStorage.getItem("gf_feedbacks_cache");
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (parsed && Array.isArray(parsed.feedbacks)) {
+                parsed.feedbacks = next;
+                sessionStorage.setItem("gf_feedbacks_cache", JSON.stringify(parsed));
+              }
+            }
+          } catch (_) {}
+          return next;
+        });
       }
     } catch (err) {
       console.error("Error liking feedback in backend:", err);
@@ -235,11 +261,17 @@ export default function Testimonials() {
       const res = await axios.post(`${API}/feedback`, payload);
 
       if (res.data) {
-        // Prepend new feedback from server
-        setFeedbacks((prev) => [res.data, ...prev]);
-        try {
-          sessionStorage.removeItem("gf_feedbacks_cache");
-        } catch (_) {}
+        // Prepend new feedback from server and keep cache fresh
+        setFeedbacks((prev) => {
+          const next = [res.data, ...prev];
+          try {
+            sessionStorage.setItem(
+              "gf_feedbacks_cache",
+              JSON.stringify({ feedbacks: next, ts: Date.now() }),
+            );
+          } catch (_) {}
+          return next;
+        });
         setSubmittedSuccess(true);
         setComment("");
         setRating(5);
@@ -324,11 +356,12 @@ export default function Testimonials() {
 
   // ─── Auto-scroll & Auto-Pagination for highlighted feedback ─────
   useEffect(() => {
-    if (highlightedId && displayedReviews.length > 0) {
+    if (highlightedId && displayedReviews.length > 0 && !hasScrolledRef.current) {
       const targetIdx = displayedReviews.findIndex(
         (f) => String(f._id) === String(highlightedId),
       );
       if (targetIdx !== -1) {
+        hasScrolledRef.current = true;
         const targetPage = Math.floor(targetIdx / REVIEWS_PER_PAGE) + 1;
         setCurrentPage(targetPage);
         setTimeout(() => {
@@ -1039,7 +1072,7 @@ export default function Testimonials() {
                     const shouldTruncate = fullComment.length > 200;
                     const displayComment =
                       shouldTruncate && !isExpanded
-                        ? fullComment.slice(0, 180) + "..."
+                        ? Array.from(fullComment).slice(0, 180).join("") + "..."
                         : fullComment;
 
                     const createdDate = item.createdAt
@@ -1611,7 +1644,7 @@ export default function Testimonials() {
                     <input
                       type="text"
                       value={name || currentStudentName}
-                      readOnly={Boolean(currentRegNo)}
+                      readOnly={true}
                       onClick={() => {
                         if (!currentRegNo) {
                           if (typeof openStudentAuthModal === "function") openStudentAuthModal();
@@ -1639,9 +1672,9 @@ export default function Testimonials() {
                         boxSizing: "border-box",
                         background: currentRegNo ? "#f8fafc" : "#ffffff",
                         color: "#0f172a",
-                        cursor: currentRegNo ? "pointer" : "text",
+                        cursor: "pointer",
                       }}
-                      title={currentRegNo ? "Profile locked — click to view info" : ""}
+                      title={currentRegNo ? "Profile locked — click to view info" : "Click to login and review"}
                     />
                     {currentRegNo && (
                       <Lock
@@ -1663,7 +1696,7 @@ export default function Testimonials() {
                     <input
                       type="text"
                       value={regNo || currentRegNo}
-                      readOnly={Boolean(currentRegNo)}
+                      readOnly={true}
                       onClick={() => {
                         if (!currentRegNo) {
                           if (typeof openStudentAuthModal === "function") openStudentAuthModal();
@@ -1691,9 +1724,9 @@ export default function Testimonials() {
                         boxSizing: "border-box",
                         background: currentRegNo ? "#f8fafc" : "#ffffff",
                         color: "#0f172a",
-                        cursor: currentRegNo ? "pointer" : "text",
+                        cursor: "pointer",
                       }}
-                      title={currentRegNo ? "Profile locked — click to view info" : ""}
+                      title={currentRegNo ? "Profile locked — click to view info" : "Click to login and review"}
                     />
                     {currentRegNo && (
                       <Lock
@@ -1876,7 +1909,10 @@ export default function Testimonials() {
                     id="review-comment-textarea"
                     value={comment}
                     onClick={() => {
-                      if (!currentRegNo) setShowAuthPromptModal(true);
+                      if (!currentRegNo) {
+                        if (typeof openStudentAuthModal === "function") openStudentAuthModal();
+                        else setShowAuthPromptModal(true);
+                      }
                     }}
                     onChange={(e) => setComment(e.target.value.slice(0, 500))}
                     placeholder="Write your review or feedback..."

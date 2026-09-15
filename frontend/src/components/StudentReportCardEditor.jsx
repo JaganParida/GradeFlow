@@ -95,6 +95,49 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Restore active inspected report card from session storage across subtab switches
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("gf_admin_rc_active");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.regNo && parsed?.data) {
+          const d = parsed.data;
+          setSelectedRegNo(d.regNo);
+          setSearchQuery(d.regNo);
+          setSelectedSem(parsed.semester || 1);
+          setStudentMeta({
+            regNo: d.regNo,
+            studentName: d.studentName,
+            branch: d.branch,
+            batch: d.batch,
+            section: d.section,
+            availableSemesters: d.availableSemesters || [],
+          });
+          setEditStudentName(d.studentName || "");
+          setEditBranch(d.branch || "");
+          setEditBatch(d.batch || "");
+          setAllSemestersHistory(d.allSemesters || []);
+          if (d.semesterRecord && Array.isArray(d.semesterRecord.subjects)) {
+            const subjectsWithIds = d.semesterRecord.subjects.map((s, idx) => ({
+              id: s._id || `sub_${Date.now()}_${idx}`,
+              slNo: s.slNo || idx + 1,
+              subCode: s.subCode || "",
+              subName: s.subName || "",
+              type: s.type || "T+P",
+              credit: Number(s.credit) || 0,
+              grade: normalizeGrade(s.grade) || "O",
+              gradePoint: getGradePoint(s.grade) !== undefined ? getGradePoint(s.grade) : 10,
+              resultType: s.resultType || "regular",
+            }));
+            setOriginalSubjects(JSON.parse(JSON.stringify(subjectsWithIds)));
+            setEditableSubjects(subjectsWithIds);
+          }
+        }
+      }
+    } catch {}
+  }, []);
+
   const searchBoxRef = useRef(null);
 
   // Debounced search for student auto-suggestions
@@ -203,6 +246,10 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
         setOriginalSubjects([]);
         setEditableSubjects(defaultEmpty);
       }
+
+      try {
+        sessionStorage.setItem("gf_admin_rc_active", JSON.stringify({ regNo: data.regNo, semester: targetSem, data }));
+      } catch {}
     } catch (err) {
       console.error("Load student data error:", err);
       const msg = err.response?.data?.message || "Student record not found in database.";

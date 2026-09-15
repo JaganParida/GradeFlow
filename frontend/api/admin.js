@@ -336,6 +336,8 @@ async function generateRankingForSemester(semester, preloadedAllResults = null, 
   if (shouldBroadcast) {
     await syncRankingsMetadataAndBroadcast(semester);
   }
+}
+
 async function getAdminBootstrapData(adminUser) {
   const isMain = adminUser.adminType === "main" || !adminUser.adminType;
   const adminProfile = {
@@ -632,6 +634,8 @@ module.exports = async function handler(req, res) {
         message: "Spreadsheet file uploads require the persistent Express backend container. Please ensure VITE_API_URL points to the backend deployment.",
         code: "BACKEND_SERVICE_REQUIRED",
       });
+    }
+
     // 0b. UNIFIED ADMIN BOOTSTRAP (1-Roundtrip Full State Hydration for All Admin Subtabs)
     if (action === "bootstrap" || cleanUrl.endsWith("/bootstrap") || cleanUrl.includes("/admin/bootstrap")) {
       const bootstrapData = await getAdminBootstrapData(admin);
@@ -1383,13 +1387,26 @@ module.exports = async function handler(req, res) {
       const search = req.query.search ? String(req.query.search).trim() : "";
       const semester = req.query.semester;
 
-      const [allRankings, studentsTracking] = await Promise.all([
-        Ranking.find(
-          semester ? { semester: Number(semester) } : {},
-          "regNo semester studentName batch branch cgpa sgpa sectionCgpaRank sectionSgpaRank deptCgpaRank deptRank universityRank cgpaRank"
-        ).lean(),
-        Student.find({}, "regNo lastTopperEmailSentAt lastTopperEmailStatus lastTopperEmailError").lean(),
-      ]);
+      const rankingFilter = {};
+      if (batch) rankingFilter.batch = batch;
+      if (branch) rankingFilter.branch = branch;
+      if (semester) rankingFilter.semester = Number(semester);
+      if (search) {
+        rankingFilter.$or = [
+          { regNo: { $regex: search, $options: "i" } },
+          { studentName: { $regex: search, $options: "i" } },
+        ];
+      }
+
+      const allRankings = await Ranking.find(
+        rankingFilter,
+        "regNo semester studentName batch branch cgpa sgpa sectionCgpaRank sectionSgpaRank deptCgpaRank deptRank universityRank cgpaRank"
+      ).sort({ cgpa: -1, sgpa: -1 }).lean();
+
+      const matchedRegNos = allRankings.map((r) => r.regNo);
+      const studentsTracking = matchedRegNos.length > 0
+        ? await Student.find({ regNo: { $in: matchedRegNos } }, "regNo lastTopperEmailSentAt lastTopperEmailStatus lastTopperEmailError").lean()
+        : [];
 
       const studentTrackingMap = new Map();
       studentsTracking.forEach((st) => {
@@ -1505,16 +1522,45 @@ module.exports = async function handler(req, res) {
       const page = Math.max(1, parseInt(req.query.page, 10) || 1);
       const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
 
+      const semCandidateFilter = {
+        "subjects.grade": { $in: ["F", "R", "M", "S", "f", "r", "m", "s"] },
+      };
+      if (batch) semCandidateFilter.batch = batch;
+      if (branch) semCandidateFilter.branch = branch;
+      if (semester) semCandidateFilter.semester = Number(semester);
+      if (search) {
+        semCandidateFilter.$or = [
+          { regNo: { $regex: search, $options: "i" } },
+          { studentName: { $regex: search, $options: "i" } },
+        ];
+      }
+
+      const candidateRegNos = await SemesterResult.distinct("regNo", semCandidateFilter);
+
+      if (!candidateRegNos || candidateRegNos.length === 0) {
+        return res.json({
+          totalStudentsWithBacklogs: 0,
+          totalBacklogsCount: 0,
+          students: [],
+          totalPages: 1,
+          page: Number(page) || 1,
+          limit: Number(limit) || 50,
+        });
+      }
+
       const [semResults, rankings, studentsTracking] = await Promise.all([
         SemesterResult.find(
-          {},
+          { regNo: { $in: candidateRegNos } },
           "regNo batch branch studentName semester subjects.subjectName subjects.subjectCode subjects.grade subjects.credits"
         ).sort({ semester: 1 }).lean(),
         Ranking.find(
-          {},
+          { regNo: { $in: candidateRegNos } },
           "regNo semester cgpa universityRank cgpaRank deptCgpaRank deptRank sectionCgpaRank sectionSgpaRank"
         ).lean(),
-        Student.find({}, "regNo lastBacklogEmailSentAt lastBacklogEmailStatus lastBacklogEmailError").lean(),
+        Student.find(
+          { regNo: { $in: candidateRegNos } },
+          "regNo lastBacklogEmailSentAt lastBacklogEmailStatus lastBacklogEmailError"
+        ).lean(),
       ]);
 
       const studentTrackingMap = new Map();

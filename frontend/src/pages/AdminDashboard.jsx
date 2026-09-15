@@ -3799,11 +3799,71 @@ export default function AdminDashboard({ defaultTab = null }) {
       if (!isMain && permittedRoutes.length > 0 && !permittedRoutes.includes(tab)) {
         setTab(permittedRoutes[0]);
       }
-    } else if (!profile) {
-      fetchAdminProfile();
     }
-    fetchStats();
-  }, [adminToken, authChecking, adminProfile]);
+    fetchAdminBootstrap();
+  }, [adminToken, authChecking]);
+
+  async function fetchAdminBootstrap(forceRefresh = false) {
+    if (!forceRefresh) {
+      const cachedStats = getAdminCache("gf_admin_stats_cache");
+      if (cachedStats) {
+        setStats(cachedStats);
+      }
+    }
+
+    try {
+      const { data } = await axios.get(`${API}/admin/bootstrap`, {
+        withCredentials: true,
+        headers: getAuthHeaders().headers,
+      });
+
+      if (data && data.success) {
+        if (data.adminProfile) {
+          setAdminProfile((prev) => ({ ...prev, ...data.adminProfile }));
+          const isMain = data.adminProfile.adminType === "main" || !data.adminProfile.adminType;
+          const permittedRoutes = data.adminProfile.permissions?.routes || [];
+          if (!isMain && permittedRoutes.length > 0 && !permittedRoutes.includes(tab)) {
+            setTab(permittedRoutes[0]);
+          }
+        }
+
+        if (data.stats) {
+          setStats(data.stats);
+          setAdminCache("gf_admin_stats_cache", data.stats, AdminCacheScopes.STATS);
+        }
+
+        // Seed subtab caches into permanent session storage for 0ms subtab transitions
+        if (data.toppers) {
+          setAdminCache("gf_admin_toppers_2023_CSE_Sec A_", data.toppers, AdminCacheScopes.TOPPERS);
+        }
+        if (data.timetable) {
+          setAdminCache("gf_admin_schedules_list", data.timetable, AdminCacheScopes.TIMETABLE);
+        }
+        if (data.trafficOverview) {
+          setAdminCache("gf_admin_traffic_overview", data.trafficOverview, AdminCacheScopes.TRAFFIC);
+        }
+        if (data.vercelQuota) {
+          setAdminCache("gf_admin_vercel_quota_cache", data.vercelQuota, AdminCacheScopes.TRAFFIC);
+        }
+        if (data.visibility) {
+          setAdminCache("gf_admin_visibility_settings", data.visibility, AdminCacheScopes.ADMIN);
+        }
+        if (data.maintenance) {
+          setAdminCache("gf_admin_maintenance_settings", data.maintenance, AdminCacheScopes.ADMIN);
+        }
+        if (data.broadcasts) {
+          setAdminCache("gf_admin_broadcasts_list", data.broadcasts, AdminCacheScopes.BROADCAST);
+        }
+        if (data.feedback) {
+          setAdminCache("gf_admin_feedback_cache", data.feedback, AdminCacheScopes.FEEDBACK);
+        }
+      }
+    } catch (err) {
+      console.warn("fetchAdminBootstrap fallback notice:", err.message);
+      if (!adminProfile) fetchAdminProfile();
+      fetchStats(forceRefresh);
+    }
+  }
 
   async function fetchAdminProfile() {
     try {

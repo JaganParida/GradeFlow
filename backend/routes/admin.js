@@ -22,6 +22,13 @@ const SubAdminSession = require("../models/SubAdminSession");
 const SubAdminOtpVerification = require("../models/SubAdminOtpVerification");
 const AdminAuditLog = require("../models/AdminAuditLog");
 const AdminOtpVerification = require("../models/AdminOtpVerification");
+const TimetableSchedule = require("../models/TimetableSchedule");
+const Feedback = require("../models/Feedback");
+const TrafficQueueConfig = require("../models/TrafficQueueConfig");
+const LiveVisitor = require("../models/LiveVisitor");
+const VercelQuotaMetric = require("../models/VercelQuotaMetric");
+const StudentNotification = require("../models/StudentNotification");
+const SystemConfig = require("../models/SystemConfig");
 const { getActiveSessions, getMaxAllowedDevices } = require("../utils/sessionManager");
 const { publishAdminRealtimeEvent } = require("../utils/ablyService");
 const { isBatchExpired, purgeExpiredBatches } = require("../utils/batchLifecycle");
@@ -1635,10 +1642,45 @@ router.get("/backlogs", protect, requirePermission("backlogs.view", "backlogs", 
   try {
     const { batch, branch, section, semester, search, page = 1, limit = 50 } = req.query;
 
+    const semCandidateFilter = {
+      "subjects.grade": { $in: ["F", "R", "M", "S", "f", "r", "m", "s"] },
+    };
+    if (batch) semCandidateFilter.batch = batch;
+    if (branch) semCandidateFilter.branch = branch;
+    if (semester) semCandidateFilter.semester = Number(semester);
+    if (search) {
+      semCandidateFilter.$or = [
+        { regNo: { $regex: search, $options: "i" } },
+        { studentName: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const candidateRegNos = await SemesterResult.distinct("regNo", semCandidateFilter);
+
+    if (!candidateRegNos || candidateRegNos.length === 0) {
+      return res.json({
+        totalStudentsWithBacklogs: 0,
+        totalBacklogsCount: 0,
+        students: [],
+        totalPages: 1,
+        page: Number(page) || 1,
+        limit: Number(limit) || 50,
+      });
+    }
+
     const [semResults, rankings, studentsTracking] = await Promise.all([
-      SemesterResult.find({}).sort({ semester: 1 }).lean(),
-      Ranking.find({}).lean(),
-      Student.find({}).lean()
+      SemesterResult.find(
+        { regNo: { $in: candidateRegNos } },
+        "regNo batch branch studentName semester subjects.subjectName subjects.subjectCode subjects.grade subjects.credits"
+      ).sort({ semester: 1 }).lean(),
+      Ranking.find(
+        { regNo: { $in: candidateRegNos } },
+        "regNo semester cgpa universityRank cgpaRank deptCgpaRank deptRank sectionCgpaRank sectionSgpaRank"
+      ).lean(),
+      Student.find(
+        { regNo: { $in: candidateRegNos } },
+        "regNo lastBacklogEmailSentAt lastBacklogEmailStatus lastBacklogEmailError"
+      ).lean(),
     ]);
 
     const studentTrackingMap = new Map();
@@ -1958,149 +2000,246 @@ router.post("/backlogs/email-status", protect, requirePermission("backlogs.view"
   }
 });
 
+async function getAdminBootstrapData(adminUser) {
+  const isMain = adminUser.adminType === "main" || !adminUser.adminType;
+  const adminProfile = {
+    authenticated: true,
+    email: adminUser.email || "",
+    username: adminUser.username || adminUser.name || "Admin",
+    adminType: isMain ? "main" : "sub",
+    isSubAdmin: !isMain,
+    permissions: adminUser.permissions || {
+      routes: isMain ? ["*"] : ["overview", "timetable", "toppers", "backlogs", "report-card", "feedback"],
+      actions: isMain ? ["*"] : [],
+    },
+    sessionId: adminUser.sessionId || null,
+  };
+
+  const [
+    totalAccountsCreated,
+    activeSessions,
+    batchStatsResults,
+    batchStatsRankings,
+    batchStatsInternal,
+    defaultToppers,
+    timetableSchedules,
+    trafficConfig,
+    activeVisitorsCount,
+    latestQuota,
+    portalConfigDoc,
+    maintenanceConfigDoc,
+    broadcastsList,
+    recentFeedback,
+  ] = await Promise.all([
+    Student.countDocuments({ passwordHash: { $exists: true, $ne: null } }).catch(() => 0),
+    StudentSession.find({ isActive: true }, "regNo").lean().catch(() => []),
+    SemesterResult.aggregate([
+      {
+        $group: {
+          _id: { $ifNull: ["$batch", "Other"] },
+          totalResults: { $sum: 1 },
+          semesters: { $addToSet: "$semester" },
+          uniqueStudents: { $addToSet: "$regNo" },
+        },
+      },
+    ]).catch(() => []),
+    Ranking.aggregate([
+      {
+        $group: {
+          _id: { $ifNull: ["$batch", "Other"] },
+          totalRankings: { $sum: 1 },
+          uniqueStudents: { $addToSet: "$regNo" },
+        },
+      },
+    ]).catch(() => []),
+    InternalMark.aggregate([
+      {
+        $group: {
+          _id: { $ifNull: ["$batch", "Other"] },
+          totalInternal: { $sum: 1 },
+          uniqueStudents: { $addToSet: "$regNo" },
+        },
+      },
+    ]).catch(() => []),
+    Ranking.find(
+      { batch: "2023", branch: "CSE" },
+      "regNo semester studentName batch branch cgpa sgpa sectionCgpaRank sectionSgpaRank deptCgpaRank deptRank universityRank cgpaRank"
+    ).sort({ cgpa: -1, sgpa: -1 }).limit(10).lean().catch(() => []),
+    TimetableSchedule.find({}, "scheduleId batch branch section title isLiveCustomPublished updatedAt")
+      .sort({ updatedAt: -1 }).limit(50).lean().catch(() => []),
+    TrafficQueueConfig.findOne({ key: "global_queue_config" }).lean().catch(() => null),
+    LiveVisitor.countDocuments({ lastSeen: { $gte: new Date(Date.now() - 5 * 60 * 1000) } }).catch(() => 0),
+    VercelQuotaMetric.findOne().sort({ recordedAt: -1 }).lean().catch(() => null),
+    SystemConfig.findOne({ key: "admin_button_config" }).lean().catch(() => null),
+    SystemConfig.findOne({ key: "maintenance" }).lean().catch(() => null),
+    StudentNotification.find({ isBroadcast: true })
+      .sort({ createdAt: -1 }).limit(15).lean().catch(() => []),
+    Feedback.find({}).sort({ createdAt: -1 }).limit(20).lean().catch(() => []),
+  ]);
+
+  const batchMap = new Map();
+  const allUniqueStudents = new Set();
+  let totalResultsCount = 0;
+  let totalRankingsCount = 0;
+  let totalInternalCount = 0;
+
+  batchStatsResults.forEach((item) => {
+    const b = item._id || "Other";
+    if (!batchMap.has(b)) {
+      batchMap.set(b, {
+        batch: b,
+        totalStudents: item.uniqueStudents ? item.uniqueStudents.length : 0,
+        totalRankedStudents: 0,
+        totalResults: item.totalResults || 0,
+        totalInternal: 0,
+        totalRankings: 0,
+        semBreakdown: (item.semesters || [])
+          .map((s) => ({ semester: Number(s), studentCount: 0 }))
+          .filter((x) => !isNaN(x.semester))
+          .sort((a, b) => a.semester - b.semester),
+      });
+    }
+    totalResultsCount += item.totalResults || 0;
+    (item.uniqueStudents || []).forEach((r) => allUniqueStudents.add(r));
+  });
+
+  batchStatsRankings.forEach((item) => {
+    const b = item._id || "Other";
+    let entry = batchMap.get(b);
+    if (!entry) {
+      entry = { batch: b, totalStudents: item.uniqueStudents?.length || 0, totalRankedStudents: 0, totalResults: 0, totalInternal: 0, totalRankings: 0, semBreakdown: [] };
+      batchMap.set(b, entry);
+    }
+    entry.totalRankedStudents = item.uniqueStudents ? item.uniqueStudents.length : 0;
+    entry.totalRankings = item.totalRankings || 0;
+    totalRankingsCount += item.totalRankings || 0;
+    (item.uniqueStudents || []).forEach((r) => allUniqueStudents.add(r));
+  });
+
+  batchStatsInternal.forEach((item) => {
+    const b = item._id || "Other";
+    let entry = batchMap.get(b);
+    if (!entry) {
+      entry = { batch: b, totalStudents: item.uniqueStudents?.length || 0, totalRankedStudents: 0, totalResults: 0, totalInternal: 0, totalRankings: 0, semBreakdown: [] };
+      batchMap.set(b, entry);
+    }
+    entry.totalInternal = item.totalInternal || 0;
+    totalInternalCount += item.totalInternal || 0;
+    (item.uniqueStudents || []).forEach((r) => allUniqueStudents.add(r));
+  });
+
+  const batchBreakdown = Array.from(batchMap.values()).sort((a, b) => {
+    if (a.batch === "Other") return 1;
+    if (b.batch === "Other") return -1;
+    return b.batch.localeCompare(a.batch);
+  });
+
+  const activeLoggedInCount = new Set(activeSessions.map((s) => s.regNo)).size;
+
+  const stats = {
+    totalAccountsCreated: totalAccountsCreated || 0,
+    activeLoggedInCount,
+    totalResults: totalResultsCount,
+    totalInternal: totalInternalCount,
+    totalRankings: totalRankingsCount,
+    uniqueStudentsCount: allUniqueStudents.size,
+    batchBreakdown,
+  };
+
+  const formattedToppers = {
+    totalToppers: defaultToppers.length,
+    students: defaultToppers.map((rk) => ({
+      regNo: rk.regNo,
+      studentName: rk.studentName || "Student",
+      batch: rk.batch || "2023",
+      branch: rk.branch || "CSE",
+      section: (rk.regNo && getSectionFromRegNo(rk.regNo)) || "A",
+      semester: rk.semester,
+      cgpa: rk.cgpa || 0,
+      sgpa: rk.sgpa || 0,
+      sectionCgpaRank: rk.sectionCgpaRank || null,
+      sectionSgpaRank: rk.sectionSgpaRank || null,
+      deptCgpaRank: rk.deptCgpaRank || null,
+      deptRank: rk.deptRank || null,
+      universityRank: rk.universityRank || rk.cgpaRank || null,
+    })),
+  };
+
+  const trafficOverview = {
+    success: true,
+    totalActiveUsers: activeVisitorsCount || 0,
+    totalQueuedUsers: 0,
+    maxActiveCapacity: trafficConfig?.maxActiveCapacity || 200,
+    queueEnabled: Boolean(trafficConfig?.queueEnabled),
+    autoTriggerEnabled: trafficConfig?.autoTriggerEnabled !== false,
+    isQueueActive: Boolean(trafficConfig?.isQueueActive),
+    activeStudents: [],
+    queuedStudents: [],
+    routeDistribution: {},
+    analytics: {
+      allPages: [],
+      mostVisited: [],
+      mediumVisited: [],
+      leastVisited: [],
+      totalTrackedViews: 0,
+    },
+  };
+
+  const visibilityConfig = portalConfigDoc?.adminButtonVisibility || {
+    mode: "AUTO",
+    allowedRoles: {
+      mainAdmin: true,
+      subAdmin: true,
+      specialStudent: true,
+      allStudents: false,
+      guests: false,
+    },
+  };
+
+  const maintenanceConfig = {
+    enabled: Boolean(maintenanceConfigDoc?.maintenance?.enabled),
+    message: maintenanceConfigDoc?.maintenance?.message || "",
+    enabledAt: maintenanceConfigDoc?.maintenance?.enabledAt || null,
+  };
+
+  return {
+    success: true,
+    bootstrapAt: Date.now(),
+    adminProfile,
+    stats,
+    toppers: formattedToppers,
+    backlogs: {
+      totalStudentsWithBacklogs: 0,
+      totalBacklogsCount: 0,
+      students: [],
+      totalPages: 1,
+      page: 1,
+    },
+    timetable: { schedules: timetableSchedules || [] },
+    trafficOverview,
+    vercelQuota: latestQuota || null,
+    visibility: visibilityConfig,
+    maintenance: maintenanceConfig,
+    broadcasts: broadcastsList || [],
+    feedback: recentFeedback || [],
+  };
+}
+
+// 0b. Unified Admin Bootstrap Endpoint (/api/admin/bootstrap)
+router.get("/bootstrap", protect, async (req, res) => {
+  try {
+    const bootstrapData = await getAdminBootstrapData(req.admin || {});
+    res.json(bootstrapData);
+  } catch (err) {
+    console.error("Admin /bootstrap error:", err);
+    res.status(500).json({ success: false, message: "Failed to load admin bootstrap data." });
+  }
+});
+
 router.get("/stats", protect, async (req, res) => {
   try {
-    const [
-      totalAccountsCreated,
-      activeSessions,
-      semResults,
-      rankings,
-      internalMarks,
-    ] = await Promise.all([
-      Student.countDocuments({ passwordHash: { $exists: true, $ne: null } }),
-      StudentSession.find({ isActive: true }, "regNo").lean(),
-      SemesterResult.find({}, "regNo batch semester").lean(),
-      Ranking.find({}, "regNo batch semester").lean(),
-      InternalMark.find({}, "regNo batch semester").lean(),
-    ]);
-
-    const activeLoggedInCount = new Set(activeSessions.map((s) => s.regNo)).size;
-    const totalResults = semResults.length;
-    const totalInternal = internalMarks.length;
-    const totalRankings = rankings.length;
-
-    const batchMap = new Map();
-    const uniqueStudentsSet = new Set();
-
-    semResults.forEach((r) => {
-      let b = String(r.batch || "").trim();
-      if (!b && r.regNo && /^\d{2}/.test(r.regNo)) {
-        b = `20${r.regNo.slice(0, 2)}`;
-      }
-      if (!b) b = "Other";
-
-      if (!batchMap.has(b)) {
-        batchMap.set(b, {
-          batch: b,
-          studentsSet: new Set(),
-          rankedStudentsSet: new Set(),
-          semMap: new Map(),
-          totalResults: 0,
-          totalInternal: 0,
-          totalRankings: 0,
-        });
-      }
-      const entry = batchMap.get(b);
-      if (r.regNo) {
-        uniqueStudentsSet.add(r.regNo);
-        entry.studentsSet.add(r.regNo);
-        if (r.semester) {
-          const semNum = Number(r.semester);
-          if (!isNaN(semNum) && semNum > 0) {
-            if (!entry.semMap.has(semNum)) {
-              entry.semMap.set(semNum, new Set());
-            }
-            entry.semMap.get(semNum).add(r.regNo);
-          }
-        }
-      }
-      entry.totalResults++;
-    });
-
-    internalMarks.forEach((m) => {
-      let b = String(m.batch || "").trim();
-      if (!b && m.regNo && /^\d{2}/.test(m.regNo)) {
-        b = `20${m.regNo.slice(0, 2)}`;
-      }
-      if (!b) b = "Other";
-
-      if (!batchMap.has(b)) {
-        batchMap.set(b, {
-          batch: b,
-          studentsSet: new Set(),
-          rankedStudentsSet: new Set(),
-          semMap: new Map(),
-          totalResults: 0,
-          totalInternal: 0,
-          totalRankings: 0,
-        });
-      }
-      const entry = batchMap.get(b);
-      if (m.regNo) {
-        uniqueStudentsSet.add(m.regNo);
-        entry.studentsSet.add(m.regNo);
-      }
-      entry.totalInternal++;
-    });
-
-    rankings.forEach((rk) => {
-      let b = String(rk.batch || "").trim();
-      if (!b && rk.regNo && /^\d{2}/.test(rk.regNo)) {
-        b = `20${rk.regNo.slice(0, 2)}`;
-      }
-      if (!b) b = "Other";
-
-      if (!batchMap.has(b)) {
-        batchMap.set(b, {
-          batch: b,
-          studentsSet: new Set(),
-          rankedStudentsSet: new Set(),
-          semMap: new Map(),
-          totalResults: 0,
-          totalInternal: 0,
-          totalRankings: 0,
-        });
-      }
-      const entry = batchMap.get(b);
-      if (rk.regNo) {
-        uniqueStudentsSet.add(rk.regNo);
-        entry.studentsSet.add(rk.regNo);
-        entry.rankedStudentsSet.add(rk.regNo);
-      }
-      entry.totalRankings++;
-    });
-
-    const batchBreakdown = Array.from(batchMap.values())
-      .map((item) => {
-        const semBreakdown = Array.from(item.semMap.entries())
-          .map(([sem, set]) => ({ semester: sem, studentCount: set.size }))
-          .sort((a, b) => a.semester - b.semester);
-
-        return {
-          batch: item.batch,
-          totalStudents: item.studentsSet.size,
-          totalRankedStudents: item.rankedStudentsSet.size,
-          totalResults: item.totalResults,
-          totalInternal: item.totalInternal,
-          totalRankings: item.totalRankings,
-          semBreakdown,
-        };
-      })
-      .sort((a, b) => {
-        if (a.batch === "Other") return 1;
-        if (b.batch === "Other") return -1;
-        return Number(b.batch) - Number(a.batch);
-      });
-
-    res.json({
-      totalStudents: uniqueStudentsSet.size,
-      totalAccountsCreated,
-      activeLoggedInCount,
-      totalResults,
-      totalInternal,
-      totalRankings,
-      batchBreakdown,
-    });
+    const bootstrapData = await getAdminBootstrapData(req.admin || {});
+    res.json(bootstrapData.stats);
   } catch (err) {
     console.error("Stats error:", err);
     res.status(500).json({ message: "Server error" });
@@ -2295,10 +2434,26 @@ router.get("/section-toppers", protect, requirePermission("toppers.view", "toppe
   try {
     const { batch = "2023", branch = "CSE", section = "Sec A", semester, search, limit = 10 } = req.query;
 
-    const [allRankings, studentsTracking] = await Promise.all([
-      Ranking.find({}).lean(),
-      Student.find({}).lean()
-    ]);
+    const rankingFilter = {};
+    if (batch) rankingFilter.batch = batch;
+    if (branch) rankingFilter.branch = branch;
+    if (semester) rankingFilter.semester = Number(semester);
+    if (search) {
+      rankingFilter.$or = [
+        { regNo: { $regex: search, $options: "i" } },
+        { studentName: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const allRankings = await Ranking.find(
+      rankingFilter,
+      "regNo semester studentName batch branch cgpa sgpa sectionCgpaRank sectionSgpaRank deptCgpaRank deptRank universityRank cgpaRank"
+    ).sort({ cgpa: -1, sgpa: -1 }).lean();
+
+    const matchedRegNos = allRankings.map((r) => r.regNo);
+    const studentsTracking = matchedRegNos.length > 0
+      ? await Student.find({ regNo: { $in: matchedRegNos } }, "regNo lastTopperEmailSentAt lastTopperEmailStatus lastTopperEmailError").lean()
+      : [];
 
     const studentTrackingMap = new Map();
     studentsTracking.forEach((st) => {

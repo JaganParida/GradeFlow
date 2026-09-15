@@ -38,6 +38,8 @@ const jwt = require("jsonwebtoken");
 const profileMemoCache = new Map(); // { regNo: { body, etag, ts } }
 const MEMO_TTL_MS = 2 * 60 * 1000; // 2 minutes (absorbs traffic bursts while auto-refreshing rapidly)
 const MEMO_MAX_ENTRIES = 200; // Cap memory usage (~200 students × ~80KB = ~16MB max)
+let feedbacksMemoCache = { data: null, ts: 0 };
+const FEEDBACKS_MEMO_TTL_MS = 60 * 1000; // 60 seconds in-memory warm cache
 
 function parseCookies(cookieHeader) {
   const cookies = {};
@@ -69,11 +71,16 @@ module.exports = async function handler(req, res) {
 
       if (req.method === "GET" && !feedbackId) {
         res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+        const now = Date.now();
+        if (feedbacksMemoCache.data && now - feedbacksMemoCache.ts < FEEDBACKS_MEMO_TTL_MS) {
+          return res.json(feedbacksMemoCache.data);
+        }
         const feedbacks = await Feedback.find()
           .select("name rating comment category likes createdAt")
           .sort({ createdAt: -1 })
           .limit(200)
           .lean();
+        feedbacksMemoCache = { data: feedbacks, ts: now };
         return res.json(feedbacks);
       }
 
@@ -97,6 +104,7 @@ module.exports = async function handler(req, res) {
           category: typeof category === "string" && category.trim() ? category.trim() : "Overall Experience",
         });
         const savedFeedback = await newFeedback.save();
+        feedbacksMemoCache = { data: null, ts: 0 };
         try {
           await publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() });
         } catch (e) {
@@ -115,6 +123,7 @@ module.exports = async function handler(req, res) {
           { new: true, select: "name rating comment category likes createdAt" }
         ).lean();
         if (!feedback) return res.status(404).json({ message: "Feedback not found" });
+        feedbacksMemoCache = { data: null, ts: 0 };
         try {
           await publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() });
         } catch (e) {

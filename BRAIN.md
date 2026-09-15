@@ -100,6 +100,32 @@
 75. [Real-Time Event-Driven Sync (Ably Pub/Sub Architecture)](#75-real-time-event-driven-sync-ably-pubsub-architecture)
 76. [Rankings Developer Maintenance & Extension Guidelines](#76-rankings-developer-maintenance--extension-guidelines)
 
+### Part VII: Academic Resources Engine, GPA Simulators, Institutional Scale & Zero-Vercel Architecture
+77. [Resources Architecture, Philosophy & Zero-Server Invariant](#77-resources-architecture-philosophy--zero-server-invariant)
+78. [Centurion University (CUTM) Official Grading Standard & Grade Point Matrix](#78-centurion-university-cutm-official-grading-standard--grade-point-matrix)
+79. [Official SGPA Mathematical Engine & Algorithm](#79-official-sgpa-mathematical-engine--algorithm)
+80. [Multi-Semester CGPA Engine & Weighted Cumulative Average](#80-multi-semester-cgpa-engine--weighted-cumulative-average)
+81. [Academic Health Index & Multi-Factor Scoring Engine](#81-academic-health-index--multi-factor-scoring-engine)
+82. [Target GPA Predictor & Goal Forecasting Engine](#82-target-gpa-predictor--goal-forecasting-engine)
+83. [Zero-Request AppContext Synchronization Engine](#83-zero-request-appcontext-synchronization-engine)
+84. [Complete Subtabs Catalog & Functional Specification](#84-complete-subtabs-catalog--functional-specification)
+85. [Dual Responsive Navigation Architecture (Desktop Sidebar vs Mobile SubNav)](#85-dual-responsive-navigation-architecture-desktop-sidebar-vs-mobile-subnav)
+86. [Vercel Free-Tier Resource Safeguards & Performance Invariants](#86-vercel-free-tier-resource-safeguards--performance-invariants)
+87. [Resources Developer Maintenance & Extension Guidelines](#87-resources-developer-maintenance--extension-guidelines)
+
+### Part VIII: Student Testimonials & Reviews Engine, Multi-Tier Caching, Verification Guarantee & Zero-Burden Vercel Architecture
+88. [Testimonials Architecture, Philosophy & Student Verification Guarantee](#88-testimonials-architecture-philosophy--student-verification-guarantee)
+89. [Database Models & Schema Specification (`Feedback.js`, Indexes & Data Isolation)](#89-database-models--schema-specification-feedbackjs-indexes--data-isolation)
+90. [Multi-Tier Caching Hierarchy (Vercel Edge CDN, Container Memory Singleton & SessionStorage)](#90-multi-tier-caching-hierarchy-vercel-edge-cdn-container-memory-singleton--sessionstorage)
+91. [Zero-Network Sub-Tab Filtering & Client-Side Multi-Criterion Sorting Engine](#91-zero-network-sub-tab-filtering--client-side-multi-criterion-sorting-engine)
+92. [Responsive Windowed Pagination & Smooth Review Anchoring Engine](#92-responsive-windowed-pagination--smooth-review-anchoring-engine)
+93. [Atomic Likes Architecture, Concurrency Control & Double-Vote Prevention](#93-atomic-likes-architecture-concurrency-control--double-vote-prevention)
+94. [Verified Review Submission Protocol, Input Sanitization & Anti-Abuse Guards](#94-verified-review-submission-protocol-input-sanitization--anti-abuse-guards)
+95. [UI/UX Component Specifications (Hero Stats, Feedback Cards, Star Picker, Auth Gates)](#95-uiux-component-specifications-hero-stats-feedback-cards-star-picker-auth-gates)
+96. [Vercel Free-Tier Resource Quotas, Serverless Guardrails & Zero-Polling Proof](#96-vercel-free-tier-resource-quotas-serverless-guardrails--zero-polling-proof)
+97. [Testimonials Developer Maintenance & Extension Guidelines](#97-testimonials-developer-maintenance--extension-guidelines)
+
+
 ---
 
 # PART I: AUTHENTICATION, MULTI-DEVICE SESSIONS & SECURITY
@@ -2963,5 +2989,371 @@ Any engineer, auditor, or AI agent modifying the Rankings subsystem MUST adhere 
 
 ---
 
+# PART VII: ACADEMIC RESOURCES ENGINE, GPA SIMULATORS, INSTITUTIONAL SCALE & ZERO-VERCEL ARCHITECTURE
 
+---
 
+## 77. Resources Architecture, Philosophy & Zero-Server Invariant
+
+The GradeFlow Academic Resources engine (`frontend/src/pages/Resources.jsx`) is engineered as an **ultra-lightweight, 100% client-side academic reference and simulation suite**.
+
+```
++-----------------------------------------------------------------------------+
+|                          BROWSER CLIENT RUNTIME                             |
+|                                                                             |
+|  +-------------------+   +--------------------+   +----------------------+  |
+|  |  React AppContext |   |  HTML5 History /   |   |   Framer Motion /    |  |
+|  | (Cached Profile)  |   |  useSearchParams   |   |  ModernMobileSubNav  |  |
+|  +---------+---------+   +---------+----------+   +----------+-----------+  |
+|            |                       |                         |              |
+|            v                       v                         v              |
+|  +-----------------------------------------------------------------------+  |
+|  |             Resources.jsx Orchestrator (2,567 LOC)                    |  |
+|  |  - SGPA Engine (useMemo)         - Target Goal Predictor (useMemo)    |  |
+|  |  - CGPA Engine (useMemo)         - Filterable Grading Matrix (useMemo)|  |
+|  |  - Academic Health Index         - 1-Click Profile Hydration Bridge   |  |
+|  +-----------------------------------------------------------------------+  |
++-----------------------------------------------------------------------------+
+                                     |
+               0 Network Calls / 0 Serverless Invocations
+               0 MongoDB Queries / 0 Polling Loops
+                                     v
++-----------------------------------------------------------------------------+
+|                             VERCEL EDGE CDN                                 |
+|  Static Asset Chunk: dist/assets/Resources-*.js (69.23 kB / 13.41 kB gzip)  |
+|  Initial Edge Delivery Only (HTTP 200 / 304 Cached)                         |
++-----------------------------------------------------------------------------+
+```
+
+### Core Invariants:
+1. **Zero Serverless Function Invocations (`0 / 1M`)**:
+   - The entire resources module compiles to a static JavaScript bundle (`Resources-*.js`).
+   - No serverless endpoints (`/api/*`) are called when navigating between tabs, adjusting sliders, or calculating GPAs.
+2. **Zero Fluid Active CPU Consumption (`0.00s / 4h`)**:
+   - Every formula, credit multiplication, and projection runs directly on the client machine's JavaScript V8 engine.
+3. **Zero Database Queries**:
+   - Tab switching, filtering grades, and calculator modifications trigger zero reads or writes to MongoDB Atlas.
+4. **Deep-Linking & Two-Way URL State Synchronization**:
+   - Active tabs are synchronized with URL search params (`?tab=...`) and location hashes (`#tabId`) using `useSearchParams({ tab }, { replace: true })`.
+   - Browser reload, back, and forward navigation automatically restore the exact active tool without causing network round-trips.
+5. **Dynamic SEO Route Metadata Lifecycle**:
+   - Evaluates `applyRouteMetadata("/resources")` once on component mount, configuring title tags and meta descriptions for search indexing.
+
+---
+
+## 78. Centurion University (CUTM) Official Grading Standard & Grade Point Matrix
+
+GradeFlow strictly adheres to the official Centurion University of Technology and Management (CUTM) Choice Based Credit System (CBCS) grading scale:
+
+```
++-------+-------------------------+---------------+--------------+------------+------------------------------------------------------+
+| Grade | Qualitative Descriptor  | Mark Range %  | Grade Points | Evaluation | Transcript & GPA Denominator Semantics              |
++-------+-------------------------+---------------+--------------+------------+------------------------------------------------------+
+| O     | Outstanding             | >= 90         | 10           | Pass       | Highest distinction; full credits cleared.          |
+| E     | Excellent               | 80 – 89       | 9            | Pass       | High standard of knowledge; full credits cleared.   |
+| A     | Very Good               | 70 – 79       | 8            | Pass       | Strong performance; full credits cleared.           |
+| B     | Good                    | 60 – 69       | 7            | Pass       | Above average comprehension; full credits cleared.  |
+| C     | Fair (Average)          | 50 – 59       | 6            | Pass       | Standard course clearance; full credits cleared.    |
+| D     | Pass (Minimum Theory)   | 40 – 49       | 5            | Pass       | Minimum clearance threshold for theory courses.      |
+| F     | Failed (Uncleared)      | < 40          | 2            | Backlog    | Contributes 2 pts per credit; REMAINS in divisor.   |
+| R     | Repeat / Retake         | Non-Clearance | 0            | Backlog    | Mandatory course repeat; REMAINS in divisor.        |
+| M     | Malpractice             | Disciplinary  | 0            | Hold       | Academic hold; carries 0 pts; REMAINS in divisor.   |
+| S     | Absent                  | Absent in Exam| 0            | Backlog    | Recorded absent; carries 0 pts; REMAINS in divisor. |
++-------+-------------------------+---------------+--------------+------------+------------------------------------------------------+
+```
+
+### Critical Backlog Credit Rules:
+- **Grade `F` Evaluation**:
+  $$\text{Points Earned} = \text{Credit} \times 2$$
+  The credits are **NOT** added to `creditsCleared`. However, the registered credits **MUST** remain in the denominator.
+- **Grades `R`, `M`, `S` Evaluation**:
+  $$\text{Points Earned} = \text{Credit} \times 0 = 0$$
+  The credits are **NOT** cleared, but the registered credits **MUST** remain in the denominator.
+- **Passing Threshold**: Grades `O`, `E`, `A`, `B`, `C`, `D` count as cleared credits ($\text{GP} \ge 5$).
+
+---
+
+## 79. Official SGPA Mathematical Engine & Algorithm
+
+The Semester Grade Point Average (SGPA) is calculated using the official weighted credit formula:
+
+$$\text{SGPA} = \frac{\sum_{i=1}^{n} (C_i \times GP_i)}{\sum_{i=1}^{n} C_i}$$
+
+Where:
+- $C_i$: Credit assigned to course $i$.
+- $GP_i$: Grade point corresponding to the letter grade obtained in course $i$.
+- $n$: Total number of courses registered in the semester.
+
+### 1. The Denominator Invariant & Inflation Bug Elimination
+In legacy implementations, formulas incorrectly used:
+$$\text{Divisor} = \text{creditsCleared} > 0 \;?\; \text{creditsCleared} : \text{totalCredits} \quad \text{[DEFECTIVE]}$$
+*Defect Analysis:* If a student passed one 4-credit course with `O` (40 pts) and failed one 4-credit course with `F` (8 pts), the denominator erroneously dropped to $4$, computing an invalid SGPA of $\frac{48}{4} = 12.00$ (> 10.0 scale).
+
+*The GradeFlow v3.4 Invariant:*
+$$\text{Divisor} = \sum_{i=1}^{n} C_i = 4 + 4 = 8 \implies \text{SGPA} = \frac{40 + 8}{8} = 6.00 \quad \text{[CORRECT]}$$
+
+### 2. Implementation & Reactive Memoization
+```javascript
+// frontend/src/pages/Resources.jsx
+const calculatedSgpa = useMemo(() => {
+  let totalCredits = 0;
+  let totalPoints = 0;
+  sgpaSubjects.forEach((sub) => {
+    const cr = Number(sub.credit) || 0;
+    const gr = String(sub.grade || "").trim().toUpperCase();
+    const gp = gradeToPointsMap[gr] ?? 0;
+    if (cr > 0) {
+      totalCredits += cr;
+      totalPoints += cr * gp;
+    }
+  });
+  return totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : "0.00";
+}, [sgpaSubjects]);
+```
+
+### 3. Strict State Immutability for Row Operations
+All table modifications use pure functional state transitions:
+```javascript
+// Update Subject Field
+setSgpaSubjects((prev) =>
+  prev.map((item, idx) => (idx === i ? { ...item, [field]: value } : item))
+);
+
+// Delete Subject Row
+setSgpaSubjects((prev) => prev.filter((_, idx) => idx !== i));
+
+// Append New Subject Row
+setSgpaSubjects((prev) => [
+  ...prev,
+  { name: `Subject ${prev.length + 1}`, credit: 3, grade: "A" }
+]);
+```
+
+---
+
+## 80. Multi-Semester CGPA Engine & Weighted Cumulative Average
+
+The Cumulative Grade Point Average (CGPA) represents the credit-weighted cumulative academic performance across all completed semesters:
+
+$$\text{CGPA} = \frac{\sum_{j=1}^{m} (\text{Credits}_j \times \text{SGPA}_j)}{\sum_{j=1}^{m} \text{Credits}_j}$$
+
+Where:
+- $\text{Credits}_j$: Total credits registered in Semester $j$.
+- $\text{SGPA}_j$: SGPA earned in Semester $j$.
+- $m$: Total number of completed semesters.
+
+### 1. Simple Average vs Weighted Average
+A simple arithmetic mean of SGPAs ($\frac{\sum \text{SGPA}_j}{m}$) is **invalid** whenever credit loads vary between semesters (e.g. Sem 1 = 24 cr, Sem 2 = 20 cr). GradeFlow enforces strictly credit-weighted aggregation.
+
+### 2. Implementation & Zero Guards
+```javascript
+// frontend/src/pages/Resources.jsx
+const calculatedCgpa = useMemo(() => {
+  let totalCredits = 0;
+  let totalWeightedPoints = 0;
+  cgpaSemesters.forEach((sem) => {
+    const cr = Number(sem.credits) || 0;
+    const sg = Number(sem.sgpa) || 0;
+    if (cr > 0) {
+      totalCredits += cr;
+      totalWeightedPoints += cr * sg;
+    }
+  });
+  return totalCredits > 0 ? (totalWeightedPoints / totalCredits).toFixed(2) : "0.00";
+}, [cgpaSemesters]);
+```
+
+---
+
+## 81. Academic Health Index & Multi-Factor Scoring Engine
+
+The Academic Health Index is an institutional composite metric (0 to 100 points) providing a comprehensive assessment of student standing, combining academic velocity with backlog risk:
+
+```
++-------------------+--------------------------------+----------------------------+-----------+
+| Factor            | Evaluation Metric              | Mathematical Formula       | Max Score |
++-------------------+--------------------------------+----------------------------+-----------+
+| CGPA Weight       | Cumulative Performance (0-10)  | Math.min(50, CGPA * 5)     | 50 pts    |
+| SGPA Momentum     | Recent Velocity (0-10)         | Math.min(20, SGPA * 2)     | 20 pts    |
+| Backlog Standing  | Penalty for uncleared backlogs | Math.max(0, 20 - Count * 5)| 20 pts    |
+| Curriculum Status | Active Enrollment Baseline     | Flat Institutional Credit  | 10 pts    |
++-------------------+--------------------------------+----------------------------+-----------+
+| TOTAL MAXIMUM     | Composite Health Rating        | Sum of 4 Components        | 100 pts   |
++-------------------+--------------------------------+----------------------------+-----------+
+```
+
+### 1. Clamping & Boundary Invariants
+```javascript
+// frontend/src/pages/Resources.jsx
+const healthScore = useMemo(() => {
+  const cgpaPt = Math.min(50, Math.max(0, (Number(healthCgpa) || 0) * 5));
+  const sgpaPt = Math.min(20, Math.max(0, (Number(healthSgpa) || 0) * 2));
+  const backlogPt = Math.max(0, 20 - (Number(healthBacklogs) || 0) * 5);
+  const partPt = 10;
+  return Math.min(100, Math.round(cgpaPt + sgpaPt + backlogPt + partPt));
+}, [healthCgpa, healthSgpa, healthBacklogs]);
+```
+
+### 2. Health Tier Classification
+- **90 – 100**: *Elite Scholar Standing* (`#10b981`, Green badge)
+- **75 – 89**: *Strong Academic Standing* (`#2563eb`, Blue badge)
+- **60 – 74**: *Average / Moderate Performance* (`#f59e0b`, Amber badge)
+- **< 60**: *Academic Risk / Remedial Advisory* (`#ef4444`, Crimson badge)
+
+---
+
+## 82. Target GPA Predictor & Goal Forecasting Engine
+
+The Target GPA Predictor implements an inverted credit-weighted linear forecast to determine the precise SGPA a student must achieve in an upcoming semester to elevate their overall CGPA to a chosen milestone.
+
+### 1. Mathematical Derivation
+$$\text{TargetPoints}_{\text{Total}} = (\text{Credits}_{\text{Completed}} + \text{Credits}_{\text{Next}}) \times \text{CGPA}_{\text{Target}}$$
+$$\text{CurrentPoints}_{\text{Total}} = \text{Credits}_{\text{Completed}} \times \text{CGPA}_{\text{Current}}$$
+$$\text{NeededPoints} = \text{TargetPoints}_{\text{Total}} - \text{CurrentPoints}_{\text{Total}}$$
+$$\text{RequiredSGPA} = \frac{\text{NeededPoints}}{\text{Credits}_{\text{Next}}}$$
+
+### 2. Division-by-Zero & Range Safeguards
+```javascript
+// frontend/src/pages/Resources.jsx
+const requiredSgpa = useMemo(() => {
+  const completed = Math.max(0, Number(completedCredits) || 0);
+  const curCgpa = Math.max(0, Math.min(10, Number(currentCgpaInput) || 0));
+  const nextCredits = Number(nextSemCredits) || 0;
+  const target = Math.max(0, Math.min(10, Number(targetCgpaGoal) || 0));
+
+  if (nextCredits <= 0) return "0.00"; // Division by zero protection
+
+  const totalCurrentPoints = completed * curCgpa;
+  const targetTotalCredits = completed + nextCredits;
+  const targetTotalPoints = targetTotalCredits * target;
+  const neededPoints = targetTotalPoints - totalCurrentPoints;
+  const req = neededPoints / nextCredits;
+  return req.toFixed(2);
+}, [completedCredits, currentCgpaInput, nextSemCredits, targetCgpaGoal]);
+```
+
+### 3. Feasibility Thresholds:
+- **$\text{RequiredSGPA} \le 10.00$**: Feasible within upcoming semester. Displayed with success badge.
+- **$\text{RequiredSGPA} > 10.00$**: Mathematically unattainable in a single semester. Triggers warning banner instructing student to distribute goal over multiple upcoming semesters.
+- **$\text{RequiredSGPA} \le \text{CurrentCGPA}$**: Goal already attained or achievable with minimal passing performance.
+
+---
+
+## 83. Zero-Request AppContext Synchronization Engine
+
+The Resources module includes 1-click hydration bridges that connect directly to the student's authenticated session in `AppContext` (`useApp()`).
+
+```
++-------------------------------------------------------------------------+
+|                    Browser In-Memory AppContext                         |
+|  studentData: { results: [...], cgpa: 8.72, backlogs: [] }              |
++--------------------+-------------------+-------------------+------------+
+                     |                   |                   |
+                     v                   v                   v
+            [Import Latest Sem] [Import History]     [Sync Health]
+                     |                   |                   |
+                     v                   v                   v
+              sgpaSubjects[]      cgpaSemesters[]     healthCgpa
+                                                      healthSgpa
+                                                      healthBacklogs
+           (0 API Calls / 0 Server Round-Trips / 0 Latency)
+```
+
+### Handlers:
+1. **`handleImportLatestSemester`**:
+   Extracts `studentData.results[last].subjects` and maps them directly into `sgpaSubjects`.
+2. **`handleImportSemesterHistory`**:
+   Iterates through `studentData.results`, executes `calculateSemesterMetrics` on each, and generates the complete `cgpaSemesters` array.
+3. **`handleSyncHealthProfile`**:
+   Populates `healthCgpa`, `healthSgpa`, and `healthBacklogs` directly from the authenticated record.
+4. **`handleAutoFillPredictor`**:
+   Calculates total cleared credits across all completed semesters and sets an aspirational target ($+0.20$ CGPA).
+
+*Zero-Request Invariant:* All 4 handlers operate purely on in-memory references. They issue zero HTTP requests to `/api/student/*` and execute zero database operations.
+
+---
+
+## 84. Complete Subtabs Catalog & Functional Specification
+
+The Resources module contains 9 dedicated academic views:
+
+```
++----+-------------------+---------------------------+--------------------------------------------------------+
+| #  | Tab Identifier    | Display Title             | Functional Responsibility                              |
++----+-------------------+---------------------------+--------------------------------------------------------+
+| 1  | all-overview      | Overview & Formulas       | Comprehensive CUTM grading regulations & formulas.     |
+| 2  | grading-scale     | Grading Scale             | Real-time search & filterable 10-point grade matrix.   |
+| 3  | academic-health   | Academic Health           | Multi-variable institutional health score simulator.  |
+| 4  | badges-tab        | Badges & Achievements     | 6-tier academic milestone & scholar criteria badges.   |
+| 5  | sgpa-calc         | SGPA Calculator           | Interactive semester GPA builder with 1-click import.  |
+| 6  | cgpa-calc         | CGPA Calculator           | Multi-semester cumulative GPA simulator.               |
+| 7  | target-predictor  | Target GPA Predictor      | Goal forecasting engine with feasibility warnings.     |
+| 8  | academic-report   | Academic Report           | Student profile card with direct route to Dashboard.   |
+| 9  | help-faq          | Help & FAQ                | Interactive accordion answering core student questions.|
++----+-------------------+---------------------------+--------------------------------------------------------+
+```
+
+---
+
+## 85. Dual Responsive Navigation Architecture (Desktop Sidebar vs Mobile SubNav)
+
+### 1. Desktop Sticky Navigation (`>= 1100px`)
+- Fixed sticky sidebar (`position: sticky; top: 20px;`).
+- Active pill indicator with high-contrast icon rendering and descriptive sub-labels.
+- Zero layout shift during tab transitions.
+
+### 2. ModernMobileSubNav Integration (`< 1100px`)
+- Replaces cramped horizontal scrolling tabs with a modern bottom-sheet drawer (`ModernMobileSubNav.jsx`).
+- Features:
+  - Active view preview card.
+  - 1-tap fast Previous / Next chevron triggers.
+  - Interactive bottom-sheet modal with drag-to-dismiss gesture.
+  - Body scroll lock (`overflow: hidden`) during drawer presentation.
+  - Automatic smooth scroll restoration to anchor element (`#gf-mobile-subnav-anchor`).
+
+---
+
+## 86. Vercel Free-Tier Resource Safeguards & Performance Invariants
+
+GradeFlow's Resources engine is engineered to stay well within all Vercel Free-Tier resource allowances:
+
+```
++------------------------------------+-----------------------+---------------------------+
+| Vercel Resource Metric             | Monthly Limit         | GradeFlow Resources Load  |
++------------------------------------+-----------------------+---------------------------+
+| 1. Functions Storage               | 10 GB                 | 0 B (Static JS Bundle)    |
+| 2. Fluid Active CPU                | 4 Hours               | 0.00s (Client-side V8)    |
+| 3. Deployment Storage              | 10 GB                 | ~13.41 kB (Gzipped chunk) |
+| 4. Fluid Provisioned Memory        | 360 GB-Hours          | 0 GB-Hours                |
+| 5. Edge Requests                   | 1,000,000 (1M)        | 1 on initial load; 0 tabs |
+| 6. Function Invocations            | 1,000,000 (1M)        | 0 Invocations             |
+| 7. Fast Data Transfer              | 100 GB                | ~13.41 kB one-time        |
+| 8. Fast Origin Transfer            | 10 GB                 | 0 B (Edge CDN cached)     |
+| 9. Edge Request CPU Duration       | 1 Hour                | < 0.001s per load         |
+| 10. Private Data Transfer          | 0 B                   | 0 B                       |
++------------------------------------+-----------------------+---------------------------+
+```
+
+### Complete Absence of Polling Invariant:
+- `grep` scan of `Resources.jsx` confirms **zero instances** of `setInterval`, `setTimeout`, `apiClient`, `axios`, `fetch`, or `WebSocket`.
+- Students can leave the calculator open for hours without generating background network traffic.
+
+---
+
+## 87. Resources Developer Maintenance & Extension Guidelines
+
+Any engineer, auditor, or AI assistant modifying the Resources subsystem MUST follow these rules:
+
+1. **NEVER Introduce Network Calls to Calculators**:
+   - The SGPA, CGPA, Health Index, and Target Predictor tools must remain 100% synchronous and client-side.
+   - Never inject `fetch()` or `axios` calls into calculator functions.
+2. **Preserve Total Credits in the SGPA Denominator**:
+   - Under no circumstances should backlogs (`F`, `R`, `S`, `M`) be removed from the SGPA divisor.
+   - The denominator MUST remain `totalCredits` ($\sum C_i$).
+3. **Always Enforce React State Immutability**:
+   - Never use direct object mutations like `sgpaSubjects[i].grade = val`.
+   - Always use functional updates: `setSgpaSubjects(prev => prev.map(...))`.
+4. **Maintain Parity with `gradeCalculations.js`**:
+   - If Centurion University adjusts grade points or exception rules (e.g. Sem 5 project exceptions), update both `frontend/src/utils/gradeCalculations.js` and `frontend/src/pages/Resources.jsx` simultaneously.
+5. **Keep Dynamic Mobile Navigation Synchronized**:
+   - When adding a new tab, register it in `ALL_RESOURCE_TABS`, `resolveResourceTab()`, and the desktop sidebar mapping to preserve dual-device parity.

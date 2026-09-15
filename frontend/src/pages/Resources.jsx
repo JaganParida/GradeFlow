@@ -2223,9 +2223,8 @@ export default function Resources() {
                       <input
                         value={sub.name}
                         onChange={(e) => {
-                          const copy = [...sgpaSubjects];
-                          copy[i].name = e.target.value;
-                          setSgpaSubjects(copy);
+                          const val = e.target.value;
+                          setSgpaSubjects((prev) => prev.map((item, idx) => (idx === i ? { ...item, name: val } : item)));
                         }}
                         placeholder="Subject Name"
                         style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box" }}
@@ -2234,9 +2233,8 @@ export default function Resources() {
                         <select
                           value={sub.credit}
                           onChange={(e) => {
-                            const copy = [...sgpaSubjects];
-                            copy[i].credit = Number(e.target.value);
-                            setSgpaSubjects(copy);
+                            const val = Number(e.target.value);
+                            setSgpaSubjects((prev) => prev.map((item, idx) => (idx === i ? { ...item, credit: val } : item)));
                           }}
                           style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13, background: "#fff" }}
                         >
@@ -2247,9 +2245,8 @@ export default function Resources() {
                         <select
                           value={sub.grade}
                           onChange={(e) => {
-                            const copy = [...sgpaSubjects];
-                            copy[i].grade = e.target.value;
-                            setSgpaSubjects(copy);
+                            const val = e.target.value;
+                            setSgpaSubjects((prev) => prev.map((item, idx) => (idx === i ? { ...item, grade: val } : item)));
                           }}
                           style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13, background: "#fff", fontWeight: 700, color: "#2563eb" }}
                         >
@@ -2259,7 +2256,7 @@ export default function Resources() {
                         </select>
                         <button
                           type="button"
-                          onClick={() => setSgpaSubjects(sgpaSubjects.filter((_, idx) => idx !== i))}
+                          onClick={() => setSgpaSubjects((prev) => prev.filter((_, idx) => idx !== i))}
                           style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", padding: "6px 8px", flexShrink: 0 }}
                           title="Remove subject"
                         >
@@ -2352,9 +2349,8 @@ export default function Resources() {
                             type="number"
                             value={sem.credits}
                             onChange={(e) => {
-                              const copy = [...cgpaSemesters];
-                              copy[i].credits = Number(e.target.value);
-                              setCgpaSemesters(copy);
+                              const val = Number(e.target.value);
+                              setCgpaSemesters((prev) => prev.map((item, idx) => (idx === i ? { ...item, credits: val } : item)));
                             }}
                             style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: 13, background: "#fff", boxSizing: "border-box" }}
                           />
@@ -2367,16 +2363,15 @@ export default function Resources() {
                             max="10"
                             value={sem.sgpa}
                             onChange={(e) => {
-                              const copy = [...cgpaSemesters];
-                              copy[i].sgpa = Number(e.target.value);
-                              setCgpaSemesters(copy);
+                              const val = Number(e.target.value);
+                              setCgpaSemesters((prev) => prev.map((item, idx) => (idx === i ? { ...item, sgpa: val } : item)));
                             }}
                             style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: 13, background: "#fff", fontWeight: 700, color: "#7c3aed", boxSizing: "border-box" }}
                           />
                         </div>
                         <button
                           type="button"
-                          onClick={() => setCgpaSemesters(cgpaSemesters.filter((_, idx) => idx !== i))}
+                          onClick={() => setCgpaSemesters((prev) => prev.filter((_, idx) => idx !== i))}
                           style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", padding: "6px 8px", marginTop: 16, flexShrink: 0 }}
                           title="Remove semester"
                         >
