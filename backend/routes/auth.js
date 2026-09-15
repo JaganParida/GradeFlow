@@ -1376,7 +1376,17 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
     }
 
     if (new Date() > new Date(otpRecord.expiresAt)) {
+      const isRecovery = otpRecord.purpose === "FAILED_PASSWORD_RECOVERY";
       await OtpVerification.deleteOne({ _id: otpRecord._id });
+      const studentAccount = await Student.findOne({ regNo: rawReg });
+      if (isRecovery && studentAccount?.recoveryRestrictedUntil) {
+        return res.status(400).json({
+          success: false,
+          message: `The verification code has expired (5-minute validity exceeded). Your account is temporarily locked for 24 hours (unlocks at ${formatUnlockTime(studentAccount.recoveryRestrictedUntil)}).`,
+          code: "ACCOUNT_TEMPORARILY_LOCKED",
+          unlockAt: studentAccount.recoveryRestrictedUntil,
+        });
+      }
       return res.status(400).json({
         success: false,
         message: "The verification code has expired. Please request a new code.",
@@ -1385,7 +1395,17 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
     }
 
     if (otpRecord.attempts >= 5) {
+      const isRecovery = otpRecord.purpose === "FAILED_PASSWORD_RECOVERY";
       await OtpVerification.deleteOne({ _id: otpRecord._id });
+      const studentAccount = await Student.findOne({ regNo: rawReg });
+      if (isRecovery && studentAccount?.recoveryRestrictedUntil) {
+        return res.status(400).json({
+          success: false,
+          message: `Maximum incorrect verification attempts exceeded. Your account is temporarily locked for 24 hours (unlocks at ${formatUnlockTime(studentAccount.recoveryRestrictedUntil)}).`,
+          code: "ACCOUNT_TEMPORARILY_LOCKED",
+          unlockAt: studentAccount.recoveryRestrictedUntil,
+        });
+      }
       return res.status(400).json({
         success: false,
         message: "Maximum incorrect verification attempts exceeded. Please request a new code.",
@@ -1609,6 +1629,9 @@ router.post("/student/create-password", authLimiter, async (req, res) => {
           failedPasswordAttempts: 0,
           lastFailedPasswordAt: null,
           lockedUntil: null,
+          recoveryRestrictedUntil: null,
+          recoveryOtpCount: 0,
+          recoveryOtpSentAt: null,
         },
       },
       { new: true }
