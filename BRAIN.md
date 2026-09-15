@@ -1997,7 +1997,7 @@ The Daily Check-In Hub is the primary operational screen for daily attendance lo
 
 ## 49. Smart Bunk Analyzer & Future Predictor (`activeTab === "bunk_analyzer"`)
 
-Implemented in `components/SmartBunkAnalyzer.jsx` and `components/FuturePredictor.jsx`, this module uses heuristic scheduling algorithms to generate optimized attendance strategies.
+Implemented in `components/FuturePredictor.jsx`, this module uses heuristic scheduling algorithms to generate optimized attendance strategies.
 
 ### Capabilities:
 1. **High-Value Bunk Identification:** Identifies low-frequency courses where a single absence causes maximum percentage degradation vs high-frequency courses where absences dilute easily.
