@@ -50,10 +50,26 @@
 31. [Weekly Matrix View Engine (`viewMode === "week"`)](#31-weekly-matrix-view-engine-viewmode--week)
 32. [Academic Calendar Engine (`viewMode === "academic"`)](#32-academic-calendar-engine-viewmode--academic)
 33. [University Holidays & Offs Engine (`viewMode === "holidays"`)](#33-university-holidays--offs-engine-viewmode--holidays)
-34. [Client CPU & Battery Optimization (Tab Visibility Guard)](#34-client-cpu--battery-optimization-tab-visibility-guard)
+34: [Client CPU & Battery Optimization (Tab Visibility Guard)](#34-client-cpu--battery-optimization-tab-visibility-guard)
 35. [Branch Isolation & Security Specifications (CSE vs Non-CSE)](#35-branch-isolation--security-specifications-cse-vs-non-cse)
 36. [Admin Timetable Management Pipeline (`TimetableAdminManager`)](#36-admin-timetable-management-pipeline-timetableadminmanager)
 37. [Timetable Developer Maintenance & Extension Guidelines](#37-timetable-developer-maintenance--extension-guidelines)
+
+### Part IV: Attendance Tracking, Studio Simulator, Predictive Intelligence & OCR Engine
+38. [Attendance Architecture & Core Design Philosophy](#38-attendance-architecture--core-design-philosophy)
+39. [Database Models & Schema Specifications (`Attendance`)](#39-database-models--schema-specifications-attendance)
+40. [Consolidated Student Profile & Zero-Request Page Switching](#40-consolidated-student-profile--zero-request-page-switching)
+41. [Multi-Tier Caching & ETag/304 Revalidation Engine](#41-multi-tier-caching--etag304-revalidation-engine)
+42. [Real-Time Dual-Ably Sync & Self-Origin Echo Suppression](#42-real-time-dual-ably-sync--self-origin-echo-suppression)
+43. [What-If Simulator Studio (`activeTab === "studio_simulator"`)](#43-what-if-simulator-studio-activetab--studio_simulator)
+44. [Target Date & Schedule Projection Engine (`activeTab === "studio_schedule"`)](#44-target-date--schedule-projection-engine-activetab--studio_schedule)
+45. [Target & Miss Impact Analysis (`activeTab === "studio_penalty"`)](#45-target--miss-impact-analysis-activetab--studio_penalty)
+46. [Safe Margin & Miss Roadmap (`activeTab === "studio_roadmap"`)](#46-safe-margin--miss-roadmap-activetab--studio_roadmap)
+47. [Subject Matrix & Routine Catalog (`activeTab === "matrix"`)](#47-subject-matrix--routine-catalog-activetab--matrix)
+48. [Daily Routine Check-In Hub (`activeTab === "checkin"`)](#48-daily-routine-check-in-hub-activetab--checkin)
+49. [Smart Bunk Analyzer & Future Predictor (`activeTab === "bunk_analyzer"`)](#49-smart-bunk-analyzer--future-predictor-activetab--bunk_analyzer)
+50. [AI Vision ERP Screenshot OCR Scanner (`AttendanceScreenshotModal`)](#50-ai-vision-erp-screenshot-ocr-scanner-attendancescreenshotmodal)
+51. [Attendance Developer Maintenance & Extension Guidelines](#51-attendance-developer-maintenance--extension-guidelines)
 
 ---
 
@@ -1432,3 +1448,450 @@ When developing or extending the Timetable subsystem, future engineers and AI ag
 
 5. **Dual-Runtime Parity Requirement:**
    - Any modifications to route handlers or middleware in `frontend/api/timetable.js` must be duplicated in `backend/routes/timetable.js` to ensure 100% parity between local Docker/Express environments and Vercel Serverless production deployments.
+
+---
+
+# PART IV: ATTENDANCE TRACKING, STUDIO SIMULATOR, PREDICTIVE INTELLIGENCE & OCR ENGINE
+
+---
+
+## 38. Attendance Architecture & Core Design Philosophy
+
+The GradeFlow Attendance Subsystem is an engineering-grade academic tracking and predictive simulation engine built for Centurion University of Technology and Management (CUTM) students. It addresses the real-world friction of university attendance compliance (mandatory 75% minimum semester threshold) with high-precision forecasting, daily timetable check-ins, automated ERP screenshot OCR ingestion, and zero-latency what-if simulations.
+
+### Core Architectural Invariants:
+1. **Per-Student Document Isolation (Zero Locking Contention):**
+   - Each student's attendance records, targets, and routine logs reside in their own isolated MongoDB document identified strictly by `regNo` (`Attendance.findOne({ regNo })`).
+   - Even if 200+ or 1,000+ students mark attendance simultaneously across the campus, each operation targets a distinct document indexed by a unique B-tree index. There is **zero document locking contention, zero race conditions between students, and zero shared write bottlenecks**.
+2. **Zero-Latency Optimistic UI (0ms Response Time):**
+   - Every user action (checking in a class, toggling present/absent, changing target percentage sliders, or adjusting simulation offsets) updates in-memory React state and `sessionStorage` **synchronously in 0 milliseconds**.
+   - Network persistence runs non-blockingly in the background via debounced batching. The student never experiences UI freeze, spinning loaders, or delayed button clicks.
+3. **Zero Polling & Zero-Echo Push Synchronization:**
+   - No background `setInterval` polling loops are permitted.
+   - Real-time updates across multiple open devices/tabs are delivered through deterministic **Ably WebSockets**.
+   - Saving operations attach a unique `syncId` to guarantee that the originating client completely suppresses duplicate self-re-fetches, cutting serverless invocations by **66% to 80%**.
+4. **Zero-Request Cross-Page Navigation:**
+   - Attendance data (`savedSubjects`, `targetGoal`, and `dailyLogs`) is bundled into the primary student profile response (`GET /api/student/:regNo`).
+   - When a student navigates between **Timetable ➔ Dashboard ➔ Attendance ➔ Analytics**, the attendance module hydratively renders from existing session memory with **0 HTTP requests**.
+5. **Dual-Runtime Serverless & Docker Parity:**
+   - Identical validation, indexing, and business logic run concurrently on Vercel Serverless (`frontend/api/student.js`) and Express Docker backend (`backend/routes/student.js`).
+
+---
+
+## 39. Database Models & Schema Specifications (`Attendance`)
+
+The attendance subsystem is persisted in MongoDB Atlas under the `attendances` collection via Mongoose:
+
+```javascript
+// models/Attendance.js & api/_lib/models/Attendance.js
+const attendanceComponentSchema = new mongoose.Schema(
+  {
+    type: { type: String, required: true, uppercase: true }, // "PP" (Theory), "PR" (Practical/Lab), "TUT" (Tutorial)
+    attended: { type: Number, default: 0, min: 0 },
+    delivered: { type: Number, default: 0, min: 0 },
+  },
+  { _id: false }
+);
+
+const savedSubjectSchema = new mongoose.Schema(
+  {
+    subjectName: { type: String, required: true },
+    code: { type: String, default: "" },                    // e.g. "CUTM1020"
+    components: [attendanceComponentSchema],
+    section: { type: String, default: "" },                 // e.g. "CSE-A"
+    weeklyOccurrences: { type: Array, default: [] },        // e.g. [{ day: "Monday", time: "09:30-10:30", type: "PP" }]
+    lastUpdated: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
+const attendanceSchema = new mongoose.Schema(
+  {
+    regNo: { type: String, required: true, unique: true, index: true },
+    section: { type: String, default: "CSE-A" },
+    targetGoal: { type: Number, default: 75, min: 1, max: 100 },
+    savedSubjects: [savedSubjectSchema],
+    dailyLogs: {
+      type: Map,
+      of: Object,                                           // DateKey ("YYYY-MM-DD") -> { [slotIndex]: "present" | "absent" }
+      default: {},
+    },
+    dailyLogsCount: { type: Number, default: 0 },
+    lastSyncedAt: { type: Date, default: Date.now },
+  },
+  { timestamps: true }
+);
+```
+
+### Schema Invariants:
+* **Unique Indexed `regNo`:** Enables single-digit millisecond $O(\log N)$ point reads and atomic upserts via `findOneAndUpdate({ regNo: cleanRegNo }, { $set: ... }, { upsert: true, new: true })`.
+* **Sub-Document Component Normalization:** Subject delivery is split into three standard university component types:
+  * `PP`: Practice/Theory Lecture periods.
+  * `PR`: Practical laboratory sessions (typically 2 consecutive periods).
+  * `TUT`: Tutorial problem-solving sessions.
+* **DateKey Map Pattern (`dailyLogs`):** Keys conform strictly to ISO-8601 calendar date format `/^\d{4}-\d{2}-\d{2}$/` in the user's local timezone. Each entry contains a dictionary of period slots and their check-in state:
+  ```json
+  "2026-09-15": {
+    "0": "present",
+    "1": "present",
+    "2": "absent"
+  }
+  ```
+
+---
+
+## 40. Consolidated Student Profile & Zero-Request Page Switching
+
+To satisfy Vercel Free Tier quota limits (100,000 invocations/month) and eliminate UI loading skeletons, GradeFlow bundles attendance into the student profile payload.
+
+### The Profile Bundling Architecture:
+1. **Single MongoDB Query Execution:**
+   In `frontend/api/student.js`, `Attendance.findOne({ regNo })` executes in parallel via `Promise.all` alongside `Ranking.find` and `InternalMark.find`:
+   ```javascript
+   const [allRankings, allInternals, attendanceDoc] = await Promise.all([
+     Ranking.find({ regNo: cleanRegNo }).lean(),
+     InternalMark.find({ regNo: cleanRegNo }).select("semester subjects").lean(),
+     Attendance.findOne({ regNo: cleanRegNo })
+       .select("targetGoal savedSubjects section dailyLogs lastSyncedAt")
+       .lean(),
+   ]);
+   ```
+2. **Instant Frame-0 State Hydration in `AttendanceTracker.jsx`:**
+   Instead of initializing with empty arrays and triggering network fetches on mount, `AttendanceTracker` reads lazily from `AppContext`:
+   ```javascript
+   const [savedSubjects, setSavedSubjects] = useState(() => {
+     return Array.isArray(studentData?.attendance?.savedSubjects)
+       ? studentData.attendance.savedSubjects
+       : [];
+   });
+   const [targetGoal, setTargetGoal] = useState(() => {
+     return Number(studentData?.attendance?.targetGoal) || 75;
+   });
+   const [allDailyLogs, setAllDailyLogs] = useState(() => {
+     return (studentData?.attendance?.dailyLogs && typeof studentData.attendance.dailyLogs === "object")
+       ? studentData.attendance.dailyLogs
+       : {};
+   });
+   const [pageLoading, setPageLoading] = useState(() => {
+     const targetReg = decodedParam || studentSession?.regNo || studentData?.regNo;
+     if (!targetReg) return false;
+     return !(studentData && studentData.regNo === targetReg && studentData.attendance);
+   });
+   ```
+3. **Zero HTTP Requests on Navigation:**
+   If `studentData?.attendance` is already in memory and Ably Realtime is connected, `loadAllStudentData()` exits immediately:
+   ```javascript
+   if (initialAtt && isFresh) {
+     setPageLoading(false);
+     return; // 0 HTTP requests! Instantaneous transition.
+   }
+   ```
+
+---
+
+## 41. Multi-Tier Caching & ETag/304 Revalidation Engine
+
+GradeFlow enforces a 3-tier caching hierarchy for attendance records:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Level 1: In-Memory React State & AppContext Singleton   │  0ms (Instantaneous)
+└────────────────────────────┬────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────┐
+│ Level 2: Browser SessionStorage Cache                   │  ~1ms (Survives F5)
+│ Key: gf_student_profile_<REGNO>                         │
+└────────────────────────────┬────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────┐
+│ Level 3: Vercel Edge / Serverless ETag Conditional Read │  ~1ms (304 Not Modified)
+│ Header: If-None-Match -> MD5 Body Hash                  │  0 DB Queries, 0 Bytes
+└─────────────────────────────────────────────────────────┘
+```
+
+### ETag & Conditional Revalidation Specification:
+When a cold revalidation is required (e.g., student returns after being away > 2 minutes with Ably disconnected):
+1. **Server Endpoint (`GET /api/student/:regNo/attendance`):**
+   - Serializes clean attendance payload to JSON.
+   - Generates cryptographic MD5 digest:
+     ```javascript
+     const bodyString = JSON.stringify({ success: true, attendance: attendancePayload });
+     const etag = `"${crypto.createHash("md5").update(bodyString).digest("hex")}"`;
+     res.setHeader("ETag", etag);
+     res.setHeader("Cache-Control", "private, no-cache, must-revalidate");
+     if (req.headers["if-none-match"] === etag) {
+       return res.status(304).end(); // 304 Not Modified (~1ms CPU, 0 bytes bandwidth)
+     }
+     ```
+2. **Client Handling:**
+   - Stores `lastAttendanceEtagRef.current = resEtag`.
+   - Sends `headers: { "If-None-Match": lastAttendanceEtagRef.current }`.
+   - On `res.status === 304`, the client leaves existing React state untouched, avoiding unnecessary DOM re-renders.
+
+---
+
+## 42. Real-Time Dual-Ably Sync & Self-Origin Echo Suppression
+
+Attendance synchronization across devices uses **Ably Realtime WebSockets** with deterministic dual-key load balancing and self-origin echo suppression.
+
+### Architecture Workflow:
+
+```
+Student Client (Laptop)                  Vercel Serverless                   Student Client (Mobile)
+        │                                        │                                       │
+        │── 1. POST /student/:id/attendance ────>│                                       │
+        │      payload: { syncId, logs... }      │                                       │
+        │                                        │── 2. Atomic MongoDB Upsert            │
+        │                                        │                                       │
+        │<── 3. 200 OK with confirmed payload ───│                                       │
+        │                                        │                                       │
+        │                                        │── 4. Ably Broadcast (syncId) ────────>│
+        │                                        │      channel: student-<REGNO>         │
+        │<── 4. Ably Broadcast (syncId) ─────────│                                       │
+        │                                                                                │
+   [Self-Echo Guard]                                                          [Hydrate Direct]
+   Sees own syncId -> SUPPRESSES                                              Reads msg.data.attendance
+   all HTTP re-fetches! (0 calls)                                             Updates state directly (0 calls)
+```
+
+### Self-Origin Suppression Implementation:
+1. **Client Save (`AttendanceTracker.jsx`):**
+   ```javascript
+   const syncId = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+   recordAttendanceSave(syncId); // Records in AppContext ref with timestamp
+   const payload = { syncId, section, targetGoal, savedSubjects, dailyLogs };
+   ```
+2. **Server Broadcast (`api/student.js`):**
+   ```javascript
+   publishStudentRealtimeEvent(cleanRegNo, "attendance-updated", {
+     regNo: cleanRegNo,
+     syncId: syncId || null,
+     lastSyncedAt: updatedAttendance.lastSyncedAt,
+     attendance: attendanceData,
+     timestamp: Date.now(),
+   });
+   ```
+3. **Ably Listener (`AppContext.jsx`):**
+   ```javascript
+   const msgSyncId = msg?.data?.syncId;
+   const isSelfEcho =
+     Boolean(msgSyncId && msgSyncId === lastAttendanceSyncIdRef.current) ||
+     (Date.now() - lastAttendanceSaveTsRef.current < 4000);
+
+   if (isSelfEcho) {
+     // Suppress redundant self-origin re-fetch; client already has confirmed state
+     window.dispatchEvent(new CustomEvent("gradeflow:attendance-updated", {
+       detail: { ...(msg?.data || {}), isSelfOrigin: true },
+     }));
+     return;
+   }
+   ```
+4. **Dual-Key Account Partitioning:**
+   Students are routed deterministically to Account 1 or Account 2 by the parity of their registration number's last digit:
+   - Even digit (`0, 2, 4, 6, 8`) ➔ `ABLY_API_KEY_1`
+   - Odd digit (`1, 3, 5, 7, 9`) ➔ `ABLY_API_KEY_2`
+   This prevents hitting Ably's 200 concurrent connection peak limit on the Free tier during peak campus hours.
+
+---
+
+## 43. What-If Simulator Studio (`activeTab === "studio_simulator"`)
+
+The Simulator Studio allows students to simulate future attendance outcomes with instant visual feedback.
+
+### Mathematical Engine (`calculateAttendance` in `utils/timetableHelper.js`):
+Given:
+* $A = \sum \text{attended components}$
+* $D = \sum \text{delivered components}$
+* $M_{\text{sim}} = \text{simulated missed classes}$
+* $P_{\text{sim}} = \text{simulated attended classes}$
+* $T = \text{target percentage goal (e.g. 75)}$
+
+$$\text{Total Attended } (A') = A + P_{\text{sim}}$$
+$$\text{Total Delivered } (D') = D + P_{\text{sim}} + M_{\text{sim}}$$
+$$\text{Current Percentage } (P) = \begin{cases} 100\% & \text{if } D' = 0 \\ \frac{A'}{D'} \times 100 & \text{if } D' > 0 \end{cases}$$
+
+### Deficit vs Surplus Formulas:
+1. **Deficit: Classes Needed to Reach Target ($P < T$):**
+   To find the minimum additional classes $x$ the student must attend consecutively without missing to achieve $T\%$:
+   $$\frac{A' + x}{D' + x} \ge \frac{T}{100} \implies 100(A' + x) \ge T(D' + x) \implies x(100 - T) \ge TD' - 100A'$$
+   $$x = \max\left(0, \; \left\lceil \frac{T \cdot D' - 100 \cdot A'}{100 - T} \right\rceil\right)$$
+2. **Surplus: Safe Bunks Allowed ($P \ge T$):**
+   To find the maximum classes $y$ the student can bunk consecutively without dropping below $T\%$:
+   $$\frac{A'}{D' + y} \ge \frac{T}{100} \implies 100A' \ge T(D' + y) \implies Ty \le 100A' - TD'$$
+   $$y = \max\left(0, \; \left\lfloor \frac{100 \cdot A' - T \cdot D'}{T} \right\rfloor\right)$$
+
+### Visual Threshold Status Badges:
+* **Green (Safe):** $P \ge T + 5\%$ (Healthy safety margin).
+* **Yellow / Amber (Borderline):** $T \le P < T + 5\%$ (Caution zone; 1–2 bunks will trigger deficit).
+* **Red (Deficit):** $P < T$ (Below mandatory threshold; shows exact recovery path).
+
+---
+
+## 44. Target Date & Schedule Projection Engine (`activeTab === "studio_schedule"`)
+
+The Schedule Projection Engine translates abstract class deficit numbers into an **exact real-world calendar date** by synchronizing the timetable routine with the academic calendar.
+
+### Algorithm (`estimateTargetReachDate` in `utils/timetableHelper.js`):
+```
+Input:
+  classesNeeded: Integer
+  weeklyOccurrences: Array of period slots [{ day, time, type }]
+  startDate: Date (defaults to today)
+  currentAttended: Integer
+  currentDelivered: Integer
+  targetGoal: Number
+
+1. If classesNeeded <= 0: return null (Target already met).
+2. Initialize simulation cursor: currentDate = startDate + 1 day.
+3. Fetch academic semester boundaries (CUTM_SESSION_BOUNDARIES).
+4. While classesAccumulated < classesNeeded AND currentDate <= semesterEndDate:
+     a. If isSunday(currentDate) -> currentDate++, continue.
+     b. holidayInfo = getHolidayInfo(currentDate).
+     c. If holidayInfo.isHoliday AND NOT holidayInfo.isOptional -> currentDate++, continue.
+     d. calStatus = getAcademicCalendarDateStatus(currentDate).
+     e. If calStatus.isBreak OR calStatus.isExam OR NOT calStatus.isInstructional -> currentDate++, continue.
+     f. dayName = getDayName(currentDate) ("Monday", "Tuesday", etc.).
+     g. scheduledSlots = weeklyOccurrences.filter(slot => slot.day === dayName).
+     h. For each slot in scheduledSlots:
+          accumulatedAttended++;
+          accumulatedDelivered++;
+          classesAccumulated++;
+          currentPercentage = (accumulatedAttended / accumulatedDelivered) * 100;
+          If currentPercentage >= targetGoal:
+             return { targetDate: currentDate, dayName, classesAttended: classesAccumulated };
+     i. currentDate++.
+5. If accumulated classes < classesNeeded:
+     return { targetDate: null, isUnreachable: true, maxPossiblePercentage };
+```
+
+---
+
+## 45. Target & Miss Impact Analysis (`activeTab === "studio_penalty"`)
+
+The Penalty Analysis module models the mathematical sensitivity of attendance to prospective absences.
+
+### Miss Degradation Curve:
+Calculates the exact drop in attendance percentage for missing $1, 2, 3, 5, \dots, N$ prospective classes:
+$$\Delta P(k) = P_{\text{current}} - \left( \frac{A}{D + k} \times 100 \right)$$
+For each missed scenario $k$, it calculates the **Recovery Penalty Multiplier**:
+$$\text{Recovery Classes Required } (R_k) = \left\lceil \frac{T \cdot (D + k) - 100 \cdot A}{100 - T} \right\rceil$$
+This demonstrates to students that missing 1 lecture often requires attending 3 to 4 consecutive lectures to restore compliance.
+
+---
+
+## 46. Safe Margin & Miss Roadmap (`activeTab === "studio_roadmap"`)
+
+Provides an inverse predictive roadmap showing:
+1. **Bunk Cushion Breakdown:** Categorized by period component (Theory vs Lab). Since Lab sessions (`PR`) are 2 credit periods, missing 1 lab equals 2 missed delivered hours.
+2. **Target Milestones:** Projects safe margins against multiple university benchmark tiers ($75\%$, $80\%$, $85\%$, and $90\%$).
+3. **Danger Threshold Alert:** Warns if the current safety buffer is less than or equal to 2 periods.
+
+---
+
+## 47. Subject Matrix & Routine Catalog (`activeTab === "matrix"`)
+
+The Matrix view renders a card-based audit of all subjects enrolled in the student's section timetable.
+
+### Features & Capabilities:
+* **Automated Catalog Matching:** Automatically links user-entered or OCR-scanned subjects to the authoritative section timetable catalog using `isSameSubject()`.
+* **Component-Level Counters:** Displays separate attended/delivered gauges for Theory (`PP`), Practical (`PR`), and Tutorial (`TUT`).
+* **In-Card Fast Steppers:** Allows instant inline $+1$ / $-1$ attendance increments without leaving the overview screen.
+* **Custom Subject Ingestion:** Students can manually add elective courses, domain subjects, or MOOCs not present in the standard section routine.
+
+---
+
+## 48. Daily Routine Check-In Hub (`activeTab === "checkin"`)
+
+The Daily Check-In Hub is the primary operational screen for daily attendance logging.
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│  < 14 Sep 2026               Today (15 Sep 2026)             16 Sep >  │
+├────────────────────────────────────────────────────────────────────────┤
+│  Slot 1 [09:30 - 10:30]  │  Operating Systems (PP)     │ [ PRESENT ]   │
+│  Slot 2 [10:30 - 11:30]  │  Design & Analysis of Algo  │ [ PRESENT ]   │
+│  Slot 3 [11:30 - 12:30]  │  Formal Language & Automata │ [  ABSENT ]   │
+│  Slot 4 [01:30 - 03:30]  │  OS Lab (PR - 2 Periods)    │ [ PRESENT ]   │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### Technical Workflow:
+1. **Midnight Local Reset:** Routine date resets at 12:00 AM in the student's local browser timezone via `getLocalCalendarDateKey(new Date())`.
+2. **Timetable Schedule Binding:** For the selected date, the system queries `getDaySchedule(selectedSection, dayName)` from `timetableHelper.js`.
+3. **Slot Status State Machine:** Each slot supports 3 mutually exclusive states:
+   * `unmarked`: No check-in recorded yet.
+   * `present`: Increments delivered by 1 (or 2 for lab) and attended by 1 (or 2).
+   * `absent`: Increments delivered by 1 (or 2) with 0 attended.
+4. **Atomic Difference Reconciliation:** When toggling from `present` to `absent`, the system updates the parent subject's cumulative delivered and attended counters using delta adjustments:
+   ```javascript
+   const deltaAttended = isPresent ? 1 : (wasPresent ? -1 : 0);
+   const deltaDelivered = wasUnmarked ? 1 : 0;
+   ```
+5. **Debounced Auto-Sync (1000ms Buffer):** Multiple slot clicks within 1 second are batched into a single HTTP POST request.
+6. **Pagehide / Exit Beacon:** If the user closes the tab immediately after check-in, `navigator.sendBeacon` flushes the payload in the background.
+
+---
+
+## 49. Smart Bunk Analyzer & Future Predictor (`activeTab === "bunk_analyzer"`)
+
+Implemented in `components/SmartBunkAnalyzer.jsx` and `components/FuturePredictor.jsx`, this module uses heuristic scheduling algorithms to generate optimized attendance strategies.
+
+### Capabilities:
+1. **High-Value Bunk Identification:** Identifies low-frequency courses where a single absence causes maximum percentage degradation vs high-frequency courses where absences dilute easily.
+2. **Consecutive Day Simulation:** Simulates long weekends (e.g., bunking Friday when Thursday is a gazetted holiday) and forecasts post-holiday compliance.
+3. **End-of-Semester Ceiling:** Calculates the theoretical maximum possible percentage if the student attends 100% of all remaining classes through the semester end date.
+
+---
+
+## 50. AI Vision ERP Screenshot OCR Scanner (`AttendanceScreenshotModal`)
+
+The OCR Scanner allows students to photograph or upload screenshots of their official Centurion University ERP attendance portal for automated ingestion.
+
+```
+[ERP Screenshot]
+       │
+       ▼
+1. HTML5 Canvas Preprocessor (Adaptive contrast, grayscale binarization, border cleaning)
+       │
+       ▼
+2. Serverless OCR Route (`POST /api/attendance/ocr` with auth verification)
+       │ (Fallback if serverless times out / fails)
+       ▼
+3. Local Client-Side Tesseract.js Worker Engine
+       │
+       ▼
+4. Regex Normalizer (`parseCutmOcrText` - extracts Course Name, Code, PP/PR components)
+       │
+       ▼
+5. Smart Merge with Timetable Catalog (isSameSubject matching, preserves previous history)
+```
+
+### Safety & Quota Protections (`scanLimitHelper.js`):
+* **Daily Scan Limit Guard:** Normal students are capped at **2 scans per 24-hour cycle** (resets at midnight).
+* **Role Exemptions:** Admins and Special Students (`230301120327`) bypass scan limits for testing and administrative diagnostics.
+* **Dual-Engine Redundancy:** If the serverless endpoint times out (Vercel 15s limit on huge 4K images), the client automatically switches to client-side WebAssembly Tesseract.js.
+
+---
+
+## 51. Attendance Developer Maintenance & Extension Guidelines
+
+Any engineer, auditor, or AI agent modifying or extending the attendance subsystem must preserve the following architectural rules:
+
+1. **NEVER Add Uncached Network Requests on Page Mount:**
+   - Never reintroduce `?t=${Date.now()}` or `no-cache` headers to `GET /api/student/:regNo/attendance`.
+   - Always verify `initialAtt` and check `isRealtimeConnected` before firing network revalidations.
+
+2. **Preserve Self-Origin Echo Suppression:**
+   - Every state-modifying action sent to the backend MUST carry a unique `syncId`.
+   - The Ably listener MUST check `isSelfEcho` and ignore events originated by the local client.
+
+3. **Strict Registration Number Document Isolation:**
+   - All database queries must filter strictly by `{ regNo: cleanRegNo }`. Never perform un-indexed collection scans.
+
+4. **Preserve Lazy Initial State Hydration:**
+   - In `AttendanceTracker.jsx`, states (`savedSubjects`, `allDailyLogs`, `pageLoading`, `targetGoal`) MUST be initialized with lazy evaluation functions reading from `studentData?.attendance`.
+   - Never initialize with empty arrays (`[]`), as this breaks the `hasSavedAttendance` guard and causes false-positive tab lockouts.
+
+5. **Dual-Runtime Parity Invariant:**
+   - Any schema changes or endpoint modifications in `frontend/api/student.js` must be replicated in `backend/routes/student.js`.
+
