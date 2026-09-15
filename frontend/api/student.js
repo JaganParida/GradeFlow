@@ -71,7 +71,9 @@ module.exports = async function handler(req, res) {
         res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
         const feedbacks = await Feedback.find()
           .select("name rating comment category likes createdAt")
-          .sort({ createdAt: -1 });
+          .sort({ createdAt: -1 })
+          .limit(200)
+          .lean();
         return res.json(feedbacks);
       }
 
@@ -104,10 +106,15 @@ module.exports = async function handler(req, res) {
       }
 
       if (req.method === "POST" && feedbackId && (req.query.action === "feedback-like" || req.query.action === "like")) {
-        const feedback = await Feedback.findById(feedbackId);
+        if (!/^[0-9a-fA-F]{24}$/.test(feedbackId)) {
+          return res.status(400).json({ message: "Invalid feedback ID format" });
+        }
+        const feedback = await Feedback.findByIdAndUpdate(
+          feedbackId,
+          { $inc: { likes: 1 } },
+          { new: true, select: "name rating comment category likes createdAt" }
+        ).lean();
         if (!feedback) return res.status(404).json({ message: "Feedback not found" });
-        feedback.likes = (feedback.likes || 0) + 1;
-        await feedback.save();
         try {
           await publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() });
         } catch (e) {

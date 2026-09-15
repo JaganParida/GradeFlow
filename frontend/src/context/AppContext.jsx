@@ -1200,8 +1200,13 @@ export function AppProvider({ children }) {
           success: true,
           step: "OTP",
           otpSent: true,
+          isFailedPasswordTransfer: Boolean(res.data.isFailedPasswordTransfer),
+          email: res.data.email,
           maskedEmail: res.data.maskedEmail,
           expiresInSeconds: res.data.expiresInSeconds || 300,
+          cooldownSeconds: res.data.cooldownSeconds || 300,
+          unlockAt: res.data.unlockAt,
+          code: res.data.code,
           message: res.data.message,
           student: res.data.student,
         };

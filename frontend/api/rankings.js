@@ -234,7 +234,7 @@ module.exports = async function handler(req, res) {
       if (!cleanSection && !cleanSearch && !cleanBranch) {
         pipeline.push({ $limit: maxRank });
       } else if (cleanSection) {
-        pipeline.push({ $limit: 300 });
+        pipeline.push({ $limit: 800 });
       } else {
         pipeline.push({ $limit: Math.max(maxRank, 150) });
       }
@@ -249,7 +249,7 @@ module.exports = async function handler(req, res) {
       if (!cleanSection && !cleanSearch && !cleanBranch) {
         dbQuery = dbQuery.limit(maxRank);
       } else if (cleanSection) {
-        dbQuery = dbQuery.limit(300);
+        dbQuery = dbQuery.limit(800);
       } else {
         dbQuery = dbQuery.limit(Math.max(maxRank, 150));
       }
@@ -267,8 +267,10 @@ module.exports = async function handler(req, res) {
       sortByScore(rankings, "sgpa", "cgpa");
     }
 
+    const scoreKey = sortBy === "cgpa" ? "cgpa" : "sgpa";
+    const rankKey = cleanSortBy === "cgpa" ? "cgpaRank" : "sgpaRank";
+
     if (branch) {
-      const scoreKey = sortBy === "cgpa" ? "cgpa" : "sgpa";
       let currentRank = 1;
       let previousScore = null;
       for (const r of rankings) {
@@ -279,6 +281,22 @@ module.exports = async function handler(req, res) {
         r.dynamicRank = currentRank;
         previousScore = score;
       }
+    } else {
+      // Guarantee fallback rank if unpopulated in database
+      let currentRank = 1;
+      let previousScore = null;
+      rankings.forEach((r, idx) => {
+        const score = Number(r[scoreKey]) || 0;
+        if (idx === 0) {
+          currentRank = 1;
+        } else if (previousScore !== null && score < previousScore) {
+          currentRank = idx + 1;
+        }
+        previousScore = score;
+        if (!r[rankKey] && !r.universityRank) {
+          r[rankKey] = currentRank;
+        }
+      });
     }
 
     if (cleanSearch && cleanBranch) {
@@ -301,15 +319,8 @@ module.exports = async function handler(req, res) {
         bounded = rankings.slice(0, maxRank);
       }
     } else {
-      const rankKey = cleanSortBy === "cgpa" ? "cgpaRank" : "sgpaRank";
-      bounded = rankings.filter((ranking) => {
-        const rank = Number(ranking[rankKey] || ranking.universityRank);
-        return Number.isFinite(rank) && rank <= maxRank;
-      });
-      // Fallback if precomputed ranks are unpopulated
-      if (!bounded.length && rankings.length) {
-        bounded = rankings.slice(0, maxRank);
-      }
+      // Direct slice guarantees exactly maxRank top students even when competition ties occur
+      bounded = rankings.slice(0, maxRank);
     }
 
     return res.json(bounded);

@@ -143,7 +143,7 @@ router.get("/top", publicLimiter, requireStudentOrAdmin, validateAcademicFilters
       if (!section && !search && !branch) {
         pipeline.push({ $limit: maxRank });
       } else if (section) {
-        pipeline.push({ $limit: 300 });
+        pipeline.push({ $limit: 800 });
       } else {
         pipeline.push({ $limit: Math.max(maxRank, 150) });
       }
@@ -158,7 +158,7 @@ router.get("/top", publicLimiter, requireStudentOrAdmin, validateAcademicFilters
       if (!section && !search && !branch) {
         dbQuery = dbQuery.limit(maxRank);
       } else if (section) {
-        dbQuery = dbQuery.limit(300);
+        dbQuery = dbQuery.limit(800);
       } else {
         dbQuery = dbQuery.limit(Math.max(maxRank, 150));
       }
@@ -176,8 +176,10 @@ router.get("/top", publicLimiter, requireStudentOrAdmin, validateAcademicFilters
       sortByScore(rankings, "sgpa", "cgpa");
     }
 
+    const scoreKey = sortBy === "cgpa" ? "cgpa" : "sgpa";
+    const rankKey = cleanSortBy === "cgpa" ? "cgpaRank" : "sgpaRank";
+
     if (branch) {
-      const scoreKey = sortBy === "cgpa" ? "cgpa" : "sgpa";
       let currentRank = 1;
       let previousScore = null;
       for (const r of rankings) {
@@ -188,6 +190,21 @@ router.get("/top", publicLimiter, requireStudentOrAdmin, validateAcademicFilters
         r.dynamicRank = currentRank;
         previousScore = score;
       }
+    } else {
+      let currentRank = 1;
+      let previousScore = null;
+      rankings.forEach((r, idx) => {
+        const score = Number(r[scoreKey]) || 0;
+        if (idx === 0) {
+          currentRank = 1;
+        } else if (previousScore !== null && score < previousScore) {
+          currentRank = idx + 1;
+        }
+        previousScore = score;
+        if (!r[rankKey] && !r.universityRank) {
+          r[rankKey] = currentRank;
+        }
+      });
     }
 
     if (search) {
@@ -208,14 +225,7 @@ router.get("/top", publicLimiter, requireStudentOrAdmin, validateAcademicFilters
         bounded.push(r);
       }
     } else {
-      const rankKey = sortBy === "cgpa" ? "cgpaRank" : "sgpaRank";
-      bounded = rankings.filter((ranking) => {
-        const rank = Number(ranking[rankKey] || ranking.universityRank);
-        return Number.isFinite(rank) && rank <= maxRank;
-      });
-      if (!bounded.length && rankings.length) {
-        bounded = rankings.slice(0, maxRank);
-      }
+      bounded = rankings.slice(0, maxRank);
     }
 
     res.json(bounded);

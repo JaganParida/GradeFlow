@@ -10,4 +10,6 @@ const feedbackSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+feedbackSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.models.Feedback || mongoose.model("Feedback", feedbackSchema);

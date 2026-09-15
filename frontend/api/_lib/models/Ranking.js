@@ -27,5 +27,7 @@ const rankingSchema = new mongoose.Schema(
 rankingSchema.index({ regNo: 1, semester: 1 });
 rankingSchema.index({ semester: 1, branch: 1 });
 rankingSchema.index({ semester: 1, batch: 1 });
+rankingSchema.index({ batch: 1, branch: 1, semester: 1, cgpa: -1, sgpa: -1 });
+rankingSchema.index({ batch: 1, branch: 1, cgpa: -1 });
 
 module.exports = mongoose.models.Ranking || mongoose.model("Ranking", rankingSchema);

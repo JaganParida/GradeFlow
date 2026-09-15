@@ -36,7 +36,9 @@ router.get("/", async (req, res) => {
 
     const feedbacks = await Feedback.find()
       .select(selectFields)
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .lean();
     res.json(feedbacks);
   } catch (error) {
     console.error("Error fetching feedbacks:", error);
@@ -72,14 +74,17 @@ router.post("/", publicLimiter, validateFeedbackInput, async (req, res) => {
 // POST /api/feedback/:id/like - Increment likes on a feedback (rate-limited)
 router.post("/:id/like", publicLimiter, async (req, res) => {
   try {
-    const feedback = await Feedback.findById(req.params.id);
+    if (!/^[0-9a-fA-F]{24}$/.test(req.params.id)) {
+      return res.status(400).json({ message: "Invalid feedback ID format" });
+    }
+    const feedback = await Feedback.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { likes: 1 } },
+      { new: true, select: "name rating comment category likes createdAt" }
+    ).lean();
     if (!feedback) {
       return res.status(404).json({ message: "Feedback not found" });
     }
-    
-    feedback.likes = (feedback.likes || 0) + 1;
-    await feedback.save();
-    
     res.json(feedback);
   } catch (error) {
     console.error("Error liking feedback:", error);

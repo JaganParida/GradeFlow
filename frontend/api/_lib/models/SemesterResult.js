@@ -34,6 +34,8 @@ const semesterResultSchema = new mongoose.Schema(
 );
 
 semesterResultSchema.index({ regNo: 1, semester: 1 }, { unique: true });
+semesterResultSchema.index({ batch: 1, branch: 1, semester: 1 });
+semesterResultSchema.index({ batch: 1, semester: 1 });
 
 const { calculateSemesterMetrics } = require("../gradeCalculations");
 

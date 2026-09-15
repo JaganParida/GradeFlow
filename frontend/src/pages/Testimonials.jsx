@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
@@ -70,6 +70,7 @@ export default function Testimonials() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const highlightedId = searchParams.get("highlight");
+  const hasScrolledRef = useRef(false);
 
   const currentRegNo = studentData?.regNo || "";
   const currentStudentName = studentData?.studentName || "";

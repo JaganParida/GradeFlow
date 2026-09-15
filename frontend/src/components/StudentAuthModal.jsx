@@ -67,6 +67,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const otpInputRefs = useRef([]);
   const [setupPasswordToken, setSetupPasswordToken] = useState("");
   const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
+  const [isOneTimeRecoveryOtp, setIsOneTimeRecoveryOtp] = useState(false);
   const [failedPasswordAttemptsCount, setFailedPasswordAttemptsCount] = useState(0);
 
   // Sync otp string from digits
@@ -346,7 +347,21 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             setDeviceStatus({ exists: false, isBlocked: false });
             setErrorMsg(`Registration number ${clean} not found in university student records.`);
             setErrorCode("STUDENT_NOT_FOUND");
+          } else if (res.data.step === "OTP" || res.data.pendingRecoveryOtpActive) {
+            setDeviceStatus({
+              ...res.data,
+              exists: true,
+              isBlocked: false,
+              step: "OTP",
+              pendingRecoveryOtpActive: true,
+            });
+            if (res.data.studentName) {
+              setStudentName(res.data.studentName);
+            }
+            setErrorMsg("");
+            setErrorCode("");
           } else if (res.data.isBlocked) {
+            const isLockout = res.data.code === "ACCOUNT_TEMPORARILY_LOCKED" || res.data.blockReason === "ACCOUNT_TEMPORARILY_LOCKED";
             const devices = res.data.sessions || [];
             setDeviceStatus({
               exists: true,
@@ -354,10 +369,18 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               message: res.data.blockMessage,
               devices,
               hasPassword: res.data.hasPassword,
+              code: res.data.code,
+              blockReason: res.data.blockReason,
+              unlockAt: res.data.unlockAt,
             });
-            setBlockedDevicesData(devices);
+            if (!isLockout) {
+              setBlockedDevicesData(devices);
+            }
+            if (res.data.unlockAt) {
+              setUnlockTime(res.data.unlockAt);
+            }
             setErrorMsg(res.data.blockMessage);
-            setErrorCode(res.data.blockReason || "DEVICE_LIMIT_REACHED");
+            setErrorCode(res.data.blockReason || res.data.code || "DEVICE_LIMIT_REACHED");
           } else if (res.data.isCurrentDevice && res.data.hasPassword) {
             setDeviceStatus({
               exists: true,
@@ -422,9 +445,13 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     } else if (timerSeconds === 0) {
       setTimerActive(false);
       clearInterval(interval);
+      if (isOneTimeRecoveryOtp && step === "OTP") {
+        setErrorMsg("The 5-minute recovery verification code has expired. Your account is temporarily locked for 24 hours.");
+        setErrorCode("ACCOUNT_TEMPORARILY_LOCKED");
+      }
     }
     return () => clearInterval(interval);
-  }, [timerActive, timerSeconds]);
+  }, [timerActive, timerSeconds, isOneTimeRecoveryOtp, step]);
 
   // Live Cooldown Timer for Resend & Request Throttling
   useEffect(() => {
@@ -609,7 +636,32 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       return;
     }
 
+    // ── ANTI-BYPASS: If Recovery OTP is currently active (within 5-min window) ──
+    if (status?.step === "OTP" || status?.pendingRecoveryOtpActive) {
+      const authoritativeEmail = status.email || (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
+      setAccountEmail(authoritativeEmail);
+      setMaskedEmail(status.maskedEmail || authoritativeEmail);
+      if (status.studentName) setStudentName(status.studentName);
+      setTimerSeconds(status.expiresInSeconds || 300);
+      setTimerActive(true);
+      setResendCooldown(status.expiresInSeconds || 300);
+      setIsForgotPasswordMode(true);
+      setIsOneTimeRecoveryOtp(true);
+      setStatusNotice("A one-time verification code is active for password reset (5-minute validity). Resend is disabled.");
+      setErrorMsg("");
+      setErrorCode("");
+      setStep("OTP");
+      return;
+    }
+
     if (status?.isBlocked) {
+      const isLockout = status.code === "ACCOUNT_TEMPORARILY_LOCKED" || status.blockReason === "ACCOUNT_TEMPORARILY_LOCKED";
+      if (isLockout) {
+        setErrorMsg(status.blockMessage || status.message || "Account is temporarily locked. Try again after 24 hours.");
+        setErrorCode("ACCOUNT_TEMPORARILY_LOCKED");
+        if (status.unlockAt) setUnlockTime(status.unlockAt);
+        return;
+      }
       if (status.devices && status.devices.length > 0) {
         setBlockedDevicesData(status.devices);
       }
@@ -717,10 +769,15 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       const authoritativeEmail = result.email || (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
       setAccountEmail(authoritativeEmail);
       setMaskedEmail(result.maskedEmail || authoritativeEmail);
-      setTimerSeconds(result.expiresInSeconds || 180);
+      setTimerSeconds(result.expiresInSeconds || 300);
       setTimerActive(true);
-      setResendCooldown(result.cooldownSeconds || 180);
-      setRemainingDailyAttempts(result.remainingDailyAttempts ?? 4);
+      setResendCooldown(result.cooldownSeconds || result.expiresInSeconds || 300);
+      setRemainingDailyAttempts(result.remainingDailyAttempts ?? (result.isFailedPasswordTransfer ? 0 : 4));
+      if (result.isFailedPasswordTransfer) {
+        setIsForgotPasswordMode(true);
+        setIsOneTimeRecoveryOtp(true);
+        setStatusNotice("Maximum password attempts reached (2/2). A one-time verification code has been dispatched to your email (5 min validity).");
+      }
       if (result.unlockAt) setUnlockTime(result.unlockAt);
       setStep("OTP");
       return;
@@ -743,8 +800,15 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         const attempts = (result.details?.failedAttempts ?? result.failedAttempts ?? (failedPasswordAttemptsCount + 1));
         setFailedPasswordAttemptsCount(attempts);
 
-        if (attempts >= 3 || result.code === "OTP_FALLBACK_ALLOWED" || result.code === "PASSWORD_ATTEMPTS_EXCEEDED") {
+        const lockThreshold = cleanReg === "230301120327" ? 3 : 2;
+        if (attempts >= lockThreshold || result.code === "OTP_FALLBACK_ALLOWED" || result.code === "PASSWORD_ATTEMPTS_EXCEEDED") {
           setDeviceStatus((prev) => ({ ...(prev || {}), otpFallbackAllowed: true, isLocked: true }));
+        }
+      }
+
+      if (result.code === "ACCOUNT_TEMPORARILY_LOCKED") {
+        if (result.details?.unlockAt || result.details?.recoveryRestrictedUntil) {
+          setUnlockTime(result.details?.unlockAt || result.details?.recoveryRestrictedUntil);
         }
       }
 
@@ -832,6 +896,11 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     } else {
       setErrorMsg(result.error);
       setErrorCode(result.code);
+      if (result.code === "ACCOUNT_TEMPORARILY_LOCKED" || result.details?.unlockAt) {
+        if (result.details?.unlockAt) {
+          setUnlockTime(result.details.unlockAt);
+        }
+      }
     }
   };
 
@@ -856,6 +925,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     setLoading(false);
 
     if (result.success) {
+      setIsOneTimeRecoveryOtp(false);
+      setFailedPasswordAttemptsCount(0);
       setStep("PASSWORD_SUCCESS");
     } else {
       setErrorMsg(result.error);
@@ -1088,7 +1159,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   marginTop: 1,
                 }}
               >
-                {errorCode === "BLOCKED_DEVICE_ACTIVE" || errorCode === "DEVICE_LIMIT_REACHED" ? (
+                {errorCode === "ACCOUNT_TEMPORARILY_LOCKED" ? (
+                  <Lock size={13} color="#dc2626" />
+                ) : errorCode === "BLOCKED_DEVICE_ACTIVE" || errorCode === "DEVICE_LIMIT_REACHED" ? (
                   <Smartphone size={13} color="#dc2626" />
                 ) : (
                   <AlertCircle size={13} color="#dc2626" />
@@ -1096,7 +1169,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               </div>
               <div style={{ flex: 1 }}>
                 <span style={{ fontSize: 11.5, color: "#991b1b", fontWeight: 700, display: "block", marginBottom: 1 }}>
-                  {errorCode === "BLOCKED_DEVICE_ACTIVE"
+                  {errorCode === "ACCOUNT_TEMPORARILY_LOCKED"
+                    ? "Account Temporarily Locked (24 Hours)"
+                    : errorCode === "BLOCKED_DEVICE_ACTIVE"
                     ? "Device Slot Occupied"
                     : errorCode === "DEVICE_LIMIT_REACHED"
                     ? "Device Limit Reached"
@@ -1285,7 +1360,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
           {/* STEP 2: Password Input */}
           {step === "PASSWORD" && (() => {
-            const isPasswordBlocked = failedPasswordAttemptsCount >= 3 || (deviceStatus?.failedPasswordAttempts >= 3) || deviceStatus?.isLocked;
+            const maxAttempts = cleanReg === "230301120327" ? 3 : 2;
+            const isPasswordBlocked = failedPasswordAttemptsCount >= maxAttempts || (deviceStatus?.failedPasswordAttempts >= maxAttempts) || deviceStatus?.isLocked;
 
             return (
               <form onSubmit={handlePasswordSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -1318,7 +1394,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                         }}
                       >
                         <Lock size={11} strokeWidth={2.5} />
-                        <span>Locked (3/3 Failed)</span>
+                        <span>Locked ({maxAttempts}/{maxAttempts} Failed)</span>
                       </span>
                     ) : failedPasswordAttemptsCount > 0 ? (
                       <span
@@ -1336,7 +1412,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                         }}
                       >
                         <ShieldAlert size={11} strokeWidth={2.5} />
-                        <span>{3 - failedPasswordAttemptsCount} attempt(s) remaining</span>
+                        <span>{Math.max(0, maxAttempts - failedPasswordAttemptsCount)} attempt(s) remaining</span>
                       </span>
                     ) : null}
                   </div>
@@ -1347,7 +1423,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                       value={password}
                       disabled={isPasswordBlocked}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder={isPasswordBlocked ? "Input locked due to 3 failed attempts" : "Enter your account password"}
+                      placeholder={isPasswordBlocked ? `Input locked due to ${maxAttempts} failed attempts` : "Enter your account password"}
                       autoFocus={!isPasswordBlocked}
                       required={!isPasswordBlocked}
                       style={{
@@ -1727,6 +1803,31 @@ export default function StudentAuthModal({ isOpen, onClose }) {
           {/* STEP 3: OTP Verification */}
           {step === "OTP" && (
             <form onSubmit={handleVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* 1-Time Security Recovery Code Banner */}
+              {isOneTimeRecoveryOtp && (
+                <div
+                  style={{
+                    background: "#fffbeb",
+                    border: "1.5px solid #fde68a",
+                    borderRadius: 14,
+                    padding: "12px 14px",
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 10,
+                  }}
+                >
+                  <ShieldAlert size={18} color="#d97706" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <div>
+                    <span style={{ fontSize: 12.5, color: "#92400e", fontWeight: 800, display: "block" }}>
+                      1-Time Password Recovery Code
+                    </span>
+                    <p style={{ fontSize: 11.5, color: "#b45309", margin: "3px 0 0 0", lineHeight: 1.45 }}>
+                      This single-use code is valid for <strong>5 minutes</strong> only. Resend is disabled. Once verified, you will set a new password. If not verified within 5 minutes, your account will be locked for 24 hours.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Clean verification email notification card */}
               <div
                 style={{
@@ -1773,7 +1874,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   >
                     {accountEmail || maskedEmail || "your registered email"}
                   </div>
-                  {!isForgotPasswordMode && typeof remainingDailyAttempts === "number" && (
+                  {!isForgotPasswordMode && !isOneTimeRecoveryOtp && typeof remainingDailyAttempts === "number" && (
                     <div
                       style={{
                         fontSize: 11,
@@ -1933,38 +2034,45 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   <span>Change Reg. No.</span>
                 </button>
 
-                <button
-                  type="button"
-                  disabled={resendCooldown > 0 || (remainingDailyAttempts <= 0 && !isForgotPasswordMode) || loading}
-                  onClick={() => {
-                    if (cleanReg === "230301120327" && password && !isForgotPasswordMode) {
-                      handlePasswordSubmit();
-                    } else {
-                      triggerSendOtp(isForgotPasswordMode);
-                    }
-                  }}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: resendCooldown > 0 || (remainingDailyAttempts <= 0 && !isForgotPasswordMode) ? "#94a3b8" : "#2563eb",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: resendCooldown > 0 || (remainingDailyAttempts <= 0 && !isForgotPasswordMode) ? "not-allowed" : "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: 0,
-                  }}
-                >
-                  <RefreshCw size={12} className={loading ? "spin" : ""} />
-                  <span>
-                    {remainingDailyAttempts <= 0 && !isForgotPasswordMode
-                      ? "Daily Limit Reached"
-                      : resendCooldown > 0
-                      ? `Resend Code (${resendCooldown}s)`
-                      : "Resend Code"}
+                {!isOneTimeRecoveryOtp ? (
+                  <button
+                    type="button"
+                    disabled={resendCooldown > 0 || (remainingDailyAttempts <= 0 && !isForgotPasswordMode) || loading}
+                    onClick={() => {
+                      if (cleanReg === "230301120327" && password && !isForgotPasswordMode) {
+                        handlePasswordSubmit();
+                      } else {
+                        triggerSendOtp(isForgotPasswordMode);
+                      }
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: resendCooldown > 0 || (remainingDailyAttempts <= 0 && !isForgotPasswordMode) ? "#94a3b8" : "#2563eb",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: resendCooldown > 0 || (remainingDailyAttempts <= 0 && !isForgotPasswordMode) ? "not-allowed" : "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      padding: 0,
+                    }}
+                  >
+                    <RefreshCw size={12} className={loading ? "spin" : ""} />
+                    <span>
+                      {remainingDailyAttempts <= 0 && !isForgotPasswordMode
+                        ? "Daily Limit Reached"
+                        : resendCooldown > 0
+                        ? `Resend Code (${resendCooldown}s)`
+                        : "Resend Code"}
+                    </span>
+                  </button>
+                ) : (
+                  <span style={{ fontSize: 11.5, color: "#94a3b8", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <ShieldAlert size={12} color="#94a3b8" />
+                    <span>Single-use code (No resend)</span>
                   </span>
-                </button>
+                )}
               </div>
             </form>
           )}

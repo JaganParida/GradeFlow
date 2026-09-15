@@ -10,6 +10,12 @@ const SubAdmin = require("./_lib/models/SubAdmin");
 const AdminSession = require("./_lib/models/AdminSession");
 const Attendance = require("./_lib/models/Attendance");
 const SystemConfig = require("./_lib/models/SystemConfig");
+const TimetableSchedule = require("./_lib/models/TimetableSchedule");
+const Feedback = require("./_lib/models/Feedback");
+const TrafficQueueConfig = require("./_lib/models/TrafficQueueConfig");
+const LiveVisitor = require("./_lib/models/LiveVisitor");
+const VercelQuotaMetric = require("./_lib/models/VercelQuotaMetric");
+const StudentNotification = require("./_lib/models/StudentNotification");
 const jwt = require("jsonwebtoken");
 const { isAdminSessionValid, touchAdminSession, getActiveAdminSessions } = require("./_lib/sessionManager");
 const {
@@ -330,6 +336,229 @@ async function generateRankingForSemester(semester, preloadedAllResults = null, 
   if (shouldBroadcast) {
     await syncRankingsMetadataAndBroadcast(semester);
   }
+async function getAdminBootstrapData(adminUser) {
+  const isMain = adminUser.adminType === "main" || !adminUser.adminType;
+  const adminProfile = {
+    authenticated: true,
+    email: adminUser.email || "",
+    username: adminUser.username || adminUser.name || "Admin",
+    adminType: isMain ? "main" : "sub",
+    isSubAdmin: !isMain,
+    permissions: adminUser.permissions || {
+      routes: isMain ? ["*"] : ["overview", "timetable", "toppers", "backlogs", "report-card", "feedback"],
+      actions: isMain ? ["*"] : [],
+    },
+    sessionId: adminUser.sessionId || null,
+  };
+
+  const [
+    totalAccountsCreated,
+    activeSessions,
+    batchStatsResults,
+    batchStatsRankings,
+    batchStatsInternal,
+    defaultToppers,
+    timetableSchedules,
+    trafficConfig,
+    activeVisitorsCount,
+    latestQuota,
+    portalConfigDoc,
+    maintenanceConfigDoc,
+    broadcastsList,
+    recentFeedback,
+  ] = await Promise.all([
+    Student.countDocuments({ passwordHash: { $exists: true, $ne: null } }).catch(() => 0),
+    StudentSession.find({ isActive: true }, "regNo").lean().catch(() => []),
+    SemesterResult.aggregate([
+      {
+        $group: {
+          _id: { $ifNull: ["$batch", "Other"] },
+          totalResults: { $sum: 1 },
+          semesters: { $addToSet: "$semester" },
+          uniqueStudents: { $addToSet: "$regNo" },
+        },
+      },
+    ]).catch(() => []),
+    Ranking.aggregate([
+      {
+        $group: {
+          _id: { $ifNull: ["$batch", "Other"] },
+          totalRankings: { $sum: 1 },
+          uniqueStudents: { $addToSet: "$regNo" },
+        },
+      },
+    ]).catch(() => []),
+    InternalMark.aggregate([
+      {
+        $group: {
+          _id: { $ifNull: ["$batch", "Other"] },
+          totalInternal: { $sum: 1 },
+          uniqueStudents: { $addToSet: "$regNo" },
+        },
+      },
+    ]).catch(() => []),
+    Ranking.find(
+      { batch: "2023", branch: "CSE" },
+      "regNo semester studentName batch branch cgpa sgpa sectionCgpaRank sectionSgpaRank deptCgpaRank deptRank universityRank cgpaRank"
+    ).sort({ cgpa: -1, sgpa: -1 }).limit(10).lean().catch(() => []),
+    TimetableSchedule.find({}, "scheduleId batch branch section title isLiveCustomPublished updatedAt")
+      .sort({ updatedAt: -1 }).limit(50).lean().catch(() => []),
+    TrafficQueueConfig.findOne({ key: "global_queue_config" }).lean().catch(() => null),
+    LiveVisitor.countDocuments({ lastSeen: { $gte: new Date(Date.now() - 5 * 60 * 1000) } }).catch(() => 0),
+    VercelQuotaMetric.findOne().sort({ recordedAt: -1 }).lean().catch(() => null),
+    SystemConfig.findOne({ key: "admin_button_config" }).lean().catch(() => null),
+    SystemConfig.findOne({ key: "maintenance" }).lean().catch(() => null),
+    StudentNotification.find({ isBroadcast: true })
+      .sort({ createdAt: -1 }).limit(15).lean().catch(() => []),
+    Feedback.find({}).sort({ createdAt: -1 }).limit(20).lean().catch(() => []),
+  ]);
+
+  const batchMap = new Map();
+  const allUniqueStudents = new Set();
+  let totalResultsCount = 0;
+  let totalRankingsCount = 0;
+  let totalInternalCount = 0;
+
+  batchStatsResults.forEach((item) => {
+    const b = item._id || "Other";
+    if (!batchMap.has(b)) {
+      batchMap.set(b, {
+        batch: b,
+        totalStudents: item.uniqueStudents ? item.uniqueStudents.length : 0,
+        totalRankedStudents: 0,
+        totalResults: item.totalResults || 0,
+        totalInternal: 0,
+        totalRankings: 0,
+        semBreakdown: (item.semesters || [])
+          .map((s) => ({ semester: Number(s), studentCount: 0 }))
+          .filter((x) => !isNaN(x.semester))
+          .sort((a, b) => a.semester - b.semester),
+      });
+    }
+    totalResultsCount += item.totalResults || 0;
+    (item.uniqueStudents || []).forEach((r) => allUniqueStudents.add(r));
+  });
+
+  batchStatsRankings.forEach((item) => {
+    const b = item._id || "Other";
+    let entry = batchMap.get(b);
+    if (!entry) {
+      entry = { batch: b, totalStudents: item.uniqueStudents?.length || 0, totalRankedStudents: 0, totalResults: 0, totalInternal: 0, totalRankings: 0, semBreakdown: [] };
+      batchMap.set(b, entry);
+    }
+    entry.totalRankedStudents = item.uniqueStudents ? item.uniqueStudents.length : 0;
+    entry.totalRankings = item.totalRankings || 0;
+    totalRankingsCount += item.totalRankings || 0;
+    (item.uniqueStudents || []).forEach((r) => allUniqueStudents.add(r));
+  });
+
+  batchStatsInternal.forEach((item) => {
+    const b = item._id || "Other";
+    let entry = batchMap.get(b);
+    if (!entry) {
+      entry = { batch: b, totalStudents: item.uniqueStudents?.length || 0, totalRankedStudents: 0, totalResults: 0, totalInternal: 0, totalRankings: 0, semBreakdown: [] };
+      batchMap.set(b, entry);
+    }
+    entry.totalInternal = item.totalInternal || 0;
+    totalInternalCount += item.totalInternal || 0;
+    (item.uniqueStudents || []).forEach((r) => allUniqueStudents.add(r));
+  });
+
+  const batchBreakdown = Array.from(batchMap.values()).sort((a, b) => {
+    if (a.batch === "Other") return 1;
+    if (b.batch === "Other") return -1;
+    return b.batch.localeCompare(a.batch);
+  });
+
+  const activeLoggedInCount = new Set(activeSessions.map((s) => s.regNo)).size;
+
+  const stats = {
+    totalAccountsCreated: totalAccountsCreated || 0,
+    activeLoggedInCount,
+    totalResults: totalResultsCount,
+    totalInternal: totalInternalCount,
+    totalRankings: totalRankingsCount,
+    uniqueStudentsCount: allUniqueStudents.size,
+    batchBreakdown,
+  };
+
+  const formattedToppers = {
+    totalToppers: defaultToppers.length,
+    students: defaultToppers.map((rk) => ({
+      regNo: rk.regNo,
+      studentName: rk.studentName || "Student",
+      batch: rk.batch || "2023",
+      branch: rk.branch || "CSE",
+      section: (rk.regNo && getSectionFromRegNo(rk.regNo)) || "A",
+      semester: rk.semester,
+      cgpa: rk.cgpa || 0,
+      sgpa: rk.sgpa || 0,
+      sectionCgpaRank: rk.sectionCgpaRank || null,
+      sectionSgpaRank: rk.sectionSgpaRank || null,
+      deptCgpaRank: rk.deptCgpaRank || null,
+      deptRank: rk.deptRank || null,
+      universityRank: rk.universityRank || rk.cgpaRank || null,
+    })),
+  };
+
+  const trafficOverview = {
+    success: true,
+    totalActiveUsers: activeVisitorsCount || 0,
+    totalQueuedUsers: 0,
+    maxActiveCapacity: trafficConfig?.maxActiveCapacity || 200,
+    queueEnabled: Boolean(trafficConfig?.queueEnabled),
+    autoTriggerEnabled: trafficConfig?.autoTriggerEnabled !== false,
+    isQueueActive: Boolean(trafficConfig?.isQueueActive),
+    activeStudents: [],
+    queuedStudents: [],
+    routeDistribution: {},
+    analytics: {
+      allPages: [],
+      mostVisited: [],
+      mediumVisited: [],
+      leastVisited: [],
+      totalTrackedViews: 0,
+    },
+  };
+
+  const visibilityConfig = portalConfigDoc?.adminButtonVisibility || {
+    mode: "AUTO",
+    allowedRoles: {
+      mainAdmin: true,
+      subAdmin: true,
+      specialStudent: true,
+      allStudents: false,
+      guests: false,
+    },
+  };
+
+  const maintenanceConfig = {
+    enabled: Boolean(maintenanceConfigDoc?.maintenance?.enabled),
+    message: maintenanceConfigDoc?.maintenance?.message || "",
+    enabledAt: maintenanceConfigDoc?.maintenance?.enabledAt || null,
+  };
+
+  return {
+    success: true,
+    bootstrapAt: Date.now(),
+    adminProfile,
+    stats,
+    toppers: formattedToppers,
+    backlogs: {
+      totalStudentsWithBacklogs: 0,
+      totalBacklogsCount: 0,
+      students: [],
+      totalPages: 1,
+      page: 1,
+    },
+    timetable: { schedules: timetableSchedules || [] },
+    trafficOverview,
+    vercelQuota: latestQuota || null,
+    visibility: visibilityConfig,
+    maintenance: maintenanceConfig,
+    broadcasts: broadcastsList || [],
+    feedback: recentFeedback || [],
+  };
 }
 
 module.exports = async function handler(req, res) {
@@ -403,6 +632,10 @@ module.exports = async function handler(req, res) {
         message: "Spreadsheet file uploads require the persistent Express backend container. Please ensure VITE_API_URL points to the backend deployment.",
         code: "BACKEND_SERVICE_REQUIRED",
       });
+    // 0b. UNIFIED ADMIN BOOTSTRAP (1-Roundtrip Full State Hydration for All Admin Subtabs)
+    if (action === "bootstrap" || cleanUrl.endsWith("/bootstrap") || cleanUrl.includes("/admin/bootstrap")) {
+      const bootstrapData = await getAdminBootstrapData(admin);
+      return res.json(bootstrapData);
     }
 
     // 1. GET /stats
@@ -413,126 +646,10 @@ module.exports = async function handler(req, res) {
         return res.json(statsCache);
       }
 
-      const [
-        totalAccountsCreated,
-        activeSessions,
-        semResults,
-        rankings,
-        internalMarks,
-      ] = await Promise.all([
-        Student.countDocuments({ passwordHash: { $exists: true, $ne: null } }),
-        StudentSession.find({ isActive: true }, "regNo").lean(),
-        SemesterResult.find({}, "regNo batch semester").lean(),
-        Ranking.find({}, "regNo batch semester").lean(),
-        InternalMark.find({}, "regNo batch semester").lean(),
-      ]);
-
-      const activeLoggedInCount = new Set(activeSessions.map((s) => s.regNo)).size;
-      const totalResults = semResults.length;
-      const totalInternal = internalMarks.length;
-      const totalRankings = rankings.length;
-
-      const batchMap = new Map();
-      const uniqueStudentsSet = new Set();
-
-      const resolveBatch = (batchVal, reg) => {
-        let b = String(batchVal || "").trim();
-        if (!b && reg && /^\d{2}/.test(reg)) {
-          b = `20${reg.slice(0, 2)}`;
-        }
-        return b || "Other";
-      };
-
-      const getBatchEntry = (b) => {
-        let entry = batchMap.get(b);
-        if (!entry) {
-          entry = {
-            batch: b,
-            studentsSet: new Set(),
-            rankedStudentsSet: new Set(),
-            semMap: new Map(),
-            totalResults: 0,
-            totalInternal: 0,
-            totalRankings: 0,
-          };
-          batchMap.set(b, entry);
-        }
-        return entry;
-      };
-
-      semResults.forEach((r) => {
-        const b = resolveBatch(r.batch, r.regNo);
-        const entry = getBatchEntry(b);
-
-        if (r.regNo) {
-          uniqueStudentsSet.add(r.regNo);
-          entry.studentsSet.add(r.regNo);
-          if (r.semester) {
-            const semNum = Number(r.semester);
-            if (!isNaN(semNum) && semNum > 0) {
-              if (!entry.semMap.has(semNum)) entry.semMap.set(semNum, new Set());
-              entry.semMap.get(semNum).add(r.regNo);
-            }
-          }
-        }
-        entry.totalResults++;
-      });
-
-      internalMarks.forEach((m) => {
-        const b = resolveBatch(m.batch, m.regNo);
-        const entry = getBatchEntry(b);
-
-        if (m.regNo) entry.studentsSet.add(m.regNo);
-        entry.totalInternal++;
-      });
-
-      rankings.forEach((rk) => {
-        const b = resolveBatch(rk.batch, rk.regNo);
-        const entry = getBatchEntry(b);
-
-        if (rk.regNo) {
-          entry.studentsSet.add(rk.regNo);
-          entry.rankedStudentsSet.add(rk.regNo);
-        }
-        entry.totalRankings++;
-      });
-
-      const batchBreakdown = Array.from(batchMap.values())
-        .map((item) => {
-          const semBreakdown = Array.from(item.semMap.entries())
-            .map(([sem, set]) => ({ semester: sem, studentCount: set.size }))
-            .sort((a, b) => a.semester - b.semester);
-
-          return {
-            batch: item.batch,
-            totalStudents: item.studentsSet.size,
-            totalRankedStudents: item.rankedStudentsSet.size,
-            totalResults: item.totalResults,
-            totalInternal: item.totalInternal,
-            totalRankings: item.totalRankings,
-            semBreakdown,
-          };
-        })
-        .sort((a, b) => {
-          if (a.batch === "Other") return 1;
-          if (b.batch === "Other") return -1;
-          return Number(b.batch) - Number(a.batch);
-        });
-
-      const resultData = {
-        totalStudents: uniqueStudentsSet.size,
-        totalAccountsCreated,
-        activeLoggedInCount,
-        totalResults,
-        totalInternal,
-        totalRankings,
-        batchBreakdown,
-      };
-
-      statsCache = resultData;
-      statsCacheTimestamp = Date.now();
-
-      return res.json(resultData);
+      const bootstrapData = await getAdminBootstrapData(admin);
+      statsCache = bootstrapData.stats;
+      statsCacheTimestamp = now;
+      return res.json(statsCache);
     }
 
     // 1B. GET /student-accounts
