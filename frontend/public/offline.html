@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Connection Issue • GradeFlow</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: radial-gradient(ellipse at 50% 15%, #eff6ff 0%, #f8fafc 55%, #ffffff 100%);
+      color: #0f172a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      text-align: center;
+      user-select: none;
+    }
+
+    .gf-container {
+      max-width: 540px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .gf-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .gf-brand img {
+      height: 36px;
+      width: auto;
+      display: block;
+    }
+
+    .gf-brand span {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #0f172a;
+    }
+
+    .gf-graphic-wrap {
+      width: 100%;
+      max-width: 260px;
+      height: 140px;
+      margin-bottom: 16px;
+    }
+
+    .gf-graphic-wrap svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .gf-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .gf-tag-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #ef4444;
+      animation: gfPulse 1.8s infinite;
+    }
+
+    @keyframes gfPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    h1 {
+      font-size: clamp(22px, 4.2vw, 28px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.25;
+      margin-bottom: 10px;
+      color: #0f172a;
+    }
+
+    p.gf-subtitle {
+      font-size: 14.5px;
+      color: #475569;
+      line-height: 1.55;
+      max-width: 480px;
+      margin-bottom: 22px;
+    }
+
+    /* Action Recommendation Card */
+    .gf-alert-box {
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid #bfdbfe;
+      border-radius: 14px;
+      padding: 16px 18px;
+      text-align: left;
+      margin-bottom: 22px;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.06);
+    }
+
+    .gf-alert-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13.5px;
+      font-weight: 750;
+      color: #1d4ed8;
+      margin-bottom: 6px;
+    }
+
+    .gf-alert-desc {
+      font-size: 12.5px;
+      color: #475569;
+      line-height: 1.5;
+    }
+
+    .gf-alert-desc strong {
+      color: #0f172a;
+    }
+
+    /* Actions Grid */
+    .gf-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 420px;
+      margin-bottom: 24px;
+    }
+
+    .gf-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 11px;
+      font-size: 13.5px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: none;
+      width: 100%;
+    }
+
+    .gf-btn-primary {
+      background: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+
+    .gf-btn-primary:hover {
+      background: #1d4ed8;
+    }
+
+    .gf-btn-secondary {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+    }
+
+    .gf-btn-secondary:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+    }
+
+    /* Quick Troubleshooting Tips */
+    .gf-tips {
+      width: 100%;
+      max-width: 460px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      text-align: left;
+    }
+
+    .gf-tips-heading {
+      font-size: 12px;
+      font-weight: 750;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+    }
+
+    .gf-tips-list {
+      list-style: none;
+      font-size: 12px;
+      color: #475569;
+      line-height: 1.6;
+    }
+
+    .gf-tips-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .gf-tips-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    .gf-tips-bullet {
+      color: #2563eb;
+      font-weight: 800;
+    }
+
+    .gf-status-msg {
+      font-size: 12.5px;
+      font-weight: 600;
+      margin-top: 10px;
+      min-height: 18px;
+    }
+
+    .gf-status-msg.error {
+      color: #dc2626;
+    }
+
+    .gf-status-msg.success {
+      color: #16a34a;
+    }
+
+    .gf-spin {
+      animation: gfSpin 1s linear infinite;
+    }
+
+    @keyframes gfSpin {
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="gf-container">
+    <!-- Brand -->
+    <div class="gf-brand">
+      <img src="/webisteLogo.png" alt="GradeFlow Logo" onerror="this.style.display='none'">
+      <span>GradeFlow</span>
+    </div>
+
+    <!-- Animated Radar Illustration -->
+    <div class="gf-graphic-wrap" aria-hidden="true">
+      <svg viewBox="0 0 260 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="130" cy="80" r="55" stroke="#e2e8f0" stroke-width="1.5" stroke-dasharray="4 6">
+          <animate attributeName="r" values="35;60;35" dur="3s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.8;0.2;0.8" dur="3s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="130" cy="80" r="38" stroke="#bfdbfe" stroke-width="1.5" stroke-dasharray="3 4">
+          <animate attributeName="r" values="25;45;25" dur="2.4s" repeatCount="indefinite" />
+        </circle>
+        <ellipse cx="130" cy="120" rx="36" ry="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" />
+        <line x1="130" y1="95" x2="130" y2="118" stroke="#475569" stroke-width="3.5" stroke-linecap="round" />
+        <path d="M102 68 C102 92 158 92 158 68" stroke="#1e293b" stroke-width="4.5" stroke-linecap="round" fill="none" />
+        <line x1="130" y1="80" x2="130" y2="52" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" />
+        <circle cx="130" cy="50" r="4" fill="#2563eb" />
+        <!-- Disconnect slash -->
+        <line x1="105" y1="100" x2="155" y2="40" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 4" opacity="0.85" />
+      </svg>
+    </div>
+
+    <!-- Pill Tag -->
+    <div class="gf-tag">
+      <span class="gf-tag-dot"></span>
+      <span>Network Unreachable</span>
+    </div>
+
+    <!-- Heading -->
+    <h1>Campus / Slow Network Detected</h1>
+
+    <!-- Subtitle -->
+    <p class="gf-subtitle">
+      Unable to reach GradeFlow. College Wi-Fi firewalls frequently block high-traffic educational portals, causing <strong>"This site can't be reached"</strong>.
+    </p>
+
+    <!-- Recommendation Card -->
+    <div class="gf-alert-box">
+      <div class="gf-alert-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+          <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+          <line x1="12" y1="20" x2="12.01" y2="20"></line>
+        </svg>
+        <span>Recommended Action: Switch to Mobile Hotspot</span>
+      </div>
+      <p class="gf-alert-desc">
+        Turn off College Wi-Fi and switch to your <strong>Mobile Data / Personal Hotspot (5G / 4G)</strong> for instant speed, 100% uptime, and zero firewall blocks.
+      </p>
+    </div>
+
+    <!-- Actions -->
+    <div class="gf-actions">
+      <!-- Direct Link to New Domain -->
+      <a href="https://grade-flow-six.vercel.app" class="gf-btn gf-btn-primary" id="btn-upgraded">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <line x1="10" y1="14" x2="21" y2="3"></line>
+        </svg>
+        <span>Open Upgraded Server (grade-flow-six)</span>
+      </a>
+
+      <!-- Test Connection & Retry -->
+      <button type="button" class="gf-btn gf-btn-secondary" id="btn-retry" onclick="handleRetry()">
+        <svg id="retry-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        <span id="retry-label">Test Connection & Retry</span>
+      </button>
+    </div>
+
+    <!-- Status feedback -->
+    <div class="gf-status-msg" id="status-msg"></div>
+
+    <!-- Troubleshooting Tips -->
+    <div class="gf-tips">
+      <div class="gf-tips-heading">Quick Troubleshooting Tips</div>
+      <ul class="gf-tips-list">
+        <li>
+          <span class="gf-tips-bullet">•</span>
+          <span><strong>Switch Network:</strong> Disconnect college Wi-Fi and use personal mobile data.</span>
+        </li>
+        <li>
+          <span class="gf-tips-bullet">•</span>
+          <span><strong>Private DNS:</strong> On Android/iOS, set Private DNS to <code>1dot1dot1dot1.cloudflare-dns.com</code> to bypass campus DNS filters.</span>
+        </li>
+        <li>
+          <span class="gf-tips-bullet">•</span>
+          <span><strong>Bookmark New Link:</strong> Use <code>grade-flow-six.vercel.app</code> directly.</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    async function handleRetry() {
+      const btn = document.getElementById('btn-retry');
+      const icon = document.getElementById('retry-icon');
+      const label = document.getElementById('retry-label');
+      const status = document.getElementById('status-msg');
+
+      btn.disabled = true;
+      icon.classList.add('gf-spin');
+      label.textContent = 'Testing connection...';
+      status.textContent = '';
+      status.className = 'gf-status-msg';
+
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 4000);
+        const res = await fetch('/favicon.svg?t=' + Date.now(), {
+          method: 'HEAD',
+          cache: 'no-store',
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
+
+        if (res.ok) {
+          status.textContent = 'Connection restored! Reloading...';
+          status.className = 'gf-status-msg success';
+          setTimeout(() => {
+            window.location.reload();
+          }, 600);
+          return;
+        }
+      } catch (err) {
+        // Still blocked/offline
+      }
+
+      setTimeout(() => {
+        btn.disabled = false;
+        icon.classList.remove('gf-spin');
+        label.textContent = 'Test Connection & Retry';
+        status.textContent = 'Still unreachable. Please switch to your Mobile Hotspot.';
+        status.className = 'gf-status-msg error';
+      }, 500);
+    }
+
+    // Auto-reload as soon as user switches from Wi-Fi to mobile data
+    window.addEventListener('online', () => {
+      handleRetry();
+    });
+  </script>
+</body>
+</html>
