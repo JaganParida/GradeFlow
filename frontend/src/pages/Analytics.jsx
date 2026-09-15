@@ -215,9 +215,9 @@ function getDynamicBranch(regNo, fallbackBranch) {
   return fallbackBranch || "-";
 }
 
-function getSubjectCurriculumCategory(subject) {
-  const rawType = String(subject.type || "").trim().toUpperCase();
-  const rawName = String(subject.subName || subject.subjectName || "").trim().toUpperCase();
+function getSubjectCurriculumCategory(subject = {}) {
+  const rawType = String(subject?.type || "").trim().toUpperCase();
+  const rawName = String(subject?.subName || subject?.subjectName || "").trim().toUpperCase();
 
   // 1. Project Work (TUT / Project / Capstone / Internship / Dissertation / PW)
   if (
