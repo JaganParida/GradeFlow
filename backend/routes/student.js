@@ -106,7 +106,7 @@ router.get("/:regNo", studentSearchLimiter, validateRegNo, requireStudentOrAdmin
 
     const [allRankings, attendanceDoc] = await Promise.all([
       Ranking.find({ regNo }).lean(),
-      Attendance.findOne({ regNo }).select("targetGoal savedSubjects section lastSyncedAt").lean(),
+      Attendance.findOne({ regNo }).select("targetGoal savedSubjects section dailyLogs lastSyncedAt").lean(),
     ]);
 
     const rankingsMap = {};
@@ -154,7 +154,11 @@ router.get("/:regNo", studentSearchLimiter, validateRegNo, requireStudentOrAdmin
           section: attendanceDoc.section || getSectionFromRegNo(regNo),
           targetGoal: attendanceDoc.targetGoal || 75,
           savedSubjects: attendanceDoc.savedSubjects || [],
-          dailyLogs: {},
+          dailyLogs: attendanceDoc.dailyLogs
+            ? (attendanceDoc.dailyLogs instanceof Map
+                ? Object.fromEntries(attendanceDoc.dailyLogs)
+                : attendanceDoc.dailyLogs)
+            : {},
           lastSyncedAt: attendanceDoc.lastSyncedAt || new Date(),
         }
       : null;
@@ -273,17 +277,29 @@ router.get("/:regNo/attendance", validateRegNo, requireStudentOrAdmin, async (re
       });
     }
 
-    res.json({
-      success: true,
-      attendance: {
-        regNo: attendance.regNo,
-        section: attendance.section,
-        targetGoal: attendance.targetGoal,
-        savedSubjects: attendance.savedSubjects,
-        dailyLogs: attendance.dailyLogs ? Object.fromEntries(attendance.dailyLogs) : {},
-        lastSyncedAt: attendance.lastSyncedAt,
-      },
-    });
+    const attendanceData = {
+      regNo: attendance.regNo,
+      section: attendance.section,
+      targetGoal: attendance.targetGoal,
+      savedSubjects: attendance.savedSubjects,
+      dailyLogs: attendance.dailyLogs
+        ? (attendance.dailyLogs instanceof Map
+            ? Object.fromEntries(attendance.dailyLogs)
+            : attendance.dailyLogs)
+        : {},
+      lastSyncedAt: attendance.lastSyncedAt,
+    };
+
+    const bodyString = JSON.stringify({ success: true, attendance: attendanceData });
+    const etag = `"${crypto.createHash("md5").update(bodyString).digest("hex")}"`;
+    res.setHeader("ETag", etag);
+    res.setHeader("Cache-Control", "private, no-cache, must-revalidate");
+
+    if (req.headers["if-none-match"] === etag) {
+      return res.status(304).end();
+    }
+
+    return res.setHeader("Content-Type", "application/json").send(bodyString);
   } catch (err) {
     console.error("Attendance fetch error:", err);
     res.status(500).json({ message: "Server error fetching attendance data" });

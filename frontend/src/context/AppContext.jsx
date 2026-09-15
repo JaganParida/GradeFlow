@@ -144,9 +144,16 @@ export function AppProvider({ children }) {
   const inFlightStudentFetchRef = useRef({});
   const lastForceRefreshTsRef = useRef(0);
   const lastRevalidateTsRef = useRef(0);
+  const lastAttendanceSyncIdRef = useRef(null);
+  const lastAttendanceSaveTsRef = useRef(0);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const isRealtimeConnectedRef = useRef(false);
   const navigate = useNavigate();
+
+  const recordAttendanceSave = useCallback((syncId) => {
+    lastAttendanceSyncIdRef.current = syncId;
+    lastAttendanceSaveTsRef.current = Date.now();
+  }, []);
 
   // Check live admin device occupancy & portal visibility config
   const checkAdminStatus = async () => {
@@ -986,12 +993,28 @@ export function AppProvider({ children }) {
       // G. Listen for real-time attendance sync across active devices and tabs
       studentChannel.subscribe("attendance-updated", (msg) => {
         if (!isMounted) return;
-        try {
-          if (cleanReg) sessionStorage.removeItem(`gf_student_profile_${cleanReg}`);
-        } catch (_) {}
-        if (cleanReg) {
-          fetchStudent(cleanReg, 1, 500, true).catch(() => {});
+        const msgSyncId = msg?.data?.syncId;
+        const isSelfEcho =
+          Boolean(msgSyncId && msgSyncId === lastAttendanceSyncIdRef.current) ||
+          (Date.now() - lastAttendanceSaveTsRef.current < 4000);
+
+        if (isSelfEcho) {
+          // Suppress redundant self-origin re-fetch; client already has confirmed state
+          window.dispatchEvent(
+            new CustomEvent("gradeflow:attendance-updated", {
+              detail: { ...(msg?.data || {}), isSelfOrigin: true },
+            })
+          );
+          return;
         }
+
+        // Hydrate from live Ably WebSocket payload directly (0 HTTP requests!)
+        if (msg?.data?.attendance) {
+          updateCachedAttendance(msg.data.attendance);
+        } else if (cleanReg) {
+          fetchStudent(cleanReg, 1, 500, false).catch(() => {});
+        }
+
         window.dispatchEvent(new CustomEvent("gradeflow:attendance-updated", { detail: msg?.data }));
       });
 
@@ -1866,6 +1889,7 @@ export function AppProvider({ children }) {
         fetchStudent,
         clearStudentData,
         updateCachedAttendance,
+        recordAttendanceSave,
         hasActiveSession,
         leaveSession,
         getAuthPresence,

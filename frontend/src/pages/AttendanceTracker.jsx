@@ -155,6 +155,8 @@ export default function AttendanceTracker() {
     adminToken,
     openStudentAuthModal,
     updateCachedAttendance,
+    recordAttendanceSave,
+    isRealtimeConnected,
   } = useApp();
 
   // Decode regNo from URL, session, or studentData
@@ -302,9 +304,21 @@ export default function AttendanceTracker() {
   const isTodaySunday = isSelectedSunday;
 
   // Full calendar dailyLogs store map (Date -> { slotIndex: "present" | "absent" })
-  const [allDailyLogs, setAllDailyLogs] = useState({});
+  const [allDailyLogs, setAllDailyLogs] = useState(() => {
+    return (
+      (studentData?.attendance?.dailyLogs && typeof studentData.attendance.dailyLogs === "object"
+        ? studentData.attendance.dailyLogs
+        : null) || {}
+    );
+  });
   // Today's specific routine check-ins
-  const [dailyAttendanceLogs, setDailyAttendanceLogs] = useState({});
+  const [dailyAttendanceLogs, setDailyAttendanceLogs] = useState(() => {
+    return (
+      (studentData?.attendance?.dailyLogs &&
+      typeof studentData.attendance.dailyLogs === "object" &&
+      studentData.attendance.dailyLogs[todayDateKey]) || {}
+    );
+  });
 
   // Active logs for the currently inspected date
   const activeDateLogs = allDailyLogs[selectedCheckInDateKey] || {};
@@ -433,14 +447,25 @@ export default function AttendanceTracker() {
   // Active Subject Simulation State
   const [selectedSubjectName, setSelectedSubjectName] = useState("");
   const [componentInputs, setComponentInputs] = useState([]);
-  const [targetGoal, setTargetGoal] = useState(75);
+  const [targetGoal, setTargetGoal] = useState(() => {
+    return Number(studentData?.attendance?.targetGoal) || 75;
+  });
   const [simulateMissCount, setSimulateMissCount] = useState(0);
   const [simulateAttendCount, setSimulateAttendCount] = useState(0);
 
   // Saved Subjects (In-Memory React State, synced direct to MongoDB Atlas)
-  const [savedSubjects, setSavedSubjects] = useState([]);
+  const [savedSubjects, setSavedSubjects] = useState(() => {
+    return Array.isArray(studentData?.attendance?.savedSubjects)
+      ? studentData.attendance.savedSubjects
+      : [];
+  });
   // Unified Loading State (Single smooth continuous loader, zero flicker)
-  const [pageLoading, setPageLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(() => {
+    const targetReg = decodedParam || studentSession?.regNo || studentData?.regNo;
+    if (!targetReg) return false;
+    return !(studentData && studentData.regNo === targetReg && studentData.attendance);
+  });
+  const lastAttendanceEtagRef = useRef("");
 
   // Check if student has actual non-zero saved attendance data in DB
   const hasSavedAttendance = useMemo(() => {
@@ -877,8 +902,14 @@ export default function AttendanceTracker() {
     // 1. Instant optimistic state update for 0ms visual feedback
     setAllDailyLogs(updatedAllLogs);
 
-    // 2. Buffer pending payload
+    // 2. Buffer pending payload with unique syncId for self-origin echo suppression
+    const syncId = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    if (recordAttendanceSave) {
+      recordAttendanceSave(syncId);
+    }
+
     const payload = {
+      syncId,
       section: sectionToSync || selectedSection,
       targetGoal: goal,
       savedSubjects: updatedSaved,
@@ -1026,29 +1057,53 @@ export default function AttendanceTracker() {
           applyAttendance(initialAtt, sData);
         }
 
-        // 3. Background Database Freshness: Fetch latest attendance from MongoDB Atlas
-        // Guaranteed to pick up manual database updates and auto-imports with zero UI freeze.
-        axios
-          .get(`${API}/student/${targetReg}/attendance?t=${Date.now()}`, {
-            headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
-          })
-          .then((res) => {
-            if (res.data?.success && res.data.attendance && isMounted) {
-              applyAttendance(res.data.attendance, sData);
-              if (updateCachedAttendance) updateCachedAttendance(res.data.attendance);
-            } else if (!initialAtt && isMounted) {
-              setSavedSubjects([]);
-              if (!hasUserManuallySelectedTabRef.current && !urlTabParam) {
-                setActiveTab("studio_simulator");
-              }
-            }
-          })
-          .catch((err) => {
-            console.warn("Background attendance freshness sync:", err?.message || err);
-            if (!initialAtt && isMounted && !hasUserManuallySelectedTabRef.current && !urlTabParam) {
-              setActiveTab("studio_simulator");
-            }
-          });
+        // 3. Smart Background Revalidation Gate:
+        // If student attendance is ALREADY in memory, and Ably Realtime WebSocket is connected:
+        // Any external changes will be pushed instantly via WebSocket event.
+        // DO NOT hit Vercel Serverless! (0 HTTP requests, saves 100% serverless CPU & invocation quota).
+        const now = Date.now();
+        const lastSyncTs = initialAtt?.lastSyncedAt ? new Date(initialAtt.lastSyncedAt).getTime() : 0;
+        const isFresh = initialAtt && (now - lastSyncTs < 120000 || isRealtimeConnected);
+
+        if (initialAtt && isFresh) {
+          if (isMounted) {
+            setPageLoading(false);
+            setIsSearching(false);
+          }
+          return;
+        }
+
+        // 4. If cold load or Ably is disconnected (Graceful Fallback SWR with ETag):
+        const fetchHeaders = {};
+        if (lastAttendanceEtagRef.current) {
+          fetchHeaders["If-None-Match"] = lastAttendanceEtagRef.current;
+        }
+
+        const res = await axios.get(`${API}/student/${targetReg}/attendance`, {
+          headers: fetchHeaders,
+          validateStatus: (status) => (status >= 200 && status < 300) || status === 304,
+        });
+
+        if (res.status === 304) {
+          // 304 Not Modified: Data is identical in DB (~1ms CPU on Vercel, 0 bytes)
+          if (isMounted) {
+            setPageLoading(false);
+            setIsSearching(false);
+          }
+          return;
+        }
+
+        if (res.data?.success && res.data.attendance && isMounted) {
+          const resEtag = res.headers?.etag || res.headers?.ETag || "";
+          if (resEtag) lastAttendanceEtagRef.current = resEtag;
+          applyAttendance(res.data.attendance, sData);
+          if (updateCachedAttendance) updateCachedAttendance(res.data.attendance);
+        } else if (!initialAtt && isMounted) {
+          setSavedSubjects([]);
+          if (!hasUserManuallySelectedTabRef.current && !urlTabParam) {
+            setActiveTab("studio_simulator");
+          }
+        }
       } catch (err) {
         console.warn("Could not load student attendance:", err.message);
         if (isMounted && !hasUserManuallySelectedTabRef.current && !urlTabParam) {
@@ -1065,14 +1120,32 @@ export default function AttendanceTracker() {
     loadAllStudentData();
 
     // Listen for live attendance updates from other devices/tabs
-    const handleAttendanceLiveSync = () => {
+    const handleAttendanceLiveSync = (e) => {
       if (!isMounted) return;
+      // If the event was from our own save, suppress re-fetch (already confirmed in memory)
+      if (e?.detail?.isSelfOrigin) return;
+
+      // If live payload was provided in the Ably message, hydrate directly with 0 HTTP calls!
+      if (e?.detail?.attendance) {
+        applyAttendance(e.detail.attendance, studentData);
+        if (updateCachedAttendance) updateCachedAttendance(e.detail.attendance);
+        return;
+      }
+
+      // Fallback: Revalidate with ETag
+      const fetchHeaders = {};
+      if (lastAttendanceEtagRef.current) {
+        fetchHeaders["If-None-Match"] = lastAttendanceEtagRef.current;
+      }
       axios
-        .get(`${API}/student/${targetReg}/attendance?t=${Date.now()}`, {
-          headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+        .get(`${API}/student/${targetReg}/attendance`, {
+          headers: fetchHeaders,
+          validateStatus: (status) => (status >= 200 && status < 300) || status === 304,
         })
         .then((res) => {
-          if (!isMounted || !res.data?.attendance) return;
+          if (!isMounted || res.status === 304 || !res.data?.attendance) return;
+          const resEtag = res.headers?.etag || res.headers?.ETag || "";
+          if (resEtag) lastAttendanceEtagRef.current = resEtag;
           applyAttendance(res.data.attendance, studentData);
           if (updateCachedAttendance) updateCachedAttendance(res.data.attendance);
         })
@@ -1085,11 +1158,15 @@ export default function AttendanceTracker() {
       isMounted = false;
       window.removeEventListener("gradeflow:attendance-updated", handleAttendanceLiveSync);
     };
-  }, [decodedParam, studentSession?.regNo, API, todayDateKey, defaultMinTrackingDateKey, updateCachedAttendance]);
+  }, [decodedParam, studentSession?.regNo, API, todayDateKey, defaultMinTrackingDateKey, updateCachedAttendance, isRealtimeConnected]);
 
   // Safety auto-redirect to Edit & What-If if current tab is locked and student has no attendance saved
   useEffect(() => {
     if (!pageLoading && !hasSavedAttendance && LOCKED_TAB_IDS.has(activeTab)) {
+      // If studentData has attendance, wait until state resolves rather than false-locking
+      if (studentData?.attendance && Array.isArray(studentData.attendance.savedSubjects) && studentData.attendance.savedSubjects.length > 0) {
+        return;
+      }
       const tabNames = {
         checkin: "Daily Attendance",
         studio_schedule: "Target Date & Schedule",
@@ -1109,7 +1186,7 @@ export default function AttendanceTracker() {
         { replace: true }
       );
     }
-  }, [pageLoading, hasSavedAttendance, activeTab, LOCKED_TAB_IDS]);
+  }, [pageLoading, hasSavedAttendance, activeTab, LOCKED_TAB_IDS, studentData]);
 
   // Synchronize componentInputs whenever savedSubjects loads or updates from MongoDB Atlas
   useEffect(() => {

@@ -266,7 +266,7 @@ module.exports = async function handler(req, res) {
     // ── Attendance Tracker Persistence (GET & POST) ──
     if (action === "attendance") {
       if (req.method === "GET") {
-        const attendance = await Attendance.findOne({ regNo: cleanRegNo });
+        const attendance = await Attendance.findOne({ regNo: cleanRegNo }).lean();
         if (!attendance) {
           return res.json({
             success: true,
@@ -274,17 +274,32 @@ module.exports = async function handler(req, res) {
             message: "No custom attendance record saved yet.",
           });
         }
-        return res.json({
+        const attendancePayload = {
+          regNo: attendance.regNo,
+          section: attendance.section,
+          targetGoal: attendance.targetGoal,
+          savedSubjects: attendance.savedSubjects,
+          dailyLogs: attendance.dailyLogs
+            ? (attendance.dailyLogs instanceof Map
+                ? Object.fromEntries(attendance.dailyLogs)
+                : attendance.dailyLogs)
+            : {},
+          lastSyncedAt: attendance.lastSyncedAt,
+        };
+
+        const bodyString = JSON.stringify({
           success: true,
-          attendance: {
-            regNo: attendance.regNo,
-            section: attendance.section,
-            targetGoal: attendance.targetGoal,
-            savedSubjects: attendance.savedSubjects,
-            dailyLogs: attendance.dailyLogs ? (attendance.dailyLogs instanceof Map ? Object.fromEntries(attendance.dailyLogs) : attendance.dailyLogs) : {},
-            lastSyncedAt: attendance.lastSyncedAt,
-          },
+          attendance: attendancePayload,
         });
+        const etag = `"${crypto.createHash("md5").update(bodyString).digest("hex")}"`;
+        res.setHeader("ETag", etag);
+        res.setHeader("Cache-Control", "private, no-cache, must-revalidate");
+
+        if (req.headers["if-none-match"] === etag) {
+          return res.status(304).end();
+        }
+
+        return res.setHeader("Content-Type", "application/json").send(bodyString);
       }
 
       if (req.method === "POST") {
@@ -292,7 +307,7 @@ module.exports = async function handler(req, res) {
         if (typeof body === "string") {
           try { body = JSON.parse(body); } catch {}
         }
-        const { section, targetGoal, savedSubjects, dailyLogs } = body;
+        const { section, targetGoal, savedSubjects, dailyLogs, syncId } = body;
 
         const cleanSavedSubjects = Array.isArray(savedSubjects)
           ? savedSubjects.map((s) => ({
@@ -348,10 +363,34 @@ module.exports = async function handler(req, res) {
         // Invalidate server-side profile memoization cache so subsequent profile reads get fresh attendance
         profileMemoCache.delete(cleanRegNo);
 
+        const attendanceData = {
+          regNo: updatedAttendance.regNo,
+          section: updatedAttendance.section,
+          targetGoal: updatedAttendance.targetGoal,
+          savedSubjects: updatedAttendance.savedSubjects,
+          dailyLogs: updatedAttendance.dailyLogs
+            ? (updatedAttendance.dailyLogs instanceof Map
+                ? Object.fromEntries(updatedAttendance.dailyLogs)
+                : updatedAttendance.dailyLogs)
+            : {},
+          lastSyncedAt: updatedAttendance.lastSyncedAt,
+        };
+
         try {
           await Promise.allSettled([
-            publishAdminRealtimeEvent("attendance-updated", { regNo: cleanRegNo, timestamp: Date.now() }),
-            publishStudentRealtimeEvent(cleanRegNo, "attendance-updated", { regNo: cleanRegNo, timestamp: Date.now() }),
+            publishAdminRealtimeEvent("attendance-updated", {
+              regNo: cleanRegNo,
+              syncId: syncId || null,
+              lastSyncedAt: updatedAttendance.lastSyncedAt,
+              timestamp: Date.now(),
+            }),
+            publishStudentRealtimeEvent(cleanRegNo, "attendance-updated", {
+              regNo: cleanRegNo,
+              syncId: syncId || null,
+              lastSyncedAt: updatedAttendance.lastSyncedAt,
+              attendance: attendanceData,
+              timestamp: Date.now(),
+            }),
           ]);
         } catch (e) {
           console.warn("[Ably] Attendance updated publish warning:", e?.message || e);
@@ -360,18 +399,8 @@ module.exports = async function handler(req, res) {
         return res.json({
           success: true,
           message: "Attendance data saved successfully to database.",
-          attendance: {
-            regNo: updatedAttendance.regNo,
-            section: updatedAttendance.section,
-            targetGoal: updatedAttendance.targetGoal,
-            savedSubjects: updatedAttendance.savedSubjects,
-            dailyLogs: updatedAttendance.dailyLogs
-              ? (updatedAttendance.dailyLogs instanceof Map
-                  ? Object.fromEntries(updatedAttendance.dailyLogs)
-                  : updatedAttendance.dailyLogs)
-              : {},
-            lastSyncedAt: updatedAttendance.lastSyncedAt,
-          },
+          syncId: syncId || null,
+          attendance: attendanceData,
         });
       }
 
@@ -459,7 +488,7 @@ module.exports = async function handler(req, res) {
     const [allRankings, allInternals, attendanceDoc] = await Promise.all([
       Ranking.find({ regNo: cleanRegNo }).lean(),
       InternalMark.find({ regNo: cleanRegNo }).select("semester subjects").lean(),
-      Attendance.findOne({ regNo: cleanRegNo }).select("targetGoal savedSubjects section lastSyncedAt").lean(),
+      Attendance.findOne({ regNo: cleanRegNo }).select("targetGoal savedSubjects section dailyLogs lastSyncedAt").lean(),
     ]);
 
     const rankingsMap = {};
@@ -512,7 +541,11 @@ module.exports = async function handler(req, res) {
           section: attendanceDoc.section || getSectionFromRegNo(cleanRegNo),
           targetGoal: attendanceDoc.targetGoal || 75,
           savedSubjects: attendanceDoc.savedSubjects || [],
-          dailyLogs: {},
+          dailyLogs: attendanceDoc.dailyLogs
+            ? (attendanceDoc.dailyLogs instanceof Map
+                ? Object.fromEntries(attendanceDoc.dailyLogs)
+                : attendanceDoc.dailyLogs)
+            : {},
           lastSyncedAt: attendanceDoc.lastSyncedAt || new Date(),
         }
       : null;
