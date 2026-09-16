@@ -33,6 +33,8 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   FileText,
   UserCheck,
 } from "lucide-react";
@@ -350,6 +352,19 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
       return matchSearch && matchCategory;
     });
   }, [broadcasts, historySearch, historyFilterCategory]);
+
+  const [broadcastPage, setBroadcastPage] = useState(1);
+  const BROADCAST_PAGE_SIZE = 8;
+
+  useEffect(() => {
+    setBroadcastPage(1);
+  }, [historySearch, historyFilterCategory]);
+
+  const totalBroadcastPages = Math.max(1, Math.ceil(filteredBroadcasts.length / BROADCAST_PAGE_SIZE));
+  const paginatedBroadcasts = useMemo(() => {
+    const start = (broadcastPage - 1) * BROADCAST_PAGE_SIZE;
+    return filteredBroadcasts.slice(start, start + BROADCAST_PAGE_SIZE);
+  }, [filteredBroadcasts, broadcastPage]);
 
   const activeExpandedBroadcast = useMemo(() => {
     return broadcasts.find((b) => b.notificationId === expandedBroadcastId);
@@ -1156,8 +1171,23 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
           </div>
         </div>
 
-        {/* Empty State */}
-        {filteredBroadcasts.length === 0 ? (
+        {/* Loading Skeleton / Empty State */}
+        {historyLoading ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="skeleton"
+                style={{
+                  height: isMobile ? 110 : 64,
+                  borderRadius: 14,
+                  background: "linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%)",
+                  backgroundSize: "200% 100%",
+                }}
+              />
+            ))}
+          </div>
+        ) : filteredBroadcasts.length === 0 ? (
           <div style={{ padding: "40px 20px", textAlign: "center", color: "#64748b" }}>
             <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#f1f5f9", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
               <Megaphone size={20} color="#94a3b8" />
@@ -1174,7 +1204,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
         ) : isMobile ? (
           /* Mobile Card View (Zero Horizontal Scrolling) */
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {filteredBroadcasts.map((b) => {
+            {paginatedBroadcasts.map((b) => {
               const isExpired = b.expiresAt && new Date(b.expiresAt) <= new Date();
               const badgeVisual = getBadgeVisual(b.badge);
               const isExpanded = expandedBroadcastId === b.notificationId;
@@ -1437,7 +1467,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
                 </tr>
               </thead>
               <tbody>
-                {filteredBroadcasts.map((b) => {
+                {paginatedBroadcasts.map((b) => {
                   const isExpired = b.expiresAt && new Date(b.expiresAt) <= new Date();
                   const badgeVisual = getBadgeVisual(b.badge);
                   const isExpanded = expandedBroadcastId === b.notificationId;
@@ -1720,6 +1750,71 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* ── Pagination Controls ── */}
+        {!historyLoading && totalBroadcastPages > 1 && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginTop: 18,
+              paddingTop: 14,
+              borderTop: "1px solid #f1f5f9",
+              flexWrap: "wrap",
+              gap: 10,
+            }}
+          >
+            <span style={{ fontSize: 12, color: "#64748b" }}>
+              Showing page <strong>{broadcastPage}</strong> of <strong>{totalBroadcastPages}</strong> ({filteredBroadcasts.length} announcements)
+            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <button
+                type="button"
+                onClick={() => setBroadcastPage((p) => Math.max(1, p - 1))}
+                disabled={broadcastPage <= 1}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 8,
+                  border: "1px solid #cbd5e1",
+                  background: broadcastPage <= 1 ? "#f8fafc" : "#ffffff",
+                  color: broadcastPage <= 1 ? "#94a3b8" : "#0f172a",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: broadcastPage <= 1 ? "not-allowed" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                <ChevronLeft size={14} /> Previous
+              </button>
+              <span style={{ fontSize: 12, fontWeight: 750, color: "#2563eb", padding: "0 6px" }}>
+                {broadcastPage} / {totalBroadcastPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setBroadcastPage((p) => Math.min(totalBroadcastPages, p + 1))}
+                disabled={broadcastPage >= totalBroadcastPages}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 8,
+                  border: "1px solid #cbd5e1",
+                  background: broadcastPage >= totalBroadcastPages ? "#f8fafc" : "#ffffff",
+                  color: broadcastPage >= totalBroadcastPages ? "#94a3b8" : "#0f172a",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: broadcastPage >= totalBroadcastPages ? "not-allowed" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                Next <ChevronRight size={14} />
+              </button>
+            </div>
           </div>
         )}
       </div>

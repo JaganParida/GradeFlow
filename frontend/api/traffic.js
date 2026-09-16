@@ -187,7 +187,7 @@ module.exports = async function handler(req, res) {
         // Fetch Student Activity Logs (Strictly EXCLUDING 230301120327)
         const studentActivities = await StudentRouteActivity.find(
           { regNo: { $ne: EXCLUDED_STUDENT_REG } },
-          "regNo studentName branch batch deviceType os browser currentRoute currentPageTitle lastActiveRoute lastActivePageTitle timeSpentCurrentRoute totalTimeSpentSeconds mostVisitedRoute mostVisitedPageTitle mostVisitedCount mostTimeSpentRoute mostTimeSpentPageTitle mostTimeSpentSeconds mostActiveTimeSlot peakTimeSpentSeconds mostActiveDay visitsToday visitsThisWeek lastActiveAt"
+          "regNo studentName branch batch deviceType os browser currentRoute currentPageTitle lastActiveRoute lastActivePageTitle timeSpentCurrentRoute totalTimeSpentSeconds mostVisitedRoute mostVisitedPageTitle mostVisitedCount mostTimeSpentRoute mostTimeSpentPageTitle mostTimeSpentSeconds mostActiveTimeSlot peakTimeSpentSeconds mostActiveDay visitsToday visitsThisWeek visitedRoutes lastActiveAt"
         )
           .sort({ lastActiveAt: -1 })
           .limit(200)

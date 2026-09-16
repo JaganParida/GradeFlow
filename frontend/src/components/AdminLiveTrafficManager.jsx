@@ -888,7 +888,31 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
           (() => {
             const renderRouteIntelligenceDetails = (st) => {
               const totalSiteSecs = st.totalTimeSpentSeconds || 0;
-              const routesList = [...(st.visitedRoutes || [])].sort(
+              let routesList = [...(st.visitedRoutes || [])];
+              if (routesList.length === 0 && (st.lastActiveRoute || st.currentRoute || st.mostVisitedRoute)) {
+                const primaryRoute = st.lastActiveRoute || st.currentRoute || "/";
+                routesList.push({
+                  route: primaryRoute,
+                  pageTitle: st.lastActivePageTitle || st.currentPageTitle || primaryRoute,
+                  durationSeconds: st.timeSpentCurrentRoute || st.totalTimeSpentSeconds || 0,
+                  visitCount: st.totalPageViews || 1,
+                  weeklyVisitCount: st.visitsThisWeek || 1,
+                  mostActiveTimeSlot: st.mostActiveTimeSlot || "General",
+                  lastVisitedAt: st.lastActiveAt || new Date(),
+                });
+                if (st.mostVisitedRoute && st.mostVisitedRoute !== primaryRoute) {
+                  routesList.push({
+                    route: st.mostVisitedRoute,
+                    pageTitle: st.mostVisitedPageTitle || st.mostVisitedRoute,
+                    durationSeconds: st.mostTimeSpentSeconds || 0,
+                    visitCount: st.mostVisitedCount || 1,
+                    weeklyVisitCount: 1,
+                    mostActiveTimeSlot: st.mostActiveTimeSlot || "General",
+                    lastVisitedAt: st.lastActiveAt || new Date(),
+                  });
+                }
+              }
+              routesList.sort(
                 (a, b) => (b.durationSeconds || 0) - (a.durationSeconds || 0) || (b.visitCount || 0) - (a.visitCount || 0)
               );
 

@@ -1,4 +1,4 @@
-﻿# GRADEFLOW — MASTER ARCHITECTURAL SPECIFICATION & BRAIN REFERENCE
+# GRADEFLOW — MASTER ARCHITECTURAL SPECIFICATION & BRAIN REFERENCE
 **Document ID:** `GF-DOC-MASTER-BRAIN-001`  
 **System Version:** Production 3.4.0  
 **Scope:** Complete Architecture — Authentication, Multi-Device Session State Machine, Security Invariants, Real-Time Ably Engine, and Dashboard Subsystems.
@@ -4130,7 +4130,7 @@ The developer profile avatar enforces strict dimensional reservations:
 ### 2. Modern Browser Loading & Prioritization Hints:
 ```jsx
 <img
-  src="https://github.com/JaganParida.png"
+  src="/jagan.jpg"
   alt="Jagan Parida - Developer"
   loading="eager"
   decoding="async"
@@ -4141,18 +4141,20 @@ The developer profile avatar enforces strict dimensional reservations:
     width: "100%",
     height: "100%",
     objectFit: "cover",
+    objectPosition: "center 20%",
   }}
   onError={(e) => {
-    e.currentTarget.src =
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80";
+    e.currentTarget.src = "https://github.com/JaganParida.png";
   }}
 />
 ```
 
+* `src="/jagan.jpg"`: High-definition local portrait asset served instantly from the Vite `public/` directory (0 external latency).
+* `objectPosition: "center 20%"`: Optimally centers the developer's face, eyes, and hair within the circular halo crop without cutting off the head or showing disproportionate torso area.
 * `loading="eager"`: Overrides lazy-loading defaults; ensures immediate retrieval above the fold.
 * `decoding="async"`: Offloads image decoding from the main browser thread to prevent UI stutter during framer-motion hero animations.
 * `fetchPriority="high"`: Hints to Chrome/WebKit network schedulers to prioritize the developer avatar over non-critical background assets.
-* `onError Fallback Chain`: If GitHub CDN encounters downtime, rate-limiting, or DNS failures, the `onError` event automatically swaps the source to a verified, high-availability CDN asset.
+* `onError Fallback Chain`: If the local image fails to load for any reason, the `onError` event automatically swaps the source to GitHub's CDN avatar (`https://github.com/JaganParida.png`).
 
 ---
 

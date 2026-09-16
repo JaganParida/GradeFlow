@@ -16,6 +16,8 @@ const TrafficQueueConfig = require("./_lib/models/TrafficQueueConfig");
 const LiveVisitor = require("./_lib/models/LiveVisitor");
 const VercelQuotaMetric = require("./_lib/models/VercelQuotaMetric");
 const StudentNotification = require("./_lib/models/StudentNotification");
+const StudentRouteActivity = require("./_lib/models/StudentRouteActivity");
+const PageAnalytics = require("./_lib/models/PageAnalytics");
 const jwt = require("jsonwebtoken");
 const { isAdminSessionValid, touchAdminSession, getActiveAdminSessions } = require("./_lib/sessionManager");
 const {
@@ -34,9 +36,53 @@ const {
 const { applyCors } = require("./_lib/cors");
 const { broadcastRealtimeEvent, publishAdminRealtimeEvent, publishStudentRealtimeEvent } = require("./_lib/ablyService");
 
+const EXCLUDED_STUDENT_REG = "230301120327";
+
+const ROUTE_LABELS = {
+  "/": "Home / Landing",
+  "/dashboard": "Student Dashboard",
+  "/timetable": "Class Timetable & Schedule",
+  "/attendance": "Attendance Tracker & Calculator",
+  "/leaderboard": "Rankings & Leaderboard",
+  "/analytics": "Academic Analytics & Trends",
+  "/resources": "Student Resources",
+  "/testimonials": "Student Reviews & Testimonials",
+  "/about-dev": "Developer Portfolio & Team",
+  "/about": "About GradeFlow",
+  "/help": "Help & Support",
+  "/contact": "Contact",
+  "/privacy": "Privacy Policy",
+  "/terms": "Terms of Service",
+  "/admin": "Admin Portal",
+  "/admin/dashboard": "Admin Control Console",
+};
+
+function normalizeRoute(route) {
+  if (!route || typeof route !== "string") return "/";
+  const clean = route.split("?")[0].replace(/\/$/, "") || "/";
+  if (clean.startsWith("/dashboard/")) return "/dashboard";
+  if (clean.startsWith("/timetable/")) return "/timetable";
+  if (clean.startsWith("/attendance/")) return "/attendance";
+  if (clean.startsWith("/analytics/")) return "/analytics";
+  return clean;
+}
+
+function getFriendlyPageTitle(route) {
+  const norm = normalizeRoute(route);
+  return ROUTE_LABELS[norm] || norm;
+}
+
 let statsCache = null;
 let statsCacheTimestamp = 0;
 const STATS_CACHE_TTL_MS = 60 * 1000; // 60s memory cache to prevent redundant aggregations
+
+let defaultToppersCache = null;
+let defaultToppersCacheTime = 0;
+const TOPPERS_CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
+
+let defaultBacklogsCache = null;
+let defaultBacklogsCacheTime = 0;
+const BACKLOGS_CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
 
 function parseCookies(cookieHeader) {
   const cookies = {};
@@ -374,6 +420,348 @@ async function generateRankingForSemester(semester, preloadedAllResults = null, 
   }
 }
 
+async function getSectionToppersData({ batch = "2023", branch = "CSE", section = "Sec A", search = "", semester = null, limit = 10 } = {}) {
+  const isDefault = batch === "2023" && branch === "CSE" && (section === "Sec A" || section === "A") && !search && !semester && limit === 10;
+  if (isDefault && defaultToppersCache && (Date.now() - defaultToppersCacheTime < TOPPERS_CACHE_TTL_MS)) {
+    return defaultToppersCache;
+  }
+
+  const rankingFilter = {};
+  if (batch) rankingFilter.batch = batch;
+  if (branch) rankingFilter.branch = branch;
+  if (semester) rankingFilter.semester = Number(semester);
+  if (search) {
+    rankingFilter.$or = [
+      { regNo: { $regex: search, $options: "i" } },
+      { studentName: { $regex: search, $options: "i" } },
+    ];
+  }
+
+  // Fast targeted index query for standard 2023 CSE Section A
+  const isSecA2023CSE = batch === "2023" && branch === "CSE" && (section === "Sec A" || section === "A") && !search;
+  if (isSecA2023CSE) {
+    rankingFilter.regNo = { $gte: "230301120001", $lte: "230301120060" };
+  }
+
+  const allRankings = await Ranking.find(
+    rankingFilter,
+    "regNo semester studentName batch branch cgpa sgpa sectionCgpaRank sectionSgpaRank deptCgpaRank deptRank universityRank cgpaRank"
+  ).sort({ cgpa: -1, sgpa: -1 }).lean().catch(() => []);
+
+  let filteredRankings = allRankings;
+  if (semester) {
+    const semNum = Number(semester);
+    filteredRankings = filteredRankings.filter((rk) => Number(rk.semester) === semNum);
+  } else {
+    const latestMap = new Map();
+    allRankings.forEach((rk) => {
+      const regNo = rk.regNo;
+      const currentSem = Number(rk.semester) || 0;
+      const existing = latestMap.get(regNo);
+      if (!existing || currentSem > (Number(existing.semester) || 0)) {
+        latestMap.set(regNo, rk);
+      }
+    });
+    filteredRankings = Array.from(latestMap.values());
+  }
+
+  let validStudents = [];
+  filteredRankings.forEach((rk) => {
+    const regNo = String(rk.regNo || "").trim();
+    if (!regNo) return;
+
+    const cgpa = Number(rk.cgpa) || 0;
+    const sgpa = Number(rk.sgpa) || 0;
+    if (cgpa <= 0) return;
+
+    let b = String(rk.batch || "").trim();
+    if (!b && /^\d{2}/.test(regNo)) b = `20${regNo.slice(0, 2)}`;
+
+    let br = detectBranch(regNo);
+    if (rk.branch) br = String(rk.branch).trim().toUpperCase();
+
+    let sec = getSectionFromRegNo(regNo);
+    if (sec && !sec.startsWith("Sec")) sec = `Sec ${sec}`;
+    if (!sec) sec = "N/A";
+
+    validStudents.push({
+      regNo,
+      studentName: rk.studentName || "Student",
+      batch: b,
+      branch: br,
+      section: sec.replace(/^Sec\s*/i, ""),
+      fullSection: sec,
+      semester: rk.semester,
+      cgpa,
+      sgpa,
+      sectionCgpaRank: null,
+      sectionSgpaRank: rk.sectionSgpaRank || null,
+      deptCgpaRank: rk.deptCgpaRank || null,
+      deptRank: rk.deptRank || null,
+      universityRank: rk.universityRank || rk.cgpaRank || null,
+      lastTopperEmailSentAt: null,
+      lastTopperEmailStatus: null,
+      lastTopperEmailError: null,
+    });
+  });
+
+  if (batch) validStudents = validStudents.filter((s) => s.batch === batch);
+  if (branch) validStudents = validStudents.filter((s) => s.branch === branch);
+  if (section) {
+    const cleanSec = String(section).replace(/^Section\s*|^Sec\s*/i, "").trim().toUpperCase();
+    validStudents = validStudents.filter((s) => {
+      const sSec = String(s.section || "").replace(/^Section\s*|^Sec\s*/i, "").trim().toUpperCase();
+      return sSec === cleanSec;
+    });
+  }
+  if (search) {
+    const q = String(search).toLowerCase().trim();
+    validStudents = validStudents.filter(
+      (s) => s.regNo.toLowerCase().includes(q) || s.studentName.toLowerCase().includes(q)
+    );
+  }
+
+  validStudents.sort((a, b) => b.cgpa - a.cgpa || b.sgpa - a.sgpa);
+
+  let currentRank = 1;
+  let prevCgpa = null;
+  validStudents.forEach((s, idx) => {
+    if (idx === 0) currentRank = 1;
+    else if (s.cgpa < prevCgpa) currentRank = idx + 1;
+    s.sectionCgpaRank = currentRank;
+    prevCgpa = s.cgpa;
+  });
+
+  const topStudents = validStudents.slice(0, limit);
+  const topRegNos = topStudents.map((s) => s.regNo);
+
+  if (topRegNos.length > 0) {
+    const studentsTracking = await Student.find(
+      { regNo: { $in: topRegNos } },
+      "regNo lastTopperEmailSentAt lastTopperEmailStatus lastTopperEmailError"
+    ).lean().catch(() => []);
+
+    const studentTrackingMap = new Map();
+    studentsTracking.forEach((st) => studentTrackingMap.set(st.regNo, st));
+
+    topStudents.forEach((s) => {
+      const tracking = studentTrackingMap.get(s.regNo) || {};
+      s.lastTopperEmailSentAt = tracking.lastTopperEmailSentAt ? tracking.lastTopperEmailSentAt.toISOString() : null;
+      s.lastTopperEmailStatus = tracking.lastTopperEmailStatus || null;
+      s.lastTopperEmailError = tracking.lastTopperEmailError || null;
+    });
+  }
+
+  const result = {
+    totalToppers: validStudents.length,
+    students: topStudents,
+  };
+
+  if (isDefault) {
+    defaultToppersCache = result;
+    defaultToppersCacheTime = Date.now();
+  }
+
+  return result;
+}
+
+async function getBacklogsData({ batch = "", branch = "", section = "", semester = "", search = "", page = 1, limit = 50 } = {}) {
+  const isDefault = !batch && !branch && !section && !semester && !search && page === 1 && limit === 50;
+  if (isDefault && defaultBacklogsCache && (Date.now() - defaultBacklogsCacheTime < BACKLOGS_CACHE_TTL_MS)) {
+    return defaultBacklogsCache;
+  }
+
+  const semCandidateFilter = {
+    "subjects.grade": { $in: ["F", "R", "M", "S", "f", "r", "m", "s"] },
+  };
+  if (batch) semCandidateFilter.batch = batch;
+  if (branch) semCandidateFilter.branch = branch;
+  if (semester) semCandidateFilter.semester = Number(semester);
+  if (search) {
+    semCandidateFilter.$or = [
+      { regNo: { $regex: search, $options: "i" } },
+      { studentName: { $regex: search, $options: "i" } },
+    ];
+  }
+
+  const candidateRegNos = await SemesterResult.distinct("regNo", semCandidateFilter).catch(() => []);
+
+  if (!candidateRegNos || candidateRegNos.length === 0) {
+    const emptyResult = {
+      totalStudentsWithBacklogs: 0,
+      totalBacklogsCount: 0,
+      students: [],
+      totalPages: 1,
+      page: Number(page) || 1,
+      limit: Number(limit) || 50,
+      pagination: {
+        total: 0,
+        page: Number(page) || 1,
+        limit: Number(limit) || 50,
+        pages: 1,
+      },
+    };
+    if (isDefault) {
+      defaultBacklogsCache = emptyResult;
+      defaultBacklogsCacheTime = Date.now();
+    }
+    return emptyResult;
+  }
+
+  const semResults = await SemesterResult.find(
+    { regNo: { $in: candidateRegNos } },
+    "regNo batch branch studentName semester subjects.subjectName subjects.subjectCode subjects.grade subjects.credits"
+  ).sort({ semester: 1 }).lean().catch(() => []);
+
+  const studentResultsMap = new Map();
+  semResults.forEach((r) => {
+    if (!r.regNo || !r.subjects || !r.subjects.length) return;
+    const regNo = String(r.regNo).trim();
+    if (!studentResultsMap.has(regNo)) studentResultsMap.set(regNo, []);
+    studentResultsMap.get(regNo).push(r);
+  });
+
+  const studentBacklogMap = new Map();
+  studentResultsMap.forEach((userResults, regNo) => {
+    const backlogs = calculateBacklogs(userResults);
+    if (!backlogs || !backlogs.length) return;
+
+    const latestResult = userResults[userResults.length - 1] || userResults[0];
+    let b = String(latestResult.batch || "").trim();
+    if (!b && /^\d{2}/.test(regNo)) b = `20${regNo.slice(0, 2)}`;
+
+    let br = detectBranch(regNo);
+    if (latestResult.branch && br === "CSE" && !regNo.startsWith("230301120") && !regNo.startsWith("230301121")) {
+      br = String(latestResult.branch).trim().toUpperCase();
+    }
+
+    let rawSec = getSectionFromRegNo(regNo);
+    if (rawSec && !rawSec.startsWith("Sec")) rawSec = `Sec ${rawSec}`;
+
+    const semBreakdown = {};
+    backlogs.forEach((sub) => {
+      const sNum = sub.semester || 1;
+      semBreakdown[sNum] = (semBreakdown[sNum] || 0) + 1;
+    });
+
+    studentBacklogMap.set(regNo, {
+      regNo,
+      studentName: latestResult.studentName || "N/A",
+      batch: b || "N/A",
+      branch: br || "N/A",
+      section: rawSec || "N/A",
+      totalBacklogs: backlogs.length,
+      backlogs,
+      semBreakdown,
+      rankInfo: null,
+      lastEmailSentAt: null,
+      lastEmailStatus: null,
+      lastEmailError: null,
+    });
+  });
+
+  let studentList = Array.from(studentBacklogMap.values());
+
+  if (batch) {
+    studentList = studentList.filter((s) => s.batch === batch);
+  }
+  if (branch) {
+    studentList = studentList.filter((s) => s.branch === branch);
+  }
+  if (section) {
+    const cleanSec = String(section).replace(/^Section\s*|^Sec\s*/i, "").trim().toUpperCase();
+    studentList = studentList.filter((s) => {
+      const sSec = String(s.section || "").replace(/^Section\s*|^Sec\s*/i, "").trim().toUpperCase();
+      return sSec === cleanSec;
+    });
+  }
+  if (semester) {
+    const semNum = Number(semester);
+    studentList = studentList.filter((s) => (s.semBreakdown[semNum] || 0) > 0);
+  }
+  if (search) {
+    const q = String(search).toLowerCase().trim();
+    studentList = studentList.filter(
+      (s) => s.regNo.toLowerCase().includes(q) || s.studentName.toLowerCase().includes(q)
+    );
+  }
+
+  studentList.sort((a, b) => b.totalBacklogs - a.totalBacklogs);
+
+  const totalStudentsWithBacklogs = studentList.length;
+  const totalBacklogsCount = studentList.reduce((acc, s) => acc + s.totalBacklogs, 0);
+
+  const totalPages = Math.ceil(totalStudentsWithBacklogs / limit) || 1;
+  const startIndex = (page - 1) * limit;
+  const paginatedStudents = studentList.slice(startIndex, startIndex + limit);
+
+  const paginatedRegNos = paginatedStudents.map((s) => s.regNo);
+  if (paginatedRegNos.length > 0) {
+    const [rankings, studentsTracking] = await Promise.all([
+      Ranking.find(
+        { regNo: { $in: paginatedRegNos } },
+        "regNo semester cgpa universityRank cgpaRank deptCgpaRank deptRank sectionCgpaRank sectionSgpaRank"
+      ).lean().catch(() => []),
+      Student.find(
+        { regNo: { $in: paginatedRegNos } },
+        "regNo lastBacklogEmailSentAt lastBacklogEmailStatus lastBacklogEmailError"
+      ).lean().catch(() => []),
+    ]);
+
+    const studentTrackingMap = new Map();
+    studentsTracking.forEach((st) => studentTrackingMap.set(st.regNo, st));
+
+    const studentRankingMap = new Map();
+    rankings.forEach((rk) => {
+      if (!rk.regNo) return;
+      const regNo = String(rk.regNo).trim();
+      const existing = studentRankingMap.get(regNo);
+      if (!existing || rk.semester > existing.semester) {
+        studentRankingMap.set(regNo, {
+          cgpa: rk.cgpa || 0,
+          universityRank: rk.universityRank || rk.cgpaRank || null,
+          deptRank: rk.deptCgpaRank || rk.deptRank || null,
+          departmentRank: rk.deptCgpaRank || rk.deptRank || null,
+          branchRank: rk.deptCgpaRank || rk.deptRank || null,
+          batchRank: rk.universityRank || rk.cgpaRank || null,
+          sectionRank: rk.sectionCgpaRank || rk.sectionSgpaRank || null,
+          semester: rk.semester,
+        });
+      }
+    });
+
+    paginatedStudents.forEach((s) => {
+      s.rankInfo = studentRankingMap.get(s.regNo) || null;
+      const trackingInfo = studentTrackingMap.get(s.regNo) || {};
+      s.lastEmailSentAt = trackingInfo.lastBacklogEmailSentAt ? (trackingInfo.lastBacklogEmailSentAt.toISOString ? trackingInfo.lastBacklogEmailSentAt.toISOString() : String(trackingInfo.lastBacklogEmailSentAt)) : null;
+      s.lastEmailStatus = trackingInfo.lastBacklogEmailStatus || null;
+      s.lastEmailError = trackingInfo.lastBacklogEmailError || null;
+    });
+  }
+
+  const result = {
+    totalStudentsWithBacklogs,
+    totalBacklogsCount,
+    page,
+    limit,
+    totalPages,
+    students: paginatedStudents,
+    pagination: {
+      total: totalStudentsWithBacklogs,
+      page,
+      limit,
+      pages: totalPages,
+    },
+  };
+
+  if (isDefault) {
+    defaultBacklogsCache = result;
+    defaultBacklogsCacheTime = Date.now();
+  }
+
+  return result;
+}
+
 async function getAdminBootstrapData(adminUser) {
   const isMain = adminUser.adminType === "main" || !adminUser.adminType;
   const adminProfile = {
@@ -395,10 +783,12 @@ async function getAdminBootstrapData(adminUser) {
     batchStatsResults,
     batchStatsRankings,
     batchStatsInternal,
-    defaultToppers,
+    toppersResult,
+    backlogsResult,
     timetableSchedules,
     trafficConfig,
     activeVisitorsCount,
+    studentActivities,
     portalConfigDoc,
     maintenanceConfigDoc,
     broadcastsList,
@@ -457,18 +847,20 @@ async function getAdminBootstrapData(adminUser) {
         },
       },
     ]).catch(() => []),
-    Ranking.find(
-      { batch: "2023", branch: "CSE" },
-      "regNo semester studentName batch branch cgpa sgpa sectionCgpaRank sectionSgpaRank deptCgpaRank deptRank universityRank cgpaRank"
-    ).sort({ cgpa: -1, sgpa: -1 }).limit(10).lean().catch(() => []),
+    getSectionToppersData({ batch: "2023", branch: "CSE", section: "Sec A", limit: 10 }).catch(() => ({ totalToppers: 0, students: [] })),
+    getBacklogsData({ page: 1, limit: 50 }).catch(() => ({ totalStudentsWithBacklogs: 0, totalBacklogsCount: 0, students: [], totalPages: 1, page: 1 })),
     TimetableSchedule.find({}, "scheduleId batch branch section title isLiveCustomPublished updatedAt")
       .sort({ updatedAt: -1 }).limit(50).lean().catch(() => []),
     TrafficQueueConfig.findOne({ key: "global_queue_config" }).lean().catch(() => null),
     LiveVisitor.countDocuments({ lastSeen: { $gte: new Date(Date.now() - 5 * 60 * 1000) } }).catch(() => 0),
+    StudentRouteActivity.find(
+      { regNo: { $ne: EXCLUDED_STUDENT_REG } },
+      "regNo studentName branch batch deviceType os browser currentRoute currentPageTitle lastActiveRoute lastActivePageTitle timeSpentCurrentRoute totalTimeSpentSeconds mostVisitedRoute mostVisitedPageTitle mostVisitedCount mostTimeSpentRoute mostTimeSpentPageTitle mostTimeSpentSeconds mostActiveTimeSlot peakTimeSpentSeconds mostActiveDay visitsToday visitsThisWeek visitedRoutes lastActiveAt"
+    ).sort({ lastActiveAt: -1 }).limit(50).lean().catch(() => []),
     SystemConfig.findOne({ key: "admin_button_config" }).lean().catch(() => null),
     SystemConfig.findOne({ key: "maintenance" }).lean().catch(() => null),
-    StudentNotification.find({ isBroadcast: true })
-      .sort({ createdAt: -1 }).limit(15).lean().catch(() => []),
+    StudentNotification.find({ $or: [{ regNo: "ALL" }, { isBroadcast: true }] })
+      .sort({ createdAt: -1 }).limit(20).lean().catch(() => []),
     Feedback.find({}).sort({ createdAt: -1 }).limit(20).lean().catch(() => []),
   ]);
 
@@ -543,7 +935,7 @@ async function getAdminBootstrapData(adminUser) {
       } else {
         entry.semBreakdown.push({
           semester: semNum,
-          studentCount: rankedCount,
+          studentCount: count,
         });
       }
     }
@@ -607,42 +999,73 @@ async function getAdminBootstrapData(adminUser) {
     batchBreakdown,
   };
 
-  const formattedToppers = {
-    totalToppers: defaultToppers.length,
-    students: defaultToppers.map((rk) => ({
-      regNo: rk.regNo,
-      studentName: rk.studentName || "Student",
-      batch: rk.batch || "2023",
-      branch: rk.branch || "CSE",
-      section: (rk.regNo && getSectionFromRegNo(rk.regNo)) || "A",
-      semester: rk.semester,
-      cgpa: rk.cgpa || 0,
-      sgpa: rk.sgpa || 0,
-      sectionCgpaRank: rk.sectionCgpaRank || null,
-      sectionSgpaRank: rk.sectionSgpaRank || null,
-      deptCgpaRank: rk.deptCgpaRank || null,
-      deptRank: rk.deptRank || null,
-      universityRank: rk.universityRank || rk.cgpaRank || null,
+  // Build live student activity and deep route history
+  const routeDistribution = {};
+  let totalTimeSpentAllStudents = 0;
+  let totalViewsAllStudents = 0;
+
+  (studentActivities || []).forEach((st) => {
+    totalTimeSpentAllStudents += st.totalTimeSpentSeconds || 0;
+    totalViewsAllStudents += st.totalPageViews || 1;
+    const curr = normalizeRoute(st.currentRoute || "/");
+    routeDistribution[curr] = (routeDistribution[curr] || 0) + 1;
+  });
+
+  const activeStudentsList = (studentActivities || []).map((s) => ({
+    token: s.regNo,
+    regNo: s.regNo,
+    studentName: s.studentName,
+    branch: s.branch,
+    batch: s.batch,
+    deviceType: s.deviceType || "Desktop",
+    os: s.os || "Unknown",
+    browser: s.browser || "Unknown",
+    currentRoute: s.currentRoute || "/",
+    pageTitle: s.currentPageTitle || getFriendlyPageTitle(s.currentRoute || "/"),
+    lastActiveRoute: s.lastActiveRoute || s.currentRoute || "/",
+    lastActivePageTitle: s.lastActivePageTitle || s.currentPageTitle || getFriendlyPageTitle(s.currentRoute || "/"),
+    timeSpentCurrentRoute: s.timeSpentCurrentRoute || 0,
+    totalTimeSpentSeconds: s.totalTimeSpentSeconds || 0,
+    mostVisitedRoute: s.mostVisitedRoute || s.currentRoute || "/",
+    mostVisitedPageTitle: s.mostVisitedPageTitle || getFriendlyPageTitle(s.mostVisitedRoute || "/"),
+    mostVisitedCount: s.mostVisitedCount || 1,
+    mostTimeSpentRoute: s.mostTimeSpentRoute || s.mostVisitedRoute || s.currentRoute || "/",
+    mostTimeSpentPageTitle: s.mostTimeSpentPageTitle || s.mostVisitedPageTitle || getFriendlyPageTitle(s.mostVisitedRoute || "/"),
+    mostTimeSpentSeconds: s.mostTimeSpentSeconds || 0,
+    mostActiveTimeSlot: s.mostActiveTimeSlot || "General",
+    peakTimeSpentSeconds: s.peakTimeSpentSeconds || s.mostTimeSpentSeconds || s.totalTimeSpentSeconds || 0,
+    mostActiveDay: s.mostActiveDay || "Weekdays",
+    visitsToday: s.visitsToday || 1,
+    visitsThisWeek: s.visitsThisWeek || s.totalPageViews || 1,
+    visitedRoutes: (s.visitedRoutes || []).map((vr) => ({
+      route: vr.route,
+      pageTitle: vr.pageTitle || getFriendlyPageTitle(vr.route),
+      durationSeconds: vr.durationSeconds || 0,
+      visitCount: vr.visitCount || 1,
+      weeklyVisitCount: vr.weeklyVisitCount || Math.min(vr.visitCount || 1, s.visitsThisWeek || 1),
+      mostActiveTimeSlot: vr.mostActiveTimeSlot || s.mostActiveTimeSlot || "General",
     })),
-  };
+    lastActiveAt: s.lastActiveAt || new Date(),
+  }));
 
   const trafficOverview = {
     success: true,
-    totalActiveUsers: activeVisitorsCount || 0,
+    totalTrackedUsers: activeStudentsList.length,
+    totalActiveUsers: Math.max(activeVisitorsCount || 0, activeStudentsList.length),
     totalQueuedUsers: 0,
     maxActiveCapacity: trafficConfig?.maxActiveCapacity || 200,
     queueEnabled: Boolean(trafficConfig?.queueEnabled),
     autoTriggerEnabled: trafficConfig?.autoTriggerEnabled !== false,
     isQueueActive: Boolean(trafficConfig?.isQueueActive),
-    activeStudents: [],
+    activeStudents: activeStudentsList,
     queuedStudents: [],
-    routeDistribution: {},
+    routeDistribution,
     analytics: {
       allPages: [],
       mostVisited: [],
       mediumVisited: [],
       leastVisited: [],
-      totalTrackedViews: 0,
+      totalTrackedViews: totalViewsAllStudents,
     },
   };
 
@@ -663,25 +1086,53 @@ async function getAdminBootstrapData(adminUser) {
     enabledAt: maintenanceConfigDoc?.maintenance?.enabledAt || null,
   };
 
+  const enrichedBroadcasts = (broadcastsList || []).map((b) => {
+    const readSet = new Set();
+    (b.readBy || []).forEach((r) => {
+      const reg = String(r.regNo || r || "GUEST").toUpperCase();
+      if (reg && reg !== "GUEST") readSet.add(reg);
+    });
+    const dismissedSet = new Set();
+    (b.dismissedBy || []).forEach((d) => {
+      const reg = String(typeof d === "string" ? d : (d?.regNo || "GUEST")).toUpperCase();
+      if (reg && reg !== "GUEST") dismissedSet.add(reg);
+    });
+
+    return {
+      ...b,
+      readCount: readSet.size || (b.readBy ? b.readBy.length : 0),
+      dismissedCount: dismissedSet.size || (b.dismissedBy ? b.dismissedBy.length : 0),
+      readDetails: (b.readBy || []).map((r) => ({
+        regNo: r.regNo || "GUEST",
+        name: r.name || (r.regNo === "230301120327" ? "JAGAN PARIDA" : ""),
+        branch: r.branch || (r.regNo === "230301120327" ? "CSE" : ""),
+        readAt: r.readAt || b.createdAt || new Date(),
+        actionTaken: r.actionTaken || "CHECK_NOW",
+        device: r.device || "Desktop · Chrome (Windows)",
+      })),
+      dismissedDetails: (b.dismissedBy || []).map((d) => ({
+        regNo: typeof d === "string" ? d : (d?.regNo || "GUEST"),
+        name: typeof d === "object" ? (d.name || "") : "",
+        branch: typeof d === "object" ? (d.branch || "") : "",
+        dismissedAt: typeof d === "object" ? (d.dismissedAt || b.createdAt) : (b.createdAt || new Date()),
+        device: typeof d === "object" ? (d.device || "Mobile · Chrome (Android)") : "Mobile · Chrome (Android)",
+      })),
+    };
+  });
+
   return {
     success: true,
     bootstrapAt: Date.now(),
     adminProfile,
     stats,
-    toppers: formattedToppers,
-    backlogs: {
-      totalStudentsWithBacklogs: 0,
-      totalBacklogsCount: 0,
-      students: [],
-      totalPages: 1,
-      page: 1,
-    },
+    toppers: toppersResult,
+    backlogs: backlogsResult,
     timetable: { schedules: timetableSchedules || [] },
     trafficOverview,
     vercelQuota: null,
     visibility: visibilityConfig,
     maintenance: maintenanceConfig,
-    broadcasts: broadcastsList || [],
+    broadcasts: enrichedBroadcasts,
     feedback: recentFeedback || [],
   };
 }
@@ -1586,9 +2037,14 @@ module.exports = async function handler(req, res) {
     }
 
     // 11. POST /cache/clear
+    // 11. POST /cache/clear
     if (action === "cache-clear" || cleanUrl.includes("/cache/clear")) {
       statsCache = null;
       statsCacheTimestamp = 0;
+      defaultToppersCache = null;
+      defaultToppersCacheTime = 0;
+      defaultBacklogsCache = null;
+      defaultBacklogsCacheTime = 0;
       await syncRankingsMetadataAndBroadcast();
       return res.json({ success: true, message: "Server cache cleared and live rankings synchronized successfully." });
     }
@@ -1600,139 +2056,10 @@ module.exports = async function handler(req, res) {
       const section = req.query.section ? String(req.query.section).trim() : "";
       const search = req.query.search ? String(req.query.search).trim() : "";
       const semester = req.query.semester;
+      const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
 
-      const rankingFilter = {};
-      if (batch) rankingFilter.batch = batch;
-      if (branch) rankingFilter.branch = branch;
-      if (semester) rankingFilter.semester = Number(semester);
-      if (search) {
-        rankingFilter.$or = [
-          { regNo: { $regex: search, $options: "i" } },
-          { studentName: { $regex: search, $options: "i" } },
-        ];
-      }
-
-      const allRankings = await Ranking.find(
-        rankingFilter,
-        "regNo semester studentName batch branch cgpa sgpa sectionCgpaRank sectionSgpaRank deptCgpaRank deptRank universityRank cgpaRank"
-      ).sort({ cgpa: -1, sgpa: -1 }).lean();
-
-      let filteredRankings = allRankings;
-      if (semester) {
-        const semNum = Number(semester);
-        filteredRankings = filteredRankings.filter((rk) => Number(rk.semester) === semNum);
-      } else {
-        const latestMap = new Map();
-        allRankings.forEach((rk) => {
-          const regNo = rk.regNo;
-          const currentSem = Number(rk.semester) || 0;
-          const existing = latestMap.get(regNo);
-          if (!existing || currentSem > (Number(existing.semester) || 0)) {
-            latestMap.set(regNo, rk);
-          }
-        });
-        filteredRankings = Array.from(latestMap.values());
-      }
-
-      let validStudents = [];
-      filteredRankings.forEach((rk) => {
-        const regNo = String(rk.regNo || "").trim();
-        if (!regNo) return;
-
-        const cgpa = Number(rk.cgpa) || 0;
-        const sgpa = Number(rk.sgpa) || 0;
-        if (cgpa <= 0) return;
-
-        let b = String(rk.batch || "").trim();
-        if (!b && /^\d{2}/.test(regNo)) b = `20${regNo.slice(0, 2)}`;
-
-        let br = detectBranch(regNo);
-        if (rk.branch) br = String(rk.branch).trim().toUpperCase();
-
-        let sec = getSectionFromRegNo(regNo);
-        if (sec && !sec.startsWith("Sec")) sec = `Sec ${sec}`;
-        if (!sec) sec = "N/A";
-
-        validStudents.push({
-          regNo,
-          studentName: rk.studentName || "Student",
-          batch: b,
-          branch: br,
-          section: sec.replace(/^Sec\s*/i, ""),
-          fullSection: sec,
-          semester: rk.semester,
-          cgpa,
-          sgpa,
-          sectionCgpaRank: rk.sectionCgpaRank || null,
-          sectionSgpaRank: rk.sectionSgpaRank || null,
-          deptCgpaRank: rk.deptCgpaRank || null,
-          deptRank: rk.deptRank || null,
-          universityRank: rk.universityRank || rk.cgpaRank || null,
-          lastTopperEmailSentAt: null,
-          lastTopperEmailStatus: null,
-          lastTopperEmailError: null,
-        });
-      });
-
-      if (batch) {
-        validStudents = validStudents.filter((s) => s.batch === batch);
-      }
-      if (branch) {
-        validStudents = validStudents.filter((s) => s.branch === branch);
-      }
-      if (section) {
-        const cleanSec = String(section).replace(/^Section\s*|^Sec\s*/i, "").trim().toUpperCase();
-        validStudents = validStudents.filter((s) => {
-          const sSec = String(s.section || "").replace(/^Section\s*|^Sec\s*/i, "").trim().toUpperCase();
-          return sSec === cleanSec;
-        });
-      }
-
-      if (search) {
-        const q = String(search).toLowerCase().trim();
-        validStudents = validStudents.filter(
-          (s) => s.regNo.toLowerCase().includes(q) || s.studentName.toLowerCase().includes(q)
-        );
-      }
-
-      validStudents.sort((a, b) => b.cgpa - a.cgpa || b.sgpa - a.sgpa);
-
-      let currentRank = 1;
-      let prevCgpa = null;
-      validStudents.forEach((s, idx) => {
-        if (idx === 0) currentRank = 1;
-        else if (s.cgpa < prevCgpa) currentRank = idx + 1;
-        if (!s.sectionCgpaRank) s.sectionCgpaRank = currentRank;
-        prevCgpa = s.cgpa;
-      });
-
-      const top10Toppers = validStudents.filter((s) => Number(s.sectionCgpaRank) <= 10);
-
-      // Targeted tracking query only for the top 10 finalists (100x faster, zero wasted memory)
-      const top10RegNos = top10Toppers.map((s) => s.regNo);
-      if (top10RegNos.length > 0) {
-        const studentsTracking = await Student.find(
-          { regNo: { $in: top10RegNos } },
-          "regNo lastTopperEmailSentAt lastTopperEmailStatus lastTopperEmailError"
-        ).lean().catch(() => []);
-
-        const studentTrackingMap = new Map();
-        studentsTracking.forEach((st) => {
-          studentTrackingMap.set(st.regNo, st);
-        });
-
-        top10Toppers.forEach((s) => {
-          const tracking = studentTrackingMap.get(s.regNo) || {};
-          s.lastTopperEmailSentAt = tracking.lastTopperEmailSentAt ? tracking.lastTopperEmailSentAt.toISOString() : null;
-          s.lastTopperEmailStatus = tracking.lastTopperEmailStatus || null;
-          s.lastTopperEmailError = tracking.lastTopperEmailError || null;
-        });
-      }
-
-      return res.json({
-        totalToppers: top10Toppers.length,
-        students: top10Toppers,
-      });
+      const toppersData = await getSectionToppersData({ batch, branch, section, search, semester, limit });
+      return res.json(toppersData);
     }
 
     // 13. GET /backlogs
@@ -1745,178 +2072,8 @@ module.exports = async function handler(req, res) {
       const page = Math.max(1, parseInt(req.query.page, 10) || 1);
       const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
 
-      const semCandidateFilter = {
-        "subjects.grade": { $in: ["F", "R", "M", "S", "f", "r", "m", "s"] },
-      };
-      if (batch) semCandidateFilter.batch = batch;
-      if (branch) semCandidateFilter.branch = branch;
-      if (semester) semCandidateFilter.semester = Number(semester);
-      if (search) {
-        semCandidateFilter.$or = [
-          { regNo: { $regex: search, $options: "i" } },
-          { studentName: { $regex: search, $options: "i" } },
-        ];
-      }
-
-      const candidateRegNos = await SemesterResult.distinct("regNo", semCandidateFilter);
-
-      if (!candidateRegNos || candidateRegNos.length === 0) {
-        return res.json({
-          totalStudentsWithBacklogs: 0,
-          totalBacklogsCount: 0,
-          students: [],
-          totalPages: 1,
-          page: Number(page) || 1,
-          limit: Number(limit) || 50,
-        });
-      }
-
-      const semResults = await SemesterResult.find(
-        { regNo: { $in: candidateRegNos } },
-        "regNo batch branch studentName semester subjects.subjectName subjects.subjectCode subjects.grade subjects.credits"
-      ).sort({ semester: 1 }).lean();
-
-      const studentResultsMap = new Map();
-      semResults.forEach((r) => {
-        if (!r.regNo || !r.subjects || !r.subjects.length) return;
-        const regNo = String(r.regNo).trim();
-        if (!studentResultsMap.has(regNo)) studentResultsMap.set(regNo, []);
-        studentResultsMap.get(regNo).push(r);
-      });
-
-      const studentBacklogMap = new Map();
-      studentResultsMap.forEach((userResults, regNo) => {
-        const backlogs = calculateBacklogs(userResults);
-        if (!backlogs || !backlogs.length) return;
-
-        const latestResult = userResults[userResults.length - 1] || userResults[0];
-        let b = String(latestResult.batch || "").trim();
-        if (!b && /^\d{2}/.test(regNo)) b = `20${regNo.slice(0, 2)}`;
-
-        let br = detectBranch(regNo);
-        if (latestResult.branch && br === "CSE" && !regNo.startsWith("230301120") && !regNo.startsWith("230301121")) {
-          br = String(latestResult.branch).trim().toUpperCase();
-        }
-
-        let rawSec = getSectionFromRegNo(regNo);
-        if (rawSec && !rawSec.startsWith("Sec")) rawSec = `Sec ${rawSec}`;
-
-        const semBreakdown = {};
-        backlogs.forEach((sub) => {
-          const sNum = sub.semester || 1;
-          semBreakdown[sNum] = (semBreakdown[sNum] || 0) + 1;
-        });
-
-        studentBacklogMap.set(regNo, {
-          regNo,
-          studentName: latestResult.studentName || "N/A",
-          batch: b || "N/A",
-          branch: br || "N/A",
-          section: rawSec || "N/A",
-          totalBacklogs: backlogs.length,
-          backlogs,
-          semBreakdown,
-          rankInfo: null,
-          lastEmailSentAt: null,
-          lastEmailStatus: null,
-          lastEmailError: null,
-        });
-      });
-
-      let studentList = Array.from(studentBacklogMap.values());
-
-      if (batch) {
-        studentList = studentList.filter((s) => s.batch === batch);
-      }
-      if (branch) {
-        studentList = studentList.filter((s) => s.branch === branch);
-      }
-      if (section) {
-        const cleanSec = String(section).replace(/^Section\s*|^Sec\s*/i, "").trim().toUpperCase();
-        studentList = studentList.filter((s) => {
-          const sSec = String(s.section || "").replace(/^Section\s*|^Sec\s*/i, "").trim().toUpperCase();
-          return sSec === cleanSec;
-        });
-      }
-      if (semester) {
-        const semNum = Number(semester);
-        studentList = studentList.filter((s) => (s.semBreakdown[semNum] || 0) > 0);
-      }
-      if (search) {
-        const q = String(search).toLowerCase().trim();
-        studentList = studentList.filter(
-          (s) => s.regNo.toLowerCase().includes(q) || s.studentName.toLowerCase().includes(q)
-        );
-      }
-
-      studentList.sort((a, b) => b.totalBacklogs - a.totalBacklogs);
-
-      const totalStudentsWithBacklogs = studentList.length;
-      const totalBacklogsCount = studentList.reduce((acc, s) => acc + s.totalBacklogs, 0);
-
-      const totalPages = Math.ceil(totalStudentsWithBacklogs / limit) || 1;
-      const startIndex = (page - 1) * limit;
-      const paginatedStudents = studentList.slice(startIndex, startIndex + limit);
-
-      // Targeted secondary query only for the 50 students on this page (90% faster on large batches)
-      const paginatedRegNos = paginatedStudents.map((s) => s.regNo);
-      if (paginatedRegNos.length > 0) {
-        const [rankings, studentsTracking] = await Promise.all([
-          Ranking.find(
-            { regNo: { $in: paginatedRegNos } },
-            "regNo semester cgpa universityRank cgpaRank deptCgpaRank deptRank sectionCgpaRank sectionSgpaRank"
-          ).lean().catch(() => []),
-          Student.find(
-            { regNo: { $in: paginatedRegNos } },
-            "regNo lastBacklogEmailSentAt lastBacklogEmailStatus lastBacklogEmailError"
-          ).lean().catch(() => []),
-        ]);
-
-        const studentTrackingMap = new Map();
-        studentsTracking.forEach((st) => studentTrackingMap.set(st.regNo, st));
-
-        const studentRankingMap = new Map();
-        rankings.forEach((rk) => {
-          if (!rk.regNo) return;
-          const regNo = String(rk.regNo).trim();
-          const existing = studentRankingMap.get(regNo);
-          if (!existing || rk.semester > existing.semester) {
-            studentRankingMap.set(regNo, {
-              cgpa: rk.cgpa || 0,
-              universityRank: rk.universityRank || rk.cgpaRank || null,
-              deptRank: rk.deptCgpaRank || rk.deptRank || null,
-              departmentRank: rk.deptCgpaRank || rk.deptRank || null,
-              branchRank: rk.deptCgpaRank || rk.deptRank || null,
-              batchRank: rk.universityRank || rk.cgpaRank || null,
-              sectionRank: rk.sectionCgpaRank || rk.sectionSgpaRank || null,
-              semester: rk.semester,
-            });
-          }
-        });
-
-        paginatedStudents.forEach((s) => {
-          s.rankInfo = studentRankingMap.get(s.regNo) || null;
-          const trackingInfo = studentTrackingMap.get(s.regNo) || {};
-          s.lastEmailSentAt = trackingInfo.lastBacklogEmailSentAt ? (trackingInfo.lastBacklogEmailSentAt.toISOString ? trackingInfo.lastBacklogEmailSentAt.toISOString() : String(trackingInfo.lastBacklogEmailSentAt)) : null;
-          s.lastEmailStatus = trackingInfo.lastBacklogEmailStatus || null;
-          s.lastEmailError = trackingInfo.lastBacklogEmailError || null;
-        });
-      }
-
-      return res.json({
-        totalStudentsWithBacklogs,
-        totalBacklogsCount,
-        page,
-        limit,
-        totalPages,
-        students: paginatedStudents,
-        pagination: {
-          total: totalStudentsWithBacklogs,
-          page,
-          limit,
-          pages: totalPages,
-        },
-      });
+      const backlogsData = await getBacklogsData({ batch, branch, section, semester, search, page, limit });
+      return res.json(backlogsData);
     }
 
     // 14. POST /section-toppers/topper-email-status

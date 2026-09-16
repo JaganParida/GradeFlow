@@ -3916,6 +3916,9 @@ export default function AdminDashboard({ defaultTab = null }) {
         if (data.toppers) {
           setAdminCache("gf_admin_toppers_2023_CSE_Sec A_", data.toppers, AdminCacheScopes.TOPPERS);
         }
+        if (data.backlogs && Array.isArray(data.backlogs.students) && data.backlogs.students.length > 0) {
+          setAdminCache("gf_admin_backlog_1______50", data.backlogs, AdminCacheScopes.BACKLOGS);
+        }
         if (data.timetable) {
           setAdminCache("gf_admin_schedules_list", data.timetable, AdminCacheScopes.TIMETABLE);
         }

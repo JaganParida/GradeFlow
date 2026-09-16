@@ -226,7 +226,7 @@ export default function AboutDev() {
               }}
             >
               <img
-                src="https://github.com/JaganParida.png"
+                src="/jagan.jpg"
                 alt="Jagan Parida - Developer"
                 loading="eager"
                 decoding="async"
@@ -237,10 +237,10 @@ export default function AboutDev() {
                   width: "100%",
                   height: "100%",
                   objectFit: "cover",
+                  objectPosition: "center 20%",
                 }}
                 onError={(e) => {
-                  e.currentTarget.src =
-                    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80";
+                  e.currentTarget.src = "https://github.com/JaganParida.png";
                 }}
               />
             </motion.div>
