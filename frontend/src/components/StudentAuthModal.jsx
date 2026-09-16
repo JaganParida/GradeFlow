@@ -38,6 +38,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const {
     sendStudentOtp,
     sendHandoverOtp,
+    studentSendRecoveryOtp,
     verifyStudentOtp,
     studentLoginPassword,
     studentCreatePassword,
@@ -55,7 +56,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   } = useApp();
   const navigate = useNavigate();
 
-  // Steps: "REGNO" | "PASSWORD" | "OTP" | "CREATE_PASSWORD" | "PASSWORD_SUCCESS" | "APPROVAL_PENDING"
+  // Steps: "REGNO" | "PASSWORD" | "RECOVERY_PROMPT" | "OTP" | "CREATE_PASSWORD" | "PASSWORD_SUCCESS" | "APPROVAL_PENDING"
   const [step, setStep] = useState("REGNO");
   const [regNo, setRegNo] = useState("");
   const [password, setPassword] = useState("");
@@ -354,6 +355,19 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               isBlocked: false,
               step: "OTP",
               pendingRecoveryOtpActive: true,
+            });
+            if (res.data.studentName) {
+              setStudentName(res.data.studentName);
+            }
+            setErrorMsg("");
+            setErrorCode("");
+          } else if (res.data.step === "RECOVERY_PROMPT" || res.data.pendingRecoveryPrompt) {
+            setDeviceStatus({
+              ...res.data,
+              exists: true,
+              isBlocked: false,
+              step: "RECOVERY_PROMPT",
+              pendingRecoveryPrompt: true,
             });
             if (res.data.studentName) {
               setStudentName(res.data.studentName);
@@ -660,6 +674,19 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       return;
     }
 
+    // ── ANTI-BYPASS: If 3 failed attempts reached (OTP not yet dispatched) ──
+    if (status?.step === "RECOVERY_PROMPT" || status?.pendingRecoveryPrompt) {
+      const authoritativeEmail = status.email || (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
+      setAccountEmail(authoritativeEmail);
+      setMaskedEmail(status.maskedEmail || authoritativeEmail);
+      if (status.studentName) setStudentName(status.studentName);
+      setStatusNotice("Password login has been disabled due to 3 failed attempts. Please dispatch a one-time verification code to reset your password.");
+      setErrorMsg("");
+      setErrorCode("");
+      setStep("RECOVERY_PROMPT");
+      return;
+    }
+
     if (status?.isBlocked) {
       const isLockout = status.code === "ACCOUNT_TEMPORARILY_LOCKED" || status.blockReason === "ACCOUNT_TEMPORARILY_LOCKED";
       if (isLockout) {
@@ -771,6 +798,18 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       return;
     }
 
+    if (result.step === "RECOVERY_PROMPT") {
+      const authoritativeEmail = result.email || (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
+      setAccountEmail(authoritativeEmail);
+      setMaskedEmail(result.maskedEmail || authoritativeEmail);
+      if (result.student?.studentName) setStudentName(result.student.studentName);
+      setStep("RECOVERY_PROMPT");
+      setStatusNotice("Maximum password attempts reached (3/3). Please dispatch a one-time verification code to reset your password.");
+      setErrorMsg("");
+      setErrorCode("");
+      return;
+    }
+
     if (result.step === "OTP") {
       const authoritativeEmail = result.email || (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
       setAccountEmail(authoritativeEmail);
@@ -782,7 +821,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       if (result.isFailedPasswordTransfer) {
         setIsForgotPasswordMode(true);
         setIsOneTimeRecoveryOtp(true);
-        setStatusNotice("Maximum password attempts reached (2/2). A one-time verification code has been dispatched to your email (5 min validity).");
+        setStatusNotice("Maximum password attempts reached (3/3). A one-time verification code has been dispatched to your email (5 min validity).");
       }
       if (result.unlockAt) setUnlockTime(result.unlockAt);
       setStep("OTP");
@@ -806,7 +845,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         const attempts = (result.details?.failedAttempts ?? result.failedAttempts ?? (failedPasswordAttemptsCount + 1));
         setFailedPasswordAttemptsCount(attempts);
 
-        const lockThreshold = cleanReg === "230301120327" ? 3 : 2;
+        const lockThreshold = 3;
         if (attempts >= lockThreshold || result.code === "OTP_FALLBACK_ALLOWED" || result.code === "PASSWORD_ATTEMPTS_EXCEEDED") {
           setDeviceStatus((prev) => ({ ...(prev || {}), otpFallbackAllowed: true, isLocked: true }));
         }
@@ -869,6 +908,38 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       }
     } catch {
       setErrorMsg("Failed to send verification code. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTriggerRecoveryOtp = async () => {
+    if (loading) return;
+    setLoading(true);
+    setErrorMsg("");
+    setErrorCode("");
+    try {
+      const res = await studentSendRecoveryOtp(cleanReg);
+      if (res.success) {
+        const authoritativeEmail = res.data?.email || (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
+        setAccountEmail(authoritativeEmail);
+        setMaskedEmail(res.data?.maskedEmail || authoritativeEmail);
+        if (res.data?.student?.studentName) setStudentName(res.data.student.studentName);
+        setTimerSeconds(res.data?.expiresInSeconds || 300);
+        setTimerActive(true);
+        setResendCooldown(res.data?.cooldownSeconds || 300);
+        setIsForgotPasswordMode(true);
+        setIsOneTimeRecoveryOtp(true);
+        if (res.data?.unlockAt) setUnlockTime(res.data.unlockAt);
+        setStatusNotice("A one-time verification code has been dispatched to your email (valid for 5 minutes).");
+        setStep("OTP");
+      } else {
+        setErrorMsg(res.error || "Failed to dispatch recovery code. Please try again.");
+        setErrorCode(res.code || "RECOVERY_ERROR");
+        if (res.details?.unlockAt) setUnlockTime(res.details.unlockAt);
+      }
+    } catch (err) {
+      setErrorMsg("An error occurred while dispatching the verification code.");
     } finally {
       setLoading(false);
     }
@@ -1366,7 +1437,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
           {/* STEP 2: Password Input */}
           {step === "PASSWORD" && (() => {
-            const maxAttempts = cleanReg === "230301120327" ? 3 : 2;
+            const maxAttempts = 3;
             const isPasswordBlocked = failedPasswordAttemptsCount >= maxAttempts || (deviceStatus?.failedPasswordAttempts >= maxAttempts) || deviceStatus?.isLocked;
 
             return (
@@ -1504,14 +1575,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                           Password Locked — 1-Time Email Verification
                         </span>
                         <p style={{ fontSize: 11.5, color: "#3b82f6", margin: "3px 0 0 0", lineHeight: 1.45 }}>
-                          A single-use OTP will be sent to your university email. It is valid for <strong>10 minutes</strong>. Resend is disabled.
+                          A single-use OTP will be sent to your university email. It is valid for <strong>5 minutes</strong>. Resend is disabled.
                         </p>
                       </div>
                     </div>
 
                     <button
                       type="button"
-                      onClick={() => triggerSendOtp(true)}
+                      onClick={handleTriggerRecoveryOtp}
                       disabled={loading}
                       style={{
                         background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
@@ -1531,7 +1602,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                       }}
                     >
                       {loading ? <Loader2 size={15} className="spin" /> : <Mail size={15} strokeWidth={2.2} />}
-                      <span>Send 1-Time Recovery Code (10 Min Expiry)</span>
+                      <span>Send 1-Time Recovery Code (5 Min Expiry)</span>
                     </button>
                   </div>
                 )}
@@ -1603,6 +1674,168 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               </form>
             );
           })()}
+
+          {/* STEP 2C: DEDICATED RECOVERY INSTRUCTION SCREEN (3 FAILED PASSWORD ATTEMPTS) */}
+          {step === "RECOVERY_PROMPT" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Top Navigation Row */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep("REGNO");
+                    setPassword("");
+                    setErrorMsg("");
+                    setErrorCode("");
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#64748b",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    padding: 0,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <ChevronLeft size={16} />
+                  <span>Change Registration No</span>
+                </button>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: "#dc2626",
+                    background: "#fef2f2",
+                    padding: "3px 9px",
+                    borderRadius: 999,
+                    border: "1px solid #fecaca",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <ShieldAlert size={12} strokeWidth={2.5} />
+                  <span>3/3 Attempts Failed</span>
+                </span>
+              </div>
+
+              {/* Main Security Card */}
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%)",
+                  border: "1.5px solid #fecaca",
+                  borderRadius: 16,
+                  padding: "16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      background: "#fee2e2",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      border: "1px solid #fca5a5",
+                    }}
+                  >
+                    <Lock size={20} color="#dc2626" strokeWidth={2.2} />
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: 14.5, fontWeight: 800, color: "#991b1b" }}>
+                      Password Login Suspended
+                    </h4>
+                    <p style={{ margin: "4px 0 0 0", fontSize: 12, color: "#b91c1c", lineHeight: 1.45 }}>
+                      You have entered an incorrect password <strong>3 times</strong>. For account protection, password entry has been temporarily disabled.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Email Destination Box */}
+                <div
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #fee2e2",
+                    borderRadius: 10,
+                    padding: "10px 12px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <Mail size={15} color="#dc2626" />
+                  <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Registered Email:</span>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a", fontFamily: "monospace" }}>
+                    {maskedEmail || accountEmail || (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "")}
+                  </span>
+                </div>
+
+                {/* Instruction Bullet Points */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 7, fontSize: 11.5, color: "#7f1d1d" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <Clock size={13} color="#dc2626" />
+                    <span>The verification OTP is valid for <strong>5 minutes</strong> only.</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <AlertTriangle size={13} color="#d97706" />
+                    <span>If not verified within 5 minutes, your account will be locked for <strong>24 hours</strong>.</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <ShieldCheck size={13} color="#16a34a" />
+                    <span>After verifying, you will create a new password to restore full access.</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Button: Send One-Time OTP */}
+              <button
+                type="button"
+                onClick={handleTriggerRecoveryOtp}
+                disabled={loading}
+                style={{
+                  width: "100%",
+                  padding: "12px 18px",
+                  borderRadius: 12,
+                  border: "none",
+                  background: loading
+                    ? "#cbd5e1"
+                    : "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
+                  color: "#ffffff",
+                  fontSize: 13.5,
+                  fontWeight: 800,
+                  cursor: loading ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  boxShadow: loading ? "none" : "0 4px 14px rgba(220, 38, 38, 0.3)",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="spin" />
+                    <span>Dispatching One-Time OTP...</span>
+                  </>
+                ) : (
+                  <>
+                    <Mail size={16} strokeWidth={2.2} />
+                    <span>Send One-Time OTP to Email</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
 
           {/* STEP 2B: APPROVAL PENDING SCREEN */}
           {step === "APPROVAL_PENDING" && (

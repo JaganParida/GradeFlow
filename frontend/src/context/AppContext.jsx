@@ -1155,6 +1155,27 @@ export function AppProvider({ children }) {
     }
   };
 
+  const studentSendRecoveryOtp = async (regNo) => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await axios.post(
+        `${API_BASE}/auth/student/send-recovery-otp`,
+        { regNo },
+        { withCredentials: true }
+      );
+      return { success: true, data: res.data };
+    } catch (err) {
+      const msg = err.response?.data?.message || "Failed to dispatch recovery code. Please try again.";
+      const code = err.response?.data?.code || "RECOVERY_OTP_ERROR";
+      const details = err.response?.data || {};
+      setError(msg);
+      return { success: false, error: msg, code, details };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const verifyStudentOtp = async (regNo, otp, options = {}) => {
     setLoading(true);
     setError("");
@@ -1235,6 +1256,17 @@ export function AppProvider({ children }) {
           expiresInSeconds: res.data.expiresInSeconds || 300,
           cooldownSeconds: res.data.cooldownSeconds || 300,
           unlockAt: res.data.unlockAt,
+          code: res.data.code,
+          message: res.data.message,
+          student: res.data.student,
+        };
+      }
+      if (res.data?.step === "RECOVERY_PROMPT") {
+        return {
+          success: true,
+          step: "RECOVERY_PROMPT",
+          email: res.data.email,
+          maskedEmail: res.data.maskedEmail,
           code: res.data.code,
           message: res.data.message,
           student: res.data.student,
@@ -1879,6 +1911,7 @@ export function AppProvider({ children }) {
         },
         sendStudentOtp,
         sendHandoverOtp,
+        studentSendRecoveryOtp,
         verifyStudentOtp,
         studentLoginPassword,
         studentCreatePassword,

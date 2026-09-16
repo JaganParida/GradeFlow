@@ -372,6 +372,10 @@
       "destination": "/api/auth.js?action=admin-heartbeat"
     },
     {
+      "source": "/api/auth/student/send-recovery-otp",
+      "destination": "/api/auth.js?action=student-send-recovery-otp"
+    },
+    {
       "source": "/api/auth/student/send-otp",
       "destination": "/api/auth.js?action=student-send-otp"
     },
