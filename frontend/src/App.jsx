@@ -4,7 +4,6 @@ import axios from "axios";
 import { AnimatePresence, motion } from "framer-motion";
 import Navbar from "./components/Navbar";
 import FeedbackModal from "./components/FeedbackModal";
-import UpgradeModal from "./components/UpgradeModal";
 import {
   AdminDashboardSkeleton,
   AdminLoginSkeleton,
@@ -341,7 +340,6 @@ export default function App() {
           isAuthorizedAdmin={isAuthorizedAdmin}
         >
           {!isOldDomain && <FeedbackModal />}
-          {!isOldDomain && <UpgradeModal />}
         <Suspense fallback={<RouteLoadingFallback />}>
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
