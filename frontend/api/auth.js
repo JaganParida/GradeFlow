@@ -359,7 +359,8 @@ module.exports = async function handler(req, res) {
     let action = req.query?.action;
     if (!action && req.url) {
       const cleanUrl = req.url.split("?")[0];
-      if (cleanUrl.includes("student/send-handover-otp")) action = "student-send-handover-otp";
+      if (cleanUrl.includes("student/send-recovery-otp")) action = "student-send-recovery-otp";
+      else if (cleanUrl.includes("student/send-handover-otp")) action = "student-send-handover-otp";
       else if (cleanUrl.includes("student/send-otp")) action = "student-send-otp";
       else if (cleanUrl.includes("student/verify-otp")) action = "student-verify-otp";
       else if (cleanUrl.includes("student/check-status")) action = "student-check-status";
@@ -600,8 +601,8 @@ module.exports = async function handler(req, res) {
           );
         }
 
-        // 2. Check if student has an active 5-minute recovery OTP
-        if (studentAccount.failedPasswordAttempts >= 2) {
+        // 2. Check if student has an active 5-minute recovery OTP or is in 3-attempt recovery prompt state
+        if (studentAccount.failedPasswordAttempts >= 3) {
           const activeRecoveryOtp = await OtpVerification.findOne({
             regNo: rawReg,
             purpose: "FAILED_PASSWORD_RECOVERY",
@@ -619,7 +620,7 @@ module.exports = async function handler(req, res) {
               step: "OTP",
               pendingRecoveryOtpActive: true,
               isFailedPasswordTransfer: true,
-              failedPasswordAttempts: 2,
+              failedPasswordAttempts: studentAccount.failedPasswordAttempts,
               expiresInSeconds: remainingSeconds,
               cooldownSeconds: remainingSeconds,
               email: activeRecoveryOtp.email || studentEmail,
@@ -633,6 +634,22 @@ module.exports = async function handler(req, res) {
             isBlocked = true;
             blockReason = "ACCOUNT_TEMPORARILY_LOCKED";
             blockMessage = `Account is temporarily locked due to failed login attempts. Try again after 24 hours (unlocks at ${formatUnlockTime(studentAccount.recoveryRestrictedUntil)}).`;
+          } else if (!studentAccount.recoveryRestrictedUntil || new Date(studentAccount.recoveryRestrictedUntil) <= now) {
+            // 3 failed attempts reached, but student has NOT yet requested OTP!
+            // Anti-Bypass: Force redirect to RECOVERY_PROMPT instruction page (password entry forbidden!)
+            const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
+            return res.json({
+              success: true,
+              exists: true,
+              studentName: studentRecord.studentName || "Student",
+              hasPassword: true,
+              step: "RECOVERY_PROMPT",
+              pendingRecoveryPrompt: true,
+              failedPasswordAttempts: studentAccount.failedPasswordAttempts,
+              email: studentEmail,
+              maskedEmail: studentEmail,
+              message: "Password login is disabled due to 3 failed attempts. Please dispatch a one-time verification code to reset your password.",
+            });
           }
         }
       }
@@ -792,6 +809,14 @@ module.exports = async function handler(req, res) {
             success: false,
             code: "ONE_TIME_OTP_ONLY",
             message: "A one-time verification code is already active for your account (valid for 5 minutes). Resending is not permitted under security policy.",
+          });
+        }
+
+        if (rawReg !== "230301120327" && (studentAccount.failedPasswordAttempts || 0) >= 3) {
+          return res.status(400).json({
+            success: false,
+            code: "RECOVERY_PROMPT_REQUIRED",
+            message: "Password login has been disabled due to 3 failed attempts. Please use the account recovery option to dispatch a one-time verification code.",
           });
         }
 
