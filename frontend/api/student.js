@@ -176,6 +176,10 @@ module.exports = async function handler(req, res) {
         const feedback = await Feedback.findById(feedbackId);
         if (!feedback) return res.status(404).json({ message: "Feedback not found" });
         await feedback.deleteOne();
+        feedbacksMemoCache = { data: null, ts: 0 };
+        if (feedback?.regNo) {
+          profileMemoCache.delete(String(feedback.regNo).trim().toUpperCase());
+        }
         try {
           await publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() });
         } catch (e) {
@@ -483,7 +487,7 @@ module.exports = async function handler(req, res) {
     // Full student profile with lean projections for ultra-fast 15ms-25ms response
     const results = await globalDbQueue.run(() =>
       SemesterResult.find({ regNo: cleanRegNo })
-        .select("semester studentName branch batch subjects sgpa")
+        .select("regNo semester studentName branch batch subjects sgpa")
         .sort({ semester: 1 })
         .lean()
     );

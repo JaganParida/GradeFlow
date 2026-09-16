@@ -458,17 +458,18 @@ export default function Dashboard() {
   }, []);
 
   const downloadFullTranscript = async () => {
+    const cleanReg = String(studentData?.regNo || regNo || "").trim().toUpperCase();
     const isFeedbackSubmitted = Boolean(
       studentData?.hasSubmittedFeedback ||
-      (studentData?.regNo && typeof window !== "undefined" && localStorage.getItem(`gf_feedback_unlocked_${String(studentData.regNo).trim().toUpperCase()}`) === "true")
+      (cleanReg && typeof window !== "undefined" && localStorage.getItem(`gf_feedback_unlocked_${cleanReg}`) === "true")
     );
-    if (!adminToken && !isFeedbackSubmitted) {
+    if (!isFeedbackSubmitted) {
       window.dispatchEvent(
         new CustomEvent("open-feedback-modal", {
           detail: {
             from: "gradesheet",
             rating: 5,
-            regNo: studentData?.regNo,
+            regNo: cleanReg,
             studentName: studentData?.studentName,
           },
         })
@@ -2813,6 +2814,7 @@ export default function Dashboard() {
                         result={currentResult}
                         studentData={studentData}
                         highlightedSubject={highlightedSubject}
+                        searchedRegNo={regNo}
                       />
                     </div>
                   )}
@@ -3755,7 +3757,7 @@ export default function Dashboard() {
         {isDownloadingBatch &&
           studentData.results.map((r) => (
             <div key={r.semester} id={`batch-export-sem-${r.semester}`} style={{ background: "#fff", padding: 20 }}>
-              <GradeSheet result={r} studentData={studentData} />
+              <GradeSheet result={r} studentData={studentData} searchedRegNo={regNo} />
             </div>
           ))}
       </div>

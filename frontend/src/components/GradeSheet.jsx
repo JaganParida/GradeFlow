@@ -46,12 +46,14 @@ const GRADE_COLOR = {
   M: "#dc2626",
 };
 
-export default function GradeSheet({ result, studentData, highlightedSubject }) {
+export default function GradeSheet({ result, studentData, highlightedSubject, searchedRegNo }) {
   const sheetRef = useRef();
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
 
   useEffect(() => {
     const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
       if (window.innerWidth < 860) {
         // Default to 35% on standard mobile devices to guarantee no cutoff
         const perfectZoom = window.innerWidth < 500 ? 0.35 : (window.innerWidth - 32) / 820;
@@ -84,13 +86,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
   const allResults = studentData?.results || [];
   const cgpaUpToNow = calculateCGPA(allResults, result.semester);
 
-  const { adminToken } = useApp ? useApp() : {};
-  const isAdminUser = Boolean(
-    adminToken ||
-    (typeof window !== "undefined" && (sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_logged_in")))
-  );
-
-  const displayRegNo = result?.regNo || studentData?.regNo || "";
+  const displayRegNo = result?.regNo || studentData?.regNo || searchedRegNo || "";
   const cleanRegNo = String(displayRegNo).trim().toUpperCase();
   const displayStudentName = result?.studentName || studentData?.studentName || "—";
   const rawBranch = result?.branch || studentData?.branch || "";
@@ -122,7 +118,6 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
   }, [cleanRegNo]);
 
   const isUnlocked = Boolean(
-    isAdminUser ||
     studentData?.hasSubmittedFeedback ||
     hasSubmittedLocally ||
     (cleanRegNo && typeof window !== "undefined" && localStorage.getItem(`gf_feedback_unlocked_${cleanRegNo}`) === "true")
@@ -583,9 +578,10 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
               right: 0,
               bottom: 20,
               display: "flex",
-              alignItems: "center",
+              alignItems: "flex-start",
               justifyContent: "center",
               padding: "16px",
+              paddingTop: isMobile ? 35 : 70,
               zIndex: 30,
               background: "rgba(255, 255, 255, 0.45)",
               backdropFilter: "blur(4px)",
@@ -600,7 +596,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
                 maxWidth: 440,
                 background: "#ffffff",
                 borderRadius: 18,
-                padding: "28px 20px",
+                padding: isMobile ? "22px 18px" : "28px 22px",
                 boxShadow: "0 20px 45px -10px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(226, 232, 240, 0.9)",
                 border: "1px solid #e2e8f0",
                 textAlign: "center",
