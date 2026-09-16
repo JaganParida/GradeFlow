@@ -2557,7 +2557,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
   const [semester, setSemester] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(50);
+  const [limit, setLimit] = useState(20);
   const [expandedRegNo, setExpandedRegNo] = useState(null);
   const [selectedStudentForEmail, setSelectedStudentForEmail] = useState(null);
   const [customEmailInput, setCustomEmailInput] = useState("");
@@ -2566,13 +2566,59 @@ function BacklogTrackerCard({ authHeaders, API }) {
   const [emailErrorMsg, setEmailErrorMsg] = useState("");
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
 
+  const backlogCardRef = useRef(null);
+  const backlogCacheRef = useRef(new Map());
+
+  const handlePageChange = (newPage) => {
+    const target = Math.max(1, Math.min(newPage, data.totalPages || 1));
+    setPage(target);
+    fetchBacklogs(target);
+    if (backlogCardRef.current) {
+      backlogCardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const handleLimitChange = (newLimit) => {
+    if (limit === newLimit) return;
+    setLimit(newLimit);
+    setPage(1);
+    fetchBacklogs(1, search, null, false, newLimit);
+    if (backlogCardRef.current) {
+      backlogCardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const getPageNumbers = () => {
+    const total = data.totalPages || 1;
+    const current = page;
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    const pages = [];
+    if (current <= 4) {
+      for (let i = 1; i <= 5; i++) pages.push(i);
+      pages.push("...");
+      pages.push(total);
+    } else if (current >= total - 3) {
+      pages.push(1);
+      pages.push("...");
+      for (let i = total - 4; i <= total; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      pages.push("...");
+      pages.push(current - 1);
+      pages.push(current);
+      pages.push(current + 1);
+      pages.push("...");
+    }
+    return pages;
+  };
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  const backlogCacheRef = useRef(new Map());
 
   function handleOpenEmailModal(st) {
     setSelectedStudentForEmail(st);
@@ -2651,15 +2697,16 @@ function BacklogTrackerCard({ authHeaders, API }) {
     }
   }
 
-  async function fetchBacklogs(targetPage = page, searchQuery = search, overrideFilters = null, forceRefresh = false) {
+  async function fetchBacklogs(targetPage = page, searchQuery = search, overrideFilters = null, forceRefresh = false, overrideLimit = null) {
     const activeBatch = overrideFilters ? overrideFilters.batch : batch;
     const activeBranch = overrideFilters ? overrideFilters.branch : branch;
     const activeSection = overrideFilters ? overrideFilters.section : section;
     const activeSemester = overrideFilters ? overrideFilters.semester : semester;
     const activeSearch = searchQuery !== undefined ? searchQuery : (overrideFilters ? overrideFilters.search : search);
     const activePage = targetPage || 1;
+    const activeLimit = overrideLimit !== null && overrideLimit !== undefined ? overrideLimit : limit;
 
-    const cacheKey = `${activePage}_${activeBatch}_${activeBranch}_${activeSection}_${activeSemester}_${activeSearch}_${limit}`;
+    const cacheKey = `${activePage}_${activeBatch}_${activeBranch}_${activeSection}_${activeSemester}_${activeSearch}_${activeLimit}`;
     const storageKey = `gf_admin_backlog_${cacheKey}`;
 
     if (!forceRefresh) {
@@ -2686,7 +2733,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
       if (activeSemester) params.append("semester", activeSemester);
       if (activeSearch) params.append("search", activeSearch);
       params.append("page", activePage);
-      params.append("limit", limit);
+      params.append("limit", activeLimit);
 
       const res = await axios.get(`${API}/admin/backlogs?${params}`, authHeaders);
       const resData = res.data || { totalStudentsWithBacklogs: 0, totalBacklogsCount: 0, students: [], totalPages: 1, page: 1 };
@@ -2715,6 +2762,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
 
   return (
     <div
+      ref={backlogCardRef}
       style={{
         background: "#ffffff",
         border: "1px solid #e2e8f0",
@@ -2722,8 +2770,21 @@ function BacklogTrackerCard({ authHeaders, API }) {
         padding: isMobile ? "16px 14px" : "24px 20px",
         marginBottom: 28,
         boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+        scrollMarginTop: 90,
       }}
     >
+      <style>{`
+        .gf-backlog-row {
+          transition: background-color 0.12s ease;
+          contain: layout style;
+        }
+        .gf-backlog-row:hover td {
+          background-color: #f8fafc !important;
+        }
+        .gf-backlog-card-item {
+          contain: content;
+        }
+      `}</style>
       {/* Header Metric Summary */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 20 }}>
         <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 14, padding: "14px 16px" }}>
@@ -2969,6 +3030,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
             return (
               <div
                 key={st.regNo || idx}
+                className="gf-backlog-card-item"
                 style={{
                   background: "#f8fafc",
                   border: isExpanded ? "1.5px solid #fca5a5" : "1px solid #e2e8f0",
@@ -2978,6 +3040,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
                   flexDirection: "column",
                   gap: 10,
                   transition: "border 0.2s",
+                  contain: "content",
                 }}
               >
                 {/* Header Row: Rank, Student Info, Total Backlogs */}
@@ -3176,16 +3239,10 @@ function BacklogTrackerCard({ authHeaders, API }) {
                 return (
                   <Fragment key={st.regNo || idx}>
                     <tr
+                      className="gf-backlog-row"
                       style={{
                         borderBottom: isExpanded ? "none" : "1px solid #f1f5f9",
                         background: isExpanded ? "#fffafb" : "transparent",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isExpanded) e.currentTarget.style.background = "#f8fafc";
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isExpanded) e.currentTarget.style.background = "transparent";
                       }}
                     >
                       <td style={{ padding: "14px 10px", fontWeight: 800, color: "#dc2626" }}>
@@ -3342,21 +3399,73 @@ function BacklogTrackerCard({ authHeaders, API }) {
         </div>
       )}
 
-      {/* Pagination Controls */}
-      {data.totalPages > 1 && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, flexWrap: "wrap", gap: 8 }}>
-          <span style={{ fontSize: 12.5, color: "#64748b" }}>
-            Showing page <strong>{data.page}</strong> of <strong>{data.totalPages}</strong> ({data.totalStudentsWithBacklogs} total students)
+      {/* Enhanced Smooth Pagination Controls */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginTop: 20,
+          paddingTop: 16,
+          borderTop: "1px solid #f1f5f9",
+          flexWrap: "wrap",
+          gap: 12,
+        }}
+      >
+        {/* Left: Range Counter & Per-Page Limit Selector */}
+        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 12.5, color: "#64748b", fontWeight: 500 }}>
+            Showing{" "}
+            <strong style={{ color: "#0f172a" }}>
+              {data.totalStudentsWithBacklogs > 0 ? (page - 1) * limit + 1 : 0}
+            </strong>{" "}
+            -{" "}
+            <strong style={{ color: "#0f172a" }}>
+              {Math.min(page * limit, data.totalStudentsWithBacklogs || 0)}
+            </strong>{" "}
+            of{" "}
+            <strong style={{ color: "#0f172a" }}>
+              {(data.totalStudentsWithBacklogs || 0).toLocaleString()}
+            </strong>{" "}
+            students
           </span>
-          <div style={{ display: "flex", gap: 6 }}>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Per page:</span>
+            {[20, 50, 100].map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => handleLimitChange(l)}
+                style={{
+                  padding: "3px 9px",
+                  borderRadius: 6,
+                  border: limit === l ? "1.5px solid #4f46e5" : "1px solid #cbd5e1",
+                  background: limit === l ? "#eff6ff" : "#ffffff",
+                  color: limit === l ? "#4f46e5" : "#475569",
+                  fontSize: 12,
+                  fontWeight: limit === l ? 700 : 500,
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Right: Modern Responsive Pagination with Next/Prev & Number Chips */}
+        {data.totalPages > 1 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
             <button
-              disabled={page <= 1}
-              onClick={() => {
-                const prev = Math.max(1, page - 1);
-                setPage(prev);
-                fetchBacklogs(prev);
-              }}
+              type="button"
+              disabled={page <= 1 || loading}
+              onClick={() => handlePageChange(page - 1)}
               style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
                 padding: "6px 12px",
                 borderRadius: 8,
                 border: "1px solid #e2e8f0",
@@ -3364,19 +3473,68 @@ function BacklogTrackerCard({ authHeaders, API }) {
                 color: page <= 1 ? "#94a3b8" : "#0f172a",
                 fontSize: 12,
                 fontWeight: 600,
-                cursor: page <= 1 ? "not-allowed" : "pointer",
+                cursor: page <= 1 || loading ? "not-allowed" : "pointer",
+                transition: "all 0.15s ease",
               }}
             >
-              Previous
+              <ChevronLeft size={14} />
+              <span>Previous</span>
             </button>
+
+            {/* Page number buttons */}
+            {!isMobile &&
+              getPageNumbers().map((num, idx) => {
+                if (num === "...") {
+                  return (
+                    <span key={`dots-${idx}`} style={{ padding: "0 4px", color: "#94a3b8", fontSize: 13, fontWeight: 700 }}>
+                      ...
+                    </span>
+                  );
+                }
+                const isActive = num === page;
+                return (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => handlePageChange(num)}
+                    disabled={loading}
+                    style={{
+                      minWidth: 32,
+                      height: 32,
+                      padding: "0 6px",
+                      borderRadius: 8,
+                      border: isActive ? "1px solid #4f46e5" : "1px solid #e2e8f0",
+                      background: isActive ? "#4f46e5" : "#ffffff",
+                      color: isActive ? "#ffffff" : "#334155",
+                      fontSize: 12.5,
+                      fontWeight: isActive ? 700 : 500,
+                      cursor: loading ? "wait" : "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: isActive ? "0 2px 6px rgba(79, 70, 229, 0.25)" : "none",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {num}
+                  </button>
+                );
+              })}
+
+            {isMobile && (
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#334155", padding: "0 6px" }}>
+                {page} / {data.totalPages}
+              </span>
+            )}
+
             <button
-              disabled={page >= data.totalPages}
-              onClick={() => {
-                const next = page + 1;
-                setPage(next);
-                fetchBacklogs(next);
-              }}
+              type="button"
+              disabled={page >= data.totalPages || loading}
+              onClick={() => handlePageChange(page + 1)}
               style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
                 padding: "6px 12px",
                 borderRadius: 8,
                 border: "1px solid #e2e8f0",
@@ -3384,14 +3542,16 @@ function BacklogTrackerCard({ authHeaders, API }) {
                 color: page >= data.totalPages ? "#94a3b8" : "#0f172a",
                 fontSize: 12,
                 fontWeight: 600,
-                cursor: page >= data.totalPages ? "not-allowed" : "pointer",
+                cursor: page >= data.totalPages || loading ? "not-allowed" : "pointer",
+                transition: "all 0.15s ease",
               }}
             >
-              Next
+              <span>Next</span>
+              <ChevronRight size={14} />
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Backlog Notification Email Modal */}
       <AnimatePresence>
@@ -3917,6 +4077,7 @@ export default function AdminDashboard({ defaultTab = null }) {
           setAdminCache("gf_admin_toppers_2023_CSE_Sec A_", data.toppers, AdminCacheScopes.TOPPERS);
         }
         if (data.backlogs && Array.isArray(data.backlogs.students) && data.backlogs.students.length > 0) {
+          setAdminCache("gf_admin_backlog_1______20", data.backlogs, AdminCacheScopes.BACKLOGS);
           setAdminCache("gf_admin_backlog_1______50", data.backlogs, AdminCacheScopes.BACKLOGS);
         }
         if (data.timetable) {

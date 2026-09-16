@@ -566,8 +566,8 @@ async function getSectionToppersData({ batch = "2023", branch = "CSE", section =
   return result;
 }
 
-async function getBacklogsData({ batch = "", branch = "", section = "", semester = "", search = "", page = 1, limit = 50 } = {}) {
-  const isDefault = !batch && !branch && !section && !semester && !search && page === 1 && limit === 50;
+async function getBacklogsData({ batch = "", branch = "", section = "", semester = "", search = "", page = 1, limit = 20 } = {}) {
+  const isDefault = !batch && !branch && !section && !semester && !search && page === 1 && (Number(limit) === 20 || Number(limit) === 50);
   if (isDefault && defaultBacklogsCache && (Date.now() - defaultBacklogsCacheTime < BACKLOGS_CACHE_TTL_MS)) {
     return defaultBacklogsCache;
   }
@@ -594,11 +594,11 @@ async function getBacklogsData({ batch = "", branch = "", section = "", semester
       students: [],
       totalPages: 1,
       page: Number(page) || 1,
-      limit: Number(limit) || 50,
+      limit: Number(limit) || 20,
       pagination: {
         total: 0,
         page: Number(page) || 1,
-        limit: Number(limit) || 50,
+        limit: Number(limit) || 20,
         pages: 1,
       },
     };
@@ -850,7 +850,7 @@ async function getAdminBootstrapData(adminUser) {
       },
     ]).catch(() => []),
     getSectionToppersData({ batch: "2023", branch: "CSE", section: "Sec A", limit: 10 }).catch(() => ({ totalToppers: 0, students: [] })),
-    getBacklogsData({ page: 1, limit: 50 }).catch(() => ({ totalStudentsWithBacklogs: 0, totalBacklogsCount: 0, students: [], totalPages: 1, page: 1 })),
+    getBacklogsData({ page: 1, limit: 20 }).catch(() => ({ totalStudentsWithBacklogs: 0, totalBacklogsCount: 0, students: [], totalPages: 1, page: 1 })),
     TimetableSchedule.find({}, "scheduleId batch branch section title isLiveCustomPublished updatedAt")
       .sort({ updatedAt: -1 }).limit(50).lean().catch(() => []),
     TrafficQueueConfig.findOne({ key: "global_queue_config" }).lean().catch(() => null),

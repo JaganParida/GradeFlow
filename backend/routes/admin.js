@@ -1697,7 +1697,7 @@ router.delete("/results/:regNo/:semester", protect, requirePermission("results.d
 // Get backlog students breakdown & leaderboard for admin
 router.get("/backlogs", protect, requirePermission("backlogs.view", "backlogs", "backlogs.view"), validateAcademicFilters, async (req, res) => {
   try {
-    const { batch, branch, section, semester, search, page = 1, limit = 50 } = req.query;
+    const { batch, branch, section, semester, search, page = 1, limit = 20 } = req.query;
 
     const semCandidateFilter = {
       "subjects.grade": { $in: ["F", "R", "M", "S", "f", "r", "m", "s"] },
@@ -1721,7 +1721,7 @@ router.get("/backlogs", protect, requirePermission("backlogs.view", "backlogs", 
         students: [],
         totalPages: 1,
         page: Number(page) || 1,
-        limit: Number(limit) || 50,
+        limit: Number(limit) || 20,
       });
     }
 

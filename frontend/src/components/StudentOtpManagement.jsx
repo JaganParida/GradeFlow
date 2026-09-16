@@ -477,8 +477,8 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
     }
   };
 
-  const fetchAdminSessions = async () => {
-    return fetchAdminDetails();
+  const fetchAdminSessions = async (forceRefresh = false) => {
+    return fetchAdminDetails(forceRefresh);
   };
 
   const fetchSubAdminDetails = async (subAdminId = null, forceRefresh = false) => {
@@ -2246,7 +2246,13 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             </p>
           </div>
           <button
-            onClick={() => fetchAccounts(directorySearch, directoryFilter)}
+            onClick={() => {
+              fetchAccounts(directorySearch, directoryFilter, true);
+              fetchAdminSessions(true);
+              if (studentData?.regNo) {
+                handleSearchWithReg(studentData.regNo);
+              }
+            }}
             disabled={accountsLoading}
             style={{
               display: "inline-flex",
@@ -2263,7 +2269,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             }}
           >
             <RefreshCw size={isMob ? 12 : 13} className={accountsLoading ? "spin" : ""} />
-            <span>Refresh</span>
+            <span>{accountsLoading ? "Refreshing..." : "Refresh"}</span>
           </button>
         </div>
 
