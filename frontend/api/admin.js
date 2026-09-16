@@ -690,13 +690,10 @@ module.exports = async function handler(req, res) {
     }
     const admin = authResult.admin;
 
-    // 0. Handle Spreadsheet Uploads on Serverless (Route alignment)
-    if (action === "upload-endpoint" || cleanUrl.includes("/upload")) {
-      return res.status(400).json({
-        success: false,
-        message: "Spreadsheet file uploads require the persistent Express backend container. Please ensure VITE_API_URL points to the backend deployment.",
-        code: "BACKEND_SERVICE_REQUIRED",
-      });
+    // 0. Handle Spreadsheet Uploads on Serverless
+    if (action === "upload-endpoint" || cleanUrl.includes("/upload") || (action && action.startsWith("upload-"))) {
+      const uploadHandler = require("./admin-upload");
+      return uploadHandler(req, res);
     }
 
     // 0b. UNIFIED ADMIN BOOTSTRAP (1-Roundtrip Full State Hydration for All Admin Subtabs)
