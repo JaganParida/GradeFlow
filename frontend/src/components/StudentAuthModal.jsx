@@ -558,7 +558,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         document.removeEventListener("visibilitychange", handleVisibilityChange);
         try {
           if (approvalChannel) approvalChannel.unsubscribe();
-          if (ably) ably.close();
+          if (ably) {
+            const p = ably.close();
+            if (p && typeof p.catch === "function") p.catch(() => {});
+          }
         } catch {}
       };
     }
@@ -567,7 +570,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       clearInterval(timerInterval);
       try {
         if (approvalChannel) approvalChannel.unsubscribe();
-        if (ably) ably.close();
+        if (ably) {
+          const p = ably.close();
+          if (p && typeof p.catch === "function") p.catch(() => {});
+        }
       } catch {}
     };
   }, [step, approvalRequestId]);

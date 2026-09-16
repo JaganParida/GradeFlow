@@ -37,6 +37,19 @@ document.addEventListener(
   },
   false,
 );
+// Suppress benign WebSocket closure rejections from Ably / background transports
+if (typeof window !== "undefined") {
+  window.addEventListener("unhandledrejection", (event) => {
+    const msg = event?.reason?.message || String(event?.reason || "");
+    if (
+      msg.includes("Connection closed") ||
+      msg.includes("WebSocket is closed") ||
+      msg.includes("Connection failed")
+    ) {
+      event.preventDefault();
+    }
+  });
+}
 // ────────────────────────────────
 
 ReactDOM.createRoot(document.getElementById("root")).render(

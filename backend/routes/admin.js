@@ -2093,10 +2093,21 @@ async function getAdminBootstrapData(adminUser) {
     SemesterResult.aggregate([
       {
         $group: {
-          _id: { $ifNull: ["$batch", "Other"] },
+          _id: {
+            batch: { $ifNull: ["$batch", "Other"] },
+            semester: "$semester",
+          },
           totalResults: { $sum: 1 },
-          semesters: { $addToSet: "$semester" },
           uniqueStudents: { $addToSet: "$regNo" },
+        },
+      },
+      {
+        $project: {
+          batch: "$_id.batch",
+          semester: "$_id.semester",
+          totalResults: 1,
+          studentCount: { $size: "$uniqueStudents" },
+          uniqueStudents: 1,
         },
       },
     ]).catch(() => []),
@@ -2141,48 +2152,92 @@ async function getAdminBootstrapData(adminUser) {
   let totalInternalCount = 0;
 
   batchStatsResults.forEach((item) => {
-    const b = item._id || "Other";
+    const b = item.batch || "Other";
     if (!batchMap.has(b)) {
       batchMap.set(b, {
         batch: b,
-        totalStudents: item.uniqueStudents ? item.uniqueStudents.length : 0,
+        totalStudents: 0,
+        uniqueStudentsSet: new Set(),
         totalRankedStudents: 0,
-        totalResults: item.totalResults || 0,
+        totalResults: 0,
         totalInternal: 0,
         totalRankings: 0,
-        semBreakdown: (item.semesters || [])
-          .map((s) => ({ semester: Number(s), studentCount: 0 }))
-          .filter((x) => !isNaN(x.semester))
-          .sort((a, b) => a.semester - b.semester),
+        semBreakdown: [],
       });
     }
+    const entry = batchMap.get(b);
+    const semNum = Number(item.semester);
+    if (!isNaN(semNum) && semNum > 0) {
+      entry.semBreakdown.push({
+        semester: semNum,
+        studentCount: typeof item.studentCount === "number" ? item.studentCount : (item.uniqueStudents ? item.uniqueStudents.length : 0),
+      });
+    }
+    entry.totalResults += item.totalResults || 0;
     totalResultsCount += item.totalResults || 0;
-    (item.uniqueStudents || []).forEach((r) => allUniqueStudents.add(r));
+    (item.uniqueStudents || []).forEach((r) => {
+      entry.uniqueStudentsSet.add(r);
+      allUniqueStudents.add(r);
+    });
   });
 
   batchStatsRankings.forEach((item) => {
     const b = item._id || "Other";
     let entry = batchMap.get(b);
     if (!entry) {
-      entry = { batch: b, totalStudents: item.uniqueStudents?.length || 0, totalRankedStudents: 0, totalResults: 0, totalInternal: 0, totalRankings: 0, semBreakdown: [] };
+      entry = {
+        batch: b,
+        totalStudents: 0,
+        uniqueStudentsSet: new Set(),
+        totalRankedStudents: 0,
+        totalResults: 0,
+        totalInternal: 0,
+        totalRankings: 0,
+        semBreakdown: [],
+      };
       batchMap.set(b, entry);
     }
     entry.totalRankedStudents = item.uniqueStudents ? item.uniqueStudents.length : 0;
     entry.totalRankings = item.totalRankings || 0;
     totalRankingsCount += item.totalRankings || 0;
-    (item.uniqueStudents || []).forEach((r) => allUniqueStudents.add(r));
+    (item.uniqueStudents || []).forEach((r) => {
+      if (entry.uniqueStudentsSet) entry.uniqueStudentsSet.add(r);
+      allUniqueStudents.add(r);
+    });
   });
 
   batchStatsInternal.forEach((item) => {
     const b = item._id || "Other";
     let entry = batchMap.get(b);
     if (!entry) {
-      entry = { batch: b, totalStudents: item.uniqueStudents?.length || 0, totalRankedStudents: 0, totalResults: 0, totalInternal: 0, totalRankings: 0, semBreakdown: [] };
+      entry = {
+        batch: b,
+        totalStudents: 0,
+        uniqueStudentsSet: new Set(),
+        totalRankedStudents: 0,
+        totalResults: 0,
+        totalInternal: 0,
+        totalRankings: 0,
+        semBreakdown: [],
+      };
       batchMap.set(b, entry);
     }
     entry.totalInternal = item.totalInternal || 0;
     totalInternalCount += item.totalInternal || 0;
-    (item.uniqueStudents || []).forEach((r) => allUniqueStudents.add(r));
+    (item.uniqueStudents || []).forEach((r) => {
+      if (entry.uniqueStudentsSet) entry.uniqueStudentsSet.add(r);
+      allUniqueStudents.add(r);
+    });
+  });
+
+  batchMap.forEach((entry) => {
+    if (entry.uniqueStudentsSet) {
+      entry.totalStudents = entry.uniqueStudentsSet.size;
+      delete entry.uniqueStudentsSet;
+    }
+    if (Array.isArray(entry.semBreakdown)) {
+      entry.semBreakdown.sort((a, b) => a.semester - b.semester);
+    }
   });
 
   const batchBreakdown = Array.from(batchMap.values()).sort((a, b) => {
@@ -2196,10 +2251,11 @@ async function getAdminBootstrapData(adminUser) {
   const stats = {
     totalAccountsCreated: totalAccountsCreated || 0,
     activeLoggedInCount,
+    totalStudents: allUniqueStudents.size,
+    uniqueStudentsCount: allUniqueStudents.size,
     totalResults: totalResultsCount,
     totalInternal: totalInternalCount,
     totalRankings: totalRankingsCount,
-    uniqueStudentsCount: allUniqueStudents.size,
     batchBreakdown,
   };
 

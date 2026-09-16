@@ -4333,7 +4333,7 @@ export default function AdminDashboard({ defaultTab = null }) {
                 label: "Academic Records",
                 sublabel: "Total Students in DB",
                 mobileSublabel: "Total in DB",
-                value: (stats.totalStudents ?? 0).toLocaleString(),
+                value: ((stats.totalStudents ?? stats.uniqueStudentsCount) ?? 0).toLocaleString(),
                 icon: <Users size={isMobile ? 15 : 18} color="#6366f1" />,
                 bg: "#eef2ff",
                 border: "#e0e7ff",

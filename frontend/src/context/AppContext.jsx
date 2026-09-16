@@ -836,7 +836,8 @@ export function AppProvider({ children }) {
       }
       if (globalAbly) {
         try {
-          globalAbly.close();
+          const p = globalAbly.close();
+          if (p && typeof p.catch === "function") p.catch(() => {});
         } catch (_) {}
       }
     };
@@ -1077,7 +1078,10 @@ export function AppProvider({ children }) {
         if (broadcastChannel) broadcastChannel.unsubscribe();
         if (ably) {
           try { ably.connection?.off(); } catch (_) {}
-          try { ably.close(); } catch (_) {}
+          try {
+            const p = ably.close();
+            if (p && typeof p.catch === "function") p.catch(() => {});
+          } catch (_) {}
         }
       } catch {}
     };

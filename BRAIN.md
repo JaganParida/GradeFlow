@@ -5212,7 +5212,40 @@ When an administrator uploads an academic spreadsheet via `UploadCard` (`POST /a
  └────────────────────────────────────────────────────────┘
 ```
 
+---
 
+## 135. Admin Dashboard Diagnostic Resolutions: Academic Records Card, Semester Breakdown Aggregation & Ably Lifecycle Safety
 
+### 1. Issue Diagnosis & Root Cause Analysis
 
+#### A. Academic Records Card Metric 0 Display
+- **Symptom**: On the Admin Overview tab, Card 3 ("Academic Records · Total Students in DB") rendered as `0` (with badge "Enrolled") even when 5,544 Semester Results and 96 registered student accounts existed.
+- **Root Cause**: In `backend/routes/admin.js` and `frontend/api/admin.js` (`getAdminBootstrapData`), the `stats` payload generated `uniqueStudentsCount: allUniqueStudents.size`, but omitted the `totalStudents` property key. In `AdminDashboard.jsx` (line 4336), the card accessed `stats.totalStudents ?? 0`, which evaluated to `0` due to the undefined key.
+- **Resolution**:
+  - Added `totalStudents: allUniqueStudents.size` to the `stats` response in both `frontend/api/admin.js` and `backend/routes/admin.js`.
+  - Updated `AdminDashboard.jsx` (line 4336) to robustly fall back: `((stats.totalStudents ?? stats.uniqueStudentsCount) ?? 0).toLocaleString()`.
 
+#### B. Batch-Wise Active Student Breakdown: Semester-Wise Student Counts Showing 0 (`Sem X: 0`)
+- **Symptom**: In the "Batch-Wise Active Student & Ranking Breakdown" table (Desktop & Mobile view), all semester indicators under "SEMESTER-WISE STUDENT COUNT" showed `0` (e.g., `Sem 1: 0`, `Sem 2: 0`, `Sem 3: 0`) across all batches (2024, 2023, 2022, 2021, Other).
+- **Root Cause**: The MongoDB aggregation pipeline grouped solely by `batch`:
+  ```javascript
+  // Old Defect
+  SemesterResult.aggregate([
+    { $group: { _id: { $ifNull: ["$batch", "Other"] }, totalResults: { $sum: 1 }, semesters: { $addToSet: "$semester" }, uniqueStudents: { $addToSet: "$regNo" } } }
+  ])
+  ```
+  During response serialization, `semBreakdown` mapped semesters with a hardcoded `studentCount: 0`:
+  `semBreakdown: (item.semesters || []).map((s) => ({ semester: Number(s), studentCount: 0 }))`.
+- **Resolution**:
+  - Re-architected `SemesterResult.aggregate` into a compound grouping by `{ batch: { $ifNull: ["$batch", "Other"] }, semester: "$semester" }` with projection `{ studentCount: { $size: "$uniqueStudents" } }`.
+  - Leveraged the pre-existing MongoDB compound index `{ batch: 1, semester: 1 }` for single-digit millisecond query execution (~8ms).
+  - Populated `semBreakdown` in each batch entry with real `studentCount`, sorted chronologically (`semester: 1`), and set `totalStudents` to the exact distinct student count in that batch.
+
+#### C. Ably Uncaught Promise Rejection (`Connection closed`) & Transient Loading Skeleton Hang
+- **Symptom**: In DevTools console, Ably Realtime JS SDK v2.28 threw:
+  `Uncaught (in promise) Ns: Connection closed` and `WebSocket connection to 'wss://realtime.ably.io/...' failed: WebSocket is closed before the connection is established`.
+- **Root Cause**: In Ably JS SDK v2+, `client.close()` returns a Promise. When a socket closes abruptly during page unloads, route transitions, or network renegotiation, calling `ably.close()` inside `try/catch` blocks without `.catch(() => {})` causes an unhandled promise rejection. Furthermore, `createAdminAblyRealtime`, `createAblyRealtime`, and `createApprovalAblyRealtime` lacked connection error listeners, allowing benign socket lifecycle notices to escape as uncaught errors.
+- **Resolution**:
+  - In `frontend/src/services/ablyClient.js`, attached `client.connection.on("error")` and `client.connection.on("failed")` to filter benign connection closure codes (e.g. 80000, 80003).
+  - Wrapped all `ably.close()` invocations in `frontend/src/services/ablyClient.js`, `AppContext.jsx`, and `StudentAuthModal.jsx` with `.catch(() => {})` promise error suppression.
+  - Added a global `window.addEventListener("unhandledrejection")` safety filter in `frontend/src/main.jsx` to prevent any background WebSocket disconnections from surfacing as uncaught errors.

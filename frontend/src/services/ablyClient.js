@@ -7,35 +7,59 @@ import Ably from "ably";
  */
 export function createAblyRealtime(regNo, options = {}) {
   const cleanReg = String(regNo || "").trim().toUpperCase();
-  return new Ably.Realtime({
+  const client = new Ably.Realtime({
     authUrl: "/api/auth/realtime-token",
     authParams: cleanReg ? { regNo: cleanReg } : {},
     closeOnUnload: true,
     ...options,
   });
+  client.connection.on("error", (err) => {
+    if (err?.message?.includes("closed") || err?.code === 80003 || err?.code === 80000) return;
+    console.warn("[Ably] Connection notice:", err?.message || err);
+  });
+  client.connection.on("failed", (err) => {
+    console.warn("[Ably] Connection failed notice:", err?.message || err);
+  });
+  return client;
 }
 
 /**
  * Creates an Ably Realtime client for waiting device approval requests.
  */
 export function createApprovalAblyRealtime(requestId, options = {}) {
-  return new Ably.Realtime({
+  const client = new Ably.Realtime({
     authUrl: "/api/auth/realtime-token",
     authParams: { requestId },
     closeOnUnload: true,
     ...options,
   });
+  client.connection.on("error", (err) => {
+    if (err?.message?.includes("closed") || err?.code === 80003 || err?.code === 80000) return;
+    console.warn("[AblyApproval] Connection notice:", err?.message || err);
+  });
+  client.connection.on("failed", (err) => {
+    console.warn("[AblyApproval] Connection failed notice:", err?.message || err);
+  });
+  return client;
 }
 
 /**
  * Creates an Ably Realtime client for the Admin portal with token authentication.
  */
 export function createAdminAblyRealtime(options = {}) {
-  return new Ably.Realtime({
+  const client = new Ably.Realtime({
     authUrl: "/api/auth/realtime-token",
     closeOnUnload: true,
     ...options,
   });
+  client.connection.on("error", (err) => {
+    if (err?.message?.includes("closed") || err?.code === 80003 || err?.code === 80000) return;
+    console.warn("[AdminAbly] Connection notice:", err?.message || err);
+  });
+  client.connection.on("failed", (err) => {
+    console.warn("[AdminAbly] Connection failed notice:", err?.message || err);
+  });
+  return client;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -116,7 +140,10 @@ export function subscribeAdminChannel(channelName, eventOrHandler, handler) {
 export function closeSharedAdminAbly() {
   if (sharedAdminAbly) {
     try {
-      sharedAdminAbly.close();
+      const p = sharedAdminAbly.close();
+      if (p && typeof p.catch === "function") {
+        p.catch(() => {});
+      }
     } catch (_) {}
     sharedAdminAbly = null;
   }
