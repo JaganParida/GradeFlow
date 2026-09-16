@@ -3873,8 +3873,19 @@ export default function AdminDashboard({ defaultTab = null }) {
   async function fetchAdminBootstrap(forceRefresh = false) {
     if (!forceRefresh) {
       const cachedStats = getAdminCache("gf_admin_stats_cache");
-      if (cachedStats) {
+      const isStale = Boolean(
+        cachedStats &&
+        (!cachedStats.totalStudents ||
+          cachedStats.batchBreakdown?.some(
+            (b) => b.totalStudents > 0 && b.semBreakdown?.some((s) => s.studentCount === 0)
+          ))
+      );
+      if (cachedStats && !isStale) {
         setStats(cachedStats);
+      } else if (isStale) {
+        try {
+          sessionStorage.removeItem("gf_admin_stats_cache");
+        } catch {}
       }
     }
 
@@ -3928,7 +3939,7 @@ export default function AdminDashboard({ defaultTab = null }) {
     } catch (err) {
       console.warn("fetchAdminBootstrap fallback notice:", err.message);
       if (!adminProfile) fetchAdminProfile();
-      fetchStats(forceRefresh);
+      fetchStats(true);
     }
   }
 
@@ -4019,7 +4030,14 @@ export default function AdminDashboard({ defaultTab = null }) {
   async function fetchStats(forceRefresh = false) {
     if (!forceRefresh) {
       const cached = getAdminCache("gf_admin_stats_cache");
-      if (cached) {
+      const isStale = Boolean(
+        cached &&
+        (!cached.totalStudents ||
+          cached.batchBreakdown?.some(
+            (b) => b.totalStudents > 0 && b.semBreakdown?.some((s) => s.studentCount === 0)
+          ))
+      );
+      if (cached && !isStale) {
         setStats(cached);
         return;
       }
@@ -4029,8 +4047,10 @@ export default function AdminDashboard({ defaultTab = null }) {
       const headers = getAuthHeaders();
       const url = forceRefresh ? `${API}/admin/stats?force=true` : `${API}/admin/stats`;
       const { data } = await axios.get(url, headers);
-      setStats(data);
-      setAdminCache("gf_admin_stats_cache", data, AdminCacheScopes.STATS);
+      if (data) {
+        setStats(data);
+        setAdminCache("gf_admin_stats_cache", data, AdminCacheScopes.STATS);
+      }
     } catch (err) {
       console.warn("fetchStats notice:", err.message);
     }
@@ -4094,6 +4114,10 @@ export default function AdminDashboard({ defaultTab = null }) {
     setClearCacheErr("");
     setClearCacheLoading(true);
     try {
+      try {
+        sessionStorage.removeItem("gf_admin_stats_cache");
+        invalidateAdminCache(AdminCacheScopes.ALL);
+      } catch {}
       const { data } = await axios.post(
         `${API}/admin/cache/clear`,
         {},
@@ -4101,7 +4125,7 @@ export default function AdminDashboard({ defaultTab = null }) {
       );
       setClearCacheMsg(data.message || "Server cache cleared successfully.");
       setTimeout(() => setClearCacheMsg(""), 5000);
-      fetchStats(true);
+      await fetchAdminBootstrap(true);
     } catch (e) {
       setClearCacheErr(e.response?.data?.message || "Failed to clear cache");
       setTimeout(() => setClearCacheErr(""), 5000);

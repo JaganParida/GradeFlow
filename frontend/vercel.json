@@ -188,6 +188,10 @@
       "destination": "/api/subadmins.js?id=:id&action=revoke"
     },
     {
+      "source": "/api/admin/bootstrap",
+      "destination": "/api/admin.js?action=bootstrap"
+    },
+    {
       "source": "/api/admin/stats",
       "destination": "/api/admin.js?action=stats"
     },

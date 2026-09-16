@@ -709,7 +709,14 @@ module.exports = async function handler(req, res) {
     if (action === "stats" || cleanUrl.includes("/stats")) {
       const isForce = req.query.force === "true" || req.query.refresh === "true";
       const now = Date.now();
-      if (!isForce && statsCache && (now - statsCacheTimestamp < STATS_CACHE_TTL_MS)) {
+      const isCacheStale = Boolean(
+        statsCache &&
+        (!statsCache.totalStudents ||
+          statsCache.batchBreakdown?.some(
+            (b) => b.totalStudents > 0 && b.semBreakdown?.some((s) => s.studentCount === 0)
+          ))
+      );
+      if (!isForce && !isCacheStale && statsCache && (now - statsCacheTimestamp < STATS_CACHE_TTL_MS)) {
         return res.json(statsCache);
       }
 
@@ -717,6 +724,13 @@ module.exports = async function handler(req, res) {
       statsCache = bootstrapData.stats;
       statsCacheTimestamp = now;
       return res.json(statsCache);
+    }
+
+    // 1A. POST /cache/clear
+    if (action === "cache-clear" || cleanUrl.includes("/cache/clear")) {
+      statsCache = null;
+      statsCacheTimestamp = 0;
+      return res.json({ success: true, message: "Server cache cleared successfully." });
     }
 
     // 1B. GET /student-accounts

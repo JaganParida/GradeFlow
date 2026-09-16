@@ -4347,10 +4347,21 @@ const [
   SemesterResult.aggregate([
     {
       $group: {
-        _id: { $ifNull: ["$batch", "Other"] },
+        _id: {
+          batch: { $ifNull: ["$batch", "Other"] },
+          semester: "$semester",
+        },
         totalResults: { $sum: 1 },
-        semesters: { $addToSet: "$semester" },
         uniqueStudents: { $addToSet: "$regNo" },
+      },
+    },
+    {
+      $project: {
+        batch: "$_id.batch",
+        semester: "$_id.semester",
+        totalResults: 1,
+        studentCount: { $size: "$uniqueStudents" },
+        uniqueStudents: 1,
       },
     },
   ]).catch(() => []),
@@ -4408,6 +4419,32 @@ if (data && data.success) {
   if (data.feedback) setAdminCache("gf_admin_feedback_cache", data.feedback, AdminCacheScopes.FEEDBACK);
 }
 ```
+
+### Vercel Serverless Routing & Stale-Cache Self-Healing Architecture:
+1. **Explicit Vercel Rewrites (`frontend/vercel.json`)**:
+   In Vercel production, sub-paths under `/api/admin/` (such as `/api/admin/bootstrap` and `/api/admin/cache/clear`) must be explicitly declared in `vercel.json` rewrites mapping to `/api/admin.js?action=...`. Without these explicit rewrite entries, Vercel SPA routing rules cascade unmapped `/api/admin/*` paths to `/index.html` (HTTP 200 SPA text/html), causing JSON parsers to abort silently.
+   ```json
+   { "source": "/api/admin/bootstrap", "destination": "/api/admin.js?action=bootstrap" },
+   { "source": "/api/admin/stats", "destination": "/api/admin.js?action=stats" },
+   { "source": "/api/admin/cache/clear", "destination": "/api/admin.js?action=cache-clear" }
+   ```
+2. **Client-Side Stale Cache Self-Healing (`AdminDashboard.jsx`)**:
+   If an administrator's browser has previously cached a zero-student count in `sessionStorage` (`gf_admin_stats_cache`), the client automatically validates data integrity upon mount:
+   ```javascript
+   const isStale = Boolean(
+     cachedStats &&
+     (!cachedStats.totalStudents ||
+       cachedStats.batchBreakdown?.some(
+         (b) => b.totalStudents > 0 && b.semBreakdown?.some((s) => s.studentCount === 0)
+       ))
+   );
+   if (isStale) {
+     sessionStorage.removeItem("gf_admin_stats_cache");
+     fetchStats(true); // Force bypass and fetch fresh state
+   }
+   ```
+3. **Lambda In-Memory Guard**:
+   In `frontend/api/admin.js`, serverless container warm memory verifies that `statsCache` contains non-zero semester breakdowns; if an anomalous zero count is detected or `force=true` is requested, it executes the fresh compound MongoDB aggregation immediately.
 
 ---
 

@@ -2359,6 +2359,17 @@ router.get("/stats", protect, async (req, res) => {
   }
 });
 
+// POST /cache/clear — Clear server in-memory caches
+router.post("/cache/clear", protect, async (req, res) => {
+  try {
+    clearStudentCache();
+    res.json({ success: true, message: "Server cache cleared successfully." });
+  } catch (err) {
+    console.error("Cache clear error:", err);
+    res.status(500).json({ success: false, message: "Failed to clear cache" });
+  }
+});
+
 // GET /student-accounts — Live Registered Student Accounts & Active Sessions Directory
 router.get("/student-accounts", protect, async (req, res) => {
   try {
