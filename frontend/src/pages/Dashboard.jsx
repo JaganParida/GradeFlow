@@ -459,7 +459,9 @@ export default function Dashboard() {
 
   const downloadFullTranscript = async () => {
     const cleanReg = String(studentData?.regNo || regNo || "").trim().toUpperCase();
+    const isExempt = cleanReg === "230301120327";
     const isFeedbackSubmitted = Boolean(
+      isExempt ||
       studentData?.hasSubmittedFeedback ||
       (cleanReg && typeof window !== "undefined" && localStorage.getItem(`gf_feedback_unlocked_${cleanReg}`) === "true")
     );

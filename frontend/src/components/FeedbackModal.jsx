@@ -258,7 +258,7 @@ export default function FeedbackModal() {
               position: "relative",
               width: "100%",
               maxWidth: 480,
-              maxHeight: "min(90vh, 600px)",
+              maxHeight: "min(92vh, 680px)",
               display: "flex",
               flexDirection: "column",
               background: "#ffffff",
@@ -347,7 +347,7 @@ export default function FeedbackModal() {
             <div
               className="gf-modal-scrollable"
               style={{
-                padding: "18px 20px",
+                padding: "16px 18px 24px 18px",
                 overflowY: "auto",
                 WebkitOverflowScrolling: "touch",
                 overscrollBehavior: "contain",
@@ -621,6 +621,7 @@ export default function FeedbackModal() {
                       alignItems: "center",
                       gap: 10,
                       paddingTop: 6,
+                      paddingBottom: 6,
                     }}
                   >
                     <button
