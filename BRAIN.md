@@ -496,43 +496,50 @@ All 22 core test scenarios must pass without regressions:
 
 ---
 
-## 11A. Normal Student 2-Failed-Password Protocol, 5-Minute One-Time Recovery OTP & 24-Hour Lockout Engine
+## 11A. Normal Student 3-Failed-Password Protocol, Dedicated Recovery Prompt & Anti-Bypass Guard
 
 ### 11A.1 Workflow & State Transitions
 For all normal students (`rawReg !== "230301120327"`):
-1. **First Failed Password:**
+1. **First Failed Password Attempt:**
    - Increments `failedPasswordAttempts` to 1.
-   - Returns HTTP 401: `Incorrect password. 1 attempt remaining.`
-2. **Second Failed Password:**
+   - Returns HTTP 401: `Incorrect password. 2 attempts remaining.`
+2. **Second Failed Password Attempt:**
    - Increments `failedPasswordAttempts` to 2.
-   - Sets `recoveryRestrictedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000)` (24-hour lockout).
-   - Generates a 6-digit one-time recovery OTP valid for exactly 5 minutes (`expiresAt = new Date(Date.now() + 5 * 60 * 1000)`).
-   - Dispatches OTP to university email.
-   - Response payload:
+   - Returns HTTP 401: `Incorrect password. 1 attempt remaining.`
+3. **Third Failed Password Attempt (Dedicated Intermediate Screen - NO Auto OTP):**
+   - Increments `failedPasswordAttempts` to 3.
+   - Does **NOT** automatically dispatch OTP or start 24-hour lockout timer.
+   - Returns:
      ```json
      {
-       "success": false,
+       "success": true,
+       "step": "RECOVERY_PROMPT",
        "code": "FAILED_ATTEMPTS_EXCEEDED",
-       "step": "OTP",
-       "oneTimeOtpOnly": true,
-       "cooldownRemaining": 300,
-       "maskedEmail": "s***@cutm.ac.in",
-       "message": "Maximum failed password attempts reached. A one-time verification code has been sent to your email (valid for 5 minutes). After verification, you can set a new password."
+       "message": "Maximum password attempts reached (3/3). Please request a one-time verification code to reset your password.",
+       "regNo": "...",
+       "email": "...",
+       "maskedEmail": "..."
      }
      ```
-3. **Resend Prevention (`ONE_TIME_OTP_ONLY`):**
-   - Resending recovery OTP is strictly forbidden. Attempting to call `/student/send-otp` returns HTTP 400:
-     `"A one-time verification code is already active for your account (valid for 5 minutes). Resending is not permitted under security policy."`
-   - UI resend button is permanently disabled with caption *"Single-use code (No resend)"*.
-4. **Anti-Bypass Guard (Page 1 Interception):**
-   - If a student tries to bypass the OTP screen by refreshing or navigating back to Page 1 and re-entering their registration number:
-     - **If 5-Minute OTP is Active:** `/student/check-status` detects `pendingRecoveryOtpActive` and returns `step: "OTP"` with remaining countdown seconds. The frontend immediately redirects to the OTP verification screen. Password entry is unreachable.
-     - **If 5-Minute OTP has Expired:** `/student/check-status` detects `recoveryRestrictedUntil > Date.now()` and returns `isBlocked: true`, `code: "ACCOUNT_TEMPORARILY_LOCKED"`, and `unlockAt`. The frontend displays the temporary lockout screen showing the exact unlock time.
-5. **Password Overwrite & Lockout Clearance:**
-   - Once verified, student enters new password and confirmation.
-   - `/student/reset-password` hashes new password with bcrypt (12 rounds) and atomically clears:
-     `{ failedPasswordAttempts: 0, lastFailedPasswordAt: null, recoveryRestrictedUntil: null, recoveryOtpSentAt: null }`.
-   - Creates a fresh `StudentSession` and issues HttpOnly auth cookies immediately.
+   - Frontend renders dedicated, high-security `RECOVERY_PROMPT` card with masked email, warning that password login is disabled, policy details, and a primary button: **"Send One-Time OTP to Email"**.
+4. **Explicit Trigger for Recovery OTP (`POST /api/auth/student/send-recovery-otp`):**
+   - OTP is dispatched **only when the student explicitly clicks the button**.
+   - Validates `failedPasswordAttempts >= 3`.
+   - Starts 24-hour lockout window: `recoveryRestrictedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000)`.
+   - Generates 6-digit OTP valid for 5 minutes (`expiresAt = new Date(Date.now() + 5 * 60 * 1000)`).
+   - Dispatches OTP to registered university email.
+   - Transitions frontend to `step = "OTP"` with 5-minute countdown.
+5. **Anti-Bypass Protection (Page 1 Interception):**
+   - If a student tries to bypass the recovery flow by navigating back to Page 1 or refreshing and re-entering their registration number:
+     - **If 3 attempts failed but OTP not yet dispatched:** `/student/check-status` detects `failedPasswordAttempts >= 3` and returns `step: "RECOVERY_PROMPT"`, `pendingRecoveryPrompt: true`. The modal immediately redirects back to the recovery instruction screen. Password entry is completely inaccessible. Direct calls to `login-password` are blocked.
+     - **If 5-Minute Recovery OTP is Active:** `/student/check-status` detects `pendingRecoveryOtpActive` and returns `step: "OTP"` with active countdown seconds. The frontend immediately redirects to the OTP verification screen.
+     - **If 5-Minute OTP has Expired:** `/student/check-status` detects `recoveryRestrictedUntil > Date.now()` and returns `isBlocked: true, code: "ACCOUNT_TEMPORARILY_LOCKED"`, displaying the exact unlock time (IST).
+     - **After 24 Hours Elapsed:** Counters auto-reset (`failedPasswordAttempts = 0`, `recoveryRestrictedUntil = null`); student can log in with password with fresh 3 attempts.
+6. **Password Overwrite & Lockout Clearance:**
+   - Once verified, student enters new password and confirmation in `student/create-password`.
+   - Password is saved, and lockout state is cleared atomically:
+     `{ failedPasswordAttempts: 0, lastFailedPasswordAt: null, recoveryRestrictedUntil: null, recoveryOtpCount: 0, recoveryOtpSentAt: null }`.
+   - Creates a fresh `StudentSession` and logs student in immediately.
 
 ---
 
