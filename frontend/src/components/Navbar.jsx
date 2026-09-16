@@ -2277,30 +2277,20 @@ export default function Navbar() {
         .gf-desktop-nav {
           display: flex;
           align-items: center;
-          gap: 20px !important;
-          flex-shrink: 1;
-          min-width: 0;
-          margin: 0 auto;
+          gap: 16px !important;
+          flex-shrink: 0;
         }
         .gf-desktop-nav a, .gf-desktop-nav button {
           white-space: nowrap !important;
           font-size: 13.5px !important;
-          padding: 6px 9px !important;
+          padding: 6px 3px !important;
           flex-shrink: 0;
           text-decoration: none;
-          border-radius: 8px !important;
-          transition: color 0.18s cubic-bezier(0.16, 1, 0.3, 1),
-                      background-color 0.18s cubic-bezier(0.16, 1, 0.3, 1),
-                      transform 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
+          background: transparent !important;
+          transition: color 0.2s ease !important;
         }
         .gf-desktop-nav a:hover, .gf-desktop-nav button:hover {
           color: #2563eb !important;
-          background: rgba(37, 99, 235, 0.07) !important;
-          transform: translateY(-1px);
-        }
-        .gf-desktop-nav a:active, .gf-desktop-nav button:active {
-          transform: translateY(0);
-          background: rgba(37, 99, 235, 0.12) !important;
         }
         .gf-navbar-right {
           display: flex;
@@ -2351,19 +2341,16 @@ export default function Navbar() {
         /* Large screens fluid scaling */
         @media (max-width: 1440px) {
           .gf-desktop-nav {
-            gap: 12px !important;
-          }
-          .gf-desktop-nav a, .gf-desktop-nav button {
-            padding: 6px 7px !important;
+            gap: 13px !important;
           }
         }
         @media (max-width: 1360px) {
           .gf-desktop-nav {
-            gap: 8px !important;
+            gap: 9px !important;
           }
           .gf-desktop-nav a, .gf-desktop-nav button {
             font-size: 13px !important;
-            padding: 5px 6px !important;
+            padding: 5px 2px !important;
           }
           .gf-portal-full-text {
             display: none !important;
@@ -2375,13 +2362,13 @@ export default function Navbar() {
             gap: 8px !important;
           }
         }
-        @media (max-width: 1240px) {
+        @media (max-width: 1260px) {
           .gf-desktop-nav {
-            gap: 5px !important;
+            gap: 6px !important;
           }
           .gf-desktop-nav a, .gf-desktop-nav button {
             font-size: 12.5px !important;
-            padding: 4px 5px !important;
+            padding: 4px 1px !important;
           }
         }
 
@@ -2391,7 +2378,7 @@ export default function Navbar() {
         }
 
         /* Seamless switch to mobile navigation drawer */
-        @media (max-width: 1180px) {
+        @media (max-width: 1200px) {
           .gf-desktop-nav {
             display: none !important;
           }
