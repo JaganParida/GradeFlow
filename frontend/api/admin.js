@@ -212,10 +212,17 @@ async function syncRankingsMetadataAndBroadcast(semester = null) {
   }
 }
 
-async function generateRankingForSemester(semester, preloadedAllResults = null, shouldBroadcast = true) {
+async function generateRankingForSemester(semester, preloadedAllResults = null, shouldBroadcast = true, targetBatch = null) {
   const semNum = Number(semester);
-  const allResults = preloadedAllResults || (await SemesterResult.find({}).lean());
-  const semResults = allResults.filter((r) => Number(r.semester) === semNum);
+  let allResults = preloadedAllResults;
+  if (!allResults) {
+    const query = { semester: { $lte: semNum } };
+    if (targetBatch) {
+      query.batch = String(targetBatch).trim();
+    }
+    allResults = await SemesterResult.find(query, "regNo studentName branch batch semester subjects totalCredits creditsCleared sgpa").lean();
+  }
+  const semResults = allResults.filter((r) => Number(r.semester) === semNum && (!targetBatch || (r.batch || "") === String(targetBatch).trim()));
   if (!semResults.length) return;
 
   const resultsByRegNo = new Map();
@@ -1182,8 +1189,9 @@ module.exports = async function handler(req, res) {
         );
       }
 
-      // Recalculate CGPA for all semesters of this student
+      // Recalculate CGPA for all semesters of this student via a single bulk write
       const allStudentResults = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 });
+      const bulkUpdateOps = [];
       for (const r of allStudentResults) {
         const sNum = Number(r.semester);
         const metrics = calculateSemesterMetrics(r.subjects, sNum);
@@ -1191,19 +1199,36 @@ module.exports = async function handler(req, res) {
         r.creditsCleared = metrics.creditsCleared;
         r.sgpa = metrics.sgpa;
         r.cgpa = calculateCGPA(allStudentResults, sNum);
-        r.markModified("subjects");
-        await r.save();
+        bulkUpdateOps.push({
+          updateOne: {
+            filter: { _id: r._id },
+            update: {
+              $set: {
+                totalCredits: r.totalCredits,
+                creditsCleared: r.creditsCleared,
+                sgpa: r.sgpa,
+                cgpa: r.cgpa,
+              },
+            },
+          },
+        });
+      }
+      if (bulkUpdateOps.length > 0) {
+        await SemesterResult.bulkWrite(bulkUpdateOps);
       }
 
-      // Update ranking for this semester
-      await generateRankingForSemester(semNum);
+      // Update ranking for this semester targeted to this batch
+      const studentBatch = batch || detectBatch(cleanRegNo);
+      await generateRankingForSemester(semNum, null, true, studentBatch).catch((e) =>
+        console.error("[UpdateSemesterRecord] Ranking regen error:", e?.message || e)
+      );
 
       // Notify this student in real-time across active tabs/devices (<1s)
       await publishStudentRealtimeEvent(cleanRegNo, "results-updated", {
         regNo: cleanRegNo,
         semester: semNum,
         timestamp: Date.now(),
-      });
+      }).catch(() => {});
 
       return res.json({
         success: true,
@@ -1267,31 +1292,52 @@ module.exports = async function handler(req, res) {
       semResult.totalCredits = currentSemMetrics.totalCredits;
       semResult.creditsCleared = currentSemMetrics.creditsCleared;
       semResult.sgpa = currentSemMetrics.sgpa;
-      semResult.markModified("subjects");
-      await semResult.save();
 
-      // Recalculate CGPA for all semesters of this student
+      // Recalculate CGPA for all semesters of this student via a single bulk write
       const allStudentResults = await SemesterResult.find({ regNo: trimmedRegNo }).sort({ semester: 1 });
+      const bulkUpdateOps = [];
       for (const r of allStudentResults) {
         const sNum = Number(r.semester);
+        if (sNum === semNum) {
+          r.subjects = semResult.subjects;
+        }
         const metrics = calculateSemesterMetrics(r.subjects, sNum);
         r.totalCredits = metrics.totalCredits;
         r.creditsCleared = metrics.creditsCleared;
         r.sgpa = metrics.sgpa;
         r.cgpa = calculateCGPA(allStudentResults, sNum);
-        r.markModified("subjects");
-        await r.save();
+        bulkUpdateOps.push({
+          updateOne: {
+            filter: { _id: r._id },
+            update: {
+              $set: {
+                subjects: r.subjects,
+                totalCredits: r.totalCredits,
+                creditsCleared: r.creditsCleared,
+                sgpa: r.sgpa,
+                cgpa: r.cgpa,
+              },
+            },
+          },
+        });
       }
 
-      // Update ranking for this semester
-      await generateRankingForSemester(semNum).catch(() => {});
+      if (bulkUpdateOps.length > 0) {
+        await SemesterResult.bulkWrite(bulkUpdateOps);
+      }
+
+      // Update ranking for this semester targeted to this batch
+      const studentBatch = semResult.batch || detectBatch(trimmedRegNo);
+      await generateRankingForSemester(semNum, null, true, studentBatch).catch((e) =>
+        console.error("[UpdateGrade] Ranking regen error:", e?.message || e)
+      );
 
       // Notify this student in real-time across active tabs/devices (<1s)
       await publishStudentRealtimeEvent(trimmedRegNo, "results-updated", {
         regNo: trimmedRegNo,
         semester: semNum,
         timestamp: Date.now(),
-      });
+      }).catch(() => {});
 
       return res.json({
         success: true,
@@ -1321,6 +1367,7 @@ module.exports = async function handler(req, res) {
 
       const remainingResults = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 });
       if (remainingResults.length > 0) {
+        const bulkUpdateOps = [];
         for (const r of remainingResults) {
           const sNum = Number(r.semester);
           const metrics = calculateSemesterMetrics(r.subjects, sNum);
@@ -1328,19 +1375,36 @@ module.exports = async function handler(req, res) {
           r.creditsCleared = metrics.creditsCleared;
           r.sgpa = metrics.sgpa;
           r.cgpa = calculateCGPA(remainingResults, sNum);
-          r.markModified("subjects");
-          await r.save();
+          bulkUpdateOps.push({
+            updateOne: {
+              filter: { _id: r._id },
+              update: {
+                $set: {
+                  totalCredits: r.totalCredits,
+                  creditsCleared: r.creditsCleared,
+                  sgpa: r.sgpa,
+                  cgpa: r.cgpa,
+                },
+              },
+            },
+          });
+        }
+        if (bulkUpdateOps.length > 0) {
+          await SemesterResult.bulkWrite(bulkUpdateOps);
         }
       }
 
-      await generateRankingForSemester(semNum);
+      const studentBatch = delRes.batch || detectBatch(cleanRegNo);
+      await generateRankingForSemester(semNum, null, true, studentBatch).catch((e) =>
+        console.error("[DeleteResult] Ranking regen error:", e?.message || e)
+      );
 
       // Notify this student in real-time across active tabs/devices (<1s)
       await publishStudentRealtimeEvent(cleanRegNo, "results-updated", {
         regNo: cleanRegNo,
         semester: semNum,
         timestamp: Date.now(),
-      });
+      }).catch(() => {});
 
       return res.json({
         success: true,
@@ -1350,7 +1414,18 @@ module.exports = async function handler(req, res) {
 
     // 10. POST /rankings/regenerate-all
     if (action === "regenerate-all" || cleanUrl.includes("/rankings/regenerate-all")) {
-      const allSemesterResults = await SemesterResult.find({}).lean();
+      const targetSem = req.body?.semester || req.query?.semester;
+      const targetBatch = req.body?.batch || req.query?.batch;
+
+      const semQuery = {};
+      if (targetSem) semQuery.semester = Number(targetSem);
+      if (targetBatch) semQuery.batch = String(targetBatch).trim();
+
+      const allSemesterResults = await SemesterResult.find(
+        semQuery,
+        "regNo studentName branch batch semester subjects totalCredits creditsCleared sgpa"
+      ).lean();
+
       if (!allSemesterResults.length) {
         return res.status(404).json({ message: "No semester results found" });
       }
@@ -1358,7 +1433,7 @@ module.exports = async function handler(req, res) {
       const semesters = [...new Set(allSemesterResults.map((r) => Number(r.semester)))].filter((s) => !isNaN(s) && s > 0).sort((a, b) => a - b);
 
       for (const sem of semesters) {
-        await generateRankingForSemester(sem, allSemesterResults, false);
+        await generateRankingForSemester(sem, allSemesterResults, false, targetBatch || null);
       }
 
       statsCache = null;

@@ -30,7 +30,7 @@ const VercelQuotaMetric = require("../models/VercelQuotaMetric");
 const StudentNotification = require("../models/StudentNotification");
 const SystemConfig = require("../models/SystemConfig");
 const { getActiveSessions, getMaxAllowedDevices } = require("../utils/sessionManager");
-const { publishAdminRealtimeEvent } = require("../utils/ablyService");
+const { publishAdminRealtimeEvent, broadcastRealtimeEvent } = require("../utils/ablyService");
 const { isBatchExpired, purgeExpiredBatches } = require("../utils/batchLifecycle");
 const { clearStudentCache } = require("./student");
 const {
@@ -160,10 +160,17 @@ function detectBranch(regNo) {
 }
 
 // Helper to generate rankings for a specific semester
-async function generateRankingForSemester(semester, preloadedAllResults = null) {
+async function generateRankingForSemester(semester, preloadedAllResults = null, targetBatch = null) {
   const semNum = Number(semester);
-  const allResults = preloadedAllResults || (await SemesterResult.find({}).lean());
-  const semResults = allResults.filter((r) => Number(r.semester) === semNum);
+  let allResults = preloadedAllResults;
+  if (!allResults) {
+    const query = { semester: { $lte: semNum } };
+    if (targetBatch) {
+      query.batch = String(targetBatch).trim();
+    }
+    allResults = await SemesterResult.find(query, "regNo studentName branch batch semester subjects totalCredits creditsCleared sgpa").lean();
+  }
+  const semResults = allResults.filter((r) => Number(r.semester) === semNum && (!targetBatch || (r.batch || "") === String(targetBatch).trim()));
   if (!semResults.length) return;
 
   const resultsByRegNo = new Map();
@@ -643,15 +650,21 @@ router.post(
         subsequentSemesters.forEach((s) => affectedSemesters.add(Number(s)));
       }
 
-      // Automatically generate rankings for affected and cascaded semesters
+      // Automatically generate rankings for affected and cascaded semesters targeted to this batch
       const sortedSemesters = Array.from(affectedSemesters).sort((a, b) => a - b);
       for (const sem of sortedSemesters) {
-        await generateRankingForSemester(sem);
+        await generateRankingForSemester(sem, null, formBatch || null);
       }
 
       // CRITICAL: Invalidate cache for all uploaded students so Dashboard/Analytics
       // immediately reflect the new data instead of serving stale cached responses
       allRegNos.forEach((rn) => clearStudentCache(rn));
+
+      // Broadcast real-time event to all connected student and admin devices
+      await broadcastRealtimeEvent("rankings-updated", {
+        semesters: sortedSemesters,
+        timestamp: Date.now(),
+      }).catch(() => {});
 
       res.json({
         message: `Successfully uploaded ${count} student semester record(s) and auto-updated rankings & CGPA!`,
@@ -1305,29 +1318,44 @@ router.post("/student/update-grade", protect, requirePermission("students.update
     }
     semResult.markModified("subjects");
 
-    // Save target semester result first
-    await semResult.save();
-
-    // Cascading Recalculation: Fetch ALL semester records for this student
+    // Cascading Recalculation: Fetch ALL semester records for this student and update via bulkWrite
     const allStudentResults = await SemesterResult.find({ regNo: trimmedRegNo }).sort({ semester: 1 });
-
-    // Recalculate SGPA, CGPA, totalCredits, and creditsCleared sequentially for ALL semesters of this student
+    const bulkUpdateOps = [];
     for (const r of allStudentResults) {
       const semNumber = Number(r.semester);
+      if (semNumber === semNum) {
+        r.subjects = semResult.subjects;
+      }
       const metrics = calculateSemesterMetrics(r.subjects, semNumber);
       r.totalCredits = metrics.totalCredits;
       r.creditsCleared = metrics.creditsCleared;
       r.sgpa = metrics.sgpa;
       r.cgpa = calculateCGPA(allStudentResults, semNumber);
-      r.markModified("subjects");
-      await r.save();
+      bulkUpdateOps.push({
+        updateOne: {
+          filter: { _id: r._id },
+          update: {
+            $set: {
+              subjects: r.subjects,
+              totalCredits: r.totalCredits,
+              creditsCleared: r.creditsCleared,
+              sgpa: r.sgpa,
+              cgpa: r.cgpa,
+            },
+          },
+        },
+      });
     }
 
-    // Automatically regenerate rankings for ALL semesters where this student has uploaded records
-    const affectedSemesters = [...new Set(allStudentResults.map((r) => Number(r.semester)))];
-    for (const sem of affectedSemesters) {
-      await generateRankingForSemester(sem);
+    if (bulkUpdateOps.length > 0) {
+      await SemesterResult.bulkWrite(bulkUpdateOps);
     }
+
+    // Automatically regenerate rankings for the affected semester targeted to this batch
+    const studentBatch = semResult.batch || (semResult.regNo ? `20${semResult.regNo.slice(0, 2)}` : null);
+    await generateRankingForSemester(semNum, null, studentBatch).catch((e) =>
+      console.error("[Backend UpdateGrade] Ranking regen error:", e?.message || e)
+    );
 
     // Clear in-memory student cache globally so all endpoints (backlogs, leaderboards, profiles, stats) update instantly
     clearStudentCache();
@@ -1511,8 +1539,9 @@ router.post("/student/update-semester-record", protect, requirePermission("stude
       );
     }
 
-    // Cascading Recalculation across ALL semesters for this student
+    // Cascading Recalculation across ALL semesters for this student via bulkWrite
     const allStudentResults = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 });
+    const bulkUpdateOps = [];
 
     for (const r of allStudentResults) {
       const sNum = Number(r.semester);
@@ -1521,15 +1550,30 @@ router.post("/student/update-semester-record", protect, requirePermission("stude
       r.creditsCleared = metrics.creditsCleared;
       r.sgpa = metrics.sgpa;
       r.cgpa = calculateCGPA(allStudentResults, sNum);
-      r.markModified("subjects");
-      await r.save();
+      bulkUpdateOps.push({
+        updateOne: {
+          filter: { _id: r._id },
+          update: {
+            $set: {
+              totalCredits: r.totalCredits,
+              creditsCleared: r.creditsCleared,
+              sgpa: r.sgpa,
+              cgpa: r.cgpa,
+            },
+          },
+        },
+      });
     }
 
-    // Automatically regenerate rankings for all semesters where this student has records
-    const affectedSemesters = [...new Set(allStudentResults.map((r) => Number(r.semester)))];
-    for (const sem of affectedSemesters) {
-      await generateRankingForSemester(sem);
+    if (bulkUpdateOps.length > 0) {
+      await SemesterResult.bulkWrite(bulkUpdateOps);
     }
+
+    // Automatically regenerate rankings for this semester targeted to this batch
+    const studentBatch = batch || semResult.batch || (cleanRegNo ? `20${cleanRegNo.slice(0, 2)}` : null);
+    await generateRankingForSemester(semNum, null, studentBatch).catch((e) =>
+      console.error("[Backend UpdateSemesterRecord] Ranking regen error:", e?.message || e)
+    );
 
     // Clear in-memory student cache globally so all endpoints return fresh data
     clearStudentCache();
@@ -1599,8 +1643,10 @@ router.delete("/results/:regNo/:semester", protect, requirePermission("results.d
 
     // Fetch remaining semester results for cascading CGPA recalculation
     const remainingResults = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 });
+    const studentBatch = delRes.batch || (cleanRegNo ? `20${cleanRegNo.slice(0, 2)}` : null);
 
     if (remainingResults.length > 0) {
+      const bulkUpdateOps = [];
       for (const r of remainingResults) {
         const sNum = Number(r.semester);
         const metrics = calculateSemesterMetrics(r.subjects, sNum);
@@ -1608,21 +1654,32 @@ router.delete("/results/:regNo/:semester", protect, requirePermission("results.d
         r.creditsCleared = metrics.creditsCleared;
         r.sgpa = metrics.sgpa;
         r.cgpa = calculateCGPA(remainingResults, sNum);
-        r.markModified("subjects");
-        await r.save();
+        bulkUpdateOps.push({
+          updateOne: {
+            filter: { _id: r._id },
+            update: {
+              $set: {
+                totalCredits: r.totalCredits,
+                creditsCleared: r.creditsCleared,
+                sgpa: r.sgpa,
+                cgpa: r.cgpa,
+              },
+            },
+          },
+        });
       }
-      // Regenerate rankings for remaining semesters
-      const remainingSems = remainingResults.map((r) => Number(r.semester));
-      for (const s of remainingSems) {
-        await generateRankingForSemester(s);
+      if (bulkUpdateOps.length > 0) {
+        await SemesterResult.bulkWrite(bulkUpdateOps);
       }
     } else {
       // If student has no more semester results, remove from Student collection
       await Student.findOneAndDelete({ regNo: cleanRegNo });
     }
 
-    // Recompute competition rankings for the deleted semester so other students' ranks rebalance accurately
-    await generateRankingForSemester(semNum);
+    // Recompute competition rankings for the deleted semester targeted to this batch so other students' ranks rebalance accurately
+    await generateRankingForSemester(semNum, null, studentBatch).catch((e) =>
+      console.error("[Backend DeleteResult] Ranking regen error:", e?.message || e)
+    );
 
     // Invalidate student cache globally
     clearStudentCache();

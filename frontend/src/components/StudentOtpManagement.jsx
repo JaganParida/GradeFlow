@@ -1252,7 +1252,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 {activeTab === "admin" ? "Administrator Identity" : activeTab === "subadmin" ? "Sub-Admin Identity" : "Student Identity"}
               </div>
               <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}>
-                {displayTarget.studentName}
+                {displayTarget.studentName || displayTarget.name || (activeTab === "admin" ? "Institutional Administrator" : "Sub-Administrator")}
               </div>
               <div style={{ fontSize: 12.5, fontWeight: 700, color: "#4f46e5" }}>
                 {displayTarget.regNo}
@@ -3022,7 +3022,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                   <span style={{ color: "#64748b" }}>
                     {activeTab === "admin" ? "Admin Account:" : activeTab === "subadmin" ? "Sub-Admin Account:" : "Student Reg No:"}
                   </span>
-                  <strong style={{ color: "#0f172a" }}>{displayTarget.regNo} ({displayTarget.studentName})</strong>
+                  <strong style={{ color: "#0f172a" }}>{displayTarget.regNo || displayTarget.email || "Admin"} ({displayTarget.studentName || displayTarget.name || "Administrator"})</strong>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "#64748b" }}>Today's Usage Change:</span>
@@ -3186,7 +3186,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                   <span style={{ color: "#64748b" }}>
                     {activeTab === "admin" ? "Admin Account:" : activeTab === "subadmin" ? "Sub-Admin Account:" : "Student Reg No:"}
                   </span>
-                  <strong style={{ color: "#0f172a" }}>{displayTarget.regNo} ({displayTarget.studentName})</strong>
+                  <strong style={{ color: "#0f172a" }}>{displayTarget.regNo || displayTarget.email || "Admin"} ({displayTarget.studentName || displayTarget.name || "Administrator"})</strong>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "#64748b" }}>Target Device:</span>

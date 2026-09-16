@@ -334,6 +334,9 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
   // Reset to loaded original data
   function handleReset() {
     setEditableSubjects(JSON.parse(JSON.stringify(originalSubjects)));
+    setEditStudentName(studentMeta?.studentName || "");
+    setEditBranch(studentMeta?.branch || "");
+    setEditBatch(studentMeta?.batch || "");
     setErrorMsg("");
     setSuccessMsg("");
   }
@@ -343,39 +346,34 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
     if (!editableSubjects || editableSubjects.length === 0) {
       return { totalWeighted: 0, totalCredits: 0, creditsCleared: 0, creditsForDivisor: 0, sgpa: 0, backlogs: 0 };
     }
-    const metrics = calculateSemesterMetrics(editableSubjects, selectedSem);
-    const backlogsCount = editableSubjects.filter((s) =>
-      FAIL_GRADES.includes(normalizeGrade(s.grade))
-    ).length;
 
-    return {
-      ...metrics,
-      backlogs: backlogsCount,
-    };
+    return calculateSemesterMetrics(editableSubjects, selectedSem);
   }, [editableSubjects, selectedSem]);
 
-  // Real-Time Live Cumulative CGPA calculation across all semesters
-  const liveCGPA = useMemo(() => {
-    if (!studentMeta || !allSemestersHistory) return liveMetrics.sgpa;
-
-    // Create simulated all semesters array
-    const simAll = allSemestersHistory.map((s) => {
-      if (Number(s.semester) === Number(selectedSem)) {
+  // Progressive Simulated CGPA
+  const progressiveSimulatedCGPA = useMemo(() => {
+    const simAll = (allSemestersHistory || []).map((h) => {
+      if (Number(h.semester) === Number(selectedSem)) {
         return {
-          ...s,
+          ...h,
           subjects: editableSubjects,
-          semester: Number(selectedSem),
+          sgpa: liveMetrics.sgpa,
+          totalCredits: liveMetrics.totalCredits,
+          creditsCleared: liveMetrics.creditsCleared,
         };
       }
-      return s;
+      return h;
     });
 
-    // If current sem was not in history, append it
-    const exists = simAll.some((s) => Number(s.semester) === Number(selectedSem));
-    if (!exists) {
+    const hasCurrent = simAll.some((h) => Number(h.semester) === Number(selectedSem));
+    if (!hasCurrent) {
       simAll.push({
-        semester: Number(selectedSem),
+        semester: selectedSem,
+        regNo: studentMeta?.regNo,
         subjects: editableSubjects,
+        sgpa: liveMetrics.sgpa,
+        totalCredits: liveMetrics.totalCredits,
+        creditsCleared: liveMetrics.creditsCleared,
       });
     }
 
@@ -384,8 +382,12 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
 
   // Check if there are unsaved changes
   const hasUnsavedChanges = useMemo(() => {
-    return JSON.stringify(editableSubjects) !== JSON.stringify(originalSubjects);
-  }, [editableSubjects, originalSubjects]);
+    const subjectsChanged = JSON.stringify(editableSubjects) !== JSON.stringify(originalSubjects);
+    const nameChanged = (editStudentName || "").trim() !== (studentMeta?.studentName || "").trim();
+    const branchChanged = (editBranch || "").trim() !== (studentMeta?.branch || "").trim();
+    const batchChanged = (editBatch || "").trim() !== (studentMeta?.batch || "").trim();
+    return subjectsChanged || nameChanged || branchChanged || batchChanged;
+  }, [editableSubjects, originalSubjects, editStudentName, editBranch, editBatch, studentMeta]);
 
   // Save / Update Handler
   async function handleSaveSemesterRecord(e) {
@@ -412,8 +414,8 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
         setErrorMsg(`Row #${i + 1}: Subject Name cannot be empty.`);
         return;
       }
-      if (isNaN(Number(s.credit)) || Number(s.credit) <= 0) {
-        setErrorMsg(`Row #${i + 1} (${s.subName || "Subject"}): Credit must be a valid positive number.`);
+      if (isNaN(Number(s.credit)) || Number(s.credit) < 0) {
+        setErrorMsg(`Row #${i + 1} (${s.subName || "Subject"}): Credit must be a valid non-negative number.`);
         return;
       }
       const normGrade = normalizeGrade(s.grade);
@@ -817,12 +819,48 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
                     Reg: {studentMeta.regNo}
                   </span>
                   <span style={{ color: "#cbd5e1" }}>•</span>
-                  <span style={{ fontSize: 12.5, color: "#64748b" }}>
-                    Branch: <strong>{studentMeta.branch || "CSE"}</strong> (Sec {studentMeta.section || "—"})
+                  <span style={{ fontSize: 12.5, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    Branch:
+                    <input
+                      type="text"
+                      value={editBranch}
+                      onChange={(e) => setEditBranch(e.target.value)}
+                      placeholder="Branch"
+                      style={{
+                        width: 58,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: "#0f172a",
+                        border: "1px solid #cbd5e1",
+                        background: "#ffffff",
+                        padding: "1px 5px",
+                        borderRadius: 4,
+                        textTransform: "uppercase",
+                      }}
+                      title="Click to edit branch"
+                    />
+                    (Sec {studentMeta.section || "—"})
                   </span>
                   <span style={{ color: "#cbd5e1" }}>•</span>
-                  <span style={{ fontSize: 12.5, color: "#64748b" }}>
-                    Batch: <strong>{studentMeta.batch || "2023-27"}</strong>
+                  <span style={{ fontSize: 12.5, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    Batch:
+                    <input
+                      type="text"
+                      value={editBatch}
+                      onChange={(e) => setEditBatch(e.target.value)}
+                      placeholder="Batch"
+                      style={{
+                        width: 76,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: "#0f172a",
+                        border: "1px solid #cbd5e1",
+                        background: "#ffffff",
+                        padding: "1px 5px",
+                        borderRadius: 4,
+                      }}
+                      title="Click to edit batch"
+                    />
                   </span>
                 </div>
               </div>

@@ -215,7 +215,7 @@ function UploadCard({
     try {
       const fd = new FormData();
       fd.append("file", file);
-      Object.entries(extra).forEach(([k, v]) => fd.append(k, v));
+      Object.entries(payload).forEach(([k, v]) => fd.append(k, v));
 
       const { data } = await axios.post(`${API}/admin/${endpoint}`, fd, {
         ...authHeaders,
@@ -380,7 +380,16 @@ function UploadCard({
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
-            setFile(e.dataTransfer.files[0]);
+            const dropped = e.dataTransfer.files[0];
+            if (dropped) {
+              const lower = dropped.name.toLowerCase();
+              if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
+                setFile(dropped);
+                setErr("");
+              } else {
+                setErr("Only .xlsx and .xls Excel files are supported.");
+              }
+            }
           }}
         >
           <input
@@ -1284,7 +1293,7 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
   }, [searchQuery]);
 
   // Fetch student details by Reg No
-  async function fetchStudent(regNoToFetch) {
+  async function fetchStudent(regNoToFetch, preserveState = false) {
     const targetRegNo = regNoToFetch || selectedRegNo || searchQuery;
     if (!targetRegNo || !targetRegNo.trim()) {
       setErr("Please enter or select a Registration Number.");
@@ -1293,10 +1302,12 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
 
     setLoadingStudent(true);
     setErr("");
-    setMsg("");
-    setStudentDetails(null);
-    setSelectedSem("");
-    setSelectedSubjectCode("");
+    if (!preserveState) {
+      setMsg("");
+      setStudentDetails(null);
+      setSelectedSem("");
+      setSelectedSubjectCode("");
+    }
 
     try {
       const { data } = await axios.get(
@@ -1308,7 +1319,7 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
       setSearchQuery(data.regNo);
       setStudentSuggestions([]);
 
-      if (data.semesters && data.semesters.length > 0) {
+      if (!preserveState && data.semesters && data.semesters.length > 0) {
         const latestSem = data.semesters[data.semesters.length - 1].semester;
         setSelectedSem(String(latestSem));
       }
@@ -1370,7 +1381,7 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
 
       setMsg(data.message);
       setTimeout(() => setMsg(""), 6000);
-      await fetchStudent(selectedRegNo);
+      await fetchStudent(selectedRegNo, true);
       if (onSuccess) onSuccess();
     } catch (e) {
       setErr(e.response?.data?.message || "Failed to update grade");
@@ -1432,7 +1443,6 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
-                  setSelectedRegNo(e.target.value);
                 }}
                 style={{
                   width: "100%",
@@ -2689,6 +2699,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
   }
 
   useEffect(() => {
+    setPage(1);
     fetchBacklogs(1);
   }, [batch, branch, section, semester, limit]);
 
@@ -2765,10 +2776,16 @@ function BacklogTrackerCard({ authHeaders, API }) {
                   const val = e.target.value;
                   setSearch(val);
                   if (val === "") {
+                    setPage(1);
                     fetchBacklogs(1, "");
                   }
                 }}
-                onKeyDown={(e) => e.key === "Enter" && fetchBacklogs(1, search)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    setPage(1);
+                    fetchBacklogs(1, search);
+                  }
+                }}
                 style={{
                   width: "100%",
                   padding: "8px 12px 8px 32px",
@@ -3582,7 +3599,7 @@ function FeedbackManager({ authHeaders, API }) {
     }
     setLoading(true);
     try {
-      const { data } = await axios.get(`${API}/feedback`);
+      const { data } = await axios.get(`${API}/feedback`, authHeaders);
       feedbackCacheRef.current = data;
       setAdminCache("gf_admin_feedback_cache", data, AdminCacheScopes.FEEDBACK);
       setFeedbacks(data);
@@ -3602,6 +3619,7 @@ function FeedbackManager({ authHeaders, API }) {
       setTimeout(() => setMsg(""), 3000);
     } catch (e) {
       setErr(e.response?.data?.message || "Failed to delete");
+      setTimeout(() => setErr(""), 4000);
     }
   }
 
@@ -3628,6 +3646,55 @@ function FeedbackManager({ authHeaders, API }) {
           </span>
         </div>
       </div>
+
+      <AnimatePresence>
+        {err && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            style={{
+              color: "#991b1b",
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              borderLeft: "3.5px solid #ef4444",
+              padding: "8px 12px",
+              borderRadius: 8,
+              fontSize: 12.5,
+              marginBottom: 14,
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+            }}
+          >
+            <AlertTriangle size={14} color="#ef4444" />
+            <span>{err}</span>
+          </motion.div>
+        )}
+        {msg && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            style={{
+              color: "#065f46",
+              background: "#ecfdf5",
+              border: "1px solid #a7f3d0",
+              borderLeft: "3.5px solid #10b981",
+              padding: "8px 12px",
+              borderRadius: 8,
+              fontSize: 12.5,
+              marginBottom: 14,
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+            }}
+          >
+            <CheckCircle size={14} color="#10b981" />
+            <span>{msg}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {loading ? (
@@ -3993,7 +4060,6 @@ export default function AdminDashboard({ defaultTab = null }) {
     invalidateAdminCache(AdminCacheScopes.TOPPERS);
     invalidateAdminCache(AdminCacheScopes.BACKLOGS);
     invalidateAdminCache(AdminCacheScopes.RANKINGS);
-    fetchStats(true);
   };
 
   async function regenAllRankings() {

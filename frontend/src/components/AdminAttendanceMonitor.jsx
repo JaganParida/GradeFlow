@@ -57,6 +57,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
   const [sortBy, setSortBy] = useState("last-synced"); // "last-synced" | "attendance-high" | "attendance-low" | "regno" | "name"
   const [page, setPage] = useState(1);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [error, setError] = useState("");
 
   // Fetch Attendance Monitor data with sessionStorage cache
   const fetchAttendanceData = async (
@@ -83,6 +84,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
     }
 
     setLoading(true);
+    setError("");
     try {
       const params = new URLSearchParams({
         page: targetPage,
@@ -119,6 +121,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
       }
     } catch (err) {
       console.warn("Failed to fetch attendance monitor data:", err.message);
+      setError(err.response?.data?.message || "Failed to load attendance tracker records.");
     } finally {
       setLoading(false);
     }
@@ -668,6 +671,46 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
             .map((_, i) => (
               <div key={i} className="skeleton" style={{ width: "100%", height: 54, borderRadius: 10 }} />
             ))}
+        </div>
+      ) : error ? (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "48px 20px",
+            background: "#ffffff",
+            borderRadius: 16,
+            border: "1px solid #fecaca",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "#fef2f2", display: "flex", alignItems: "center", justifyContent: "center", color: "#dc2626" }}>
+            <AlertTriangle size={24} />
+          </div>
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: "#991b1b", margin: 0 }}>
+            Unable to Load Attendance Tracker Records
+          </h3>
+          <p style={{ fontSize: 13, color: "#b91c1c", margin: 0, maxWidth: 420 }}>
+            {error}
+          </p>
+          <button
+            onClick={() => fetchAttendanceData(page, filter, search, branch, section, sortBy, true)}
+            style={{
+              marginTop: 6,
+              padding: "8px 16px",
+              borderRadius: 8,
+              border: "none",
+              background: "#ef4444",
+              fontSize: 12.5,
+              fontWeight: 700,
+              color: "#ffffff",
+              cursor: "pointer",
+            }}
+          >
+            Retry Loading
+          </button>
         </div>
       ) : students.length === 0 ? (
         <div

@@ -187,6 +187,11 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
       return;
     }
 
+    if (targetRoute === "custom" && !customRoute.trim()) {
+      setFeedbackErr("Please specify a valid custom destination route or URL.");
+      return;
+    }
+
     const finalRoute = targetRoute === "custom" ? customRoute.trim() : targetRoute;
 
     setLoading(true);
@@ -222,6 +227,9 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
 
       if (res.data?.success) {
         setFeedbackMsg(res.data.message || "Broadcast notification published to all students successfully!");
+        setTitle("");
+        setMessage("");
+        setCustomRoute("");
         fetchBroadcasts(false, true);
         setTimeout(() => setFeedbackMsg(""), 6000);
       } else {
@@ -255,7 +263,11 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
       }
 
       if (res.data?.success) {
-        setBroadcasts((prev) => prev.filter((b) => b.notificationId !== notificationId));
+        setBroadcasts((prev) => {
+          const next = prev.filter((b) => b.notificationId !== notificationId);
+          setAdminCache("gf_admin_broadcasts_list", next, AdminCacheScopes.BROADCAST);
+          return next;
+        });
         if (expandedBroadcastId === notificationId) setExpandedBroadcastId(null);
         setFeedbackMsg("Broadcast announcement deleted successfully.");
         setTimeout(() => setFeedbackMsg(""), 5000);
