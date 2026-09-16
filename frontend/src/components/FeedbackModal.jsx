@@ -8,6 +8,7 @@ import {
   Loader2,
   ShieldCheck,
   MessageSquare,
+  ChevronDown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -19,6 +20,10 @@ export default function FeedbackModal() {
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState("");
+  const [category, setCategory] = useState("Overall Experience");
+  const [openSource, setOpenSource] = useState("");
+  const [passedRegNo, setPassedRegNo] = useState("");
+  const [passedStudentName, setPassedStudentName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
@@ -36,8 +41,13 @@ export default function FeedbackModal() {
 
   const isOldDomain = isOldDomainEnvironment();
   const isMaintenanceBlocked = Boolean(maintenance?.enabled && !adminToken);
-  const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
+  const currentRegNo =
+    passedRegNo ||
+    studentData?.regNo ||
+    studentSession?.regNo ||
+    (typeof window !== "undefined" ? localStorage.getItem("gf_student_reg") || "" : "");
   const currentStudentName =
+    passedStudentName ||
     studentData?.studentName ||
     studentSession?.studentName ||
     studentSession?.name ||
@@ -88,7 +98,7 @@ export default function FeedbackModal() {
       if (isMaintenanceBlocked) return;
 
       const isAuth = Boolean(hasActiveSession && studentSession?.regNo);
-      if (!isAuth) {
+      if (!isAuth && !e?.detail?.regNo) {
         openStudentAuthModal({ type: "feedback" });
         return;
       }
@@ -97,6 +107,9 @@ export default function FeedbackModal() {
       setIsSuccess(false);
       setErrorMessage("");
       if (e?.detail?.rating) setRating(e.detail.rating);
+      if (e?.detail?.from) setOpenSource(e.detail.from);
+      if (e?.detail?.regNo) setPassedRegNo(e.detail.regNo);
+      if (e?.detail?.studentName) setPassedStudentName(e.detail.studentName);
     };
 
     if (isOldDomain) return;
@@ -110,6 +123,7 @@ export default function FeedbackModal() {
     setShow(false);
     setIsSuccess(false);
     setErrorMessage("");
+    setOpenSource("");
   };
 
   const handleSubmit = async (e) => {
@@ -141,17 +155,28 @@ export default function FeedbackModal() {
         regNo: currentRegNo,
         rating: Number(rating),
         comment: trimmedComment,
-        category: "Overall Experience",
+        category: category || "Overall Experience",
       };
 
       const res = await axios.post(`${API_BASE || "/api"}/feedback`, payload);
 
       setIsSuccess(true);
+      if (currentRegNo) {
+        try {
+          localStorage.setItem(`gf_feedback_unlocked_${String(currentRegNo).trim().toUpperCase()}`, "true");
+        } catch {}
+      }
+      window.dispatchEvent(
+        new CustomEvent("gradeflow:feedback-submitted", {
+          detail: { regNo: currentRegNo },
+        })
+      );
+
       setTimeout(() => {
         setShow(false);
         setIsSuccess(false);
         setComment("");
-        if (res.data?._id) {
+        if (openSource !== "gradesheet" && res.data?._id) {
           navigate(`/testimonials?highlight=${res.data._id}`);
         }
       }, 1200);
@@ -360,10 +385,12 @@ export default function FeedbackModal() {
                     <CheckCircle2 size={28} />
                   </div>
                   <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
-                    Thank You for Your Review!
+                    {openSource === "gradesheet" ? "Report Card Unlocked!" : "Thank You for Your Review!"}
                   </h3>
-                  <p style={{ fontSize: 13, color: "#64748b", margin: 0, maxWidth: 300 }}>
-                    Your feedback has been successfully published to the community wall.
+                  <p style={{ fontSize: 13, color: "#64748b", margin: 0, maxWidth: 320 }}>
+                    {openSource === "gradesheet"
+                      ? "Thank you for your genuine feedback! Your report card and all download options are now permanently unlocked."
+                      : "Your feedback has been successfully published to the community wall."}
                   </p>
                 </div>
               ) : (
@@ -469,6 +496,61 @@ export default function FeedbackModal() {
                     </div>
                     <div style={{ fontSize: 12, color: "#64748b", marginTop: 6, fontWeight: 500 }}>
                       {getRatingLabel(hoverRating || rating)}
+                    </div>
+                  </div>
+
+                  {/* Feedback Category Selector */}
+                  <div>
+                    <label
+                      htmlFor="feedback-category"
+                      style={{
+                        display: "block",
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        color: "#334155",
+                        marginBottom: 6,
+                      }}
+                    >
+                      Feedback Category
+                    </label>
+                    <div style={{ position: "relative" }}>
+                      <select
+                        id="feedback-category"
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        style={{
+                          width: "100%",
+                          padding: "10px 14px",
+                          borderRadius: 10,
+                          border: "1px solid #cbd5e1",
+                          background: "#ffffff",
+                          fontSize: 13.5,
+                          fontFamily: "'DM Sans', sans-serif",
+                          color: "#0f172a",
+                          fontWeight: 600,
+                          outline: "none",
+                          cursor: "pointer",
+                          appearance: "none",
+                          WebkitAppearance: "none",
+                        }}
+                      >
+                        <option value="Overall Experience">Overall Experience</option>
+                        <option value="Easy to Use">Easy to Use</option>
+                        <option value="Accurate Results">Accurate Results</option>
+                        <option value="Time Saver">Time Saver</option>
+                        <option value="Student Support">Student Support</option>
+                      </select>
+                      <ChevronDown
+                        size={16}
+                        style={{
+                          position: "absolute",
+                          right: 12,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          pointerEvents: "none",
+                          color: "#64748b",
+                        }}
+                      />
                     </div>
                   </div>
 
@@ -587,7 +669,7 @@ export default function FeedbackModal() {
                         </>
                       ) : (
                         <>
-                          <span>Submit Review</span>
+                          <span>{openSource === "gradesheet" ? "Submit & Unlock Report" : "Submit Review"}</span>
                           <Send size={13} />
                         </>
                       )}

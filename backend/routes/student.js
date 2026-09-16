@@ -5,6 +5,7 @@ const InternalMark = require("../models/InternalMark");
 const Ranking = require("../models/Ranking");
 const Student = require("../models/Student");
 const Attendance = require("../models/Attendance");
+const Feedback = require("../models/Feedback");
 const { requireStudentOrAdmin } = require("../middleware/auth");
 const { studentSearchLimiter } = require("../middleware/rateLimiters");
 const { globalDbQueue } = require("../utils/dbProtection");
@@ -105,9 +106,10 @@ router.get("/:regNo", studentSearchLimiter, validateRegNo, requireStudentOrAdmin
       results,
     );
 
-    const [allRankings, attendanceDoc] = await Promise.all([
+    const [allRankings, attendanceDoc, feedbackDoc] = await Promise.all([
       Ranking.find({ regNo }).lean(),
       Attendance.findOne({ regNo }).select("targetGoal savedSubjects section dailyLogs lastSyncedAt").lean(),
+      Feedback.exists({ regNo: String(regNo).trim() }),
     ]);
 
     const rankingsMap = {};
@@ -190,6 +192,7 @@ router.get("/:regNo", studentSearchLimiter, validateRegNo, requireStudentOrAdmin
       rankingsMap,
       attendance: formattedAttendance,
       attendanceSummary,
+      hasSubmittedFeedback: Boolean(feedbackDoc),
     };
 
     const bodyString = JSON.stringify(responseData);

@@ -105,6 +105,9 @@ module.exports = async function handler(req, res) {
         });
         const savedFeedback = await newFeedback.save();
         feedbacksMemoCache = { data: null, ts: 0 };
+        if (regNo) {
+          profileMemoCache.delete(String(regNo).trim().toUpperCase());
+        }
         try {
           await publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() });
         } catch (e) {
@@ -501,10 +504,11 @@ module.exports = async function handler(req, res) {
 
     const healthScore = calcAcademicHealth(cgpa, liveLatestSgpa, backlogs.length, results);
 
-    const [allRankings, allInternals, attendanceDoc] = await Promise.all([
+    const [allRankings, allInternals, attendanceDoc, feedbackDoc] = await Promise.all([
       Ranking.find({ regNo: cleanRegNo }).lean(),
       InternalMark.find({ regNo: cleanRegNo }).select("semester subjects").lean(),
       Attendance.findOne({ regNo: cleanRegNo }).select("targetGoal savedSubjects section dailyLogs lastSyncedAt").lean(),
+      Feedback.exists({ regNo: cleanRegNo }),
     ]);
 
     const rankingsMap = {};
@@ -591,6 +595,7 @@ module.exports = async function handler(req, res) {
       internalMarksMap,
       attendance: formattedAttendance,
       attendanceSummary,
+      hasSubmittedFeedback: Boolean(feedbackDoc),
     };
 
     // ETag/304 + Memoization Store: Cache the full response for future early returns.

@@ -337,7 +337,7 @@ function computeAttendanceSummary(data) {
 export default function Dashboard() {
   const { regNo: urlParam } = useParams();
   const regNo = decodeStudentId(urlParam);
-  const { studentData, fetchStudent, loading, error, API, rankingsVersion } = useApp();
+  const { studentData, fetchStudent, loading, error, API, rankingsVersion, adminToken } = useApp();
   const navigate = useNavigate();
 
   // Normalize URL to obfuscated token if raw registration number is provided
@@ -458,6 +458,24 @@ export default function Dashboard() {
   }, []);
 
   const downloadFullTranscript = async () => {
+    const isFeedbackSubmitted = Boolean(
+      studentData?.hasSubmittedFeedback ||
+      (studentData?.regNo && typeof window !== "undefined" && localStorage.getItem(`gf_feedback_unlocked_${String(studentData.regNo).trim().toUpperCase()}`) === "true")
+    );
+    if (!adminToken && !isFeedbackSubmitted) {
+      window.dispatchEvent(
+        new CustomEvent("open-feedback-modal", {
+          detail: {
+            from: "gradesheet",
+            rating: 5,
+            regNo: studentData?.regNo,
+            studentName: studentData?.studentName,
+          },
+        })
+      );
+      return;
+    }
+
     setIsDownloadingBatch(true);
     
     setTimeout(async () => {

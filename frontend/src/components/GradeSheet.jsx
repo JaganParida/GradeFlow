@@ -1,10 +1,11 @@
 import { useRef, useState, useEffect } from "react";
-import { Download, Image as ImageIcon, Printer, GraduationCap, AlertTriangle, ZoomIn, ZoomOut } from "lucide-react";
+import { Download, Image as ImageIcon, Printer, GraduationCap, AlertTriangle, ZoomIn, ZoomOut, Star, MessageSquare, Lock } from "lucide-react";
 import {
   FAIL_GRADES,
   calculateCGPA,
   calculateSemesterMetrics,
 } from "../utils/gradeCalculations";
+import { useApp } from "../context/AppContext";
 
 function getDynamicBranch(regNo, fallbackBranch) {
   if (!regNo) return fallbackBranch || "—";
@@ -83,11 +84,62 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
   const allResults = studentData?.results || [];
   const cgpaUpToNow = calculateCGPA(allResults, result.semester);
 
+  const { adminToken } = useApp ? useApp() : {};
+  const isAdminUser = Boolean(
+    adminToken ||
+    (typeof window !== "undefined" && (sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_logged_in")))
+  );
+
   const displayRegNo = result?.regNo || studentData?.regNo || "";
+  const cleanRegNo = String(displayRegNo).trim().toUpperCase();
   const displayStudentName = result?.studentName || studentData?.studentName || "—";
   const rawBranch = result?.branch || studentData?.branch || "";
   const displayBranch = getDynamicBranch(displayRegNo, rawBranch);
   const displayBatch = result?.batch || studentData?.batch || "—";
+
+  const [hasSubmittedLocally, setHasSubmittedLocally] = useState(() => {
+    if (typeof window === "undefined") return false;
+    if (!cleanRegNo) return false;
+    return localStorage.getItem(`gf_feedback_unlocked_${cleanRegNo}`) === "true";
+  });
+
+  useEffect(() => {
+    if (!cleanRegNo) return;
+    if (localStorage.getItem(`gf_feedback_unlocked_${cleanRegNo}`) === "true") {
+      setHasSubmittedLocally(true);
+    }
+  }, [cleanRegNo]);
+
+  useEffect(() => {
+    const onSubmitted = (e) => {
+      const reg = e?.detail?.regNo;
+      if (!reg || String(reg).trim().toUpperCase() === cleanRegNo) {
+        setHasSubmittedLocally(true);
+      }
+    };
+    window.addEventListener("gradeflow:feedback-submitted", onSubmitted);
+    return () => window.removeEventListener("gradeflow:feedback-submitted", onSubmitted);
+  }, [cleanRegNo]);
+
+  const isUnlocked = Boolean(
+    isAdminUser ||
+    studentData?.hasSubmittedFeedback ||
+    hasSubmittedLocally ||
+    (cleanRegNo && typeof window !== "undefined" && localStorage.getItem(`gf_feedback_unlocked_${cleanRegNo}`) === "true")
+  );
+
+  function triggerFeedbackModal() {
+    window.dispatchEvent(
+      new CustomEvent("open-feedback-modal", {
+        detail: {
+          from: "gradesheet",
+          rating: 5,
+          regNo: displayRegNo,
+          studentName: displayStudentName,
+        },
+      })
+    );
+  }
 
   const today = new Date().toLocaleDateString("en-IN", {
     day: "2-digit",
@@ -100,6 +152,10 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
   });
 
   async function downloadPDF() {
+    if (!isUnlocked) {
+      triggerFeedbackModal();
+      return;
+    }
     const { default: html2canvas } = await import("html2canvas");
     const { default: jsPDF } = await import("jspdf");
     const canvas = await html2canvas(sheetRef.current, {
@@ -120,6 +176,10 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
   }
 
   async function saveImage() {
+    if (!isUnlocked) {
+      triggerFeedbackModal();
+      return;
+    }
     const { default: html2canvas } = await import("html2canvas");
     const canvas = await html2canvas(sheetRef.current, {
       scale: 4,
@@ -133,6 +193,10 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
   }
 
   function printSheet() {
+    if (!isUnlocked) {
+      triggerFeedbackModal();
+      return;
+    }
     const win = window.open("", "_blank");
     win.document.write(`<!DOCTYPE html><html><head><title>Grade Sheet</title>
     <style>
@@ -192,16 +256,31 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
       {/* ── Action Buttons & Toolbar ── */}
       <div data-html2canvas-ignore="true" className="gradesheet-toolbar">
         <div className="gradesheet-toolbar-btns">
-          <button type="button" className="btn btn-primary gradesheet-btn" onClick={downloadPDF}>
-            <Download size={15} className="gradesheet-btn-icon" />
+          <button
+            type="button"
+            className="btn btn-primary gradesheet-btn"
+            onClick={downloadPDF}
+            title={!isUnlocked ? "Unlock via Feedback to Download" : "Download PDF"}
+          >
+            {!isUnlocked ? <Lock size={14} className="gradesheet-btn-icon" /> : <Download size={15} className="gradesheet-btn-icon" />}
             <span>Download</span>
           </button>
-          <button type="button" className="btn btn-ghost gradesheet-btn" onClick={saveImage}>
-            <ImageIcon size={15} className="gradesheet-btn-icon" />
+          <button
+            type="button"
+            className="btn btn-ghost gradesheet-btn"
+            onClick={saveImage}
+            title={!isUnlocked ? "Unlock via Feedback to Save Image" : "Save Image"}
+          >
+            {!isUnlocked ? <Lock size={14} className="gradesheet-btn-icon" /> : <ImageIcon size={15} className="gradesheet-btn-icon" />}
             <span>Image</span>
           </button>
-          <button type="button" className="btn btn-ghost gradesheet-btn" onClick={printSheet}>
-            <Printer size={15} className="gradesheet-btn-icon" />
+          <button
+            type="button"
+            className="btn btn-ghost gradesheet-btn"
+            onClick={printSheet}
+            title={!isUnlocked ? "Unlock via Feedback to Print" : "Print Sheet"}
+          >
+            {!isUnlocked ? <Lock size={14} className="gradesheet-btn-icon" /> : <Printer size={15} className="gradesheet-btn-icon" />}
             <span>Print</span>
           </button>
         </div>
@@ -230,14 +309,17 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
       </div>
 
       {/* ── Official Grade Sheet ── */}
-      <div style={{ width: "100%", overflowX: "auto", overflowY: "hidden", paddingBottom: 20 }}>
+      <div style={{ width: "100%", overflowX: "auto", overflowY: "hidden", paddingBottom: 20, position: "relative" }}>
         <div style={{ 
             width: 820 * zoomLevel, 
             height: 1120 * zoomLevel, 
             overflow: "hidden", /* CRITICAL: Hides the unscaled 820px width from the browser layout engine */
             margin: "0 auto", 
-            transition: "all 0.2s ease",
-            borderRadius: 10 /* Matches inner paper to cleanly cut off shadow without looking bad */
+            transition: "all 0.25s ease",
+            borderRadius: 10, /* Matches inner paper to cleanly cut off shadow without looking bad */
+            filter: isUnlocked ? "none" : "blur(7px)",
+            pointerEvents: isUnlocked ? "auto" : "none",
+            userSelect: isUnlocked ? "auto" : "none",
         }}>
           <div
             id={`gradesheet-capture-${result.semester}`}
@@ -385,26 +467,36 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
                   <td style={td("center", { fontSize: 11, color: "#555" })}>
                     {s.type}
                   </td>
-                  <td style={td("center", { fontWeight: 600 })}>{s.credit}</td>
+                  <td style={td("center", { fontWeight: 600 })}>
+                    {isUnlocked ? s.credit : "•"}
+                  </td>
                   <td
                     style={td("center", {
                       fontWeight: 700,
-                      color: gradeColor,
+                      color: isUnlocked ? gradeColor : "#94a3b8",
                       lineHeight: 1.1,
                     })}
                   >
-                    {s.grade}
-                    {GRADE_LABEL[s.grade] && (
-                      <span
-                        style={{
-                          fontSize: 8,
-                          display: "block",
-                          fontWeight: 400,
-                          color: gradeColor,
-                          opacity: 0.85,
-                        }}
-                      >
-                        {GRADE_LABEL[s.grade]}
+                    {isUnlocked ? (
+                      <>
+                        {s.grade}
+                        {GRADE_LABEL[s.grade] && (
+                          <span
+                            style={{
+                              fontSize: 8,
+                              display: "block",
+                              fontWeight: 400,
+                              color: gradeColor,
+                              opacity: 0.85,
+                            }}
+                          >
+                            {GRADE_LABEL[s.grade]}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span style={{ letterSpacing: "2px", fontWeight: 800, color: "#94a3b8", userSelect: "none" }}>
+                        ••
                       </span>
                     )}
                   </td>
@@ -434,15 +526,15 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
             }}
           >
             <span>Total Credits : {totalCredits}</span>
-            <span>Credits Cleared : {creditsCleared}</span>
-            <span>SGPA : {sgpa.toFixed(2)}</span>
+            <span>Credits Cleared : {isUnlocked ? creditsCleared : "••"}</span>
+            <span>SGPA : {isUnlocked ? sgpa.toFixed(2) : "•.••"}</span>
             {studentData?.cgpa !== undefined && (
-              <span>CGPA : {cgpaUpToNow.toFixed(2)}</span>
+              <span>CGPA : {isUnlocked ? cgpaUpToNow.toFixed(2) : "•.••"}</span>
             )}
           </div>
 
           {/* Fail warning */}
-          {hasFailed && (
+          {hasFailed && isUnlocked && (
             <div
               data-html2canvas-ignore="true"
               style={{
@@ -479,6 +571,187 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
         </div>
       </div>
         </div>
+
+        {/* ── Frosted Blur Overlay for Feedback Gate ── */}
+        {!isUnlocked && (
+          <div
+            data-html2canvas-ignore="true"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 20,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "16px",
+              zIndex: 30,
+              background: "rgba(255, 255, 255, 0.45)",
+              backdropFilter: "blur(4px)",
+              WebkitBackdropFilter: "blur(4px)",
+              borderRadius: 12,
+              pointerEvents: "auto",
+            }}
+          >
+            <div
+              style={{
+                width: "100%",
+                maxWidth: 440,
+                background: "#ffffff",
+                borderRadius: 18,
+                padding: "28px 20px",
+                boxShadow: "0 20px 45px -10px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(226, 232, 240, 0.9)",
+                border: "1px solid #e2e8f0",
+                textAlign: "center",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                boxSizing: "border-box",
+                margin: "0 auto",
+              }}
+            >
+              <div
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 14,
+                  background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                  boxShadow: "0 8px 18px -4px rgba(37, 99, 235, 0.35)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 14,
+                  color: "#ffffff",
+                }}
+              >
+                <Star size={26} fill="#facc15" color="#facc15" />
+              </div>
+
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "4px 10px",
+                  borderRadius: 16,
+                  background: "#eff6ff",
+                  border: "1px solid #dbeafe",
+                  color: "#1d4ed8",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                  marginBottom: 10,
+                }}
+              >
+                <span>⭐ Genuine Feedback Required</span>
+              </div>
+
+              <h3
+                style={{
+                  fontSize: 18.5,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  lineHeight: 1.25,
+                  margin: "0 0 8px 0",
+                  letterSpacing: "-0.3px",
+                }}
+              >
+                Unlock Your Official Report Card
+              </h3>
+
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "#475569",
+                  lineHeight: 1.5,
+                  margin: "0 0 18px 0",
+                  maxWidth: 360,
+                }}
+              >
+                We want your genuine feedback about how you experienced GradeFlow! Share a quick review to reveal your semester marks, SGPA/CGPA, and enable official PDF and image downloads.
+              </p>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                  gap: 6,
+                  marginBottom: 20,
+                }}
+              >
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    fontSize: 11.5,
+                    color: "#334155",
+                    fontWeight: 600,
+                  }}
+                >
+                  <span style={{ color: "#16a34a", fontWeight: 800 }}>✓</span> 1-Time Permanent Unlock
+                </span>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    fontSize: 11.5,
+                    color: "#334155",
+                    fontWeight: 600,
+                  }}
+                >
+                  <span style={{ color: "#16a34a", fontWeight: 800 }}>✓</span> HD PDF & PNG Exports
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={triggerFeedbackModal}
+                style={{
+                  width: "100%",
+                  maxWidth: 300,
+                  padding: "12px 20px",
+                  borderRadius: 11,
+                  background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                  boxShadow: "0 8px 18px -4px rgba(37, 99, 235, 0.4)",
+                  border: "none",
+                  color: "#ffffff",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  transition: "all 0.18s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow = "0 12px 22px -4px rgba(37, 99, 235, 0.5)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 8px 18px -4px rgba(37, 99, 235, 0.4)";
+                }}
+              >
+                <MessageSquare size={16} />
+                <span>Give Your Feedback</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

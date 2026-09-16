@@ -11,5 +11,6 @@ const feedbackSchema = new mongoose.Schema({
 });
 
 feedbackSchema.index({ createdAt: -1 });
+feedbackSchema.index({ regNo: 1 });
 
 module.exports = mongoose.models.Feedback || mongoose.model("Feedback", feedbackSchema);

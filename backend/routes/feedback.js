@@ -64,6 +64,18 @@ router.post("/", publicLimiter, validateFeedbackInput, async (req, res) => {
     });
 
     const savedFeedback = await newFeedback.save();
+
+    if (regNo) {
+      try {
+        const studentRoute = require("./student");
+        if (typeof studentRoute.clearStudentCache === "function") {
+          studentRoute.clearStudentCache(String(regNo).trim().toUpperCase());
+        }
+      } catch (err) {
+        console.warn("Failed to clear student cache on feedback submit:", err.message);
+      }
+    }
+
     res.status(201).json(savedFeedback);
   } catch (error) {
     console.error("Error saving feedback:", error);

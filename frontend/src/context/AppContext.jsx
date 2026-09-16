@@ -139,6 +139,31 @@ export function AppProvider({ children }) {
     },
   }));
 
+  // Listen for feedback submission across the app to immediately update studentData state
+  useEffect(() => {
+    const handleFeedbackSubmitted = (e) => {
+      const reg = e?.detail?.regNo || studentSession?.regNo;
+      setStudentData((prev) => (prev ? { ...prev, hasSubmittedFeedback: true } : prev));
+      if (reg) {
+        try {
+          const cleanReg = String(reg).trim().toUpperCase();
+          localStorage.setItem(`gf_feedback_unlocked_${cleanReg}`, "true");
+          const cacheKey = `gf_student_profile_${cleanReg}`;
+          const cachedRaw = sessionStorage.getItem(cacheKey);
+          if (cachedRaw) {
+            const parsed = JSON.parse(cachedRaw);
+            if (parsed?.data) {
+              parsed.data.hasSubmittedFeedback = true;
+              sessionStorage.setItem(cacheKey, JSON.stringify(parsed));
+            }
+          }
+        } catch (_) {}
+      }
+    };
+    window.addEventListener("gradeflow:feedback-submitted", handleFeedbackSubmitted);
+    return () => window.removeEventListener("gradeflow:feedback-submitted", handleFeedbackSubmitted);
+  }, [studentSession?.regNo]);
+
   // In-flight bootstrap promise ref for 100% request deduplication
   const inFlightBootstrapRef = useRef(null);
   const inFlightStudentFetchRef = useRef({});
