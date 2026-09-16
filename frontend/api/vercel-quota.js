@@ -41,7 +41,9 @@ function verifyAdmin(req) {
   }
   if (!token || token === "none") return null;
   try {
-    return jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+    if (decoded.role === "student" || decoded.regNo) return null;
+    return decoded;
   } catch {
     return null;
   }
@@ -93,6 +95,17 @@ function formatHourSlot(hour) {
 
 module.exports = async function handler(req, res) {
   if (applyCors(req, res, "GET,POST,OPTIONS")) return;
+
+  // Safe body parsing guard for serverless runtimes
+  if (typeof req.body === "string") {
+    try {
+      req.body = JSON.parse(req.body);
+    } catch (_) {}
+  } else if (Buffer.isBuffer(req.body)) {
+    try {
+      req.body = JSON.parse(req.body.toString("utf8"));
+    } catch (_) {}
+  }
 
   try {
     await connectToDatabase();
@@ -146,14 +159,17 @@ module.exports = async function handler(req, res) {
     }
 
     // ─── GET: On-Demand Vercel Quota Intelligence ───────────────────────────
-    // Parallel fetch all independent data sources for maximum throughput
+    // Parallel fetch all independent data sources with resilient error fallbacks
     const [todayMetric, monthlyMetrics, totalActiveStudents, pages, rawQueueConfig] = await Promise.all([
-      VercelQuotaMetric.findOne({ dateStr }).lean(),
-      VercelQuotaMetric.find({ monthStr }).lean(),
-      StudentRouteActivity.countDocuments({ regNo: { $ne: EXCLUDED_STUDENT_REG } }),
-      PageAnalytics.find({}).sort({ totalViews: -1 }).lean(),
-      TrafficQueueConfig.findOne({ key: "global_traffic_config" }).lean(),
+      VercelQuotaMetric.findOne({ dateStr }).lean().catch(() => null),
+      VercelQuotaMetric.find({ monthStr }).lean().catch(() => []),
+      StudentRouteActivity.countDocuments({ regNo: { $ne: EXCLUDED_STUDENT_REG } }).catch(() => 0),
+      PageAnalytics.find({}).sort({ totalViews: -1 }).lean().catch(() => []),
+      TrafficQueueConfig.findOne({ key: "global_traffic_config" }).lean().catch(() => null),
     ]);
+
+    const safeMonthlyMetrics = Array.isArray(monthlyMetrics) ? monthlyMetrics : [];
+    const safePages = Array.isArray(pages) ? pages : [];
 
     const queueConfig = rawQueueConfig || {
       queueEnabled: false,
@@ -165,12 +181,12 @@ module.exports = async function handler(req, res) {
 
     // 100% genuine tracked metrics directly from VercelQuotaMetric
     const storedTodayRequests = todayMetric ? (todayMetric.totalRequests || 0) : 0;
-    const storedMonthRequests = monthlyMetrics.reduce((sum, m) => sum + (m.totalRequests || 0), 0);
+    const storedMonthRequests = safeMonthlyMetrics.reduce((sum, m) => sum + (m.totalRequests || 0), 0);
 
     const effectiveMonthRequests = storedMonthRequests;
     const effectiveTodayRequests = storedTodayRequests;
 
-    const totalRouteInvocations = pages.reduce(
+    const totalRouteInvocations = safePages.reduce(
       (sum, p) => sum + (p.totalViews || 0),
       0
     );
@@ -196,7 +212,7 @@ module.exports = async function handler(req, res) {
 
     // Determine Peak Day across this month's recorded metrics
     const aggregateDays = new Array(7).fill(0);
-    monthlyMetrics.forEach((m) => {
+    safeMonthlyMetrics.forEach((m) => {
       if (typeof m.dayOfWeek === "number" && m.dayOfWeek >= 0 && m.dayOfWeek < 7) {
         aggregateDays[m.dayOfWeek] = (aggregateDays[m.dayOfWeek] || 0) + (m.totalRequests || 0);
       }
@@ -255,7 +271,7 @@ module.exports = async function handler(req, res) {
       return "PUBLIC";
     };
 
-    const routeBreakdown = pages.map((page) => {
+    const routeBreakdown = safePages.map((page) => {
       const estimatedInvocations = page.totalViews || 0;
       const percentOfTotal = totalRouteInvocations > 0
         ? parseFloat(((estimatedInvocations / totalRouteInvocations) * 100).toFixed(1))

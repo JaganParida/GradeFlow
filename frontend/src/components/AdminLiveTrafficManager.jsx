@@ -106,9 +106,13 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
     }
 
     try {
+      const actualHeaders = authHeaders?.headers || authHeaders || {};
       const res = await axios.get(`${API}/admin/traffic/live-overview`, {
         withCredentials: true,
-        headers: authHeaders,
+        headers: {
+          ...actualHeaders,
+          "X-Requested-With": "XMLHttpRequest",
+        },
       });
 
       if (res.data && res.data.success) {

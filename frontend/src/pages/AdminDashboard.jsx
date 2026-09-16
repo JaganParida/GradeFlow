@@ -217,12 +217,13 @@ function UploadCard({
       fd.append("file", file);
       Object.entries(payload).forEach(([k, v]) => fd.append(k, v));
 
+      const actualHeaders = authHeaders?.headers || authHeaders || {};
       const { data } = await axios.post(`${API}/admin/${endpoint}`, fd, {
-        ...authHeaders,
         headers: {
-          ...authHeaders.headers,
-          "Content-Type": "multipart/form-data",
+          ...actualHeaders,
+          "X-Requested-With": "XMLHttpRequest",
         },
+        withCredentials: true,
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -641,12 +642,13 @@ function MissingUploadCard({
       fd.append("file", file);
       Object.entries(payload).forEach(([k, v]) => fd.append(k, v));
 
+      const actualHeaders = authHeaders?.headers || authHeaders || {};
       const { data } = await axios.post(`${API}/admin/${endpoint}`, fd, {
-        ...authHeaders,
         headers: {
-          ...authHeaders.headers,
-          "Content-Type": "multipart/form-data",
+          ...actualHeaders,
+          "X-Requested-With": "XMLHttpRequest",
         },
+        withCredentials: true,
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -3920,7 +3922,7 @@ export default function AdminDashboard({ defaultTab = null }) {
         if (data.trafficOverview) {
           setAdminCache("gf_admin_traffic_overview", data.trafficOverview, AdminCacheScopes.TRAFFIC);
         }
-        if (data.vercelQuota) {
+        if (data.vercelQuota && data.vercelQuota.today) {
           setAdminCache("gf_admin_vercel_quota_cache", data.vercelQuota, AdminCacheScopes.TRAFFIC);
         }
         if (data.visibility) {
@@ -4969,7 +4971,13 @@ export default function AdminDashboard({ defaultTab = null }) {
                   </span>
                 </div>
 
-                {isMobile ? (
+                {!stats ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="skeleton" style={{ height: 110, borderRadius: 14 }} />
+                    ))}
+                  </div>
+                ) : isMobile ? (
                   /* Mobile Card View (Zero Horizontal Scroll) */
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     {(stats?.batchBreakdown || []).map((b) => (
@@ -5081,7 +5089,22 @@ export default function AdminDashboard({ defaultTab = null }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {(stats?.batchBreakdown || []).map((b) => (
+                        {!stats ? (
+                          [1, 2, 3].map((i) => (
+                            <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                              <td colSpan={6} style={{ padding: "14px" }}>
+                                <div className="skeleton" style={{ height: 28, borderRadius: 6 }} />
+                              </td>
+                            </tr>
+                          ))
+                        ) : (stats?.batchBreakdown || []).length === 0 ? (
+                          <tr>
+                            <td colSpan={6} style={{ padding: "28px", textAlign: "center", color: "#94a3b8" }}>
+                              No batch breakdown records available.
+                            </td>
+                          </tr>
+                        ) : (
+                          (stats?.batchBreakdown || []).map((b) => (
                           <tr
                             key={b.batch}
                             style={{ borderBottom: "1px solid #f1f5f9" }}
@@ -5137,7 +5160,7 @@ export default function AdminDashboard({ defaultTab = null }) {
                               {b.totalInternal?.toLocaleString()}
                             </td>
                           </tr>
-                        ))}
+                        )))}
                       </tbody>
                     </table>
                   </div>

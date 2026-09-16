@@ -52,7 +52,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
   const fetchQuotaMetrics = async (isManualRefresh = false) => {
     if (!isManualRefresh) {
       const cached = getAdminCache("gf_admin_vercel_quota_cache");
-      if (cached) {
+      if (cached && cached.today && cached.month && typeof cached.today.used === "number") {
         setData(cached);
         setLoading(false);
         return;
@@ -64,8 +64,12 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
     setError(null);
 
     try {
+      const actualHeaders = authHeaders?.headers || authHeaders || {};
       const res = await axios.get(`${API}/admin/vercel-quota`, {
-        headers: authHeaders,
+        headers: {
+          ...actualHeaders,
+          "X-Requested-With": "XMLHttpRequest",
+        },
         withCredentials: true,
       });
 
@@ -102,10 +106,17 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
     setApplyingPolicy(policyName);
     setPolicyMessage(null);
     try {
+      const actualHeaders = authHeaders?.headers || authHeaders || {};
       const res = await axios.post(
         `${API}/admin/vercel-quota/apply-policy`,
         { policy: policyName },
-        { headers: authHeaders, withCredentials: true }
+        {
+          headers: {
+            ...actualHeaders,
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          withCredentials: true,
+        }
       );
       if (res.data?.success) {
         setPolicyMessage({
@@ -294,7 +305,12 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
     );
   }
 
-  const { today, month, bandwidth, peakTiming, defenseSystem, timestamp } = data;
+  const today = data?.today || { used: 0, budget: 33333, remaining: 33333, percent: 0, status: "NORMAL" };
+  const month = data?.month || { used: 0, limit: 1000000, remaining: 1000000, percent: 0, dailyBurnRate: 0, projectedMonthEndRequests: 0, projectedMonthPercent: 0, projectionStatus: "HEALTHY" };
+  const bandwidth = data?.bandwidth || { usedGB: 0, limitGB: 100, remainingGB: 100, percent: 0 };
+  const peakTiming = data?.peakTiming || { peakHourText: "8:00 PM", peakDayText: "Today", totalActiveStudents: 0, hourlyDistribution: [] };
+  const defenseSystem = data?.defenseSystem || { currentQueueEnabled: false, autoTriggerEnabled: true, maxActiveCapacity: 200, recommendedDefensePolicy: "OPTIMAL", defenseBadge: "Optimal Mode", defenseDescription: "Direct serverless execution." };
+  const timestamp = data?.timestamp || "";
 
   const maxHistogramRequests = Math.max(
     1,

@@ -26,7 +26,9 @@ function verifyAdmin(req) {
   }
   if (!token || token === "none") return null;
   try {
-    return jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+    if (decoded.role === "student" || decoded.regNo) return null;
+    return decoded;
   } catch {
     return null;
   }
