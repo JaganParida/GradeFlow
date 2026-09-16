@@ -504,11 +504,13 @@ module.exports = async function handler(req, res) {
 
     const healthScore = calcAcademicHealth(cgpa, liveLatestSgpa, backlogs.length, results);
 
+    const regVariants = Array.from(new Set([cleanRegNo, cleanRegNo.toUpperCase(), cleanRegNo.toLowerCase()]));
+
     const [allRankings, allInternals, attendanceDoc, feedbackDoc] = await Promise.all([
       Ranking.find({ regNo: cleanRegNo }).lean(),
       InternalMark.find({ regNo: cleanRegNo }).select("semester subjects").lean(),
       Attendance.findOne({ regNo: cleanRegNo }).select("targetGoal savedSubjects section dailyLogs lastSyncedAt").lean(),
-      Feedback.exists({ regNo: cleanRegNo }),
+      Feedback.exists({ regNo: { $in: regVariants } }),
     ]);
 
     const rankingsMap = {};

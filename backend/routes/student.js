@@ -106,10 +106,13 @@ router.get("/:regNo", studentSearchLimiter, validateRegNo, requireStudentOrAdmin
       results,
     );
 
+    const cleanReg = String(regNo).trim();
+    const regVariants = Array.from(new Set([cleanReg, cleanReg.toUpperCase(), cleanReg.toLowerCase()]));
+
     const [allRankings, attendanceDoc, feedbackDoc] = await Promise.all([
       Ranking.find({ regNo }).lean(),
       Attendance.findOne({ regNo }).select("targetGoal savedSubjects section dailyLogs lastSyncedAt").lean(),
-      Feedback.exists({ regNo: String(regNo).trim() }),
+      Feedback.exists({ regNo: { $in: regVariants } }),
     ]);
 
     const rankingsMap = {};
