@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { Download, Image as ImageIcon, Printer, GraduationCap, AlertTriangle, ZoomIn, ZoomOut, Star, MessageSquare, Lock, Sparkles } from "lucide-react";
+import { Download, Image as ImageIcon, Printer, GraduationCap, AlertTriangle, ZoomIn, ZoomOut, MessageSquare, Lock, ShieldCheck, FileDown } from "lucide-react";
 import {
   FAIL_GRADES,
   calculateCGPA,
@@ -50,6 +50,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
   const sheetRef = useRef();
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+  const [sheetHeight, setSheetHeight] = useState(680);
 
   useEffect(() => {
     const handleResize = () => {
@@ -66,6 +67,23 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Dynamically measure actual paper content height so there is no oversized empty whitespace
+  useEffect(() => {
+    if (!sheetRef.current) return;
+    const updateHeight = () => {
+      if (sheetRef.current) {
+        const h = sheetRef.current.offsetHeight;
+        if (h > 200) {
+          setSheetHeight(h);
+        }
+      }
+    };
+    updateHeight();
+    const ro = new ResizeObserver(updateHeight);
+    ro.observe(sheetRef.current);
+    return () => ro.disconnect();
+  }, [result]);
 
   if (!result) return null;
 
@@ -93,23 +111,12 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
   const displayBranch = getDynamicBranch(displayRegNo, rawBranch);
   const displayBatch = result?.batch || studentData?.batch || "—";
 
-  const [hasSubmittedLocally, setHasSubmittedLocally] = useState(() => {
-    if (typeof window === "undefined") return false;
-    if (!cleanRegNo) return false;
-    return localStorage.getItem(`gf_feedback_unlocked_${cleanRegNo}`) === "true";
-  });
-
-  useEffect(() => {
-    if (!cleanRegNo) return;
-    if (localStorage.getItem(`gf_feedback_unlocked_${cleanRegNo}`) === "true") {
-      setHasSubmittedLocally(true);
-    }
-  }, [cleanRegNo]);
+  const [hasSubmittedLocally, setHasSubmittedLocally] = useState(false);
 
   useEffect(() => {
     const onSubmitted = (e) => {
       const reg = e?.detail?.regNo;
-      if (!reg || String(reg).trim().toUpperCase() === cleanRegNo) {
+      if (reg && String(reg).trim().toUpperCase() === cleanRegNo) {
         setHasSubmittedLocally(true);
       }
     };
@@ -118,12 +125,10 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
   }, [cleanRegNo]);
 
   const isExempt = cleanRegNo === "230301120327";
-
   const isUnlocked = Boolean(
     isExempt ||
     studentData?.hasSubmittedFeedback ||
-    hasSubmittedLocally ||
-    (cleanRegNo && typeof window !== "undefined" && localStorage.getItem(`gf_feedback_unlocked_${cleanRegNo}`) === "true")
+    hasSubmittedLocally
   );
 
   function triggerFeedbackModal() {
@@ -309,8 +314,8 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
       {/* ── Official Grade Sheet ── */}
       <div style={{ width: "100%", overflowX: "auto", overflowY: "hidden", paddingBottom: 20 }}>
         <div style={{ 
-            width: 820 * zoomLevel, 
-            height: 1120 * zoomLevel, 
+            width: Math.round(820 * zoomLevel), 
+            height: Math.round(sheetHeight * zoomLevel), 
             overflow: "hidden", /* CRITICAL: Hides the unscaled 820px width from the browser layout engine */
             margin: "0 auto", 
             position: "relative",
@@ -582,23 +587,21 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
               justifyContent: "center",
               padding: isMobile ? "12px 10px" : "24px 20px",
               zIndex: 30,
-              background: "rgba(255, 255, 255, 0.52)",
-              backdropFilter: "blur(1.5px)",
-              WebkitBackdropFilter: "blur(1.5px)",
+              background: "rgba(255, 255, 255, 0.65)",
+              backdropFilter: "blur(2px)",
+              WebkitBackdropFilter: "blur(2px)",
               pointerEvents: "auto",
             }}
           >
             <div
               style={{
                 width: "100%",
-                maxWidth: isMobile ? 260 : 380,
-                background: "rgba(255, 255, 255, 0.96)",
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
+                maxWidth: isMobile ? 270 : 400,
+                background: "#ffffff",
                 borderRadius: isMobile ? 14 : 18,
-                padding: isMobile ? "14px 12px" : "24px 22px",
-                boxShadow: "0 18px 38px -8px rgba(15, 23, 42, 0.16), 0 0 0 1px rgba(226, 232, 240, 0.8)",
-                border: "1px solid rgba(255, 255, 255, 0.9)",
+                padding: isMobile ? "16px 14px" : "28px 24px",
+                boxShadow: "0 20px 45px -12px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.05)",
+                border: "1px solid #e4e4e7",
                 textAlign: "center",
                 display: "flex",
                 flexDirection: "column",
@@ -607,128 +610,114 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
                 margin: "0 auto",
               }}
             >
-              {/* Icon Badge */}
+              {/* Luxury Obsidian Black Icon Container */}
               <div
                 style={{
-                  width: isMobile ? 36 : 46,
-                  height: isMobile ? 36 : 46,
-                  borderRadius: isMobile ? 10 : 13,
-                  background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-                  boxShadow: "0 6px 14px -3px rgba(37, 99, 235, 0.35)",
+                  width: isMobile ? 38 : 46,
+                  height: isMobile ? 38 : 46,
+                  borderRadius: isMobile ? 11 : 13,
+                  background: "#09090b",
+                  border: "1px solid #27272a",
+                  boxShadow: "0 8px 18px -4px rgba(0, 0, 0, 0.25)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  marginBottom: isMobile ? 8 : 12,
+                  marginBottom: isMobile ? 10 : 14,
                   color: "#ffffff",
                 }}
               >
-                <Lock size={isMobile ? 16 : 20} />
+                <Lock size={isMobile ? 16 : 19} color="#ffffff" strokeWidth={2.2} />
               </div>
 
-              {/* Status Pill */}
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  padding: isMobile ? "2px 8px" : "3px 10px",
-                  borderRadius: 16,
-                  background: "#eff6ff",
-                  border: "1px solid #dbeafe",
-                  color: "#1d4ed8",
-                  fontSize: isMobile ? 10 : 11,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                  marginBottom: isMobile ? 6 : 8,
-                }}
-              >
-                <Sparkles size={isMobile ? 10 : 12} />
-                <span>Student Review Gate</span>
-              </div>
-
-              {/* Title */}
+              {/* Title (Clean Typography, No Toy Badge) */}
               <h3
                 style={{
-                  fontSize: isMobile ? 14 : 18,
+                  fontSize: isMobile ? 15 : 18.5,
                   fontWeight: 800,
-                  color: "#0f172a",
+                  color: "#09090b",
                   lineHeight: 1.25,
-                  margin: isMobile ? "0 0 5px 0" : "0 0 7px 0",
-                  letterSpacing: "-0.3px",
+                  margin: isMobile ? "0 0 6px 0" : "0 0 8px 0",
+                  letterSpacing: "-0.4px",
                 }}
               >
-                {isMobile ? "Unlock Official Grades" : "Unlock Your Official Grade Sheet"}
+                {isMobile ? "Official Grades Protected" : "Official Grade Sheet Protected"}
               </h3>
 
               {/* Description */}
               <p
                 style={{
-                  fontSize: isMobile ? 10.5 : 12.5,
-                  color: "#475569",
-                  lineHeight: 1.45,
-                  margin: isMobile ? "0 0 10px 0" : "0 0 14px 0",
-                  maxWidth: 320,
+                  fontSize: isMobile ? 11 : 12.5,
+                  color: "#52525b",
+                  lineHeight: 1.5,
+                  margin: isMobile ? "0 0 12px 0" : "0 0 16px 0",
+                  maxWidth: 340,
                 }}
               >
                 {isMobile
-                  ? "Submit a quick review of GradeFlow to reveal your semester marks and download official PDF."
-                  : "Share your genuine GradeFlow experience to reveal semester marks, SGPA/CGPA, and enable official PDF & PNG exports."}
+                  ? "Share a brief review of GradeFlow to reveal your semester marks, SGPA and export official PDF."
+                  : "Submit a verified review of your GradeFlow experience to reveal semester marks, SGPA & CGPA, and export official transcripts."}
               </p>
 
-              {/* Micro-Features Row: NO CHEAP TICKS */}
+              {/* Micro-Features Row: SVG ONLY, NO EMOJIS, MONOCHROME */}
               <div
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 6,
-                  padding: isMobile ? "3px 8px" : "4px 12px",
+                  gap: isMobile ? 6 : 8,
+                  padding: isMobile ? "4px 10px" : "5px 14px",
                   borderRadius: 20,
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  fontSize: isMobile ? 9.5 : 11,
-                  color: "#475569",
+                  background: "#f4f4f5",
+                  border: "1px solid #e4e4e7",
+                  fontSize: isMobile ? 10 : 11.5,
+                  color: "#27272a",
                   fontWeight: 600,
-                  marginBottom: isMobile ? 12 : 16,
+                  marginBottom: isMobile ? 14 : 18,
                 }}
               >
-                <span style={{ color: "#2563eb", fontWeight: 700 }}>⚡</span>
-                <span>1-Time Unlock</span>
-                <span style={{ color: "#cbd5e1" }}>•</span>
-                <span>HD PDF Export</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <ShieldCheck size={isMobile ? 12 : 13.5} color="#09090b" strokeWidth={2.2} />
+                  <span>1-Time Permanent Unlock</span>
+                </span>
+                <span style={{ color: "#a1a1aa" }}>•</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <FileDown size={isMobile ? 12 : 13.5} color="#09090b" strokeWidth={2.2} />
+                  <span>Official PDF Export</span>
+                </span>
               </div>
 
-              {/* Action Button */}
+              {/* Luxury Obsidian Black Button */}
               <button
                 type="button"
                 onClick={triggerFeedbackModal}
                 style={{
                   width: "100%",
-                  padding: isMobile ? "8px 14px" : "11px 18px",
+                  padding: isMobile ? "9px 14px" : "11px 18px",
                   borderRadius: isMobile ? 9 : 11,
-                  background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-                  boxShadow: "0 6px 16px -4px rgba(37, 99, 235, 0.4)",
-                  border: "none",
+                  background: "#09090b",
+                  boxShadow: "0 8px 20px -4px rgba(0, 0, 0, 0.35)",
+                  border: "1px solid #27272a",
                   color: "#ffffff",
-                  fontSize: isMobile ? 12 : 13.5,
+                  fontSize: isMobile ? 12.5 : 13.5,
                   fontWeight: 700,
                   cursor: "pointer",
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 6,
+                  gap: 7,
                   transition: "all 0.18s ease",
                 }}
                 onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#18181b";
                   e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.boxShadow = "0 10px 20px -4px rgba(37, 99, 235, 0.45)";
+                  e.currentTarget.style.boxShadow = "0 12px 24px -4px rgba(0, 0, 0, 0.45)";
                 }}
                 onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#09090b";
                   e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "0 6px 16px -4px rgba(37, 99, 235, 0.4)";
+                  e.currentTarget.style.boxShadow = "0 8px 20px -4px rgba(0, 0, 0, 0.35)";
                 }}
               >
-                <MessageSquare size={isMobile ? 13 : 15} />
+                <MessageSquare size={isMobile ? 14 : 15} color="#ffffff" />
                 <span>Give Feedback to Unlock</span>
               </button>
             </div>

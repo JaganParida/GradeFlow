@@ -461,9 +461,7 @@ export default function Dashboard() {
     const cleanReg = String(studentData?.regNo || regNo || "").trim().toUpperCase();
     const isExempt = cleanReg === "230301120327";
     const isFeedbackSubmitted = Boolean(
-      isExempt ||
-      studentData?.hasSubmittedFeedback ||
-      (cleanReg && typeof window !== "undefined" && localStorage.getItem(`gf_feedback_unlocked_${cleanReg}`) === "true")
+      isExempt || studentData?.hasSubmittedFeedback
     );
     if (!isFeedbackSubmitted) {
       window.dispatchEvent(
