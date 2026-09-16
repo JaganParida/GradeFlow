@@ -35,6 +35,7 @@ const {
 
 const { applyCors } = require("./_lib/cors");
 const { broadcastRealtimeEvent, publishAdminRealtimeEvent, publishStudentRealtimeEvent } = require("./_lib/ablyService");
+const { getVercelQuotaData } = require("./_lib/quotaEngine");
 
 const EXCLUDED_STUDENT_REG = "230301120327";
 
@@ -793,6 +794,7 @@ async function getAdminBootstrapData(adminUser) {
     maintenanceConfigDoc,
     broadcastsList,
     recentFeedback,
+    vercelQuotaResult,
   ] = await Promise.all([
     Student.countDocuments({ passwordHash: { $exists: true, $ne: null } }).catch(() => 0),
     StudentSession.find({ isActive: true }, "regNo").lean().catch(() => []),
@@ -862,6 +864,7 @@ async function getAdminBootstrapData(adminUser) {
     StudentNotification.find({ $or: [{ regNo: "ALL" }, { isBroadcast: true }] })
       .sort({ createdAt: -1 }).limit(20).lean().catch(() => []),
     Feedback.find({}).sort({ createdAt: -1 }).limit(20).lean().catch(() => []),
+    getVercelQuotaData().catch(() => null),
   ]);
 
   const batchMap = new Map();
@@ -1037,14 +1040,38 @@ async function getAdminBootstrapData(adminUser) {
     mostActiveDay: s.mostActiveDay || "Weekdays",
     visitsToday: s.visitsToday || 1,
     visitsThisWeek: s.visitsThisWeek || s.totalPageViews || 1,
-    visitedRoutes: (s.visitedRoutes || []).map((vr) => ({
-      route: vr.route,
-      pageTitle: vr.pageTitle || getFriendlyPageTitle(vr.route),
-      durationSeconds: vr.durationSeconds || 0,
-      visitCount: vr.visitCount || 1,
-      weeklyVisitCount: vr.weeklyVisitCount || Math.min(vr.visitCount || 1, s.visitsThisWeek || 1),
-      mostActiveTimeSlot: vr.mostActiveTimeSlot || s.mostActiveTimeSlot || "General",
-    })),
+    visitedRoutes: (() => {
+      let vRoutes = (s.visitedRoutes || []).map((vr) => ({
+        route: vr.route,
+        pageTitle: vr.pageTitle || getFriendlyPageTitle(vr.route),
+        durationSeconds: vr.durationSeconds || 0,
+        visitCount: vr.visitCount || 1,
+        weeklyVisitCount: vr.weeklyVisitCount || Math.min(vr.visitCount || 1, s.visitsThisWeek || 1),
+        mostActiveTimeSlot: vr.mostActiveTimeSlot || s.mostActiveTimeSlot || "General",
+      }));
+      if (vRoutes.length === 0 && (s.currentRoute || s.lastActiveRoute || s.mostVisitedRoute)) {
+        const pRoute = s.currentRoute || s.lastActiveRoute || "/";
+        vRoutes.push({
+          route: pRoute,
+          pageTitle: s.currentPageTitle || s.lastActivePageTitle || getFriendlyPageTitle(pRoute),
+          durationSeconds: s.timeSpentCurrentRoute || s.totalTimeSpentSeconds || 45,
+          visitCount: s.totalPageViews || 1,
+          weeklyVisitCount: s.visitsThisWeek || 1,
+          mostActiveTimeSlot: s.mostActiveTimeSlot || "General",
+        });
+        if (s.mostVisitedRoute && s.mostVisitedRoute !== pRoute) {
+          vRoutes.push({
+            route: s.mostVisitedRoute,
+            pageTitle: s.mostVisitedPageTitle || getFriendlyPageTitle(s.mostVisitedRoute),
+            durationSeconds: s.mostTimeSpentSeconds || Math.round((s.totalTimeSpentSeconds || 0) * 0.6),
+            visitCount: s.mostVisitedCount || 1,
+            weeklyVisitCount: Math.max(1, Math.round((s.visitsThisWeek || 1) * 0.6)),
+            mostActiveTimeSlot: s.mostActiveTimeSlot || "General",
+          });
+        }
+      }
+      return vRoutes;
+    })(),
     lastActiveAt: s.lastActiveAt || new Date(),
   }));
 
@@ -1129,7 +1156,7 @@ async function getAdminBootstrapData(adminUser) {
     backlogs: backlogsResult,
     timetable: { schedules: timetableSchedules || [] },
     trafficOverview,
-    vercelQuota: null,
+    vercelQuota: vercelQuotaResult || null,
     visibility: visibilityConfig,
     maintenance: maintenanceConfig,
     broadcasts: enrichedBroadcasts,

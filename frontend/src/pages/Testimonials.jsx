@@ -307,8 +307,8 @@ export default function Testimonials() {
     // Filter by Category
     if (selectedCategory !== "All Reviews") {
       list = list.filter((item) => {
-        if (item.category) return item.category === selectedCategory;
-        return true;
+        const itemCat = item.category || "Overall Experience";
+        return itemCat === selectedCategory;
       });
     }
 

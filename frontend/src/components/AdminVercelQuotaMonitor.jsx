@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
 import { getAdminCache, setAdminCache, onAdminCacheDirty, AdminCacheScopes } from "../utils/adminRealtimeCache";
+import { AdminVercelQuotaSkeleton } from "./LoadingSpinner";
 import {
   Zap,
   Clock,
@@ -183,56 +184,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
   }, [allRoutes]);
 
   if (loading) {
-    return (
-      <div
-        style={{
-          background: "#ffffff",
-          borderRadius: 14,
-          border: "1px solid #e2e8f0",
-          padding: isMobile ? "30px 14px" : "44px 20px",
-          textAlign: "center",
-          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
-          boxSizing: "border-box",
-          width: "100%",
-        }}
-      >
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 10,
-            background: "#eff6ff",
-            color: "#2563eb",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            marginBottom: 12,
-          }}
-        >
-          <RefreshCw size={20} className="spin" />
-        </div>
-        <h3
-          style={{
-            fontSize: isMobile ? 14.5 : 16,
-            fontWeight: 800,
-            color: "#0f172a",
-            margin: "0 0 4px 0",
-          }}
-        >
-          Calculating Vercel Quota Telemetry...
-        </h3>
-        <p
-          style={{
-            fontSize: isMobile ? 11 : 12.5,
-            color: "#64748b",
-            margin: 0,
-            lineHeight: 1.4,
-          }}
-        >
-          Querying on-demand serverless requests, bandwidth, and peak hours.
-        </p>
-      </div>
-    );
+    return <AdminVercelQuotaSkeleton isMobile={isMobile} />;
   }
 
   if (error && !data) {

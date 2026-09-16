@@ -1615,6 +1615,146 @@ export function AdminFeedbackSkeleton() {
   );
 }
 
+/** ─── 14B. Admin Vercel Quota Skeleton ────────────────────────── */
+export function AdminVercelQuotaSkeleton({ isMobile = false }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: isMobile ? 12 : 18,
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+      aria-busy="true"
+      aria-label="Loading Vercel Quota Telemetry"
+    >
+      {/* Top Banner Skeleton */}
+      <div
+        style={{
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: 14,
+          padding: isMobile ? "12px 14px" : "16px 20px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 10,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <SkeletonBlock w="38px" h="38px" r="10px" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <SkeletonBlock w="200px" h="16px" r="4px" />
+            <SkeletonBlock w="140px" h="11px" r="3px" />
+          </div>
+        </div>
+        <SkeletonBlock w="100px" h="32px" r="8px" />
+      </div>
+
+      {/* 4 KPI Cards Grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: isMobile
+            ? "repeat(2, minmax(0, 1fr))"
+            : "repeat(4, minmax(0, 1fr))",
+          gap: isMobile ? 8 : 12,
+          width: "100%",
+          boxSizing: "border-box",
+        }}
+      >
+        {Array(4)
+          .fill(0)
+          .map((_, i) => (
+            <div
+              key={i}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: isMobile ? 12 : 14,
+                padding: isMobile ? "12px 10px" : "16px 18px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <SkeletonBlock w="60px" h="11px" r="3px" />
+                <SkeletonBlock w="40px" h="14px" r="6px" />
+              </div>
+              <SkeletonBlock w="90px" h="24px" r="4px" />
+              <SkeletonBlock w="100%" h="6px" r="999px" />
+              <SkeletonBlock w="110px" h="10px" r="3px" />
+            </div>
+          ))}
+      </div>
+
+      {/* Peak Timing & Hourly Chart Skeleton */}
+      <div
+        style={{
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: 14,
+          padding: isMobile ? "14px 12px" : "18px 20px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <SkeletonBlock w="180px" h="14px" r="4px" />
+          <SkeletonBlock w="120px" h="20px" r="6px" />
+        </div>
+        <SkeletonBlock w="100%" h="70px" r="10px" />
+      </div>
+
+      {/* Route Breakdown Table Skeleton */}
+      <div
+        style={{
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: 14,
+          padding: isMobile ? "14px 12px" : "18px 20px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <SkeletonBlock w="160px" h="14px" r="4px" />
+          <SkeletonBlock w="200px" h="28px" r="8px" />
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {Array(5)
+            .fill(0)
+            .map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "10px 0",
+                  borderBottom: i < 4 ? "1px solid #f1f5f9" : "none",
+                }}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, width: "40%" }}>
+                  <SkeletonBlock w="80%" h="13px" r="3px" />
+                  <SkeletonBlock w="50%" h="10px" r="3px" />
+                </div>
+                <SkeletonBlock w="50px" h="12px" r="3px" />
+                <SkeletonBlock w="70px" h="12px" r="3px" />
+                <SkeletonBlock w="80px" h="20px" r="6px" />
+              </div>
+            ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** ─── 15. Testimonials Page Skeleton ──────────────────────────── */
 export function TestimonialsSkeleton({ isFullPage = false }) {
   const content = (

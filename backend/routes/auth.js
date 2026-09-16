@@ -488,8 +488,8 @@ router.get("/student/check-status", async (req, res) => {
         );
       }
 
-      // 2. Check if student has an active 5-minute recovery OTP
-      if (studentAccount.failedPasswordAttempts >= 2) {
+      // 2. Check if student has an active 5-minute recovery OTP or is in 3-attempt recovery prompt state
+      if (studentAccount.failedPasswordAttempts >= 3) {
         const activeRecoveryOtp = await OtpVerification.findOne({
           regNo: rawReg,
           purpose: "FAILED_PASSWORD_RECOVERY",
@@ -507,7 +507,7 @@ router.get("/student/check-status", async (req, res) => {
             step: "OTP",
             pendingRecoveryOtpActive: true,
             isFailedPasswordTransfer: true,
-            failedPasswordAttempts: 2,
+            failedPasswordAttempts: studentAccount.failedPasswordAttempts,
             expiresInSeconds: remainingSeconds,
             cooldownSeconds: remainingSeconds,
             email: activeRecoveryOtp.email || studentEmail,
@@ -521,6 +521,22 @@ router.get("/student/check-status", async (req, res) => {
           isBlocked = true;
           blockReason = "ACCOUNT_TEMPORARILY_LOCKED";
           blockMessage = `Account is temporarily locked due to failed login attempts. Try again after 24 hours (unlocks at ${formatUnlockTime(studentAccount.recoveryRestrictedUntil)}).`;
+        } else if (!studentAccount.recoveryRestrictedUntil || new Date(studentAccount.recoveryRestrictedUntil) <= now) {
+          // 3 failed attempts reached, but student has NOT yet requested OTP!
+          // Anti-Bypass: Force redirect to RECOVERY_PROMPT instruction page (password entry forbidden!)
+          const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
+          return res.json({
+            success: true,
+            exists: true,
+            studentName,
+            hasPassword: true,
+            step: "RECOVERY_PROMPT",
+            pendingRecoveryPrompt: true,
+            failedPasswordAttempts: studentAccount.failedPasswordAttempts,
+            email: studentEmail,
+            maskedEmail: studentEmail,
+            message: "Password login is disabled due to 3 failed attempts. Please dispatch a one-time verification code to reset your password.",
+          });
         }
       }
     }
@@ -565,7 +581,7 @@ router.get("/student/check-status", async (req, res) => {
       code: blockReason,
       otpAllowed,
       otpFallbackAllowed,
-      loginAllowed: !isBlocked && (!hasPassword || (studentAccount?.failedPasswordAttempts || failedPasswordAttempts) < 2 || otpFallbackAllowed),
+      loginAllowed: !isBlocked && (!hasPassword || (studentAccount?.failedPasswordAttempts || failedPasswordAttempts) < 3 || otpFallbackAllowed),
       attemptsUsedToday: currentDailyCount,
       maxDailyAttempts: maxDailyLimit,
       remainingDailyAttempts,
@@ -636,7 +652,7 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
     const now = new Date();
     if (studentAccount.recoveryRestrictedUntil && new Date(studentAccount.recoveryRestrictedUntil) > now) {
       // For normal student: check if 5-minute recovery OTP is still active
-      if (rawReg !== "230301120327" && studentAccount.failedPasswordAttempts >= 2) {
+      if (rawReg !== "230301120327" && studentAccount.failedPasswordAttempts >= 3) {
         const activeRecoveryOtp = await OtpVerification.findOne({
           regNo: rawReg,
           purpose: "FAILED_PASSWORD_RECOVERY",
@@ -653,7 +669,7 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
             cooldownSeconds: remainingSeconds,
             email: activeRecoveryOtp.email || studentEmail,
             maskedEmail: activeRecoveryOtp.email || studentEmail,
-            message: "Password attempts exceeded (2/2). Please enter the one-time verification code sent to your email to reset your password.",
+            message: "Password attempts exceeded (3/3). Please enter the one-time verification code sent to your email to reset your password.",
             student: {
               regNo: rawReg,
               studentName,
@@ -699,6 +715,24 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
 
     const maxAllowedDevices = getMaxAllowedDevices(rawReg);
     const activeSessions = await getActiveSessions(StudentSession, rawReg);
+
+    // Anti-Bypass: If normal student has already reached 3 failed attempts, prevent further password evaluations
+    if (rawReg !== "230301120327" && (studentAccount.failedPasswordAttempts || 0) >= 3) {
+      const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
+      return res.status(200).json({
+        success: true,
+        step: "RECOVERY_PROMPT",
+        code: "FAILED_ATTEMPTS_EXCEEDED",
+        message: "Maximum password attempts reached (3/3). Please request a one-time verification code to reset your password.",
+        regNo: rawReg,
+        email: studentEmail,
+        maskedEmail: studentEmail,
+        student: {
+          regNo: rawReg,
+          studentName,
+        },
+      });
+    }
 
     // Verify Password
     const isPasswordCorrect = await studentAccount.comparePassword(candidatePassword);
@@ -947,87 +981,45 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
     studentAccount.failedPasswordAttempts = (studentAccount.failedPasswordAttempts || 0) + 1;
     studentAccount.lastFailedPasswordAt = new Date();
 
-    if (rawReg !== "230301120327" && studentAccount.failedPasswordAttempts >= 2) {
-      // ── NORMAL STUDENT: 2 Failed Password Attempts Reached! ──
-      // Automatically transfer to 5-minute One-Time OTP and set 24-hour lockout
-      const restrictionDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      studentAccount.recoveryRestrictedUntil = restrictionDate;
-      studentAccount.lockedUntil = restrictionDate;
-      studentAccount.recoveryOtpCount = 1;
-      studentAccount.recoveryOtpSentAt = new Date();
-      studentAccount.failedPasswordAttempts = 2;
-
+    if (rawReg !== "230301120327" && studentAccount.failedPasswordAttempts >= 3) {
+      // ── NORMAL STUDENT: 3 Failed Password Attempts Reached! ──
+      // Do NOT dispatch OTP automatically! Transition to dedicated RECOVERY_PROMPT instruction page.
+      // The student must explicitly click "Send One-Time OTP to Email" to dispatch the 5-min OTP.
+      studentAccount.failedPasswordAttempts = 3;
       await Student.updateOne(
         { _id: studentAccount._id },
         {
           $set: {
-            failedPasswordAttempts: 2,
+            failedPasswordAttempts: 3,
             lastFailedPasswordAt: studentAccount.lastFailedPasswordAt,
-            recoveryRestrictedUntil: restrictionDate,
-            recoveryOtpCount: 1,
-            recoveryOtpSentAt: studentAccount.recoveryOtpSentAt,
-            lockedUntil: restrictionDate,
           },
         }
       );
 
-      // Generate 5-Minute One-Time OTP (Strictly 5 mins = 300 seconds)
       const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
-      const otpCode = crypto.randomInt(100000, 999999).toString();
-      const otpSalt = await bcrypt.genSalt(10);
-      const otpHash = await bcrypt.hash(otpCode, otpSalt);
-      const otpTtlMinutes = 5;
-      const expiresAt = new Date(Date.now() + otpTtlMinutes * 60 * 1000);
-
-      await globalDbQueue.run(() => OtpVerification.deleteMany({ regNo: rawReg }));
-      await globalDbQueue.run(() =>
-        OtpVerification.create({
-          regNo: rawReg,
-          email: studentEmail,
-          otpHash,
-          expiresAt,
-          attempts: 0,
-          purpose: "FAILED_PASSWORD_RECOVERY",
-        })
-      );
-
-      try {
-        await sendStudentOtpEmail({
-          to: studentEmail,
-          studentName,
-          regNo: rawReg,
-          otp: otpCode,
-          expiresInMinutes: otpTtlMinutes,
-        });
-        await recordAccountOtpSend(rawReg);
-      } catch (emailErr) {
-        console.error("Recovery OTP email failed:", emailErr?.message || emailErr);
-      }
-
       return res.json({
         success: true,
-        step: "OTP",
-        isFailedPasswordTransfer: true,
-        code: "TRANSFERRED_TO_OTP",
-        message: "Maximum password attempts reached (2/2). A one-time verification code has been sent to your university email to reset your password. The code is valid for 5 minutes.",
+        step: "RECOVERY_PROMPT",
+        code: "FAILED_ATTEMPTS_EXCEEDED",
+        message: "Maximum password attempts reached (3/3). Please request a one-time verification code to reset your password.",
         regNo: rawReg,
         email: studentEmail,
         maskedEmail: studentEmail,
-        expiresInSeconds: otpTtlMinutes * 60,
-        cooldownSeconds: otpTtlMinutes * 60,
-        unlockAt: restrictionDate,
         student: {
           regNo: rawReg,
           studentName,
         },
       });
     } else if (rawReg !== "230301120327") {
-      // 1st failed attempt for normal student
+      // Failed attempt 1 or 2 for normal student
+      const attemptsCount = studentAccount.failedPasswordAttempts;
+      const remainingAttempts = Math.max(0, 3 - attemptsCount);
+
       await Student.updateOne(
         { _id: studentAccount._id },
         {
           $set: {
-            failedPasswordAttempts: 1,
+            failedPasswordAttempts: attemptsCount,
             lastFailedPasswordAt: studentAccount.lastFailedPasswordAt,
           },
         }
@@ -1036,9 +1028,9 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
       return res.status(401).json({
         success: false,
         code: "INVALID_PASSWORD",
-        message: "Incorrect password. 1 attempt remaining.",
-        remainingAttempts: 1,
-        failedAttempts: 1,
+        message: `Incorrect password. ${remainingAttempts} attempt${remainingAttempts === 1 ? "" : "s"} remaining.`,
+        remainingAttempts,
+        failedAttempts: attemptsCount,
       });
     } else {
       // Special student logic
