@@ -4499,11 +4499,11 @@ To support seamless local offline development and multi-cloud production resilie
 | **System Statistics** | `GET /api/admin/stats` | `GET /api/admin?action=stats` | `GET` |
 | **Section Toppers** | `GET /api/admin/section-toppers` | `GET /api/admin?action=section-toppers` | `GET` |
 | **Backlog Tracker** | `GET /api/admin/backlogs` | `GET /api/admin?action=backlogs` | `GET` |
-| **Upload Regular Results** | `POST /api/admin/upload` | `POST /api/admin-upload.js?action=upload` | `POST (Multipart)` |
-| **Upload Backlog Clearances** | `POST /api/admin/upload-backlogs` | `POST /api/admin-upload.js?action=upload-backlogs` | `POST (Multipart)` |
-| **Upload Internal Marks** | `POST /api/admin/upload-internal` | `POST /api/admin-upload.js?action=upload-internal` | `POST (Multipart)` |
-| **Missing Students Ingestion** | `POST /api/admin/upload-missing-results` | `POST /api/admin-upload.js?action=upload-missing-results` | `POST (Multipart)` |
-| **Missing Internal Ingestion** | `POST /api/admin/upload-missing-internal` | `POST /api/admin-upload.js?action=upload-missing-internal` | `POST (Multipart)` |
+| **Upload Regular Results** | `POST /api/admin/upload` | `POST /api/admin.js?action=upload` | `POST (Multipart)` |
+| **Upload Backlog Clearances** | `POST /api/admin/upload-backlogs` | `POST /api/admin.js?action=upload-backlogs` | `POST (Multipart)` |
+| **Upload Internal Marks** | `POST /api/admin/upload-internal` | `POST /api/admin.js?action=upload-internal` | `POST (Multipart)` |
+| **Missing Students Ingestion** | `POST /api/admin/upload-missing-results` | `POST /api/admin.js?action=upload-missing-results` | `POST (Multipart)` |
+| **Missing Internal Ingestion** | `POST /api/admin/upload-missing-internal` | `POST /api/admin.js?action=upload-missing-internal` | `POST (Multipart)` |
 | **Manual Grade Update** | `POST /api/admin/student/update-grade` | `POST /api/admin?action=update-grade` | `POST (JSON)` |
 | **Delete Semester Result** | `DELETE /api/admin/results/:regNo/:semester` | `DELETE /api/admin?action=delete-result` | `DELETE` |
 | **Regenerate All Rankings** | `POST /api/admin/rankings/regenerate-all` | `POST /api/admin?action=regenerate-all-rankings` | `POST` |

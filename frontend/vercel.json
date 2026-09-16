@@ -509,39 +509,39 @@
     },
     {
       "source": "/api/admin/upload-backlogs",
-      "destination": "/api/admin-upload.js?action=upload-backlogs"
+      "destination": "/api/admin.js?action=upload-backlogs"
     },
     {
       "source": "/api/admin/upload-internal",
-      "destination": "/api/admin-upload.js?action=upload-internal"
+      "destination": "/api/admin.js?action=upload-internal"
     },
     {
       "source": "/api/admin/upload-missing-results",
-      "destination": "/api/admin-upload.js?action=upload-missing-results"
+      "destination": "/api/admin.js?action=upload-missing-results"
     },
     {
       "source": "/api/admin/upload-missing-internal",
-      "destination": "/api/admin-upload.js?action=upload-missing-internal"
+      "destination": "/api/admin.js?action=upload-missing-internal"
     },
     {
       "source": "/api/admin/upload/results",
-      "destination": "/api/admin-upload.js?action=upload"
+      "destination": "/api/admin.js?action=upload"
     },
     {
       "source": "/api/admin/upload/backlogs",
-      "destination": "/api/admin-upload.js?action=upload-backlogs"
+      "destination": "/api/admin.js?action=upload-backlogs"
     },
     {
       "source": "/api/admin/upload/internal",
-      "destination": "/api/admin-upload.js?action=upload-internal"
+      "destination": "/api/admin.js?action=upload-internal"
     },
     {
       "source": "/api/admin/upload",
-      "destination": "/api/admin-upload.js?action=upload"
+      "destination": "/api/admin.js?action=upload"
     },
     {
       "source": "/api/admin/upload/:path*",
-      "destination": "/api/admin-upload.js?action=upload"
+      "destination": "/api/admin.js?action=upload"
     },
     {
       "source": "/(.*)",

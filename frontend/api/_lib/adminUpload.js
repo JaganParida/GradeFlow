@@ -1,18 +1,18 @@
 const Busboy = require("busboy");
 const XLSX = require("xlsx");
 const jwt = require("jsonwebtoken");
-const connectToDatabase = require("./_lib/db");
-const SemesterResult = require("./_lib/models/SemesterResult");
-const InternalMark = require("./_lib/models/InternalMark");
-const Ranking = require("./_lib/models/Ranking");
-const Student = require("./_lib/models/Student");
-const SystemConfig = require("./_lib/models/SystemConfig");
-const AdminSession = require("./_lib/models/AdminSession");
-const SubAdminSession = require("./_lib/models/SubAdminSession");
-const SubAdmin = require("./_lib/models/SubAdmin");
-const { isAdminSessionValid, touchAdminSession } = require("./_lib/sessionManager");
-const { applyCors } = require("./_lib/cors");
-const { broadcastRealtimeEvent, publishAdminRealtimeEvent } = require("./_lib/ablyService");
+const connectToDatabase = require("./db");
+const SemesterResult = require("./models/SemesterResult");
+const InternalMark = require("./models/InternalMark");
+const Ranking = require("./models/Ranking");
+const Student = require("./models/Student");
+const SystemConfig = require("./models/SystemConfig");
+const AdminSession = require("./models/AdminSession");
+const SubAdminSession = require("./models/SubAdminSession");
+const SubAdmin = require("./models/SubAdmin");
+const { isAdminSessionValid, touchAdminSession } = require("./sessionManager");
+const { applyCors } = require("./cors");
+const { broadcastRealtimeEvent, publishAdminRealtimeEvent } = require("./ablyService");
 const {
   GRADE_POINTS,
   calculateSGPA,
@@ -23,7 +23,7 @@ const {
   normalizeGrade,
   assignCompetitionRanks,
   sortByScore,
-} = require("./_lib/gradeCalculations");
+} = require("./gradeCalculations");
 
 function parseCookies(cookieHeader) {
   const cookies = {};
@@ -967,8 +967,13 @@ async function handleMissingResultsUpload(fileBuffer, fields, res) {
   });
 }
 
-// ─── MAIN ROUTER ENTRYPOINT ───────────────────────────────────────────────────
-module.exports = async function handler(req, res) {
+// ─── HANDLER: MISSING INTERNAL INGESTION ──────────────────────────────────────
+async function handleMissingInternalUpload(fileBuffer, fields, res) {
+  return handleInternalMarksUpload(fileBuffer, fields, res);
+}
+
+// ─── ENTRYPOINT FUNCTION FOR ROUTING ──────────────────────────────────────────
+async function handleUpload(req, res) {
   applyCors(req, res);
   if (req.method === "OPTIONS") return res.status(200).end();
 
@@ -1016,14 +1021,13 @@ module.exports = async function handler(req, res) {
     }
 
     if (isMissingInternal) {
-      return await handleInternalMarksUpload(fileBuffer, fields, res);
+      return await handleMissingInternalUpload(fileBuffer, fields, res);
     }
 
     if (isInternal) {
       return await handleInternalMarksUpload(fileBuffer, fields, res);
     }
 
-    // Default: Regular results or backlog clearances
     return await handleRegularAndBacklogUpload(fileBuffer, fields, isBacklog, res);
   } catch (err) {
     console.error("Upload error:", err);
@@ -1032,10 +1036,8 @@ module.exports = async function handler(req, res) {
       message: err.message || "Server error occurred while processing the Excel spreadsheet upload.",
     });
   }
-};
+}
 
-module.exports.config = {
-  api: {
-    bodyParser: false,
-  },
+module.exports = {
+  handleUpload,
 };

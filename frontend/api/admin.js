@@ -48,6 +48,29 @@ function parseCookies(cookieHeader) {
   return cookies;
 }
 
+async function parseJsonBodyIfNeeded(req) {
+  if (req.body && typeof req.body === "object") return req.body;
+  const contentType = req.headers["content-type"] || "";
+  if (!contentType.includes("application/json") && !contentType.includes("text/")) {
+    return req.body || {};
+  }
+  return new Promise((resolve) => {
+    let data = "";
+    req.on("data", (chunk) => {
+      data += chunk;
+    });
+    req.on("end", () => {
+      if (!data) return resolve({});
+      try {
+        resolve(JSON.parse(data));
+      } catch {
+        resolve({});
+      }
+    });
+    req.on("error", () => resolve({}));
+  });
+}
+
 function detectBatch(regNo) {
   if (!regNo) return "";
   const r = String(regNo).trim();
@@ -630,10 +653,28 @@ module.exports = async function handler(req, res) {
   if (applyCors(req, res, "GET,POST,PUT,DELETE,OPTIONS")) return;
 
   try {
-    await connectToDatabase();
+    const cleanUrl = (req.url || "").split("?")[0].toLowerCase();
+    const action = String(req.query.action || "").trim();
+    const contentType = req.headers["content-type"] || "";
+    const isMultipart = contentType.includes("multipart/form-data");
 
-    const cleanUrl = (req.url || "").split("?")[0];
-    let action = req.query.action || "";
+    // 0. Handle Spreadsheet Uploads on Serverless
+    if (
+      isMultipart ||
+      action === "upload-endpoint" ||
+      cleanUrl.includes("/upload") ||
+      (action && action.startsWith("upload"))
+    ) {
+      const { handleUpload } = require("./_lib/adminUpload");
+      return handleUpload(req, res);
+    }
+
+    // Parse JSON body for non-GET requests when bodyParser is disabled
+    if (req.method !== "GET" && req.method !== "HEAD" && req.method !== "OPTIONS") {
+      req.body = await parseJsonBodyIfNeeded(req);
+    }
+
+    await connectToDatabase();
 
     // Public / semi-public maintenance read
     if ((action === "maintenance" || cleanUrl.includes("/maintenance")) && req.method === "GET") {
@@ -689,12 +730,6 @@ module.exports = async function handler(req, res) {
       return res.status(authResult.error.status).json({ success: false, message: authResult.error.message, code: authResult.error.code });
     }
     const admin = authResult.admin;
-
-    // 0. Handle Spreadsheet Uploads on Serverless
-    if (action === "upload-endpoint" || cleanUrl.includes("/upload") || (action && action.startsWith("upload-"))) {
-      const uploadHandler = require("./admin-upload");
-      return uploadHandler(req, res);
-    }
 
     // 0b. UNIFIED ADMIN BOOTSTRAP (1-Roundtrip Full State Hydration for All Admin Subtabs)
     if (action === "bootstrap" || cleanUrl.endsWith("/bootstrap") || cleanUrl.includes("/admin/bootstrap")) {
@@ -1957,4 +1992,10 @@ module.exports = async function handler(req, res) {
     console.error("Admin handler error:", err);
     return res.status(500).json({ success: false, message: "Internal administrative server error." });
   }
+};
+
+module.exports.config = {
+  api: {
+    bodyParser: false,
+  },
 };
