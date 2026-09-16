@@ -2285,9 +2285,22 @@ export default function Navbar() {
         .gf-desktop-nav a, .gf-desktop-nav button {
           white-space: nowrap !important;
           font-size: 13.5px !important;
-          padding: 6px 3px !important;
+          padding: 6px 9px !important;
           flex-shrink: 0;
           text-decoration: none;
+          border-radius: 8px !important;
+          transition: color 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+                      background-color 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+                      transform 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        .gf-desktop-nav a:hover, .gf-desktop-nav button:hover {
+          color: #2563eb !important;
+          background: rgba(37, 99, 235, 0.07) !important;
+          transform: translateY(-1px);
+        }
+        .gf-desktop-nav a:active, .gf-desktop-nav button:active {
+          transform: translateY(0);
+          background: rgba(37, 99, 235, 0.12) !important;
         }
         .gf-navbar-right {
           display: flex;
@@ -2338,16 +2351,19 @@ export default function Navbar() {
         /* Large screens fluid scaling */
         @media (max-width: 1440px) {
           .gf-desktop-nav {
-            gap: 15px !important;
+            gap: 12px !important;
+          }
+          .gf-desktop-nav a, .gf-desktop-nav button {
+            padding: 6px 7px !important;
           }
         }
         @media (max-width: 1360px) {
           .gf-desktop-nav {
-            gap: 11px !important;
+            gap: 8px !important;
           }
           .gf-desktop-nav a, .gf-desktop-nav button {
             font-size: 13px !important;
-            padding: 5px 2px !important;
+            padding: 5px 6px !important;
           }
           .gf-portal-full-text {
             display: none !important;
@@ -2361,11 +2377,11 @@ export default function Navbar() {
         }
         @media (max-width: 1240px) {
           .gf-desktop-nav {
-            gap: 8px !important;
+            gap: 5px !important;
           }
           .gf-desktop-nav a, .gf-desktop-nav button {
             font-size: 12.5px !important;
-            padding: 4px 1px !important;
+            padding: 4px 5px !important;
           }
         }
 
