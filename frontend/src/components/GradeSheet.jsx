@@ -596,7 +596,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
             <div
               style={{
                 width: "100%",
-                maxWidth: isMobile ? 270 : 400,
+                maxWidth: isMobile ? 295 : 400,
                 background: "#ffffff",
                 borderRadius: isMobile ? 14 : 18,
                 padding: isMobile ? "16px 14px" : "28px 24px",
@@ -658,30 +658,54 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
                   : "Submit a verified review of your GradeFlow experience to reveal semester marks, SGPA & CGPA, and export official transcripts."}
               </p>
 
-              {/* Micro-Features Row: SVG ONLY, NO EMOJIS, MONOCHROME */}
+              {/* Micro-Features: Clean Separate Chips, Never Awkwardly Wraps Text */}
               <div
                 style={{
-                  display: "inline-flex",
+                  display: "flex",
+                  flexWrap: "wrap",
                   alignItems: "center",
+                  justifyContent: "center",
                   gap: isMobile ? 6 : 8,
-                  padding: isMobile ? "4px 10px" : "5px 14px",
-                  borderRadius: 20,
-                  background: "#f4f4f5",
-                  border: "1px solid #e4e4e7",
-                  fontSize: isMobile ? 10 : 11.5,
-                  color: "#27272a",
-                  fontWeight: 600,
                   marginBottom: isMobile ? 14 : 18,
+                  width: "100%",
                 }}
               >
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4.5,
+                    padding: isMobile ? "4px 8.5px" : "5px 12px",
+                    borderRadius: 20,
+                    background: "#f4f4f5",
+                    border: "1px solid #e4e4e7",
+                    fontSize: isMobile ? 10.5 : 11.5,
+                    color: "#27272a",
+                    fontWeight: 600,
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   <ShieldCheck size={isMobile ? 12 : 13.5} color="#09090b" strokeWidth={2.2} />
-                  <span>1-Time Permanent Unlock</span>
+                  <span>{isMobile ? "1-Time Unlock" : "1-Time Permanent Unlock"}</span>
                 </span>
-                <span style={{ color: "#a1a1aa" }}>•</span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4.5,
+                    padding: isMobile ? "4px 8.5px" : "5px 12px",
+                    borderRadius: 20,
+                    background: "#f4f4f5",
+                    border: "1px solid #e4e4e7",
+                    fontSize: isMobile ? 10.5 : 11.5,
+                    color: "#27272a",
+                    fontWeight: 600,
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   <FileDown size={isMobile ? 12 : 13.5} color="#09090b" strokeWidth={2.2} />
-                  <span>Official PDF Export</span>
+                  <span>{isMobile ? "PDF Export" : "Official PDF Export"}</span>
                 </span>
               </div>
 
