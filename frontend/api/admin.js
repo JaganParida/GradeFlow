@@ -617,7 +617,7 @@ async function getBacklogsData({ batch = "", branch = "", section = "", semester
 
   const semResults = await SemesterResult.find(
     { regNo: { $in: candidateRegNos } },
-    "regNo batch branch studentName semester subjects.subjectName subjects.subjectCode subjects.grade subjects.credits"
+    "regNo batch branch section studentName semester subjects.subjectName subjects.subjectCode subjects.grade subjects.credits"
   ).sort({ semester: 1 }).lean().catch(() => []);
 
   const studentResultsMap = new Map();
@@ -642,8 +642,15 @@ async function getBacklogsData({ batch = "", branch = "", section = "", semester
       br = String(latestResult.branch).trim().toUpperCase();
     }
 
-    let rawSec = getSectionFromRegNo(regNo);
-    if (rawSec && !rawSec.startsWith("Sec")) rawSec = `Sec ${rawSec}`;
+    let rawSec = (latestResult.section && latestResult.section !== "N/A") 
+      ? latestResult.section 
+      : getSectionFromRegNo(regNo);
+
+    if (br !== "CSE") {
+      rawSec = (latestResult.section && latestResult.section !== "N/A") ? latestResult.section : "Sec A";
+    }
+    if (rawSec && !rawSec.startsWith("Sec") && rawSec !== "N/A") rawSec = `Sec ${rawSec}`;
+
 
     const semBreakdown = {};
     backlogs.forEach((sub) => {

@@ -82,7 +82,7 @@ function sanitizeSheetText(value) {
 }
 
 function getSectionFromRegNo(regNo) {
-  if (!regNo) return "J";
+  if (!regNo) return "A";
   const r = String(regNo).trim();
   if (r === "230301180026") return "I";
   
@@ -97,9 +97,11 @@ function getSectionFromRegNo(regNo) {
      if (num >= 361 && num <= 420) return "G";
      if (num >= 421 && num <= 480) return "H";
      if (num >= 481 && num <= 549) return "I";
+     return "J";
   }
-  return "J";
+  return "A";
 }
+
 
 function detectBatch(regNo) {
   if (!regNo) return "";
@@ -1728,7 +1730,7 @@ router.get("/backlogs", protect, requirePermission("backlogs.view", "backlogs", 
     const [semResults, rankings, studentsTracking] = await Promise.all([
       SemesterResult.find(
         { regNo: { $in: candidateRegNos } },
-        "regNo batch branch studentName semester subjects.subjectName subjects.subjectCode subjects.grade subjects.credits"
+        "regNo batch branch section studentName semester subjects.subjectName subjects.subjectCode subjects.grade subjects.credits"
       ).sort({ semester: 1 }).lean(),
       Ranking.find(
         { regNo: { $in: candidateRegNos } },
@@ -1796,8 +1798,15 @@ router.get("/backlogs", protect, requirePermission("backlogs.view", "backlogs", 
         br = String(latestResult.branch).trim().toUpperCase();
       }
 
-      let rawSec = getSectionFromRegNo(regNo);
-      if (rawSec && !rawSec.startsWith("Sec")) rawSec = `Sec ${rawSec}`;
+      let rawSec = (latestResult.section && latestResult.section !== "N/A") 
+        ? latestResult.section 
+        : getSectionFromRegNo(regNo);
+
+      if (br !== "CSE") {
+        rawSec = (latestResult.section && latestResult.section !== "N/A") ? latestResult.section : "Sec A";
+      }
+      if (rawSec && !rawSec.startsWith("Sec") && rawSec !== "N/A") rawSec = `Sec ${rawSec}`;
+
 
       const rkInfo = studentRankingMap.get(regNo) || null;
       const trackingInfo = studentTrackingMap.get(regNo) || {};

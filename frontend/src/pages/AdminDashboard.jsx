@@ -1940,7 +1940,14 @@ function SectionToppersCard({ authHeaders, API }) {
     let newSearch = search;
 
     if (field === "batch") { setBatch(val); newBatch = val; }
-    if (field === "branch") { setBranch(val); newBranch = val; }
+    if (field === "branch") {
+      setBranch(val);
+      newBranch = val;
+      if (val && val !== "CSE" && section && section !== "Sec A") {
+        setSection("Sec A");
+        newSection = "Sec A";
+      }
+    }
     if (field === "section") { setSection(val); newSection = val; }
     if (field === "search") { setSearch(val); newSearch = val; }
 
@@ -2119,19 +2126,28 @@ function SectionToppersCard({ authHeaders, API }) {
                 boxSizing: "border-box",
               }}
             >
-              <option value="">All Sections</option>
-              <option value="Sec A">Section A</option>
-              <option value="Sec B">Section B</option>
-              <option value="Sec C">Section C</option>
-              <option value="Sec D">Section D</option>
-              <option value="Sec E">Section E</option>
-              <option value="Sec F">Section F</option>
-              <option value="Sec G">Section G</option>
-              <option value="Sec H">Section H</option>
-              <option value="Sec I">Section I</option>
-              <option value="Sec J">Section J</option>
-              <option value="Sec K">Section K</option>
-              <option value="Sec L">Section L</option>
+              {branch && branch !== "CSE" ? (
+                <>
+                  <option value="">All Sections</option>
+                  <option value="Sec A">Section A</option>
+                </>
+              ) : (
+                <>
+                  <option value="">All Sections</option>
+                  <option value="Sec A">Section A</option>
+                  <option value="Sec B">Section B</option>
+                  <option value="Sec C">Section C</option>
+                  <option value="Sec D">Section D</option>
+                  <option value="Sec E">Section E</option>
+                  <option value="Sec F">Section F</option>
+                  <option value="Sec G">Section G</option>
+                  <option value="Sec H">Section H</option>
+                  <option value="Sec I">Section I</option>
+                  <option value="Sec J">Section J</option>
+                  <option value="Sec K">Section K</option>
+                  <option value="Sec L">Section L</option>
+                </>
+              )}
             </select>
           </div>
 
@@ -2569,13 +2585,24 @@ function BacklogTrackerCard({ authHeaders, API }) {
   const backlogCardRef = useRef(null);
   const backlogCacheRef = useRef(new Map());
 
+  const scrollToBacklogTop = () => {
+    if (!backlogCardRef.current) return;
+    if (window.__lenis && typeof window.__lenis.scrollTo === "function") {
+      try {
+        window.__lenis.scrollTo(backlogCardRef.current, { offset: -90, duration: 0.6 });
+        return;
+      } catch (_) {}
+    }
+    try {
+      backlogCardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (_) {}
+  };
+
   const handlePageChange = (newPage) => {
     const target = Math.max(1, Math.min(newPage, data.totalPages || 1));
     setPage(target);
     fetchBacklogs(target);
-    if (backlogCardRef.current) {
-      backlogCardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    scrollToBacklogTop();
   };
 
   const handleLimitChange = (newLimit) => {
@@ -2583,9 +2610,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
     setLimit(newLimit);
     setPage(1);
     fetchBacklogs(1, search, null, false, newLimit);
-    if (backlogCardRef.current) {
-      backlogCardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    scrollToBacklogTop();
   };
 
   const getPageNumbers = () => {
@@ -2771,18 +2796,26 @@ function BacklogTrackerCard({ authHeaders, API }) {
         marginBottom: 28,
         boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
         scrollMarginTop: 90,
+        transform: "translateZ(0)",
       }}
     >
       <style>{`
         .gf-backlog-row {
-          transition: background-color 0.12s ease;
-          contain: layout style;
+          content-visibility: auto;
+          contain-intrinsic-size: 0 54px;
         }
         .gf-backlog-row:hover td {
-          background-color: #f8fafc !important;
+          background-color: #f8fafc;
         }
         .gf-backlog-card-item {
-          contain: content;
+          content-visibility: auto;
+          contain-intrinsic-size: 0 160px;
+        }
+        .gf-backlog-table-container {
+          overflow-x: auto;
+          overscroll-behavior-x: contain;
+          -webkit-overflow-scrolling: touch;
+          transform: translateZ(0);
         }
       `}</style>
       {/* Header Metric Summary */}
@@ -2897,7 +2930,13 @@ function BacklogTrackerCard({ authHeaders, API }) {
             <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Branch</label>
             <select
               value={branch}
-              onChange={(e) => setBranch(e.target.value)}
+              onChange={(e) => {
+                const newBranch = e.target.value;
+                setBranch(newBranch);
+                if (newBranch && newBranch !== "CSE" && section && section !== "Sec A") {
+                  setSection("");
+                }
+              }}
               style={{
                 width: "100%",
                 padding: "8px 10px",
@@ -2923,7 +2962,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
             </select>
           </div>
 
-          {/* Section Select (Only A through L) */}
+          {/* Section Select (Branch-Aware) */}
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Section</label>
             <select
@@ -2942,19 +2981,28 @@ function BacklogTrackerCard({ authHeaders, API }) {
                 boxSizing: "border-box",
               }}
             >
-              <option value="">All Sections</option>
-              <option value="Sec A">Section A</option>
-              <option value="Sec B">Section B</option>
-              <option value="Sec C">Section C</option>
-              <option value="Sec D">Section D</option>
-              <option value="Sec E">Section E</option>
-              <option value="Sec F">Section F</option>
-              <option value="Sec G">Section G</option>
-              <option value="Sec H">Section H</option>
-              <option value="Sec I">Section I</option>
-              <option value="Sec J">Section J</option>
-              <option value="Sec K">Section K</option>
-              <option value="Sec L">Section L</option>
+              {branch && branch !== "CSE" ? (
+                <>
+                  <option value="">All Sections</option>
+                  <option value="Sec A">Section A</option>
+                </>
+              ) : (
+                <>
+                  <option value="">All Sections</option>
+                  <option value="Sec A">Section A</option>
+                  <option value="Sec B">Section B</option>
+                  <option value="Sec C">Section C</option>
+                  <option value="Sec D">Section D</option>
+                  <option value="Sec E">Section E</option>
+                  <option value="Sec F">Section F</option>
+                  <option value="Sec G">Section G</option>
+                  <option value="Sec H">Section H</option>
+                  <option value="Sec I">Section I</option>
+                  <option value="Sec J">Section J</option>
+                  <option value="Sec K">Section K</option>
+                  <option value="Sec L">Section L</option>
+                </>
+              )}
             </select>
           </div>
 
@@ -3220,17 +3268,26 @@ function BacklogTrackerCard({ authHeaders, API }) {
         </div>
       ) : (
         /* Desktop Table with Rich Expandable Rows */
-        <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 12 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 12.5 }}>
+        <div className="gf-backlog-table-container" style={{ overflowX: "auto", overscrollBehaviorX: "contain", border: "1px solid #e2e8f0", borderRadius: 12 }}>
+          <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", textAlign: "left", fontSize: 12.5 }}>
+            <colgroup>
+              <col style={{ width: 44 }} />
+              <col style={{ width: "23%" }} />
+              <col style={{ width: "18%" }} />
+              <col style={{ width: "18%" }} />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "14%" }} />
+            </colgroup>
             <thead>
               <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", color: "#475569" }}>
-                <th style={{ padding: "12px 10px", fontWeight: 700, width: 35 }}>#</th>
-                <th style={{ padding: "12px 12px", fontWeight: 700 }}>REGISTRATION NO & STUDENT NAME</th>
-                <th style={{ padding: "12px 10px", fontWeight: 700 }}>BRANCH / BATCH / SECTION</th>
-                <th style={{ padding: "12px 10px", fontWeight: 700 }}>LEADERBOARD RANK & CGPA</th>
-                <th style={{ padding: "12px 10px", fontWeight: 700 }}>TOTAL BACKLOGS</th>
-                <th style={{ padding: "12px 10px", fontWeight: 700 }}>SEMESTER BREAKDOWN</th>
-                <th style={{ padding: "12px 12px", fontWeight: 700, textAlign: "right" }}>ACTIONS</th>
+                <th style={{ padding: "12px 8px", fontWeight: 700 }}>#</th>
+                <th style={{ padding: "12px 10px", fontWeight: 700 }}>REGISTRATION NO & STUDENT NAME</th>
+                <th style={{ padding: "12px 8px", fontWeight: 700 }}>BRANCH / BATCH / SECTION</th>
+                <th style={{ padding: "12px 8px", fontWeight: 700 }}>LEADERBOARD RANK & CGPA</th>
+                <th style={{ padding: "12px 8px", fontWeight: 700 }}>TOTAL BACKLOGS</th>
+                <th style={{ padding: "12px 8px", fontWeight: 700 }}>SEMESTER BREAKDOWN</th>
+                <th style={{ padding: "12px 10px", fontWeight: 700, textAlign: "right" }}>ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -3410,6 +3467,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
           borderTop: "1px solid #f1f5f9",
           flexWrap: "wrap",
           gap: 12,
+          contain: "layout style",
         }}
       >
         {/* Left: Range Counter & Per-Page Limit Selector */}

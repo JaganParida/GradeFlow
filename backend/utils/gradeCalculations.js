@@ -185,7 +185,7 @@ function assignCompetitionRanks(records, scoreKey, rankKey) {
 }
 
 function getSectionFromRegNo(regNo) {
-  if (!regNo) return "J";
+  if (!regNo) return "A";
   const r = String(regNo).trim();
   if (r === "230301180026") return "I";
   
@@ -200,9 +200,11 @@ function getSectionFromRegNo(regNo) {
      if (num >= 361 && num <= 420) return "G";
      if (num >= 421 && num <= 480) return "H";
      if (num >= 481 && num <= 549) return "I";
+     return "J";
   }
-  return "J";
+  return "A";
 }
+
 
 module.exports = {
   GRADE_POINTS,

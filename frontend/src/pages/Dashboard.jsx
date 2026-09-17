@@ -267,11 +267,11 @@ function getDynamicBranch(regNo, fallbackBranch) {
 }
 
 function getSectionFromRegNo(regNo) {
-  if (!regNo) return "J";
+  if (!regNo) return "A";
   const r = String(regNo).trim();
   if (r === "230301180026") return "I";
   
-  if (r.startsWith("230301120")) {
+  if (/^\d{2}030112[0-9]/.test(r)) {
      const num = parseInt(r.slice(-3), 10);
      if (num >= 1 && num <= 60) return "A";
      if (num >= 61 && num <= 120) return "B";
@@ -282,9 +282,11 @@ function getSectionFromRegNo(regNo) {
      if (num >= 361 && num <= 420) return "G";
      if (num >= 421 && num <= 480) return "H";
      if (num >= 481 && num <= 549) return "I";
+     return "J";
   }
-  return "J";
+  return "A";
 }
+
 
 function computeAttendanceSummary(data) {
   if (!data) return null;
