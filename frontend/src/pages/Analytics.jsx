@@ -633,20 +633,13 @@ export default function Analytics() {
     };
   }, [studentData, targetCGPA, remainingSems, creditsCleared, latestSemester, cgpa]);
 
-  if (loading || !studentData) {
-    return (
-      <div className="gf-skeleton-fade">
-        <AnalyticsSkeleton />
-      </div>
-    );
-  }
-
   const latestResult = results[results.length - 1];
   const latestSubjects = latestResult?.subjects || [];
   const dynamicBranch = useMemo(() => getDynamicBranch(regNo, branch), [regNo, branch]);
   const insights = useMemo(() => generateInsights(studentData), [studentData]);
 
   const academicHealthScore = useMemo(() => {
+    if (!studentData) return 0;
     if (studentData?.academicHealthScore !== undefined && studentData?.academicHealthScore !== null) {
       return studentData.academicHealthScore;
     }
@@ -657,7 +650,7 @@ export default function Analytics() {
     const totalSubjects = results.reduce((a, r) => a + (r.subjects || []).length, 0);
     score += Math.min(10, totalSubjects > 0 ? 10 : 0);
     return Math.round(Math.min(score, 100));
-  }, [studentData?.academicHealthScore, cgpa, latestSgpa, backlogs.length, results]);
+  }, [studentData, cgpa, latestSgpa, backlogs.length, results]);
 
   const healthColor =
     academicHealthScore >= 90 ? "#16a34a" : academicHealthScore >= 75 ? "#2563eb" : academicHealthScore >= 60 ? "#d97706" : "#dc2626";
@@ -685,6 +678,14 @@ export default function Analytics() {
     { id: "predictor", label: "CGPA Goal Predictor", icon: <Award size={16} color="#16a34a" />, desc: "Required grades to reach target CGPA" },
     { id: "whatif", label: "What-If Simulator", icon: <PieChart size={16} color="#6366f1" />, desc: "Simulate grades for upcoming sems" },
   ], []);
+
+  if (loading || !studentData) {
+    return (
+      <div className="gf-skeleton-fade">
+        <AnalyticsSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div
