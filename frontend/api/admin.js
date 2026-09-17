@@ -85,6 +85,10 @@ let defaultBacklogsCache = null;
 let defaultBacklogsCacheTime = 0;
 const BACKLOGS_CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
 
+let defaultBootstrapCache = null;
+let defaultBootstrapCacheTime = 0;
+const BOOTSTRAP_CACHE_TTL_MS = 30 * 1000; // 30s memory cache to prevent redundant multi-table aggregations
+
 function parseCookies(cookieHeader) {
   const cookies = {};
   if (!cookieHeader) return cookies;
@@ -273,6 +277,8 @@ async function syncRankingsMetadataAndBroadcast(semester = null) {
     // Broadcast real-time update across dual Ably accounts to students AND admins
     statsCache = null;
     statsCacheTimestamp = 0;
+    defaultBootstrapCache = null;
+    defaultBootstrapCacheTime = 0;
     await broadcastRealtimeEvent("rankings-updated", {
       timestamp: newVersion,
       version: newVersion,
@@ -1248,7 +1254,29 @@ module.exports = async function handler(req, res) {
 
     // 0b. UNIFIED ADMIN BOOTSTRAP (1-Roundtrip Full State Hydration for All Admin Subtabs)
     if (action === "bootstrap" || cleanUrl.endsWith("/bootstrap") || cleanUrl.includes("/admin/bootstrap")) {
+      const isForce = req.query.force === "true" || req.query.refresh === "true";
+      const now = Date.now();
+      if (!isForce && defaultBootstrapCache && (now - defaultBootstrapCacheTime < BOOTSTRAP_CACHE_TTL_MS)) {
+        const isMain = admin.adminType === "main" || !admin.adminType;
+        return res.json({
+          ...defaultBootstrapCache,
+          adminProfile: {
+            authenticated: true,
+            email: admin.email || "",
+            username: admin.username || admin.name || "Admin",
+            adminType: isMain ? "main" : "sub",
+            isSubAdmin: !isMain,
+            permissions: admin.permissions || {
+              routes: isMain ? ["*"] : ["overview", "timetable", "toppers", "backlogs", "report-card", "feedback"],
+              actions: isMain ? ["*"] : [],
+            },
+            sessionId: admin.sessionId || null,
+          },
+        });
+      }
       const bootstrapData = await getAdminBootstrapData(admin);
+      defaultBootstrapCache = bootstrapData;
+      defaultBootstrapCacheTime = now;
       return res.json(bootstrapData);
     }
 
@@ -1277,6 +1305,8 @@ module.exports = async function handler(req, res) {
     if (action === "cache-clear" || cleanUrl.includes("/cache/clear")) {
       statsCache = null;
       statsCacheTimestamp = 0;
+      defaultBootstrapCache = null;
+      defaultBootstrapCacheTime = 0;
       return res.json({ success: true, message: "Server cache cleared successfully." });
     }
 
@@ -2055,6 +2085,8 @@ module.exports = async function handler(req, res) {
 
       statsCache = null;
       statsCacheTimestamp = 0;
+      defaultBootstrapCache = null;
+      defaultBootstrapCacheTime = 0;
       await syncRankingsMetadataAndBroadcast();
 
       return res.json({
@@ -2064,10 +2096,11 @@ module.exports = async function handler(req, res) {
     }
 
     // 11. POST /cache/clear
-    // 11. POST /cache/clear
     if (action === "cache-clear" || cleanUrl.includes("/cache/clear")) {
       statsCache = null;
       statsCacheTimestamp = 0;
+      defaultBootstrapCache = null;
+      defaultBootstrapCacheTime = 0;
       defaultToppersCache = null;
       defaultToppersCacheTime = 0;
       defaultBacklogsCache = null;

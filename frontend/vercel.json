@@ -512,6 +512,10 @@
       "destination": "/api/student.js?action=feedback"
     },
     {
+      "source": "/api/admin/upload-results",
+      "destination": "/api/admin.js?action=upload"
+    },
+    {
       "source": "/api/admin/upload-backlogs",
       "destination": "/api/admin.js?action=upload-backlogs"
     },
