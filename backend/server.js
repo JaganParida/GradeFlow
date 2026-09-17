@@ -146,16 +146,16 @@ app.post("/api/attendance/ocr", publicLimiter, async (req, res) => {
 
     if (GEMINI_API_KEY) {
       const modelsToTry = [
-        "gemini-3.6-flash",
+        "gemini-2.5-flash",
         "gemini-flash-latest",
-        "gemini-3.1-pro-preview",
-        "gemini-2.5-pro",
-        "gemini-2.0-flash",
+        "gemini-2.5-flash-lite",
       ];
 
       let lastError = null;
 
       for (const model of modelsToTry) {
+        const controller = new AbortController();
+        const timeoutTimer = setTimeout(() => controller.abort(), 8500);
         try {
           const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
@@ -165,6 +165,7 @@ app.post("/api/attendance/ocr", publicLimiter, async (req, res) => {
                 "Content-Type": "application/json",
                 "X-goog-api-key": GEMINI_API_KEY,
               },
+              signal: controller.signal,
               body: JSON.stringify({
                 contents: [
                   {
@@ -319,6 +320,8 @@ OUTPUT FORMAT (JSON Schema):
         } catch (geminiErr) {
           lastError = `Gemini invocation error with model ${model}: ${geminiErr.message}`;
           console.warn(lastError);
+        } finally {
+          clearTimeout(timeoutTimer);
         }
       }
 

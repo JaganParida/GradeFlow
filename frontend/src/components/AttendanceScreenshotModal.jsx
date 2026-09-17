@@ -651,7 +651,7 @@ const parseCutmOcrText = (text, catalog = []) => {
     const currentReqId = ++activeRequestIdRef.current;
     setIsProcessing(true);
     setErrorMsg("");
-    setProcessingStatus("Initializing Gemini 2.5 Pro Vision scanner...");
+    setProcessingStatus("Initializing Gemini Vision scanner...");
 
     let extracted = [];
 
@@ -669,7 +669,7 @@ const parseCutmOcrText = (text, catalog = []) => {
       if (extracted.length > 0) break;
       try {
         setProcessingStatus(`Scanning ERP rows via ${endpoint.label}...`);
-        const res = await axios.post(endpoint.url, ocrPayload, { timeout: 60000, withCredentials: true });
+        const res = await axios.post(endpoint.url, ocrPayload, { timeout: 15000, withCredentials: true });
 
         if (
           res?.data?.success &&
@@ -745,10 +745,14 @@ const parseCutmOcrText = (text, catalog = []) => {
     if (finalCleanList.length > 0) {
       setParsedSubjects(finalCleanList);
       incrementDailyScanCount(studentId, userRole, isAdmin);
-      if (lastApiError) setErrorMsg(lastApiError);
+      setErrorMsg(""); // Extraction was successful; clear any transient backend errors
       setStep("review");
     } else {
-      setErrorMsg(lastApiError || "Could not detect subjects automatically. Please add rows manually.");
+      setErrorMsg(
+        lastApiError && !lastApiError.includes("{") && !lastApiError.includes("404")
+          ? lastApiError
+          : "Could not detect subjects automatically from this screenshot. Please ensure the full table is visible, or add/adjust subjects below."
+      );
       setParsedSubjects([]);
       setStep("review");
     }
