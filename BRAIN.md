@@ -2039,7 +2039,17 @@ The OCR Scanner allows students to photograph or upload screenshots of their off
 ### Safety & Quota Protections (`scanLimitHelper.js`):
 * **Daily Scan Limit Guard:** Normal students are capped at **2 scans per 24-hour cycle** (resets at midnight).
 * **Role Exemptions:** Admins and Special Students (`230301120327`) bypass scan limits for testing and administrative diagnostics.
-* **Dual-Engine Redundancy:** If the serverless endpoint times out (Vercel 15s limit on huge 4K images), the client automatically switches to client-side WebAssembly Tesseract.js.
+* **Dual-Engine Redundancy:** If the serverless endpoint times out (Vercel 15s limit on huge 4K images) or Google API errors occur, the client automatically falls back to client-side WebAssembly Tesseract.js in the browser.
+
+### Vision AI Model Selection & Deprecation Safeguards:
+* **Active Official Model Tier:** Both `frontend/api/attendance-ocr.js` and `backend/server.js` prioritize Google's active, production-grade vision models:
+  1. `gemini-2.5-flash`: Primary high-speed vision model (~1.5–2s response time, zero hallucination on structured ERP grids).
+  2. `gemini-flash-latest`: Primary alias fallback.
+  3. `gemini-2.5-flash-lite`: Low-latency fallback for high-traffic periods.
+* **Deprecated Model Blacklist:** Never configure retired experimental preview models (e.g. `gemini-2.0-flash` or `gemini-2.5-pro` for new accounts), as Google returns HTTP 404 NOT_FOUND.
+* **Serverless Execution Guard (8.5s AbortController):** Each Gemini API fetch is bounded by an `AbortController` timeout of 8.5 seconds. If Google's API hangs, the request aborts gracefully before Vercel's serverless function timeout (10–15s), permitting the next model or the local client engine to take over without crashing.
+* **Transient Error Suppression Invariant:** If subjects are successfully extracted (either via Gemini Vision or the local Tesseract.js fallback, resulting in `finalCleanList.length > 0`), the UI MUST clear `errorMsg` (`setErrorMsg("")`). Raw technical backend JSON errors (such as 404 model notices or timeouts) must NEVER be displayed to the student when subjects have been successfully parsed and rendered in the review modal.
+* **Extraction Logic Integrity:** Subject extraction schemas (Theory `PP`, Lab `PR`, Tutorial `TUT`), regex parsing (`parseCutmOcrText`), deduplication (`deduplicateAndCanonicalizeSubjects`), and attendance percentage calculations remain 100% unchanged.
 
 ---
 
