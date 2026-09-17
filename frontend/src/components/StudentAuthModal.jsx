@@ -1704,176 +1704,160 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
           {/* STEP 2C: DEDICATED RECOVERY INSTRUCTION SCREEN (3 FAILED PASSWORD ATTEMPTS) */}
           {step === "RECOVERY_PROMPT" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "clamp(10px, 2.5vw, 13px)" }}>
-              {/* Top Navigation Row */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: 22 }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep("REGNO");
-                    setPassword("");
-                    setErrorMsg("");
-                    setErrorCode("");
-                  }}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#64748b",
-                    fontSize: "clamp(11.5px, 2.7vw, 12.5px)",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    padding: "2px 0",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 3,
-                    transition: "color 0.15s ease",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = "#0f172a")}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = "#64748b")}
-                >
-                  <ChevronLeft size={15} />
-                  <span>Change Registration No</span>
-                </button>
-                <span
-                  style={{
-                    fontSize: "clamp(10px, 2.4vw, 11px)",
-                    fontWeight: 800,
-                    color: "#dc2626",
-                    background: "#fef2f2",
-                    padding: "2px 8px",
-                    borderRadius: 999,
-                    border: "1px solid #fecaca",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    flexShrink: 0,
-                  }}
-                >
-                  <ShieldAlert size={11.5} strokeWidth={2.5} />
-                  <span>3/3 Attempts Failed</span>
-                </span>
-              </div>
-
+            <div style={{ display: "flex", flexDirection: "column", gap: "clamp(8px, 2vw, 11px)" }}>
               {/* Main Security Card */}
               <div
                 style={{
-                  background: "linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%)",
+                  background: "linear-gradient(180deg, #fff7f7 0%, #fef2f2 100%)",
                   border: "1.5px solid #fecaca",
-                  borderRadius: 14,
-                  padding: "clamp(11px, 2.8vw, 14px)",
+                  borderRadius: 13,
+                  padding: "clamp(9px, 2.4vw, 12px)",
                   display: "flex",
                   flexDirection: "column",
-                  gap: "clamp(8px, 2vw, 10px)",
+                  gap: "clamp(7px, 1.8vw, 9px)",
                   boxShadow: "0 2px 10px rgba(220, 38, 38, 0.04)",
                 }}
               >
-                {/* Card Header: Lock Icon + Title & Description */}
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                  <div
+                {/* Status Badge & Security Context */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                  <span
                     style={{
-                      width: "clamp(32px, 8vw, 36px)",
-                      height: "clamp(32px, 8vw, 36px)",
-                      borderRadius: 9,
+                      fontSize: "clamp(9.5px, 2.2vw, 10.5px)",
+                      fontWeight: 800,
+                      color: "#dc2626",
                       background: "#fee2e2",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
                       border: "1px solid #fca5a5",
+                      padding: "2px 7px",
+                      borderRadius: 999,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 3.5,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.2px",
+                      flexShrink: 0,
                     }}
                   >
-                    <Lock size={18} color="#dc2626" strokeWidth={2.2} />
-                  </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <h4
-                      style={{
-                        margin: 0,
-                        fontSize: "clamp(13px, 3.2vw, 14.5px)",
-                        fontWeight: 800,
-                        color: "#991b1b",
-                        letterSpacing: "-0.2px",
-                      }}
-                    >
-                      Password Login Suspended
-                    </h4>
-                    <p
-                      style={{
-                        margin: "2px 0 0 0",
-                        fontSize: "clamp(11px, 2.6vw, 11.8px)",
-                        color: "#b91c1c",
-                        lineHeight: 1.35,
-                      }}
-                    >
-                      You have entered an incorrect password <strong>3 times</strong>. For account protection, password entry has been temporarily disabled.
-                    </p>
-                  </div>
+                    <ShieldAlert size={11} strokeWidth={2.5} />
+                    <span>3/3 Failed Attempts</span>
+                  </span>
+                  <span style={{ fontSize: "clamp(10px, 2.2vw, 11px)", color: "#991b1b", fontWeight: 700 }}>
+                    Single-Use Verification
+                  </span>
                 </div>
 
-                {/* Email Destination Box */}
+                <p style={{ margin: 0, fontSize: "clamp(10.5px, 2.5vw, 11.5px)", color: "#7f1d1d", lineHeight: 1.35 }}>
+                  Password login is temporarily suspended. Request a single-use code to verify your identity and set a new password.
+                </p>
+
+                {/* Email Destination Box — 100% visible, ZERO truncation, stacked label & mono address */}
                 <div
                   style={{
                     background: "#ffffff",
                     border: "1px solid #fee2e2",
                     borderRadius: 8,
-                    padding: "clamp(6px, 1.8vw, 8px) clamp(8px, 2.2vw, 10px)",
+                    padding: "clamp(6px, 1.6vw, 8px) clamp(8px, 2vw, 10px)",
                     display: "flex",
-                    alignItems: "center",
-                    gap: 7,
-                    minWidth: 0,
+                    flexDirection: "column",
+                    gap: 2,
                     boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
                   }}
                 >
-                  <Mail size={14} color="#dc2626" style={{ flexShrink: 0 }} />
-                  <span
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "clamp(10px, 2.2vw, 11px)", fontWeight: 700, color: "#64748b" }}>
+                      <Mail size={11.5} color="#dc2626" />
+                      <span>Code will be sent to:</span>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: "clamp(8.5px, 1.9vw, 9.5px)",
+                        fontWeight: 800,
+                        color: "#16a34a",
+                        background: "#f0fdf4",
+                        border: "1px solid #bbf7d0",
+                        padding: "1px 5px",
+                        borderRadius: 4,
+                        letterSpacing: "0.2px",
+                      }}
+                    >
+                      OFFICIAL EMAIL
+                    </span>
+                  </div>
+                  <div
                     style={{
-                      fontSize: "clamp(10.5px, 2.4vw, 11.5px)",
-                      color: "#64748b",
-                      fontWeight: 600,
-                      flexShrink: 0,
-                    }}
-                  >
-                    Registered Email:
-                  </span>
-                  <span
-                    title={maskedEmail || accountEmail || (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "")}
-                    style={{
-                      fontSize: "clamp(10.5px, 2.6vw, 12px)",
-                      fontWeight: 700,
+                      fontSize: "clamp(10.5px, 2.6vw, 11.8px)",
+                      fontWeight: 800,
                       color: "#0f172a",
                       fontFamily: "'Space Mono', monospace",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      flex: 1,
-                      minWidth: 0,
+                      wordBreak: "break-all",
+                      lineHeight: 1.35,
+                      marginTop: 1,
                     }}
                   >
                     {maskedEmail || accountEmail || (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "")}
-                  </span>
+                  </div>
                 </div>
 
-                {/* Instruction Bullet Points */}
+                {/* Security Highlights (3 Compact Micro-Points) */}
                 <div
                   style={{
                     display: "flex",
                     flexDirection: "column",
-                    gap: "clamp(4px, 1.2vw, 5.5px)",
-                    fontSize: "clamp(10.5px, 2.5vw, 11.5px)",
+                    gap: "clamp(3.5px, 1vw, 5px)",
+                    fontSize: "clamp(10px, 2.4vw, 11px)",
                     color: "#7f1d1d",
                     lineHeight: 1.35,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
-                    <Clock size={12.5} color="#dc2626" style={{ flexShrink: 0, marginTop: 1.5 }} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div
+                      style={{
+                        width: 17,
+                        height: 17,
+                        borderRadius: 4,
+                        background: "#fee2e2",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Clock size={10.5} color="#dc2626" />
+                    </div>
                     <span>The verification OTP is valid for <strong>5 minutes</strong> only.</span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
-                    <AlertTriangle size={12.5} color="#d97706" style={{ flexShrink: 0, marginTop: 1.5 }} />
-                    <span>If not verified within 5 minutes, your account will be locked for <strong>24 hours</strong>.</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div
+                      style={{
+                        width: 17,
+                        height: 17,
+                        borderRadius: 4,
+                        background: "#fee2e2",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <AlertTriangle size={10.5} color="#d97706" />
+                    </div>
+                    <span>If not verified within 5 minutes, account locks for <strong>24 hours</strong>.</span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
-                    <ShieldCheck size={12.5} color="#16a34a" style={{ flexShrink: 0, marginTop: 1.5 }} />
-                    <span>After verifying, you will create a new password to restore full access.</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div
+                      style={{
+                        width: 17,
+                        height: 17,
+                        borderRadius: 4,
+                        background: "#fee2e2",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <KeyRound size={10.5} color="#16a34a" />
+                    </div>
+                    <span>After verifying, you will create a <strong>new password</strong> to restore access.</span>
                   </div>
                 </div>
               </div>
@@ -1885,35 +1869,72 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 disabled={loading}
                 style={{
                   width: "100%",
-                  padding: "clamp(10px, 2.6vw, 12px) 16px",
-                  borderRadius: 11,
+                  padding: "clamp(9px, 2.4vw, 11px) 16px",
+                  borderRadius: 10,
                   border: "none",
                   background: loading
                     ? "#cbd5e1"
                     : "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
                   color: "#ffffff",
-                  fontSize: "clamp(12.5px, 3vw, 13.5px)",
-                  fontWeight: 800,
+                  fontSize: "clamp(12px, 2.8vw, 13px)",
+                  fontWeight: 700,
                   cursor: loading ? "not-allowed" : "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 7,
-                  boxShadow: loading ? "none" : "0 4px 14px rgba(220, 38, 38, 0.28)",
+                  boxShadow: loading ? "none" : "0 4px 14px rgba(220, 38, 38, 0.25)",
                   transition: "all 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) e.currentTarget.style.background = "linear-gradient(135deg, #b91c1c 0%, #991b1b 100%)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) e.currentTarget.style.background = "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)";
                 }}
               >
                 {loading ? (
                   <>
-                    <Loader2 size={15} className="spin" />
+                    <Loader2 size={14} className="spin" />
                     <span>Dispatching One-Time OTP...</span>
                   </>
                 ) : (
                   <>
-                    <Mail size={15} strokeWidth={2.2} />
+                    <Mail size={14} strokeWidth={2.2} />
                     <span>Send One-Time OTP to Email</span>
                   </>
                 )}
+              </button>
+
+              {/* Secondary Action: Change Registration Number */}
+              <button
+                type="button"
+                onClick={() => {
+                  setStep("REGNO");
+                  setPassword("");
+                  setErrorMsg("");
+                  setErrorCode("");
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#64748b",
+                  fontSize: "clamp(11px, 2.5vw, 11.8px)",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  padding: "2px 4px",
+                  margin: "0 auto",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 4,
+                  transition: "color 0.15s ease",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#0f172a")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#64748b")}
+              >
+                <ChevronLeft size={13} />
+                <span>Change Registration Number</span>
               </button>
             </div>
           )}
