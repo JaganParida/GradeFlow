@@ -3,8 +3,21 @@ const jwt = require("jsonwebtoken");
 const StudentSession = require("./_lib/models/StudentSession");
 const AdminSession = require("./_lib/models/AdminSession");
 const SubAdminSession = require("./_lib/models/SubAdminSession");
+const Student = require("./_lib/models/Student");
+const SemesterResult = require("./_lib/models/SemesterResult");
+const AttendanceScanLog = require("./_lib/models/AttendanceScanLog");
+const { publishAdminRealtimeEvent } = require("./_lib/ablyService");
 const { isSessionValid, isAdminSessionValid } = require("./_lib/sessionManager");
 const { applyCors } = require("./_lib/cors");
+
+function getTodayDateKey(d = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
 
 function parseCookies(cookieHeader) {
   const cookies = {};
@@ -81,7 +94,72 @@ async function authenticateCaller(req) {
 }
 
 module.exports = async function handler(req, res) {
-  if (applyCors(req, res, "POST,OPTIONS")) return;
+  if (applyCors(req, res, "GET,POST,OPTIONS")) return;
+
+  const action = req.query.action || req.body?.action;
+
+  // 1. Quota Check Endpoint (Fast, GET or POST)
+  if (action === "quota" || req.url.includes("scan-quota")) {
+    try {
+      await connectToDatabase();
+      const studentId = req.query.studentId || req.query.regNo || req.body?.studentId || req.body?.regNo || "";
+      const cleanRegNo = String(studentId || "").trim().toUpperCase();
+      const todayKey = getTodayDateKey();
+      const todayScans = await AttendanceScanLog.countDocuments({
+        regNo: cleanRegNo,
+        dateKey: todayKey,
+        isReset: false,
+      });
+      const isExempt = cleanRegNo === "230301120327";
+      const max = isExempt ? 9999 : 2;
+      const remaining = isExempt ? 9999 : Math.max(0, 2 - todayScans);
+      const isLimitReached = !isExempt && todayScans >= 2;
+
+      return res.json({
+        success: true,
+        regNo: cleanRegNo,
+        todayKey,
+        used: todayScans,
+        max,
+        remaining,
+        isLimitReached,
+        isExempt,
+      });
+    } catch (qErr) {
+      return res.status(500).json({ success: false, message: "Failed to fetch scan quota: " + qErr.message });
+    }
+  }
+
+  // 2. Client Tesseract Fallback Scan Logger
+  if (action === "log-fallback" || req.url.includes("scan-log")) {
+    try {
+      await connectToDatabase();
+      const studentId = req.body?.studentId || req.body?.regNo || req.query.studentId || "";
+      const cleanRegNo = String(studentId || "").trim().toUpperCase();
+      if (cleanRegNo) {
+        let studentName = "Student";
+        const meta =
+          (await SemesterResult.findOne({ regNo: cleanRegNo }, "studentName").lean()) ||
+          (await Student.findOne({ regNo: cleanRegNo }, "studentName").lean());
+        if (meta?.studentName) studentName = meta.studentName;
+
+        await AttendanceScanLog.create({
+          regNo: cleanRegNo,
+          studentName,
+          scannedAt: new Date(),
+          dateKey: getTodayDateKey(),
+          engine: "tesseract_fallback",
+          modelUsed: "tesseract.js",
+          subjectsDetected: Number(req.body?.subjectsCount) || 0,
+          isReset: false,
+        });
+        publishAdminRealtimeEvent("cache-dirty", { scope: "attendance" }).catch(() => {});
+      }
+      return res.json({ success: true, message: "Fallback scan logged successfully." });
+    } catch (fErr) {
+      return res.status(500).json({ success: false, message: "Failed to log fallback scan: " + fErr.message });
+    }
+  }
 
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method Not Allowed" });
@@ -275,6 +353,33 @@ OUTPUT FORMAT (JSON Schema):
                   components: sub.components,
                 };
               });
+
+              // Log successful scan to MongoDB AttendanceScanLog
+              const studentRegNo = authResult?.caller?.regNo || req.body?.studentId || req.body?.regNo || "";
+              if (studentRegNo) {
+                try {
+                  const cleanRegNo = String(studentRegNo).trim().toUpperCase();
+                  let studentName = "Student";
+                  const meta =
+                    (await SemesterResult.findOne({ regNo: cleanRegNo }, "studentName").lean()) ||
+                    (await Student.findOne({ regNo: cleanRegNo }, "studentName").lean());
+                  if (meta?.studentName) studentName = meta.studentName;
+
+                  await AttendanceScanLog.create({
+                    regNo: cleanRegNo,
+                    studentName,
+                    scannedAt: new Date(),
+                    dateKey: getTodayDateKey(),
+                    engine: "gemini_vision",
+                    modelUsed: model,
+                    subjectsDetected: formattedSubjects.length,
+                    isReset: false,
+                  });
+                  publishAdminRealtimeEvent("cache-dirty", { scope: "attendance" }).catch(() => {});
+                } catch (logErr) {
+                  console.warn("[OCR Logger] Failed to save AttendanceScanLog:", logErr.message);
+                }
+              }
 
               return res.json({
                 success: true,

@@ -29,10 +29,20 @@ const LiveVisitor = require("../models/LiveVisitor");
 const VercelQuotaMetric = require("../models/VercelQuotaMetric");
 const StudentNotification = require("../models/StudentNotification");
 const SystemConfig = require("../models/SystemConfig");
+const AttendanceScanLog = require("../models/AttendanceScanLog");
 const { getActiveSessions, getMaxAllowedDevices } = require("../utils/sessionManager");
-const { publishAdminRealtimeEvent, broadcastRealtimeEvent } = require("../utils/ablyService");
+const { publishAdminRealtimeEvent, broadcastRealtimeEvent, publishStudentRealtimeEvent } = require("../utils/ablyService");
 const { isBatchExpired, purgeExpiredBatches } = require("../utils/batchLifecycle");
 const { clearStudentCache } = require("./student");
+
+function getTodayDateKey(d = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
 const {
   GRADE_POINTS,
   assignCompetitionRanks,
@@ -4747,8 +4757,8 @@ router.get("/attendance-tracker/monitor", protect, async (req, res) => {
     ).sort({ updatedAt: -1, lastSyncedAt: -1 }).lean();
     const regNos = attendanceDocs.map((a) => a.regNo);
 
-    // Parallelize student metadata & registered users queries
-    const [studentMetaDocs, studentUsers] = await Promise.all([
+    // Parallelize student metadata, registered users, and scan logs queries
+    const [studentMetaDocs, studentUsers, scanLogs] = await Promise.all([
       SemesterResult.find(
         { regNo: { $in: regNos } },
         "regNo studentName batch branch section"
@@ -4757,7 +4767,44 @@ router.get("/attendance-tracker/monitor", protect, async (req, res) => {
         { regNo: { $in: regNos } },
         "regNo studentName createdAt updatedAt"
       ).lean(),
+      AttendanceScanLog.find(
+        { regNo: { $in: regNos } }
+      ).sort({ scannedAt: -1 }).lean(),
     ]);
+
+    const todayKey = getTodayDateKey();
+    const scanMap = new Map();
+    (scanLogs || []).forEach((log) => {
+      if (!log.regNo) return;
+      const reg = String(log.regNo).toUpperCase();
+      if (!scanMap.has(reg)) {
+        scanMap.set(reg, {
+          todayScanCount: 0,
+          recentScans: [],
+          lastScannedAt: null,
+        });
+      }
+      const data = scanMap.get(reg);
+      if (!data.lastScannedAt) {
+        data.lastScannedAt = log.scannedAt;
+      }
+      if (log.dateKey === todayKey && !log.isReset) {
+        data.todayScanCount++;
+      }
+      if (data.recentScans.length < 10) {
+        data.recentScans.push({
+          id: log._id,
+          scannedAt: log.scannedAt,
+          dateKey: log.dateKey,
+          engine: log.engine,
+          modelUsed: log.modelUsed,
+          subjectsDetected: log.subjectsDetected,
+          isReset: Boolean(log.isReset),
+          resetAt: log.resetAt,
+          resetBy: log.resetBy,
+        });
+      }
+    });
 
     const metaMap = new Map();
     studentMetaDocs.forEach((doc) => {
@@ -4825,6 +4872,25 @@ router.get("/attendance-tracker/monitor", protect, async (req, res) => {
         }
       }
 
+      const scanData = scanMap.get(String(doc.regNo).toUpperCase()) || {
+        todayScanCount: 0,
+        recentScans: [],
+        lastScannedAt: null,
+      };
+      const isExempt = String(doc.regNo) === "230301120327";
+      const remainingScans = isExempt ? "Unlimited" : Math.max(0, 2 - scanData.todayScanCount);
+      const isLimitReached = !isExempt && scanData.todayScanCount >= 2;
+
+      const scanInfo = {
+        todayScanCount: scanData.todayScanCount,
+        maxDailyScans: isExempt ? "Unlimited" : 2,
+        remainingScans,
+        isLimitReached,
+        isExempt,
+        lastScannedAt: scanData.lastScannedAt,
+        recentScans: scanData.recentScans,
+      };
+
       return {
         regNo: doc.regNo,
         studentName,
@@ -4842,6 +4908,7 @@ router.get("/attendance-tracker/monitor", protect, async (req, res) => {
         status: isTrackerActive ? "active" : "reset",
         lastSyncedAt: doc.lastSyncedAt || doc.updatedAt,
         subjectsBreakdown,
+        scanInfo,
       };
     });
 
@@ -4951,6 +5018,62 @@ router.get("/attendance-tracker/monitor", protect, async (req, res) => {
   } catch (err) {
     console.error("GET /attendance-tracker/monitor error:", err);
     return res.status(500).json({ success: false, message: "Failed to fetch attendance tracker monitor data." });
+  }
+});
+
+// POST /attendance-tracker/reset-scan-limit — One-Click Daily Scan Quota Reset by Admin
+router.post("/attendance-tracker/reset-scan-limit", protect, async (req, res) => {
+  try {
+    const { regNo } = req.body || {};
+    const cleanRegNo = String(regNo || "").trim().toUpperCase();
+    if (!cleanRegNo) {
+      return res.status(400).json({ success: false, message: "Student registration number (regNo) is required." });
+    }
+
+    const todayKey = getTodayDateKey();
+    const updateResult = await AttendanceScanLog.updateMany(
+      { regNo: cleanRegNo, dateKey: todayKey, isReset: false },
+      {
+        $set: {
+          isReset: true,
+          resetAt: new Date(),
+          resetBy: req.admin?.username || req.admin?.email || "Admin",
+        },
+      }
+    );
+
+    // Audit Log
+    try {
+      await AdminAuditLog.create({
+        adminId: req.admin?.id || req.admin?._id || "admin",
+        action: "RESET_ATTENDANCE_SCAN_LIMIT",
+        targetUser: cleanRegNo,
+        details: `Reset daily OCR scan quota for student ${cleanRegNo} on date ${todayKey} (${updateResult.modifiedCount} scans reset).`,
+        ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown",
+      });
+    } catch (auditErr) {
+      console.warn("[AdminAuditLog] Failed to log scan quota reset:", auditErr.message);
+    }
+
+    // Realtime notifications to student & admin monitor
+    publishStudentRealtimeEvent(cleanRegNo, "scan-limit-reset", {
+      regNo: cleanRegNo,
+      dateKey: todayKey,
+      resetAt: new Date(),
+    }).catch(() => {});
+
+    publishAdminRealtimeEvent("cache-dirty", { scope: "attendance" }).catch(() => {});
+
+    return res.json({
+      success: true,
+      message: `Successfully reset daily scan limit for ${cleanRegNo}.`,
+      regNo: cleanRegNo,
+      dateKey: todayKey,
+      scansReset: updateResult.modifiedCount || 0,
+    });
+  } catch (err) {
+    console.error("POST /attendance-tracker/reset-scan-limit error:", err);
+    return res.status(500).json({ success: false, message: "Failed to reset daily scan limit: " + err.message });
   }
 });
 

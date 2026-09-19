@@ -4,6 +4,7 @@ import axios from "axios";
 import { createAblyRealtime, subscribeAdminChannel, closeSharedAdminAbly } from "../services/ablyClient";
 import { invalidateAdminCache, AdminCacheScopes } from "../utils/adminRealtimeCache";
 import { isOldDomainEnvironment } from "../utils/domainHelper";
+import { resetStudentScanQuotaLocal } from "../utils/scanLimitHelper";
 
 export const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
@@ -954,6 +955,13 @@ export function AppProvider({ children }) {
           setAuthStatus("UNAUTHENTICATED");
           navigate("/", { replace: true });
         }
+      });
+
+      // C2. Listen for real-time daily OCR scan limit resets by admin (<0.1s)
+      studentChannel.subscribe("scan-limit-reset", (msg) => {
+        if (!isMounted) return;
+        const reg = msg?.data?.regNo || cleanReg;
+        resetStudentScanQuotaLocal(reg);
       });
 
       // D. Listen for real-time admin broadcast announcements across all students

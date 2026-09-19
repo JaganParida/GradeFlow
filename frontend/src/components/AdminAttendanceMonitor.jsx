@@ -58,6 +58,69 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
   const [page, setPage] = useState(1);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [error, setError] = useState("");
+  const [resettingRegNo, setResettingRegNo] = useState(null);
+  const [actionSuccessMsg, setActionSuccessMsg] = useState("");
+
+  const handleResetScanLimit = async (regNo) => {
+    if (!regNo || resettingRegNo) return;
+    const cleanRegNo = String(regNo).trim().toUpperCase();
+    if (!window.confirm(`Are you sure you want to reset the daily screenshot scan limit for student ${cleanRegNo}? They will receive 2 fresh scans for today.`)) {
+      return;
+    }
+
+    setResettingRegNo(cleanRegNo);
+    try {
+      const res = await axios.post(
+        `${API}/admin/attendance-tracker/reset-scan-limit`,
+        { regNo: cleanRegNo },
+        { ...authHeaders, withCredentials: true }
+      );
+
+      if (res.data?.success) {
+        setActionSuccessMsg(`Daily scan limit for ${cleanRegNo} was successfully reset.`);
+        setTimeout(() => setActionSuccessMsg(""), 4500);
+
+        setStudents((prev) =>
+          prev.map((s) => {
+            if (s.regNo === cleanRegNo) {
+              const updatedScanInfo = {
+                ...(s.scanInfo || {}),
+                todayScanCount: 0,
+                remainingScans: s.scanInfo?.isExempt ? "Unlimited" : 2,
+                isLimitReached: false,
+              };
+              return { ...s, scanInfo: updatedScanInfo };
+            }
+            return s;
+          })
+        );
+
+        setSelectedStudent((prev) => {
+          if (prev && prev.regNo === cleanRegNo) {
+            return {
+              ...prev,
+              scanInfo: {
+                ...(prev.scanInfo || {}),
+                todayScanCount: 0,
+                remainingScans: prev.scanInfo?.isExempt ? "Unlimited" : 2,
+                isLimitReached: false,
+              },
+            };
+          }
+          return prev;
+        });
+
+        invalidateAdminCache(AdminCacheScopes.ATTENDANCE);
+      } else {
+        alert(res.data?.message || "Failed to reset scan limit.");
+      }
+    } catch (err) {
+      console.warn("Reset scan limit error:", err.message);
+      alert(err.response?.data?.message || "Failed to reset daily scan limit.");
+    } finally {
+      setResettingRegNo(null);
+    }
+  };
 
   // Fetch Attendance Monitor data with sessionStorage cache
   const fetchAttendanceData = async (
@@ -305,6 +368,36 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
           <span>Refresh Data</span>
         </button>
       </div>
+
+      {/* Action Success Notification Banner */}
+      {actionSuccessMsg && (
+        <div
+          style={{
+            background: "#ecfdf5",
+            border: "1px solid #a7f3d0",
+            borderRadius: 12,
+            padding: "12px 18px",
+            color: "#065f46",
+            fontSize: 13,
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            boxShadow: "0 2px 6px rgba(16, 185, 129, 0.08)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <CheckCircle2 size={18} color="#059669" />
+            <span>{actionSuccessMsg}</span>
+          </div>
+          <button
+            onClick={() => setActionSuccessMsg("")}
+            style={{ background: "transparent", border: "none", color: "#065f46", cursor: "pointer", display: "flex", alignItems: "center" }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       {/* ── 2. Summary KPI Metric Cards (5 Cards Grid) ── */}
       <div
@@ -871,6 +964,73 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
                   </div>
                 </div>
 
+                {/* Daily OCR Scans Row */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc", padding: "8px 12px", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>Daily OCR Scans:</span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 800,
+                        padding: "2px 8px",
+                        borderRadius: 99,
+                        background: st.scanInfo?.isExempt
+                          ? "#f5f3ff"
+                          : st.scanInfo?.isLimitReached
+                          ? "#fef2f2"
+                          : (st.scanInfo?.todayScanCount || 0) > 0
+                          ? "#fffbeb"
+                          : "#ecfdf5",
+                        color: st.scanInfo?.isExempt
+                          ? "#6d28d9"
+                          : st.scanInfo?.isLimitReached
+                          ? "#991b1b"
+                          : (st.scanInfo?.todayScanCount || 0) > 0
+                          ? "#92400e"
+                          : "#065f46",
+                        border: `1px solid ${
+                          st.scanInfo?.isExempt
+                            ? "#ddd6fe"
+                            : st.scanInfo?.isLimitReached
+                            ? "#fecaca"
+                            : (st.scanInfo?.todayScanCount || 0) > 0
+                            ? "#fde68a"
+                            : "#a7f3d0"
+                        }`,
+                      }}
+                    >
+                      {st.scanInfo?.isExempt
+                        ? "Unlimited"
+                        : st.scanInfo?.isLimitReached
+                        ? "2/2 Limit Reached"
+                        : `${st.scanInfo?.todayScanCount || 0}/2 Used (${st.scanInfo?.remainingScans !== undefined ? st.scanInfo.remainingScans : 2} left)`}
+                    </span>
+                  </div>
+
+                  {(st.scanInfo?.todayScanCount || 0) > 0 && !st.scanInfo?.isExempt && (
+                    <button
+                      onClick={() => handleResetScanLimit(st.regNo)}
+                      disabled={resettingRegNo === st.regNo}
+                      style={{
+                        padding: "3px 8px",
+                        borderRadius: 6,
+                        border: "1px solid #cbd5e1",
+                        background: "#ffffff",
+                        color: "#2563eb",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: resettingRegNo === st.regNo ? "not-allowed" : "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                      }}
+                    >
+                      <RotateCcw size={10} className={resettingRegNo === st.regNo ? "animate-spin" : ""} />
+                      <span>{resettingRegNo === st.regNo ? "..." : "Reset"}</span>
+                    </button>
+                  )}
+                </div>
+
                 {/* Footer Action */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 4 }}>
                   <span style={{ fontSize: 11, color: "#94a3b8" }}>
@@ -921,6 +1081,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
                   <th style={{ padding: "12px 16px", fontWeight: 700, minWidth: 160 }}>OVERALL ATTENDANCE</th>
                   <th style={{ padding: "12px 14px", fontWeight: 700 }}>CLASSES (ATT/DEL)</th>
                   <th style={{ padding: "12px 14px", fontWeight: 700 }}>SUBJECTS</th>
+                  <th style={{ padding: "12px 14px", fontWeight: 700 }}>DAILY SCANS</th>
                   <th style={{ padding: "12px 14px", fontWeight: 700 }}>STATUS</th>
                   <th style={{ padding: "12px 14px", fontWeight: 700 }}>LAST SYNCED</th>
                   <th style={{ padding: "12px 14px", fontWeight: 700, textAlign: "right" }}>ACTION</th>
@@ -1017,6 +1178,107 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
                       {/* Subjects */}
                       <td style={{ padding: "13px 14px", color: "#475569", fontWeight: 600 }}>
                         {st.totalSubjects} subjects
+                      </td>
+
+                      {/* Daily OCR Scans */}
+                      <td style={{ padding: "13px 14px" }}>
+                        {st.scanInfo?.isExempt ? (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              fontSize: 11,
+                              fontWeight: 750,
+                              padding: "2.5px 8px",
+                              borderRadius: 99,
+                              background: "#f5f3ff",
+                              color: "#6d28d9",
+                              border: "1px solid #ddd6fe",
+                            }}
+                          >
+                            <span>♾️</span>
+                            <span>Unlimited</span>
+                          </span>
+                        ) : (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                fontSize: 11,
+                                fontWeight: 750,
+                                padding: "2.5px 8px",
+                                borderRadius: 99,
+                                background: st.scanInfo?.isLimitReached
+                                  ? "#fef2f2"
+                                  : (st.scanInfo?.todayScanCount || 0) > 0
+                                  ? "#fffbeb"
+                                  : "#ecfdf5",
+                                color: st.scanInfo?.isLimitReached
+                                  ? "#991b1b"
+                                  : (st.scanInfo?.todayScanCount || 0) > 0
+                                  ? "#92400e"
+                                  : "#065f46",
+                                border: `1px solid ${
+                                  st.scanInfo?.isLimitReached
+                                    ? "#fecaca"
+                                    : (st.scanInfo?.todayScanCount || 0) > 0
+                                    ? "#fde68a"
+                                    : "#a7f3d0"
+                                }`,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: 6,
+                                  height: 6,
+                                  borderRadius: "50%",
+                                  background: st.scanInfo?.isLimitReached
+                                    ? "#ef4444"
+                                    : (st.scanInfo?.todayScanCount || 0) > 0
+                                    ? "#f59e0b"
+                                    : "#10b981",
+                                }}
+                              />
+                              <span>
+                                {st.scanInfo?.isLimitReached
+                                  ? "2/2 Limit"
+                                  : `${st.scanInfo?.todayScanCount || 0}/2 Used`}
+                              </span>
+                            </span>
+
+                            {/* Quick Reset Button if scans used */}
+                            {(st.scanInfo?.todayScanCount || 0) > 0 && (
+                              <button
+                                onClick={() => handleResetScanLimit(st.regNo)}
+                                disabled={resettingRegNo === st.regNo}
+                                title={`Reset daily scan quota for ${st.regNo}`}
+                                style={{
+                                  padding: "3px 7px",
+                                  borderRadius: 6,
+                                  border: "1px solid #cbd5e1",
+                                  background: "#ffffff",
+                                  color: "#2563eb",
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  cursor: resettingRegNo === st.regNo ? "not-allowed" : "pointer",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 3,
+                                  transition: "all 0.15s ease",
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = "#eff6ff")}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = "#ffffff")}
+                              >
+                                <RotateCcw size={10} className={resettingRegNo === st.regNo ? "animate-spin" : ""} />
+                                <span>{resettingRegNo === st.regNo ? "..." : "Reset"}</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </td>
 
                       {/* Status */}
@@ -1313,6 +1575,206 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
                     <span style={{ fontSize: 11, color: "#94a3b8" }}>
                       Target: {selectedStudent.targetGoal}% • Synced: {formatTimeAgo(selectedStudent.lastSyncedAt)}
                     </span>
+                  </div>
+                </div>
+
+                {/* ── ERP Screenshot OCR Scans & Daily Quota Section ── */}
+                <div
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 14,
+                    padding: "16px 18px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 14,
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div
+                        style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: 8,
+                          background: "#eff6ff",
+                          border: "1px solid #bfdbfe",
+                          color: "#2563eb",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Clock size={16} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a" }}>
+                          Screenshot OCR Activity &amp; Daily Quota
+                        </div>
+                        <div style={{ fontSize: 11, color: "#64748b" }}>
+                          Tracks daily ERP screenshot uploads and OCR scan timestamps
+                        </div>
+                      </div>
+                    </div>
+
+                    {!selectedStudent.scanInfo?.isExempt && (
+                      <button
+                        onClick={() => handleResetScanLimit(selectedStudent.regNo)}
+                        disabled={resettingRegNo === selectedStudent.regNo}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "7px 14px",
+                          borderRadius: 8,
+                          border: "1px solid #cbd5e1",
+                          background: (selectedStudent.scanInfo?.todayScanCount || 0) > 0 ? "#eff6ff" : "#f8fafc",
+                          color: (selectedStudent.scanInfo?.todayScanCount || 0) > 0 ? "#2563eb" : "#475569",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: resettingRegNo === selectedStudent.regNo ? "not-allowed" : "pointer",
+                          transition: "all 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (resettingRegNo !== selectedStudent.regNo) {
+                            e.currentTarget.style.background = "#dbeafe";
+                            e.currentTarget.style.borderColor = "#93c5fd";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (resettingRegNo !== selectedStudent.regNo) {
+                            e.currentTarget.style.background = (selectedStudent.scanInfo?.todayScanCount || 0) > 0 ? "#eff6ff" : "#f8fafc";
+                            e.currentTarget.style.borderColor = "#cbd5e1";
+                          }
+                        }}
+                      >
+                        <RotateCcw size={13} className={resettingRegNo === selectedStudent.regNo ? "animate-spin" : ""} />
+                        <span>{resettingRegNo === selectedStudent.regNo ? "Resetting Quota..." : "Reset Daily Limit (0/2)"}</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Quota Metrics Grid */}
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr", gap: 8 }}>
+                    <div style={{ background: "#f8fafc", padding: "10px 12px", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                      <div style={{ fontSize: 10.5, color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>
+                        Today's Used Scans
+                      </div>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: "#0f172a", marginTop: 2, fontFamily: "'Space Mono', monospace" }}>
+                        {selectedStudent.scanInfo?.isExempt
+                          ? "Unlimited"
+                          : `${selectedStudent.scanInfo?.todayScanCount || 0} / 2`}
+                      </div>
+                    </div>
+
+                    <div style={{ background: "#f8fafc", padding: "10px 12px", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                      <div style={{ fontSize: 10.5, color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>
+                        Remaining Today
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 16,
+                          fontWeight: 900,
+                          color: selectedStudent.scanInfo?.isLimitReached
+                            ? "#dc2626"
+                            : (selectedStudent.scanInfo?.todayScanCount || 0) > 0
+                            ? "#d97706"
+                            : "#059669",
+                          marginTop: 2,
+                          fontFamily: "'Space Mono', monospace",
+                        }}
+                      >
+                        {selectedStudent.scanInfo?.isExempt
+                          ? "Unlimited"
+                          : `${selectedStudent.scanInfo?.remainingScans !== undefined ? selectedStudent.scanInfo.remainingScans : 2} Scans`}
+                      </div>
+                    </div>
+
+                    <div style={{ background: "#f8fafc", padding: "10px 12px", borderRadius: 10, border: "1px solid #e2e8f0", gridColumn: isMobile ? "span 2" : "auto" }}>
+                      <div style={{ fontSize: 10.5, color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>
+                        Last Scanned At
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "#334155", marginTop: 4 }}>
+                        {selectedStudent.scanInfo?.lastScannedAt ? formatIST(selectedStudent.scanInfo.lastScannedAt) : "No scans logged"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Scan History Log */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 750, color: "#475569" }}>
+                      Recent Screenshot Scans ({selectedStudent.scanInfo?.recentScans?.length || 0})
+                    </div>
+
+                    {(!selectedStudent.scanInfo?.recentScans || selectedStudent.scanInfo.recentScans.length === 0) ? (
+                      <div style={{ textAlign: "center", padding: "14px", color: "#94a3b8", fontSize: 12, border: "1px dashed #cbd5e1", borderRadius: 10 }}>
+                        No screenshot scans recorded for this student yet.
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 180, overflowY: "auto" }}>
+                        {selectedStudent.scanInfo.recentScans.map((scan, scIdx) => (
+                          <div
+                            key={scIdx}
+                            style={{
+                              background: scan.isReset ? "#f8fafc" : "#ffffff",
+                              border: "1px solid #e2e8f0",
+                              borderRadius: 8,
+                              padding: "8px 12px",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              gap: 8,
+                              fontSize: 12,
+                            }}
+                          >
+                            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                              <div style={{ fontWeight: 750, color: "#0f172a" }}>
+                                {formatIST(scan.scannedAt)}
+                                <span style={{ marginLeft: 6, fontSize: 11, color: "#64748b", fontWeight: 500 }}>
+                                  ({formatTimeAgo(scan.scannedAt)})
+                                </span>
+                              </div>
+                              <div style={{ fontSize: 11, color: "#64748b" }}>
+                                {scan.subjectsDetected || 0} subjects detected • {scan.engine === "gemini_vision" ? "Gemini Vision AI" : "Local OCR"} {scan.modelUsed ? `(${scan.modelUsed})` : ""}
+                              </div>
+                            </div>
+
+                            {scan.isReset ? (
+                              <span
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 800,
+                                  padding: "2px 7px",
+                                  borderRadius: 99,
+                                  background: "#f1f5f9",
+                                  color: "#64748b",
+                                  border: "1px solid #cbd5e1",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                Reset by Admin
+                              </span>
+                            ) : (
+                              <span
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 800,
+                                  padding: "2px 7px",
+                                  borderRadius: 99,
+                                  background: "#ecfdf5",
+                                  color: "#047857",
+                                  border: "1px solid #a7f3d0",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                Scanned
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 

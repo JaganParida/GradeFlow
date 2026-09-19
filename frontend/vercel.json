@@ -93,6 +93,14 @@
       "destination": "/api/attendance-ocr.js"
     },
     {
+      "source": "/api/attendance/scan-quota",
+      "destination": "/api/attendance-ocr.js?action=quota"
+    },
+    {
+      "source": "/api/attendance/scan-log",
+      "destination": "/api/attendance-ocr.js?action=log-fallback"
+    },
+    {
       "source": "/api/timetable/schedule",
       "destination": "/api/timetable.js?action=schedule"
     },
@@ -207,6 +215,10 @@
     {
       "source": "/api/admin/attendance-tracker/monitor",
       "destination": "/api/admin.js?action=attendance-monitor"
+    },
+    {
+      "source": "/api/admin/attendance-tracker/reset-scan-limit",
+      "destination": "/api/admin.js?action=attendance-reset-scan-limit"
     },
     {
       "source": "/api/admin/purge-logs/:id",

@@ -34,6 +34,7 @@ import { getSectionSubjectCatalog, cleanSubjectBaseName } from "../utils/timetab
 import {
   getDailyScanStatus,
   incrementDailyScanCount,
+  fetchServerScanQuota,
   MAX_DAILY_SCANS,
 } from "../utils/scanLimitHelper";
 
@@ -53,8 +54,15 @@ export default function AttendanceScreenshotModal({
     setScanStatus(getDailyScanStatus(studentId, userRole, isAdmin));
     const handleUpdate = () => setScanStatus(getDailyScanStatus(studentId, userRole, isAdmin));
     window.addEventListener("gradeflow_scan_limit_updated", handleUpdate);
+
+    if (isOpen && studentId) {
+      fetchServerScanQuota(studentId, userRole, isAdmin, API).then((st) => {
+        if (st) setScanStatus(st);
+      });
+    }
+
     return () => window.removeEventListener("gradeflow_scan_limit_updated", handleUpdate);
-  }, [studentId, userRole, isAdmin, isOpen]);
+  }, [studentId, userRole, isAdmin, isOpen, API]);
 
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -683,9 +691,10 @@ const parseCutmOcrText = (text, catalog = []) => {
     setProcessingStatus("Initializing Gemini Vision scanner...");
 
     let extracted = [];
+    let usedClientFallback = false;
 
     // 1. Try Vercel Serverless Gemini Vision Endpoint
-    const ocrPayload = { imageBase64, mimeType: mimeType || "image/jpeg" };
+    const ocrPayload = { imageBase64, mimeType: mimeType || "image/jpeg", studentId };
 
     const endpointsToTry = [
       { url: `${API}/attendance/ocr`, label: "Vercel OCR Route" },
@@ -742,6 +751,7 @@ const parseCutmOcrText = (text, catalog = []) => {
         if (validClientSubjects.length >= 3) {
           // Only trust local OCR if it detected genuine subjects with readable names
           extracted = validClientSubjects;
+          usedClientFallback = true;
         }
       } catch (tessErr) {
         console.warn("Local Tesseract OCR warning:", tessErr);
@@ -777,6 +787,9 @@ const parseCutmOcrText = (text, catalog = []) => {
     if (finalCleanList.length > 0) {
       setParsedSubjects(finalCleanList);
       incrementDailyScanCount(studentId, userRole, isAdmin);
+      if (usedClientFallback && studentId) {
+        axios.post(`${API}/attendance/scan-log`, { studentId, subjectsCount: finalCleanList.length }, { withCredentials: true }).catch(() => {});
+      }
       setErrorMsg(""); // Extraction was successful; clear any transient backend errors
       setStep("review");
     } else {

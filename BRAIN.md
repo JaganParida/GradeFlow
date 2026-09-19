@@ -5315,3 +5315,118 @@ When an administrator uploads an academic spreadsheet via `UploadCard` (`POST /a
   - In `frontend/src/services/ablyClient.js`, attached `client.connection.on("error")` and `client.connection.on("failed")` to filter benign connection closure codes (e.g. 80000, 80003).
   - Wrapped all `ably.close()` invocations in `frontend/src/services/ablyClient.js`, `AppContext.jsx`, and `StudentAuthModal.jsx` with `.catch(() => {})` promise error suppression.
   - Added a global `window.addEventListener("unhandledrejection")` safety filter in `frontend/src/main.jsx` to prevent any background WebSocket disconnections from surfacing as uncaught errors.
+
+---
+
+## 136. Attendance Monitor: Student Screenshot OCR Activity Tracking, Daily Quota Inspection & Administrative Limit Reset Architecture
+
+### 1. Problem Definition & Operational Requirements
+
+Centurion University students use the AI Vision ERP Attendance Scanner (`AttendanceScreenshotModal`) to capture and parse their ERP attendance portals. To conserve Google Gemini Vision API quota and prevent serverless abuse, scans are capped at **2 scans per 24-hour cycle** (resetting at 12:00 AM midnight Indian Standard Time).
+
+Prior to this implementation:
+1. Administrators had no visibility in the Attendance Monitor (`AdminAttendanceMonitor.jsx`) into when students ran screenshot scans, what engine or model was utilized, or what timestamp each scan took place.
+2. If a student exhausted their daily 2-scan limit due to poor initial image crops, glare, or transient network timeouts, they were locked out for the remainder of the calendar day unless an administrator manually intervened in the database.
+3. Permanent developer exemption (`230301120327`) had to remain strictly intact, while normal students remain strictly capped at 2 scans/day unless granted an explicit administrative quota reset.
+
+### 2. Database Schema: `AttendanceScanLog`
+
+Persisted in MongoDB Atlas (`backend/models/AttendanceScanLog.js` and `frontend/api/_lib/models/AttendanceScanLog.js`):
+
+```javascript
+const attendanceScanLogSchema = new mongoose.Schema(
+  {
+    regNo: { type: String, required: true, uppercase: true, trim: true, index: true },
+    studentName: { type: String, default: "" },
+    scannedAt: { type: Date, default: Date.now, index: true },
+    dateKey: { type: String, required: true, index: true }, // "YYYY-MM-DD" in Asia/Kolkata
+    engine: {
+      type: String,
+      enum: ["gemini", "tesseract", "manual_fallback"],
+      default: "gemini",
+    },
+    modelUsed: { type: String, default: "" },               // e.g. "gemini-3.6-flash"
+    subjectsDetected: { type: Number, default: 0 },
+    isReset: { type: Boolean, default: false, index: true },// True if marked reset by Admin
+    resetAt: { type: Date, default: null },
+    resetBy: { type: String, default: "" },                 // Admin identifier
+  },
+  { timestamps: true }
+);
+
+// High-performance compound index for immediate daily quota verification
+attendanceScanLogSchema.index({ regNo: 1, dateKey: 1, isReset: 1 });
+```
+
+### 3. Non-Destructive Reset Architecture (Audit Preservation)
+
+Rather than deleting historical scan records when an administrator resets a student's limit, GradeFlow flags existing active records for today:
+
+```javascript
+await AttendanceScanLog.updateMany(
+  { regNo: cleanRegNo, dateKey: todayKey, isReset: { $ne: true } },
+  { $set: { isReset: true, resetAt: new Date(), resetBy: req.admin?.username || "Admin" } }
+);
+```
+
+This guarantees that:
+- The student's active quota count (`isReset: { $ne: true }`) drops immediately to `0`, restoring 2 fresh scans for today.
+- Historical scan timestamps, engine info, and detected subject counts remain 100% intact and auditable in the administrative timeline.
+- An immutable entry is dispatched to `AdminAuditLog` (`action: "RESET_ATTENDANCE_SCAN_LIMIT"`).
+
+### 4. Real-Time Multi-Channel Event Flow (Ably Pub/Sub)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin as Admin (Attendance Monitor)
+    participant API as Vercel / Express Backend
+    participant DB as MongoDB Atlas
+    participant Ably as Ably Realtime Hub
+    actor Student as Student Browser (Modal)
+
+    Admin->>API: POST /api/admin/attendance-tracker/reset-scan-limit { regNo }
+    API->>DB: updateMany({ regNo, dateKey: today, isReset: false }, { isReset: true })
+    API->>DB: AdminAuditLog.create("RESET_ATTENDANCE_SCAN_LIMIT")
+    API->>Ably: publishStudent("student-{regNo}", "scan-limit-reset", { regNo, dateKey })
+    API->>Ably: publishAdmin("cache-dirty", { scope: "attendance" })
+    Ably-->>Student: WebSocket Event: scan-limit-reset
+    Note over Student: AppContext clears localStorage quota & resets modal state to 0/2
+    Ably-->>Admin: WebSocket Event: cache-dirty
+    Note over Admin: Attendance Monitor auto-refreshes all open admin sessions
+    API-->>Admin: 200 OK { success: true, remainingScans: 2 }
+```
+
+### 5. Timezone Alignment Invariant (`Asia/Kolkata`)
+
+All calendar date boundaries are strictly resolved against Indian Standard Time (`Asia/Kolkata`):
+```javascript
+export function getTodayDateKey() {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
+}
+```
+This prevents premature or delayed midnight quota resets caused by serverless instances running in UTC or US-based data centers.
+
+### 6. User Interface Extensions (`AdminAttendanceMonitor.jsx`)
+
+1. **Daily Scans Column**: Real-time status badges with visual color indicators:
+   - `0/2 Used`: Emerald green badge.
+   - `1/2 Used`: Amber caution badge.
+   - `2/2 Limit Reached`: Rose/Red danger badge.
+   - `Unlimited`: Purple badge (reserved for developer account `230301120327`).
+2. **Inline 1-Click Reset Action**: Embedded directly in the student row when scans have been used, enabling immediate unlocking without opening the detail modal.
+3. **Mobile Responsive Card View**: Touch-optimized daily OCR scan status row and quick reset action button.
+4. **Student Inspection Modal**:
+   - **Screenshot OCR Activity & Daily Quota Section**: Summary metrics for Today's Scans, Remaining Scans, Last Scanned At, and Quota Status.
+   - **Dedicated Reset Button**: Instant async trigger with loading spinner and toast notification confirmation.
+   - **Recent Scan History Timeline**: Detailed chronological list of recent scans showing exact Indian Standard Time timestamp, engine utilized (`Gemini 3.6 Flash`, `Tesseract WebAssembly`), detected course count, and past administrative reset tags.
+

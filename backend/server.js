@@ -133,6 +133,78 @@ app.use("/api/traffic", publicLimiter, require("./routes/traffic"));
 app.use("/api/admin/traffic", adminLimiter, csrfProtect, require("./routes/adminTraffic"));
 app.use("/api/admin/vercel-quota", adminLimiter, csrfProtect, require("./routes/adminVercelQuota"));
 
+const AttendanceScanLog = require("./models/AttendanceScanLog");
+const Student = require("./models/Student");
+const SemesterResult = require("./models/SemesterResult");
+
+function getTodayDateKey(d = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+// ─── Scan Quota & Fallback Scan Logger Endpoints ───────────────
+app.get("/api/attendance/scan-quota", publicLimiter, async (req, res) => {
+  try {
+    const studentId = req.query.studentId || req.query.regNo || "";
+    const cleanRegNo = String(studentId || "").trim().toUpperCase();
+    const todayKey = getTodayDateKey();
+    const todayScans = await AttendanceScanLog.countDocuments({
+      regNo: cleanRegNo,
+      dateKey: todayKey,
+      isReset: false,
+    });
+    const isExempt = cleanRegNo === "230301120327";
+    const max = isExempt ? 9999 : 2;
+    const remaining = isExempt ? 9999 : Math.max(0, 2 - todayScans);
+    const isLimitReached = !isExempt && todayScans >= 2;
+
+    return res.json({
+      success: true,
+      regNo: cleanRegNo,
+      todayKey,
+      used: todayScans,
+      max,
+      remaining,
+      isLimitReached,
+      isExempt,
+    });
+  } catch (qErr) {
+    return res.status(500).json({ success: false, message: "Failed to fetch scan quota: " + qErr.message });
+  }
+});
+
+app.post("/api/attendance/scan-log", publicLimiter, async (req, res) => {
+  try {
+    const studentId = req.body?.studentId || req.body?.regNo || "";
+    const cleanRegNo = String(studentId || "").trim().toUpperCase();
+    if (cleanRegNo) {
+      let studentName = "Student";
+      const meta =
+        (await SemesterResult.findOne({ regNo: cleanRegNo }, "studentName").lean()) ||
+        (await Student.findOne({ regNo: cleanRegNo }, "studentName").lean());
+      if (meta?.studentName) studentName = meta.studentName;
+
+      await AttendanceScanLog.create({
+        regNo: cleanRegNo,
+        studentName,
+        scannedAt: new Date(),
+        dateKey: getTodayDateKey(),
+        engine: "tesseract_fallback",
+        modelUsed: "tesseract.js",
+        subjectsDetected: Number(req.body?.subjectsCount) || 0,
+        isReset: false,
+      });
+    }
+    return res.json({ success: true, message: "Fallback scan logged successfully." });
+  } catch (fErr) {
+    return res.status(500).json({ success: false, message: "Failed to log fallback scan: " + fErr.message });
+  }
+});
+
 // ─── Attendance OCR Endpoint ───────────────────────────────────
 app.post("/api/attendance/ocr", publicLimiter, async (req, res) => {
   try {
@@ -300,6 +372,31 @@ OUTPUT FORMAT (JSON Schema):
                   components: sub.components,
                 };
               });
+
+              const studentRegNo = req.body?.studentId || req.body?.regNo || "";
+              if (studentRegNo) {
+                try {
+                  const cleanRegNo = String(studentRegNo).trim().toUpperCase();
+                  let studentName = "Student";
+                  const meta =
+                    (await SemesterResult.findOne({ regNo: cleanRegNo }, "studentName").lean()) ||
+                    (await Student.findOne({ regNo: cleanRegNo }, "studentName").lean());
+                  if (meta?.studentName) studentName = meta.studentName;
+
+                  await AttendanceScanLog.create({
+                    regNo: cleanRegNo,
+                    studentName,
+                    scannedAt: new Date(),
+                    dateKey: getTodayDateKey(),
+                    engine: "gemini_vision",
+                    modelUsed: model,
+                    subjectsDetected: formattedSubjects.length,
+                    isReset: false,
+                  });
+                } catch (logErr) {
+                  console.warn("[OCR Logger] Failed to save AttendanceScanLog:", logErr.message);
+                }
+              }
 
               return res.json({
                 success: true,

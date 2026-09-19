@@ -18,7 +18,18 @@ const VercelQuotaMetric = require("./_lib/models/VercelQuotaMetric");
 const StudentNotification = require("./_lib/models/StudentNotification");
 const StudentRouteActivity = require("./_lib/models/StudentRouteActivity");
 const PageAnalytics = require("./_lib/models/PageAnalytics");
+const AttendanceScanLog = require("./_lib/models/AttendanceScanLog");
+const AdminAuditLog = require("./_lib/models/AdminAuditLog");
 const jwt = require("jsonwebtoken");
+
+function getTodayDateKey(d = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
 const { isAdminSessionValid, touchAdminSession, getActiveAdminSessions } = require("./_lib/sessionManager");
 const {
   GRADE_POINTS,
@@ -1463,7 +1474,7 @@ module.exports = async function handler(req, res) {
       ).sort({ updatedAt: -1, lastSyncedAt: -1 }).lean();
       const regNos = attendanceDocs.map((a) => a.regNo);
 
-      const [studentMetaDocs, studentUsers] = await Promise.all([
+      const [studentMetaDocs, studentUsers, scanLogs] = await Promise.all([
         SemesterResult.find(
           { regNo: { $in: regNos } },
           "regNo studentName batch branch section"
@@ -1472,7 +1483,44 @@ module.exports = async function handler(req, res) {
           { regNo: { $in: regNos } },
           "regNo studentName createdAt updatedAt"
         ).lean(),
+        AttendanceScanLog.find(
+          { regNo: { $in: regNos } }
+        ).sort({ scannedAt: -1 }).lean(),
       ]);
+
+      const todayKey = getTodayDateKey();
+      const scanMap = new Map();
+      (scanLogs || []).forEach((log) => {
+        if (!log.regNo) return;
+        const reg = String(log.regNo).toUpperCase();
+        if (!scanMap.has(reg)) {
+          scanMap.set(reg, {
+            todayScanCount: 0,
+            recentScans: [],
+            lastScannedAt: null,
+          });
+        }
+        const data = scanMap.get(reg);
+        if (!data.lastScannedAt) {
+          data.lastScannedAt = log.scannedAt;
+        }
+        if (log.dateKey === todayKey && !log.isReset) {
+          data.todayScanCount++;
+        }
+        if (data.recentScans.length < 10) {
+          data.recentScans.push({
+            id: log._id,
+            scannedAt: log.scannedAt,
+            dateKey: log.dateKey,
+            engine: log.engine,
+            modelUsed: log.modelUsed,
+            subjectsDetected: log.subjectsDetected,
+            isReset: Boolean(log.isReset),
+            resetAt: log.resetAt,
+            resetBy: log.resetBy,
+          });
+        }
+      });
 
       const metaMap = new Map();
       studentMetaDocs.forEach((doc) => {
@@ -1540,6 +1588,25 @@ module.exports = async function handler(req, res) {
           }
         }
 
+        const scanData = scanMap.get(String(doc.regNo).toUpperCase()) || {
+          todayScanCount: 0,
+          recentScans: [],
+          lastScannedAt: null,
+        };
+        const isExempt = String(doc.regNo) === EXCLUDED_STUDENT_REG;
+        const remainingScans = isExempt ? "Unlimited" : Math.max(0, 2 - scanData.todayScanCount);
+        const isLimitReached = !isExempt && scanData.todayScanCount >= 2;
+
+        const scanInfo = {
+          todayScanCount: scanData.todayScanCount,
+          maxDailyScans: isExempt ? "Unlimited" : 2,
+          remainingScans,
+          isLimitReached,
+          isExempt,
+          lastScannedAt: scanData.lastScannedAt,
+          recentScans: scanData.recentScans,
+        };
+
         return {
           regNo: doc.regNo,
           studentName,
@@ -1557,6 +1624,7 @@ module.exports = async function handler(req, res) {
           status: isTrackerActive ? "active" : "reset",
           lastSyncedAt: doc.lastSyncedAt || doc.updatedAt,
           subjectsBreakdown,
+          scanInfo,
         };
       });
 
@@ -1670,6 +1738,62 @@ module.exports = async function handler(req, res) {
         return res.status(404).json({ success: false, message: "Attendance record not found for student." });
       }
       return res.json({ success: true, attendance: studentAttendance });
+    }
+
+    // 1E. POST /attendance-tracker/reset-scan-limit
+    if (action === "attendance-reset-scan-limit" || cleanUrl.includes("/attendance-tracker/reset-scan-limit")) {
+      if (req.method !== "POST") {
+        return res.status(405).json({ success: false, message: "Method Not Allowed" });
+      }
+
+      const body = await parseJsonBodyIfNeeded(req);
+      const { regNo } = body || {};
+      const cleanRegNo = String(regNo || "").trim().toUpperCase();
+      if (!cleanRegNo) {
+        return res.status(400).json({ success: false, message: "Student registration number (regNo) is required." });
+      }
+
+      const todayKey = getTodayDateKey();
+      const updateResult = await AttendanceScanLog.updateMany(
+        { regNo: cleanRegNo, dateKey: todayKey, isReset: false },
+        {
+          $set: {
+            isReset: true,
+            resetAt: new Date(),
+            resetBy: admin?.username || admin?.email || "Admin",
+          },
+        }
+      );
+
+      // Audit Log
+      try {
+        await AdminAuditLog.create({
+          adminId: admin?.id || "admin",
+          action: "RESET_ATTENDANCE_SCAN_LIMIT",
+          targetUser: cleanRegNo,
+          details: `Reset daily OCR scan quota for student ${cleanRegNo} on date ${todayKey} (${updateResult.modifiedCount} scans reset).`,
+          ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown",
+        });
+      } catch (auditErr) {
+        console.warn("[AdminAuditLog] Failed to log scan quota reset:", auditErr.message);
+      }
+
+      // Realtime notifications to student & admin monitor
+      publishStudentRealtimeEvent(cleanRegNo, "scan-limit-reset", {
+        regNo: cleanRegNo,
+        dateKey: todayKey,
+        resetAt: new Date(),
+      }).catch(() => {});
+
+      publishAdminRealtimeEvent("cache-dirty", { scope: "attendance" }).catch(() => {});
+
+      return res.json({
+        success: true,
+        message: `Successfully reset daily scan limit for ${cleanRegNo}.`,
+        regNo: cleanRegNo,
+        dateKey: todayKey,
+        scansReset: updateResult.modifiedCount || 0,
+      });
     }
 
     // 2. GET /purge-logs & DELETE /purge-logs

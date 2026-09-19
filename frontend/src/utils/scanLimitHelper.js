@@ -30,10 +30,79 @@ export function isExemptFromScanLimit(studentId = "", userRole = "", isAdminToke
 }
 
 export function getTodayDateKey(d = new Date()) {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+export function resetStudentScanQuotaLocal(studentId = "") {
+  if (typeof window === "undefined") return;
+  const cleanId = String(studentId || "").trim().toLowerCase();
+  const todayKey = getTodayDateKey();
+  const storageKey = `gradeflow_ocr_scans_${cleanId}_${todayKey}`;
+  try {
+    localStorage.removeItem(storageKey);
+    window.dispatchEvent(new CustomEvent("gradeflow_scan_limit_updated", { detail: { newCount: 0, studentId } }));
+  } catch (err) {
+    console.warn("Could not reset daily scan count locally:", err);
+  }
+}
+
+export async function fetchServerScanQuota(studentId = "", userRole = "", isAdminToken = false, API = "/api") {
+  if (isExemptFromScanLimit(studentId, userRole, isAdminToken)) {
+    return {
+      used: 0,
+      max: Infinity,
+      remaining: Infinity,
+      isLimitReached: false,
+      isExempt: true,
+      todayKey: getTodayDateKey(),
+    };
+  }
+
+  const cleanId = String(studentId || "").trim().toLowerCase();
+  if (!cleanId) return getDailyScanStatus(studentId, userRole, isAdminToken);
+
+  try {
+    const res = await fetch(`${API}/attendance/scan-quota?studentId=${cleanId}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success) {
+        const todayKey = data.todayKey || getTodayDateKey();
+        const storageKey = `gradeflow_ocr_scans_${cleanId}_${todayKey}`;
+        const serverUsed = Math.max(0, parseInt(data.used, 10) || 0);
+
+        // Sync with localStorage
+        try {
+          if (typeof window !== "undefined") {
+            const localRaw = localStorage.getItem(storageKey);
+            const localUsed = Math.max(0, parseInt(localRaw, 10) || 0);
+            // If server reports fewer scans (e.g. admin reset it to 0), accept server state
+            if (serverUsed < localUsed || localRaw === null) {
+              localStorage.setItem(storageKey, String(serverUsed));
+              window.dispatchEvent(new CustomEvent("gradeflow_scan_limit_updated", { detail: { newCount: serverUsed, studentId } }));
+            }
+          }
+        } catch {}
+
+        return {
+          used: serverUsed,
+          max: MAX_DAILY_SCANS,
+          remaining: Math.max(0, MAX_DAILY_SCANS - serverUsed),
+          isLimitReached: serverUsed >= MAX_DAILY_SCANS,
+          isExempt: false,
+          todayKey,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn("[ScanQuota] Could not fetch server quota, falling back to local:", err.message);
+  }
+
+  return getDailyScanStatus(studentId, userRole, isAdminToken);
 }
 
 export function getDailyScanStatus(studentId = "", userRole = "", isAdminToken = false) {
