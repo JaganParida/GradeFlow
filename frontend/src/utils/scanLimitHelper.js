@@ -3,11 +3,15 @@
 
 export const MAX_DAILY_SCANS = 2;
 
-// List of registration numbers with permanent unlimited scan access
+// List of registration numbers with permanent unlimited scan access (Only Master/Developer accounts)
 export const UNLIMITED_REG_NOS = [
   "230301120327",
-  "230301120320",
 ];
+
+// Registry of one-time daily scan resets for specific normal students (resets their used count to 0 so they get fresh 2 scans today)
+export const TODAY_RESET_REG_NOS = {
+  "230301120320": "2026-09-19_v1",
+};
 
 export function isExemptFromScanLimit(studentId = "", userRole = "", isAdminToken = false) {
   if (Boolean(isAdminToken)) return true;
@@ -36,13 +40,6 @@ export function getDailyScanStatus(studentId = "", userRole = "", isAdminToken =
   const isExempt = isExemptFromScanLimit(studentId, userRole, isAdminToken);
 
   if (isExempt) {
-    try {
-      if (typeof window !== "undefined" && studentId) {
-        const cleanId = String(studentId).trim().toLowerCase();
-        const todayKey = getTodayDateKey();
-        localStorage.removeItem(`gradeflow_ocr_scans_${cleanId}_${todayKey}`);
-      }
-    } catch {}
     return {
       used: 0,
       max: Infinity,
@@ -69,6 +66,17 @@ export function getDailyScanStatus(studentId = "", userRole = "", isAdminToken =
   const cleanId = String(studentId || "default_student").trim().toLowerCase();
   const todayKey = getTodayDateKey();
   const storageKey = `gradeflow_ocr_scans_${cleanId}_${todayKey}`;
+
+  // One-time today reset grant for normal students whose limit was reached
+  if (TODAY_RESET_REG_NOS[cleanId]) {
+    const grantToken = `gradeflow_reset_grant_${cleanId}_${TODAY_RESET_REG_NOS[cleanId]}`;
+    try {
+      if (!localStorage.getItem(grantToken)) {
+        localStorage.removeItem(storageKey);
+        localStorage.setItem(grantToken, "applied");
+      }
+    } catch {}
+  }
 
   const raw = localStorage.getItem(storageKey);
   const used = Math.max(0, parseInt(raw, 10) || 0);
