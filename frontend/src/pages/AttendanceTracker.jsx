@@ -6266,8 +6266,8 @@ export default function AttendanceTracker() {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  width: "100vw",
-                  height: "100vh",
+                  width: "100%",
+                  height: "100%",
                   background: "rgba(15, 23, 42, 0.72)",
                   backdropFilter: "blur(6px)",
                   WebkitBackdropFilter: "blur(6px)",
@@ -6275,7 +6275,7 @@ export default function AttendanceTracker() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  padding: "16px",
+                  padding: "16px 14px",
                   boxSizing: "border-box",
                   overflowY: "auto",
                 }}
@@ -6288,25 +6288,26 @@ export default function AttendanceTracker() {
                 }}
               >
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.94, y: 0 }}
+                  initial={{ opacity: 0, scale: 0.95, y: 0 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.94, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 0 }}
                   transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                   onClick={(e) => e.stopPropagation()}
                   style={{
                     background: "#ffffff",
-                    borderRadius: 22,
-                    padding: isMobile ? "22px 18px" : "26px 24px",
-                    maxWidth: 430,
-                    width: "100%",
+                    borderRadius: 20,
+                    padding: "20px 18px",
+                    width: "min(380px, calc(100vw - 28px))",
+                    maxWidth: "100%",
                     margin: "auto",
                     border: "1px solid #e2e8f0",
-                    boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.28), 0 0 0 1px rgba(15, 23, 42, 0.06)",
+                    boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.05)",
                     display: "flex",
                     flexDirection: "column",
-                    gap: 16,
+                    gap: 15,
                     boxSizing: "border-box",
                     position: "relative",
+                    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                   }}
                 >
                   {/* Step 1: Initial Confirmation Dialog */}
@@ -6315,8 +6316,8 @@ export default function AttendanceTracker() {
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div
                           style={{
-                            width: 44,
-                            height: 44,
+                            width: 42,
+                            height: 42,
                             borderRadius: 12,
                             background: "#fee2e2",
                             border: "1px solid #fecaca",
@@ -6326,13 +6327,13 @@ export default function AttendanceTracker() {
                             flexShrink: 0,
                           }}
                         >
-                          <RotateCcw size={22} color="#dc2626" />
+                          <RotateCcw size={20} color="#dc2626" />
                         </div>
                         <div>
-                          <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.3px" }}>
+                          <h3 style={{ fontSize: 16.5, fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: "-0.3px", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
                             Reset Attendance Data?
                           </h3>
-                          <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
+                          <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
                             Revert all changes to default section routine
                           </p>
                         </div>
@@ -6344,16 +6345,17 @@ export default function AttendanceTracker() {
                           border: "1px solid #fecaca",
                           borderRadius: 12,
                           padding: "12px 14px",
-                          fontSize: 12.5,
+                          fontSize: 12,
                           color: "#991b1b",
                           lineHeight: 1.45,
                           display: "flex",
                           flexDirection: "column",
                           gap: 8,
+                          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                          <AlertTriangle size={16} color="#dc2626" style={{ flexShrink: 0, marginTop: 2 }} />
+                          <AlertTriangle size={15} color="#dc2626" style={{ flexShrink: 0, marginTop: 2 }} />
                           <span>
                             This will clear all marked daily check-ins, custom subject calculations, and reset to Section <strong>{selectedSection}</strong> default routine values.
                           </span>
@@ -6362,9 +6364,9 @@ export default function AttendanceTracker() {
                           style={{
                             paddingTop: 8,
                             borderTop: "1px dashed #fca5a5",
-                            fontSize: 11.5,
+                            fontSize: 11,
                             color: "#991b1b",
-                            fontWeight: 700,
+                            fontWeight: 600,
                             display: "flex",
                             alignItems: "center",
                             gap: 6,
@@ -6375,19 +6377,20 @@ export default function AttendanceTracker() {
                         </div>
                       </div>
 
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 4 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 2 }}>
                         <button
                           type="button"
                           onClick={() => setIsResetModalOpen(false)}
                           style={{
-                            padding: "11px 14px",
+                            padding: "10px 14px",
                             borderRadius: 10,
                             border: "1px solid #cbd5e1",
                             background: "#ffffff",
                             color: "#475569",
                             fontSize: 12.5,
-                            fontWeight: 700,
+                            fontWeight: 600,
                             cursor: "pointer",
+                            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                             transition: "all 0.15s ease",
                           }}
                         >
@@ -6397,15 +6400,16 @@ export default function AttendanceTracker() {
                           type="button"
                           onClick={handleStartResetWithUndo}
                           style={{
-                            padding: "11px 14px",
+                            padding: "10px 14px",
                             borderRadius: 10,
                             border: "none",
                             background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
                             color: "#ffffff",
                             fontSize: 12.5,
-                            fontWeight: 800,
+                            fontWeight: 700,
                             cursor: "pointer",
-                            boxShadow: "0 2px 8px rgba(220, 38, 38, 0.3)",
+                            boxShadow: "0 2px 8px rgba(220, 38, 38, 0.25)",
+                            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                             transition: "all 0.15s ease",
                             display: "flex",
                             alignItems: "center",
@@ -6424,45 +6428,49 @@ export default function AttendanceTracker() {
                   {resetModalStep === "countdown" && (
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 14 }}>
                       <div>
-                        <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.3px" }}>
+                        <h3 style={{ fontSize: 17.5, fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: "-0.3px", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
                           Resetting Attendance Data
                         </h3>
-                        <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0 0" }}>
+                        <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0 0", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
                           You have 10 seconds to cancel and keep all records
                         </p>
                       </div>
 
-                      {/* Google-Style SVG Circular Timer Ring */}
-                      <div style={{ position: "relative", width: 136, height: 136, display: "flex", alignItems: "center", justifyContent: "center", margin: "4px 0" }}>
-                        <svg width="136" height="136" viewBox="0 0 120 120" style={{ transform: "rotate(-90deg)", overflow: "visible" }}>
+                      {/* Google-Style SVG Circular Timer Ring with High-Tech Blue / Indigo Gradient */}
+                      <div style={{ position: "relative", width: 130, height: 130, display: "flex", alignItems: "center", justifyContent: "center", margin: "4px 0" }}>
+                        <svg width="130" height="130" viewBox="0 0 120 120" style={{ transform: "rotate(-90deg)", overflow: "visible" }}>
                           <defs>
                             <linearGradient id="gfResetTimerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                              <stop offset="0%" stopColor="#ef4444" />
-                              <stop offset="100%" stopColor="#f59e0b" />
+                              <stop offset="0%" stopColor="#2563eb" />
+                              <stop offset="100%" stopColor="#4f46e5" />
                             </linearGradient>
+                            <filter id="gfTimerGlow" x="-20%" y="-20%" width="140%" height="140%">
+                              <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#2563eb" floodOpacity="0.22" />
+                            </filter>
                           </defs>
                           {/* Background Track Circle */}
                           <circle
                             cx="60"
                             cy="60"
-                            r="50"
+                            r="48"
                             fill="none"
-                            stroke="#f1f5f9"
-                            strokeWidth="8"
+                            stroke="#e2e8f0"
+                            strokeWidth="7"
                           />
                           {/* Animated Depleting Circle */}
                           <circle
                             cx="60"
                             cy="60"
-                            r="50"
+                            r="48"
                             fill="none"
                             stroke="url(#gfResetTimerGrad)"
-                            strokeWidth="8"
+                            strokeWidth="7"
                             strokeLinecap="round"
-                            strokeDasharray="314.159"
-                            strokeDashoffset={314.159 * (1 - Math.max(0, resetCountdown) / 10)}
+                            strokeDasharray="301.59"
+                            strokeDashoffset={301.59 * (1 - Math.max(0, resetCountdown) / 10)}
+                            filter="url(#gfTimerGlow)"
                             style={{
-                              transition: "stroke-dashoffset 0.2s linear",
+                              transition: "stroke-dashoffset 0.25s linear",
                             }}
                           />
                         </svg>
@@ -6480,11 +6488,11 @@ export default function AttendanceTracker() {
                         >
                           <span
                             style={{
-                              fontSize: 38,
-                              fontWeight: 900,
+                              fontSize: 36,
+                              fontWeight: 800,
                               color: "#0f172a",
                               lineHeight: 1,
-                              fontFamily: "'DM Sans', -apple-system, sans-serif",
+                              fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                               fontVariantNumeric: "tabular-nums",
                               letterSpacing: "-1px",
                             }}
@@ -6493,12 +6501,13 @@ export default function AttendanceTracker() {
                           </span>
                           <span
                             style={{
-                              fontSize: 10,
-                              fontWeight: 800,
+                              fontSize: 9.5,
+                              fontWeight: 700,
                               color: "#64748b",
                               textTransform: "uppercase",
-                              letterSpacing: "1.2px",
-                              marginTop: 3,
+                              letterSpacing: "1.4px",
+                              marginTop: 4,
+                              fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                             }}
                           >
                             SECONDS
@@ -6506,15 +6515,15 @@ export default function AttendanceTracker() {
                         </div>
                       </div>
 
-                      {/* Info Notice Card (SVG Only, No Emojis) */}
+                      {/* Clean Info Notice Card (SVG Only, No Emojis) */}
                       <div
                         style={{
-                          background: "#fef2f2",
-                          border: "1px solid #fecaca",
-                          borderRadius: 12,
-                          padding: "10px 14px",
-                          fontSize: 12,
-                          color: "#991b1b",
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 10,
+                          padding: "9px 12px",
+                          fontSize: 11.5,
+                          color: "#475569",
                           lineHeight: 1.4,
                           display: "flex",
                           alignItems: "center",
@@ -6522,37 +6531,39 @@ export default function AttendanceTracker() {
                           gap: 6,
                           width: "100%",
                           boxSizing: "border-box",
+                          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                         }}
                       >
-                        <ShieldAlert size={14} color="#dc2626" style={{ flexShrink: 0 }} />
-                        <span>Permanent deletion starts when the timer reaches 0.</span>
+                        <ShieldAlert size={14} color="#64748b" style={{ flexShrink: 0 }} />
+                        <span>Permanent deletion begins when timer reaches 0.</span>
                       </div>
 
                       {/* Prominent Center Undo Button */}
                       <motion.button
                         type="button"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.96 }}
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={handleUndoReset}
                         style={{
                           width: "100%",
-                          padding: "12px 18px",
-                          borderRadius: 12,
+                          padding: "11px 18px",
+                          borderRadius: 10,
                           border: "none",
                           background: "#0f172a",
                           color: "#ffffff",
-                          fontSize: 13.5,
-                          fontWeight: 800,
+                          fontSize: 13,
+                          fontWeight: 700,
                           cursor: "pointer",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           gap: 8,
-                          boxShadow: "0 4px 12px rgba(15, 23, 42, 0.2)",
+                          boxShadow: "0 3px 10px rgba(15, 23, 42, 0.18)",
+                          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                           transition: "all 0.15s ease",
                         }}
                       >
-                        <RotateCcw size={15} color="#ffffff" />
+                        <RotateCcw size={14} color="#ffffff" />
                         <span>Undo & Restore All Data</span>
                       </motion.button>
                     </div>
@@ -6563,8 +6574,8 @@ export default function AttendanceTracker() {
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 12, padding: "12px 0" }}>
                       <div
                         style={{
-                          width: 60,
-                          height: 60,
+                          width: 56,
+                          height: 56,
                           borderRadius: "50%",
                           background: "#ecfdf5",
                           border: "2px solid #a7f3d0",
@@ -6573,13 +6584,13 @@ export default function AttendanceTracker() {
                           justifyContent: "center",
                         }}
                       >
-                        <CheckCircle2 size={34} color="#059669" />
+                        <CheckCircle2 size={32} color="#059669" />
                       </div>
                       <div>
-                        <h3 style={{ fontSize: 18, fontWeight: 800, color: "#065f46", margin: 0, letterSpacing: "-0.3px" }}>
+                        <h3 style={{ fontSize: 17, fontWeight: 700, color: "#065f46", margin: 0, letterSpacing: "-0.3px", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
                           Reset Cancelled!
                         </h3>
-                        <p style={{ fontSize: 12.5, color: "#047857", margin: "4px 0 0 0", lineHeight: 1.4 }}>
+                        <p style={{ fontSize: 12, color: "#047857", margin: "4px 0 0 0", lineHeight: 1.4, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
                           All attendance records, check-ins, and calculations have been 100% preserved.
                         </p>
                       </div>
@@ -6591,8 +6602,8 @@ export default function AttendanceTracker() {
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 12, padding: "12px 0" }}>
                       <div
                         style={{
-                          width: 60,
-                          height: 60,
+                          width: 56,
+                          height: 56,
                           borderRadius: "50%",
                           background: "#f1f5f9",
                           border: "2px solid #e2e8f0",
@@ -6601,13 +6612,13 @@ export default function AttendanceTracker() {
                           justifyContent: "center",
                         }}
                       >
-                        <Check size={32} color="#475569" />
+                        <Check size={30} color="#475569" />
                       </div>
                       <div>
-                        <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.3px" }}>
+                        <h3 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: "-0.3px", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
                           Attendance Data Reset
                         </h3>
-                        <p style={{ fontSize: 12.5, color: "#64748b", margin: "4px 0 0 0", lineHeight: 1.4 }}>
+                        <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0 0", lineHeight: 1.4, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
                           Attendance routine has been reset to Section {selectedSection} defaults.
                         </p>
                       </div>
