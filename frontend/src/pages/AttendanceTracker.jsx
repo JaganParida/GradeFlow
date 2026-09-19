@@ -623,8 +623,8 @@ export default function AttendanceTracker() {
     if (isTabLocked(normalized)) {
       const tabNames = {
         checkin: "Daily Attendance",
-        studio_schedule: "Target Date & Schedule",
-        studio_penalty: "Target & Miss Impact",
+        studio_schedule: "Target with Schedule",
+        studio_penalty: "Miss Impact between Target",
         studio_roadmap: "Miss Classes After Target",
         bunk_analyzer: "Future Predictor",
       };
@@ -1208,8 +1208,8 @@ export default function AttendanceTracker() {
       }
       const tabNames = {
         checkin: "Daily Attendance",
-        studio_schedule: "Target Date & Schedule",
-        studio_penalty: "Target & Miss Impact",
+        studio_schedule: "Target with Schedule",
+        studio_penalty: "Miss Impact between Target",
         studio_roadmap: "Miss Classes After Target",
         bunk_analyzer: "Future Predictor",
       };
@@ -1970,7 +1970,7 @@ export default function AttendanceTracker() {
 
   const handleOpenSubjectInSchedule = (sub) => {
     if (isTabLocked("studio_schedule")) {
-      handleLockedTabAttempt("Target Date & Schedule");
+      handleLockedTabAttempt("Target with Schedule");
       return;
     }
     const catMatch = sectionCatalog.find((c) => isSameSubject(c, sub));
@@ -1995,6 +1995,130 @@ export default function AttendanceTracker() {
   };
 
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [isResetPending, setIsResetPending] = useState(false);
+  const [resetCountdown, setResetCountdown] = useState(null);
+  const [undoSuccessMsg, setUndoSuccessMsg] = useState("");
+  const resetBackupRef = useRef(null);
+  const resetCountdownTimerRef = useRef(null);
+  const resetFinalizeTimerRef = useRef(null);
+
+  const handleStartResetWithUndo = () => {
+    setIsResetModalOpen(false);
+
+    // 1. Snapshot all current attendance state for non-destructive undo restoration
+    const backup = {
+      savedSubjects: JSON.parse(JSON.stringify(savedSubjects || [])),
+      allDailyLogs: JSON.parse(JSON.stringify(allDailyLogs || {})),
+      dailyAttendanceLogs: JSON.parse(JSON.stringify(dailyAttendanceLogs || {})),
+      componentInputs: JSON.parse(JSON.stringify(componentInputs || [])),
+      targetGoal: targetGoal,
+      timestamp: Date.now(),
+    };
+    resetBackupRef.current = backup;
+    try {
+      sessionStorage.setItem("gf_attendance_reset_backup", JSON.stringify(backup));
+    } catch (_) {}
+
+    // 2. Optimistically reset the local view to default routine
+    setSavedSubjects([]);
+    setAllDailyLogs({});
+    setDailyAttendanceLogs({});
+    if (sectionCatalog.length > 0) {
+      const first = sectionCatalog[0];
+      const detected = first.components || ["PP"];
+      setComponentInputs(detected.map((t) => ({ type: t, attended: 0, delivered: 0 })));
+    } else {
+      setComponentInputs([{ type: "PP", attended: 0, delivered: 0 }]);
+    }
+
+    // 3. Clear existing timers if any
+    if (resetCountdownTimerRef.current) clearInterval(resetCountdownTimerRef.current);
+    if (resetFinalizeTimerRef.current) clearTimeout(resetFinalizeTimerRef.current);
+
+    // 4. Start 10-second countdown with active Undo option
+    setIsResetPending(true);
+    setResetCountdown(10);
+    setUndoSuccessMsg("");
+
+    const startTime = Date.now();
+    const DURATION_SEC = 10;
+
+    resetCountdownTimerRef.current = setInterval(() => {
+      const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
+      const remaining = Math.max(0, DURATION_SEC - elapsedSec);
+      setResetCountdown(remaining);
+
+      if (remaining <= 0) {
+        clearInterval(resetCountdownTimerRef.current);
+        resetCountdownTimerRef.current = null;
+        handleFinalizeReset();
+      }
+    }, 250);
+  };
+
+  const handleUndoReset = () => {
+    if (resetCountdownTimerRef.current) {
+      clearInterval(resetCountdownTimerRef.current);
+      resetCountdownTimerRef.current = null;
+    }
+    if (resetFinalizeTimerRef.current) {
+      clearTimeout(resetFinalizeTimerRef.current);
+      resetFinalizeTimerRef.current = null;
+    }
+
+    let backup = resetBackupRef.current;
+    if (!backup) {
+      try {
+        const raw = sessionStorage.getItem("gf_attendance_reset_backup");
+        if (raw) backup = JSON.parse(raw);
+      } catch (_) {}
+    }
+
+    if (backup) {
+      setSavedSubjects(backup.savedSubjects || []);
+      setAllDailyLogs(backup.allDailyLogs || {});
+      setDailyAttendanceLogs(backup.dailyAttendanceLogs || {});
+      setComponentInputs(backup.componentInputs || []);
+      if (backup.targetGoal) setTargetGoal(backup.targetGoal);
+
+      try {
+        localStorage.setItem("gradeflow_saved_attendance", JSON.stringify(backup.savedSubjects || []));
+        localStorage.setItem("gradeflow_daily_attendance_logs", JSON.stringify(backup.allDailyLogs || {}));
+        sessionStorage.removeItem("gf_attendance_reset_backup");
+      } catch (_) {}
+    }
+
+    resetBackupRef.current = null;
+    setIsResetPending(false);
+    setResetCountdown(null);
+
+    setUndoSuccessMsg("Reset cancelled! All your attendance records and check-ins have been 100% preserved.");
+    setTimeout(() => {
+      setUndoSuccessMsg("");
+    }, 4500);
+  };
+
+  const handleFinalizeReset = () => {
+    setIsResetPending(false);
+    setResetCountdown(null);
+    resetBackupRef.current = null;
+
+    try {
+      localStorage.removeItem("gradeflow_saved_attendance");
+      localStorage.removeItem("gradeflow_daily_attendance_logs");
+      sessionStorage.removeItem("gf_attendance_reset_backup");
+    } catch (_) {}
+
+    // Permanently commit reset to database (only after full 10-second grace window expires!)
+    syncAttendanceToDb([], {}, targetGoal);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (resetCountdownTimerRef.current) clearInterval(resetCountdownTimerRef.current);
+      if (resetFinalizeTimerRef.current) clearTimeout(resetFinalizeTimerRef.current);
+    };
+  }, []);
 
   const navMenuItems = useMemo(() => [
     {
@@ -2028,7 +2152,7 @@ export default function AttendanceTracker() {
     },
     {
       id: "studio_schedule",
-      label: "Target Date & Schedule",
+      label: "Target with Schedule",
       shortLabel: "Schedule",
       icon: <CalendarCheck size={16} />,
       badge: isTabLocked("studio_schedule") ? "Locked" : "Date-Wise",
@@ -2039,7 +2163,7 @@ export default function AttendanceTracker() {
     },
     {
       id: "studio_penalty",
-      label: "Target & Miss Impact",
+      label: "Miss Impact between Target",
       shortLabel: "Miss Impact",
       icon: <Flame size={16} />,
       badge: isTabLocked("studio_penalty") ? "Locked" : "Target Check",
@@ -2071,6 +2195,7 @@ export default function AttendanceTracker() {
   ], [hasSavedAttendance, allSectionSubjects.length]);
 
   const handleResetAllAttendance = () => {
+    if (isResetPending) return;
     setIsResetModalOpen(true);
   };
 
@@ -2706,6 +2831,7 @@ export default function AttendanceTracker() {
               activeTab={activeTab}
               onChange={(newTab, meta) => handleTabClick(newTab, meta)}
               onLockedClick={(lockedItem) => handleLockedTabAttempt(lockedItem?.label || "this module")}
+              onResetClick={hasSavedAttendance ? handleResetAllAttendance : null}
               title="Attendance Modules"
               themeColor="#059669"
               themeBg="#ecfdf5"
@@ -4900,7 +5026,7 @@ export default function AttendanceTracker() {
                   <div style={{ flex: 1 }}>
                     <strong style={{ color: "#0f172a" }}>Unlock Full Attendance Suite:</strong>{" "}
                     Once you add & save attendance for at least 1 subject (via screenshot or manual entry), all other features —{" "}
-                    <strong>Daily Attendance</strong>, <strong>Target Date & Schedule</strong>, <strong>Target & Miss Impact</strong>, <strong>Miss Classes After Target</strong>, and <strong>Future Predictor</strong> — will automatically unlock and activate!
+                    <strong>Daily Attendance</strong>, <strong>Target with Schedule</strong>, <strong>Miss Impact between Target</strong>, <strong>Miss Classes After Target</strong>, and <strong>Future Predictor</strong> — will automatically unlock and activate!
                   </div>
                 </div>
               </div>
@@ -5841,12 +5967,12 @@ export default function AttendanceTracker() {
                 </div>
               )}
 
-              {/* Quick Jump to Target Date & Schedule */}
+              {/* Quick Jump to Target with Schedule */}
               <button
                 type="button"
                 onClick={() => {
                   if (isTabLocked("studio_schedule")) {
-                    handleLockedTabAttempt("Target Date & Schedule");
+                    handleLockedTabAttempt("Target with Schedule");
                     return;
                   }
                   handleStudioSectionChange("schedule");
@@ -6197,7 +6323,23 @@ export default function AttendanceTracker() {
                   lineHeight: 1.45,
                 }}
               >
-                This will permanently clear all marked daily check-ins, custom subject calculations, and reset to Section <strong>{selectedSection}</strong> default routine values.
+                This will clear all marked daily check-ins, custom subject calculations, and reset to Section <strong>{selectedSection}</strong> default routine values.
+                <div
+                  style={{
+                    marginTop: 9,
+                    paddingTop: 8,
+                    borderTop: "1px dashed #fca5a5",
+                    fontSize: 11.5,
+                    color: "#991b1b",
+                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <span>⏱️</span>
+                  <span>Includes a <strong>10-second Undo window</strong> to restore all your data if clicked accidentally.</span>
+                </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 4 }}>
@@ -6220,22 +6362,7 @@ export default function AttendanceTracker() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setSavedSubjects([]);
-                    setAllDailyLogs({});
-                    setDailyAttendanceLogs({});
-                    if (sectionCatalog.length > 0) {
-                      const first = sectionCatalog[0];
-                      const detected = first.components || ["PP"];
-                      setComponentInputs(detected.map((t) => ({ type: t, attended: 0, delivered: 0 })));
-                    } else {
-                      setComponentInputs([{ type: "PP", attended: 0, delivered: 0 }]);
-                    }
-                    localStorage.removeItem("gradeflow_saved_attendance");
-                    localStorage.removeItem("gradeflow_daily_attendance_logs");
-                    syncAttendanceToDb([], {}, targetGoal);
-                    setIsResetModalOpen(false);
-                  }}
+                  onClick={handleStartResetWithUndo}
                   style={{
                     padding: "10px 14px",
                     borderRadius: 10,
@@ -6249,13 +6376,173 @@ export default function AttendanceTracker() {
                     transition: "all 0.15s ease",
                   }}
                 >
-                  Yes, Reset All
+                  Yes, Reset Data
                 </button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      {/* ── 10-Second Undo Countdown & Status Banner (Portaled to document.body) ── */}
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {isResetPending && resetCountdown !== null && (
+              <motion.div
+                initial={{ opacity: 0, y: 50, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 40, scale: 0.95 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                style={{
+                  position: "fixed",
+                  bottom: isMobile ? 86 : 28,
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  zIndex: 9999999,
+                  maxWidth: 520,
+                  width: "calc(100% - 28px)",
+                  background: "#0f172a",
+                  color: "#ffffff",
+                  borderRadius: 16,
+                  padding: "12px 16px",
+                  boxShadow: "0 20px 35px -10px rgba(15, 23, 42, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.15)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 9,
+                  boxSizing: "border-box",
+                  backdropFilter: "blur(12px)",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 10,
+                        background: "rgba(239, 68, 68, 0.2)",
+                        border: "1.5px solid rgba(239, 68, 68, 0.5)",
+                        color: "#fca5a5",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        fontSize: 14,
+                        fontWeight: 900,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {resetCountdown}s
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 13.5, fontWeight: 800, color: "#ffffff", letterSpacing: "-0.2px" }}>
+                          Attendance Data Reset
+                        </span>
+                        <span
+                          style={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: "50%",
+                            background: "#ef4444",
+                            display: "inline-block",
+                            boxShadow: "0 0 8px #ef4444",
+                          }}
+                        />
+                      </div>
+                      <p style={{ margin: "2px 0 0 0", fontSize: 11.5, color: "#94a3b8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        Permanently deleting in <strong style={{ color: "#fca5a5" }}>{resetCountdown}s</strong> • Tap Undo to preserve
+                      </p>
+                    </div>
+                  </div>
+
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.94 }}
+                    onClick={handleUndoReset}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "8px 15px",
+                      borderRadius: 10,
+                      border: "none",
+                      background: "#ffffff",
+                      color: "#0f172a",
+                      fontSize: 12.5,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      boxShadow: "0 2px 10px rgba(255, 255, 255, 0.25)",
+                      flexShrink: 0,
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <RotateCcw size={13} color="#0f172a" />
+                    <span>UNDO ({resetCountdown}s)</span>
+                  </motion.button>
+                </div>
+
+                {/* Depleting animated progress bar */}
+                <div
+                  style={{
+                    width: "100%",
+                    height: 4,
+                    borderRadius: 99,
+                    background: "rgba(255, 255, 255, 0.14)",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      height: "100%",
+                      width: `${Math.max(0, Math.min(100, (resetCountdown / 10) * 100))}%`,
+                      background: "linear-gradient(90deg, #ef4444 0%, #f59e0b 100%)",
+                      transition: "width 0.25s linear",
+                      borderRadius: 99,
+                    }}
+                  />
+                </div>
+              </motion.div>
+            )}
+
+            {/* Undo Success Confirmation Banner */}
+            {undoSuccessMsg && (
+              <motion.div
+                initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                style={{
+                  position: "fixed",
+                  bottom: isMobile ? 86 : 28,
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  zIndex: 9999999,
+                  maxWidth: 500,
+                  width: "calc(100% - 28px)",
+                  background: "#064e3b",
+                  color: "#ffffff",
+                  borderRadius: 14,
+                  padding: "12px 16px",
+                  boxShadow: "0 20px 30px -10px rgba(6, 78, 59, 0.5), 0 0 0 1px rgba(52, 211, 153, 0.3)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  boxSizing: "border-box",
+                  backdropFilter: "blur(12px)",
+                }}
+              >
+                <CheckCircle2 size={20} color="#34d399" style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: "#ecfdf5", lineHeight: 1.35 }}>
+                  {undoSuccessMsg}
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
         </main>
       </div>
     </div>

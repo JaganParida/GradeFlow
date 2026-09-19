@@ -222,9 +222,9 @@ export default function AttendanceTargetPredictor({
               }}
             >
               {activeSection === "schedule"
-                ? "Target Date & Schedule"
+                ? "Target with Schedule"
                 : activeSection === "penalty"
-                ? "Target Goal & Class Miss Impact"
+                ? "Miss Impact between Target"
                 : activeSection === "roadmap"
                 ? "Miss Classes After Target Achieved"
                 : "Target Predictor & Timetable Simulator"}

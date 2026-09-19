@@ -64,8 +64,8 @@
 41. [Multi-Tier Caching & ETag/304 Revalidation Engine](#41-multi-tier-caching--etag304-revalidation-engine)
 42. [Real-Time Dual-Ably Sync & Self-Origin Echo Suppression](#42-real-time-dual-ably-sync--self-origin-echo-suppression)
 43. [What-If Simulator Studio (`activeTab === "studio_simulator"`)](#43-what-if-simulator-studio-activetab--studio_simulator)
-44. [Target Date & Schedule Projection Engine (`activeTab === "studio_schedule"`)](#44-target-date--schedule-projection-engine-activetab--studio_schedule)
-45. [Target & Miss Impact Analysis (`activeTab === "studio_penalty"`)](#45-target--miss-impact-analysis-activetab--studio_penalty)
+44. [Target with Schedule Projection Engine (`activeTab === "studio_schedule"`)](#44-target-with-schedule-projection-engine-activetab--studio_schedule)
+45. [Miss Impact between Target Analysis (`activeTab === "studio_penalty"`)](#45-miss-impact-between-target-analysis-activetab--studio_penalty)
 46. [Safe Margin & Miss Roadmap (`activeTab === "studio_roadmap"`)](#46-safe-margin--miss-roadmap-activetab--studio_roadmap)
 47. [Subject Matrix & Routine Catalog (`activeTab === "matrix"`)](#47-subject-matrix--routine-catalog-activetab--matrix)
 48. [Daily Routine Check-In Hub (`activeTab === "checkin"`)](#48-daily-routine-check-in-hub-activetab--checkin)
@@ -1897,7 +1897,7 @@ $$\text{Current Percentage } (P) = \begin{cases} 100\% & \text{if } D' = 0 \\ \f
 
 ---
 
-## 44. Target Date & Schedule Projection Engine (`activeTab === "studio_schedule"`)
+## 44. Target with Schedule Projection Engine (`activeTab === "studio_schedule"`)
 
 The Schedule Projection Engine translates abstract class deficit numbers into an **exact real-world calendar date** by synchronizing the timetable routine with the academic calendar.
 
@@ -1936,7 +1936,7 @@ Input:
 
 ---
 
-## 45. Target & Miss Impact Analysis (`activeTab === "studio_penalty"`)
+## 45. Miss Impact between Target Analysis (`activeTab === "studio_penalty"`)
 
 The Penalty Analysis module models the mathematical sensitivity of attendance to prospective absences.
 

@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Layers,
   Lock,
+  RotateCcw,
 } from "lucide-react";
 
 /**
@@ -25,6 +26,7 @@ export default function ModernMobileSubNav({
   activeTab = "",
   onChange = () => {},
   onLockedClick = null,
+  onResetClick = null,
   title = "Select View",
   subtitle = "",
   themeColor = "#2563eb",
@@ -757,6 +759,37 @@ export default function ModernMobileSubNav({
                         );
                       })}
                     </div>
+
+                    {onResetClick && (
+                      <div style={{ marginTop: 14, paddingTop: 10, borderTop: "1px solid #f1f5f9" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsOpen(false);
+                            onResetClick();
+                          }}
+                          style={{
+                            width: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 7,
+                            padding: "9px 12px",
+                            borderRadius: 10,
+                            border: "1px solid #fee2e2",
+                            background: "#fff5f5",
+                            color: "#dc2626",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          <RotateCcw size={13} color="#dc2626" />
+                          <span>Reset Attendance Data</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               </div>
