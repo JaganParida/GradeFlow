@@ -6307,7 +6307,7 @@ export default function AttendanceTracker() {
                     gap: 15,
                     boxSizing: "border-box",
                     position: "relative",
-                    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                    fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                   }}
                 >
                   {/* Step 1: Initial Confirmation Dialog */}
@@ -6330,10 +6330,10 @@ export default function AttendanceTracker() {
                           <RotateCcw size={20} color="#dc2626" />
                         </div>
                         <div>
-                          <h3 style={{ fontSize: 16.5, fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: "-0.3px", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+                          <h3 style={{ fontSize: 16.5, fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: "-0.3px", fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
                             Reset Attendance Data?
                           </h3>
-                          <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+                          <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0", fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
                             Revert all changes to default section routine
                           </p>
                         </div>
@@ -6351,7 +6351,7 @@ export default function AttendanceTracker() {
                           display: "flex",
                           flexDirection: "column",
                           gap: 8,
-                          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                          fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
@@ -6390,7 +6390,7 @@ export default function AttendanceTracker() {
                             fontSize: 12.5,
                             fontWeight: 600,
                             cursor: "pointer",
-                            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                            fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                             transition: "all 0.15s ease",
                           }}
                         >
@@ -6409,7 +6409,7 @@ export default function AttendanceTracker() {
                             fontWeight: 700,
                             cursor: "pointer",
                             boxShadow: "0 2px 8px rgba(220, 38, 38, 0.25)",
-                            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                            fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                             transition: "all 0.15s ease",
                             display: "flex",
                             alignItems: "center",
@@ -6428,10 +6428,10 @@ export default function AttendanceTracker() {
                   {resetModalStep === "countdown" && (
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 14 }}>
                       <div>
-                        <h3 style={{ fontSize: 17.5, fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: "-0.3px", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+                        <h3 style={{ fontSize: 17.5, fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: "-0.3px", fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
                           Resetting Attendance Data
                         </h3>
-                        <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0 0", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+                        <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0 0", fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
                           You have 10 seconds to cancel and keep all records
                         </p>
                       </div>
@@ -6492,7 +6492,7 @@ export default function AttendanceTracker() {
                               fontWeight: 800,
                               color: "#0f172a",
                               lineHeight: 1,
-                              fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                              fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                               fontVariantNumeric: "tabular-nums",
                               letterSpacing: "-1px",
                             }}
@@ -6507,7 +6507,7 @@ export default function AttendanceTracker() {
                               textTransform: "uppercase",
                               letterSpacing: "1.4px",
                               marginTop: 4,
-                              fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                              fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                             }}
                           >
                             SECONDS
@@ -6531,7 +6531,7 @@ export default function AttendanceTracker() {
                           gap: 6,
                           width: "100%",
                           boxSizing: "border-box",
-                          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                          fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                         }}
                       >
                         <ShieldAlert size={14} color="#64748b" style={{ flexShrink: 0 }} />
@@ -6559,7 +6559,7 @@ export default function AttendanceTracker() {
                           justifyContent: "center",
                           gap: 8,
                           boxShadow: "0 3px 10px rgba(15, 23, 42, 0.18)",
-                          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                          fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                           transition: "all 0.15s ease",
                         }}
                       >
@@ -6587,10 +6587,10 @@ export default function AttendanceTracker() {
                         <CheckCircle2 size={32} color="#059669" />
                       </div>
                       <div>
-                        <h3 style={{ fontSize: 17, fontWeight: 700, color: "#065f46", margin: 0, letterSpacing: "-0.3px", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+                        <h3 style={{ fontSize: 17, fontWeight: 700, color: "#065f46", margin: 0, letterSpacing: "-0.3px", fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
                           Reset Cancelled!
                         </h3>
-                        <p style={{ fontSize: 12, color: "#047857", margin: "4px 0 0 0", lineHeight: 1.4, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+                        <p style={{ fontSize: 12, color: "#047857", margin: "4px 0 0 0", lineHeight: 1.4, fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
                           All attendance records, check-ins, and calculations have been 100% preserved.
                         </p>
                       </div>
@@ -6615,10 +6615,10 @@ export default function AttendanceTracker() {
                         <Check size={30} color="#475569" />
                       </div>
                       <div>
-                        <h3 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: "-0.3px", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+                        <h3 style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", margin: 0, letterSpacing: "-0.3px", fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
                           Attendance Data Reset
                         </h3>
-                        <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0 0", lineHeight: 1.4, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+                        <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0 0", lineHeight: 1.4, fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
                           Attendance routine has been reset to Section {selectedSection} defaults.
                         </p>
                       </div>

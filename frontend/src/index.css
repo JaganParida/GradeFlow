@@ -2,15 +2,7 @@
    GradeFlow Global Stylesheet — Top-Class Premium Dark Redesign
    ============================================================ */
 
-@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap");
-
-/* ── Fallback Alias: Seamlessly route legacy DM Sans references to Inter ── */
-@font-face {
-  font-family: "DM Sans";
-  src: local("Inter"), local("Plus Jakarta Sans"), local("Segoe UI"), local("Roboto");
-  font-weight: 100 900;
-  font-display: swap;
-}
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=Space+Mono:wght@400;700&display=swap");
 
 /* ── Universal Loading Spinners & Micro-Animations ───────────── */
 @keyframes spin {
@@ -49,7 +41,7 @@ svg.animate-spin {
 
 /* ── Design Tokens ─────────────────────────────────────────── */
 :root {
-  --font-sans: "Inter", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "Space Mono", ui-monospace, "Cascadia Code", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
 
   /* ── Backgrounds (YouTube dark palette) */
