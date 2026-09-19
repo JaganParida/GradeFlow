@@ -146,16 +146,16 @@ app.post("/api/attendance/ocr", publicLimiter, async (req, res) => {
 
     if (GEMINI_API_KEY) {
       const modelsToTry = [
-        "gemini-2.5-flash",
+        "gemini-3.6-flash",
         "gemini-flash-latest",
-        "gemini-2.5-flash-lite",
+        "gemini-2.5-flash",
       ];
 
       let lastError = null;
 
       for (const model of modelsToTry) {
         const controller = new AbortController();
-        const timeoutTimer = setTimeout(() => controller.abort(), 8500);
+        const timeoutTimer = setTimeout(() => controller.abort(), 25000);
         try {
           const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
@@ -193,6 +193,8 @@ STRICT RULES:
 - Extract the exact integer attended and delivered session counts.
 - If attended/delivered is "0/0", attended is 0 and delivered is 0, and percent is 0.0.
 - Do NOT merge rows before outputting. Output every physical row.
+- DO NOT extract table headers, date ranges (e.g., "From date", "To date", "01/01/2026"), percentage columns, or column labels as course rows.
+- Every courseName MUST be the actual academic subject name (e.g. "DATA STRUCTURE AND ALGORITHMS", "THEORY OF COMPUTATION"). Never output dates, percent signs ("%"), slashes, or numbers as courseName.
 
 OUTPUT FORMAT (JSON Schema):
 {
@@ -212,6 +214,7 @@ OUTPUT FORMAT (JSON Schema):
                       {
                         inline_data: {
                           mime_type: mimeType || "image/jpeg",
+                          data: cleanBase64,
                         },
                       },
                     ],
@@ -220,6 +223,9 @@ OUTPUT FORMAT (JSON Schema):
                 generationConfig: {
                   temperature: 0.0,
                   response_mime_type: "application/json",
+                  thinkingConfig: {
+                    thinkingBudget: 0,
+                  },
                 },
               }),
             }

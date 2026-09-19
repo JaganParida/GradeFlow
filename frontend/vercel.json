@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/attendance-ocr.js": {
+      "maxDuration": 60
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",

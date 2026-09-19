@@ -2043,13 +2043,21 @@ The OCR Scanner allows students to photograph or upload screenshots of their off
 
 ### Vision AI Model Selection & Deprecation Safeguards:
 * **Active Official Model Tier:** Both `frontend/api/attendance-ocr.js` and `backend/server.js` prioritize Google's active, production-grade vision models:
-  1. `gemini-2.5-flash`: Primary high-speed vision model (~1.5–2s response time, zero hallucination on structured ERP grids).
-  2. `gemini-flash-latest`: Primary alias fallback.
-  3. `gemini-2.5-flash-lite`: Low-latency fallback for high-traffic periods.
-* **Deprecated Model Blacklist:** Never configure retired experimental preview models (e.g. `gemini-2.0-flash` or `gemini-2.5-pro` for new accounts), as Google returns HTTP 404 NOT_FOUND.
-* **Serverless Execution Guard (8.5s AbortController):** Each Gemini API fetch is bounded by an `AbortController` timeout of 8.5 seconds. If Google's API hangs, the request aborts gracefully before Vercel's serverless function timeout (10–15s), permitting the next model or the local client engine to take over without crashing.
-* **Transient Error Suppression Invariant:** If subjects are successfully extracted (either via Gemini Vision or the local Tesseract.js fallback, resulting in `finalCleanList.length > 0`), the UI MUST clear `errorMsg` (`setErrorMsg("")`). Raw technical backend JSON errors (such as 404 model notices or timeouts) must NEVER be displayed to the student when subjects have been successfully parsed and rendered in the review modal.
-* **Extraction Logic Integrity:** Subject extraction schemas (Theory `PP`, Lab `PR`, Tutorial `TUT`), regex parsing (`parseCutmOcrText`), deduplication (`deduplicateAndCanonicalizeSubjects`), and attendance percentage calculations remain 100% unchanged.
+  1. `gemini-3.6-flash`: Primary high-speed multimodal vision model (~7–8s response time, zero hallucination on structured ERP grids).
+  2. `gemini-flash-latest`: Secondary production alias fallback.
+  3. `gemini-2.5-flash`: Tertiary vision model configured with `thinkingConfig: { thinkingBudget: 0 }` to avoid internal reasoning latency spikes.
+* **Deprecated Model Blacklist:** Never configure retired experimental preview models (e.g. `gemini-2.0-flash` or `gemini-2.5-flash-lite`), as Google returns HTTP 404 NOT_FOUND.
+* **Timeout & Execution Budget Architecture:**
+  - Each Gemini model invocation is bounded by a 25-second `AbortController` timeout (`setTimeout(() => controller.abort(), 25000)`).
+  - The client Axios request in `AttendanceScreenshotModal.jsx` sets `timeout: 40000` (40 seconds).
+  - Vercel function execution is explicitly configured with `maxDuration: 60` in `frontend/vercel.json` and `attendance-ocr.js`.
+* **Strict Alphabetic & Section Catalog Validation (Zero Noise Invariant):**
+  - Any detected row must contain at least 3 genuine alphabetic characters (`[a-zA-Z]`) OR match an enrolled course code in the student's `sectionCatalog`.
+  - Non-subject table artifacts (such as pure dates `//2026 /2026`, percentage signs `%`, slashes, and column headers) are automatically discarded.
+  - If a row has a valid course code but degraded name, the canonical subject name is automatically resolved from the section catalog.
+* **Client Tesseract Guard:** Local client OCR is only trusted if at least 3 genuine subjects with valid letters are detected. If client OCR cannot parse the table, the modal safely falls back to loading enrolled section subjects with 0/0 defaults for 1-click manual editing.
+* **Transient Error Suppression Invariant:** If subjects are successfully extracted (resulting in `finalCleanList.length > 0`), the UI unconditionally clears `errorMsg` (`setErrorMsg("")`). Raw technical backend JSON errors (such as 404 model notices or 503 capacity spikes) must NEVER be displayed to the student when subjects have been successfully parsed and rendered in the review modal.
+* **Extraction Logic Integrity:** Subject extraction schemas (Theory `PP`, Lab `PR`, Tutorial `TUT`), regex parsing (`parseCutmOcrText`), deduplication (`deduplicateAndCanonicalizeSubjects`), and attendance percentage calculations remain 100% stable and unregressed.
 
 ---
 

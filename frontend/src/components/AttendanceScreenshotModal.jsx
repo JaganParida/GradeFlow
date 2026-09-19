@@ -363,8 +363,12 @@ const cleanSubjectName = (name) => {
   return name
     .replace(/\([A-Z]{3,5}[A-Z0-9]{3,6}\)$/i, "")
     .replace(/\b(CUTM|CUCS|CUEC|CUEE|CUME|CUCE|CUCY|CUPH|CUMA|BTE|BBA|MBA)\w{3,6}\b/gi, "")
-    .replace(/[-_\|\:]+$/, "")
-    .replace(/^[-_\|\:\d\.\s]+/, "")
+    .replace(/\b\d{1,4}[\/\.-]\d{1,4}([\/\.-]\d{2,4})?\b/g, "")
+    .replace(/\b\/{1,3}\d{2,4}\b/g, "")
+    .replace(/\b\d{2,4}\/{1,3}\b/g, "")
+    .replace(/\b(From\s*date|To\s*date|Sr\.?No|Sl\.?No|Course\s*Name|Course\s*Short|Course\s*Code|Total\s*Percentage|Percentage|Percent)\b/gi, "")
+    .replace(/^[\s\-_\|\:\/\%\.\,\#\@\!\&\+\–\—]+/, "")
+    .replace(/[\s\-_\|\:\/\%\.\,\#\@\!\&\+\–\—]+$/, "")
     .replace(/\s+/g, " ")
     .trim();
 };
@@ -380,7 +384,21 @@ const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = []) => {
     let rawName = cleanSubjectName(item.name || "");
 
     rawName = rawName.replace(new RegExp(rawCode, "gi"), "").trim();
-    if (!rawCode && rawName.length < 3) return;
+
+    // Strict noise rejection (pure dates, percent symbols, slashes)
+    if (/^[\/\s\%\.\-\–\—\d]+$/.test(rawName)) return;
+    if (/^(percent|percentage|\%|\/\/|\/)$/i.test(rawName)) return;
+
+    // Check letter count and catalog resolution
+    const alphaCount = (rawName.match(/[a-zA-Z]/g) || []).length;
+    let catalogMatch = null;
+    if (rawCode && Array.isArray(catalog) && catalog.length > 0) {
+      catalogMatch = catalog.find(
+        (c) => c && c.code && normalizeCourseCode(c.code) === rawCode
+      );
+    }
+
+    if (alphaCount < 3 && !catalogMatch) return;
 
     let existing = subjects.find((s) => {
       if (rawCode && s.code && s.code === rawCode) return true;
@@ -394,6 +412,9 @@ const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = []) => {
 
     if (!existing) {
       let finalName = rawName;
+      if ((!finalName || alphaCount < 3) && catalogMatch && catalogMatch.subjectName) {
+        finalName = catalogMatch.subjectName;
+      }
       if (!finalName && rawCode) {
         for (const c of catalog) {
           if (c && c.code && normalizeCourseCode(c.code) === rawCode && c.subjectName) {
@@ -402,7 +423,10 @@ const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = []) => {
           }
         }
       }
-      if (!finalName) finalName = rawCode || "Subject";
+      if (!finalName || (finalName.match(/[a-zA-Z]/g) || []).length < 3) {
+        if (rawCode) finalName = rawCode;
+        else return; // Discard row if no valid alphabetic name and no course code
+      }
 
       existing = {
         id: item.id || `ocr_sub_${Date.now()}_${subjects.length}`,
@@ -511,7 +535,8 @@ const parseCutmOcrText = (text, catalog = []) => {
       const line = lines[i];
 
       if (
-        /^(Sr\.?No|Course|counaiame|shontioma|coursocods|From\s*date|To\s*date)/i.test(line) ||
+        /^(Sr\.?No|Sl\.?No|Course|counaiame|shontioma|coursocods|From\s*date|To\s*date|Date\s*[:\-])/i.test(line) ||
+        /^\s*[\/\\%\d\s\.\-–—]+\s*$/.test(line) ||
         line.toLowerCase().startsWith("total percentage") ||
         line.toLowerCase().startsWith("total percent") ||
         line.toLowerCase().startsWith("total percontoge")
@@ -558,7 +583,10 @@ const parseCutmOcrText = (text, catalog = []) => {
         );
       }
 
-      if ((code && frac) || (shortMatch && frac) || (namePart.length > 3 && frac)) {
+      const hasValidCode = code && (code.startsWith("CUTM") || code.startsWith("CUCS") || /^[A-Z]{3,5}[A-Z0-9]{3,6}$/i.test(code));
+      const alphaCount = (namePart.match(/[a-zA-Z]/g) || []).length;
+
+      if (frac && ((hasValidCode && code) || (shortMatch && code) || alphaCount >= 3)) {
         rawRows.push({
           name: namePart || code,
           code: code,
@@ -599,7 +627,8 @@ const parseCutmOcrText = (text, catalog = []) => {
       }
 
       const mainCardMatch = line.match(/^(.*?)\s*\(?([A-Z]{3,5}[A-Z0-9]{3,6})\)?$/i);
-      if (mainCardMatch && !frac && !compSubMatch && mainCardMatch[1].trim().length > 3) {
+      const cardAlphaCount = mainCardMatch ? (mainCardMatch[1].match(/[a-zA-Z]/g) || []).length : 0;
+      if (mainCardMatch && !frac && !compSubMatch && cardAlphaCount >= 3) {
         const code = normalizeCourseCode(mainCardMatch[2]);
         let name = cleanSubjectName(mainCardMatch[1].trim());
         currentSubject = {
@@ -646,7 +675,7 @@ const parseCutmOcrText = (text, catalog = []) => {
   return deduplicateAndCanonicalizeSubjects(rawRows, catalog);
 };
 
-  // Analyze Screenshot via Dual AI (Gemini 2.5 Pro Vision + Client-Side Tesseract WASM Engine with High-Quality Canvas Preprocessing)
+  // Analyze Screenshot via Dual AI (Gemini Vision + Client-Side Tesseract WASM Engine with High-Quality Canvas Preprocessing)
   const analyzeScreenshot = async (imageBase64, mimeType) => {
     const currentReqId = ++activeRequestIdRef.current;
     setIsProcessing(true);
@@ -669,7 +698,7 @@ const parseCutmOcrText = (text, catalog = []) => {
       if (extracted.length > 0) break;
       try {
         setProcessingStatus(`Scanning ERP rows via ${endpoint.label}...`);
-        const res = await axios.post(endpoint.url, ocrPayload, { timeout: 15000, withCredentials: true });
+        const res = await axios.post(endpoint.url, ocrPayload, { timeout: 40000, withCredentials: true });
 
         if (
           res?.data?.success &&
@@ -707,9 +736,12 @@ const parseCutmOcrText = (text, catalog = []) => {
 
         const rawText = ret.data?.text || "";
         const clientParsed = parseCutmOcrText(rawText, sectionCatalog);
-        if (clientParsed && clientParsed.length >= 6) {
-          // Only trust local OCR if it detected a substantial set of subjects
-          extracted = clientParsed;
+        const validClientSubjects = (clientParsed || []).filter(
+          (s) => (s.name.match(/[a-zA-Z]/g) || []).length >= 3
+        );
+        if (validClientSubjects.length >= 3) {
+          // Only trust local OCR if it detected genuine subjects with readable names
+          extracted = validClientSubjects;
         }
       } catch (tessErr) {
         console.warn("Local Tesseract OCR warning:", tessErr);
@@ -749,7 +781,7 @@ const parseCutmOcrText = (text, catalog = []) => {
       setStep("review");
     } else {
       setErrorMsg(
-        lastApiError && !lastApiError.includes("{") && !lastApiError.includes("404")
+        lastApiError && !lastApiError.includes("{") && !lastApiError.includes("404") && !lastApiError.includes("503")
           ? lastApiError
           : "Could not detect subjects automatically from this screenshot. Please ensure the full table is visible, or add/adjust subjects below."
       );
