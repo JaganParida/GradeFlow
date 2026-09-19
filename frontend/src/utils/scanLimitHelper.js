@@ -6,6 +6,7 @@ export const MAX_DAILY_SCANS = 2;
 // List of registration numbers with permanent unlimited scan access
 export const UNLIMITED_REG_NOS = [
   "230301120327",
+  "230301120320",
 ];
 
 export function isExemptFromScanLimit(studentId = "", userRole = "", isAdminToken = false) {
@@ -35,6 +36,13 @@ export function getDailyScanStatus(studentId = "", userRole = "", isAdminToken =
   const isExempt = isExemptFromScanLimit(studentId, userRole, isAdminToken);
 
   if (isExempt) {
+    try {
+      if (typeof window !== "undefined" && studentId) {
+        const cleanId = String(studentId).trim().toLowerCase();
+        const todayKey = getTodayDateKey();
+        localStorage.removeItem(`gradeflow_ocr_scans_${cleanId}_${todayKey}`);
+      }
+    } catch {}
     return {
       used: 0,
       max: Infinity,
