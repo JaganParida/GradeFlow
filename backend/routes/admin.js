@@ -2595,7 +2595,7 @@ router.delete("/purge-logs", protect, requirePermission("manage.purge-batches", 
 // Get section toppers (Top 10 rankers per section/branch) - Queries pre-calculated rankings
 router.get("/section-toppers", protect, requirePermission("toppers.view", "toppers", "toppers.view"), validateAcademicFilters, async (req, res) => {
   try {
-    const { batch = "2023", branch = "CSE", section = "Sec A", semester, search, limit = 10 } = req.query;
+    const { batch = "2023", branch = "CSE", section = "Sec A", semester, search, emailStatus, limit = 10 } = req.query;
 
     const rankingFilter = {};
     if (batch) rankingFilter.batch = batch;
@@ -2727,7 +2727,16 @@ router.get("/section-toppers", protect, requirePermission("toppers.view", "toppe
     });
 
     // Include all students holding Section Rank 1 through Rank 10 (including ties and rank 10 holders)
-    const top10Toppers = validStudents.filter((s) => Number(s.sectionCgpaRank) <= 10);
+    let top10Toppers = validStudents.filter((s) => Number(s.sectionCgpaRank) <= 10);
+
+    const cleanEmailStatus = String(emailStatus || "").trim().toLowerCase();
+    if (cleanEmailStatus === "sent") {
+      top10Toppers = top10Toppers.filter((s) => s.lastTopperEmailStatus === "SUCCESS");
+    } else if (cleanEmailStatus === "not_sent") {
+      top10Toppers = top10Toppers.filter((s) => !s.lastTopperEmailStatus || s.lastTopperEmailStatus !== "SUCCESS");
+    } else if (cleanEmailStatus === "failed") {
+      top10Toppers = top10Toppers.filter((s) => s.lastTopperEmailStatus === "FAILED");
+    }
 
     res.json({
       totalToppers: top10Toppers.length,

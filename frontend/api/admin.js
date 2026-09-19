@@ -442,8 +442,8 @@ async function generateRankingForSemester(semester, preloadedAllResults = null, 
   }
 }
 
-async function getSectionToppersData({ batch = "2023", branch = "CSE", section = "Sec A", search = "", semester = null, limit = 10 } = {}) {
-  const isDefault = batch === "2023" && branch === "CSE" && (section === "Sec A" || section === "A") && !search && !semester && limit === 10;
+async function getSectionToppersData({ batch = "2023", branch = "CSE", section = "Sec A", search = "", semester = null, emailStatus = "", limit = 10 } = {}) {
+  const isDefault = batch === "2023" && branch === "CSE" && (section === "Sec A" || section === "A") && !search && !semester && (!emailStatus || emailStatus === "all") && limit === 10;
   if (isDefault && defaultToppersCache && (Date.now() - defaultToppersCacheTime < TOPPERS_CACHE_TTL_MS)) {
     return defaultToppersCache;
   }
@@ -554,25 +554,35 @@ async function getSectionToppersData({ batch = "2023", branch = "CSE", section =
     prevCgpa = s.cgpa;
   });
 
-  const topStudents = validStudents.slice(0, limit);
-  const topRegNos = topStudents.map((s) => s.regNo);
-
-  if (topRegNos.length > 0) {
+  // Attach tracking info before email status filtering
+  const allCandidateRegNos = validStudents.map((s) => s.regNo);
+  if (allCandidateRegNos.length > 0) {
     const studentsTracking = await Student.find(
-      { regNo: { $in: topRegNos } },
+      { regNo: { $in: allCandidateRegNos } },
       "regNo lastTopperEmailSentAt lastTopperEmailStatus lastTopperEmailError"
     ).lean().catch(() => []);
 
     const studentTrackingMap = new Map();
     studentsTracking.forEach((st) => studentTrackingMap.set(st.regNo, st));
 
-    topStudents.forEach((s) => {
+    validStudents.forEach((s) => {
       const tracking = studentTrackingMap.get(s.regNo) || {};
       s.lastTopperEmailSentAt = tracking.lastTopperEmailSentAt ? tracking.lastTopperEmailSentAt.toISOString() : null;
       s.lastTopperEmailStatus = tracking.lastTopperEmailStatus || null;
       s.lastTopperEmailError = tracking.lastTopperEmailError || null;
     });
   }
+
+  // Filter by emailStatus if specified
+  if (emailStatus === "sent") {
+    validStudents = validStudents.filter((s) => s.lastTopperEmailStatus === "SUCCESS");
+  } else if (emailStatus === "not_sent") {
+    validStudents = validStudents.filter((s) => !s.lastTopperEmailStatus || s.lastTopperEmailStatus !== "SUCCESS");
+  } else if (emailStatus === "failed") {
+    validStudents = validStudents.filter((s) => s.lastTopperEmailStatus === "FAILED");
+  }
+
+  const topStudents = validStudents.slice(0, limit);
 
   const result = {
     totalToppers: validStudents.length,
@@ -2283,9 +2293,10 @@ module.exports = async function handler(req, res) {
       const section = req.query.section ? String(req.query.section).trim() : "";
       const search = req.query.search ? String(req.query.search).trim() : "";
       const semester = req.query.semester;
+      const emailStatus = req.query.emailStatus ? String(req.query.emailStatus).trim().toLowerCase() : "";
       const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
 
-      const toppersData = await getSectionToppersData({ batch, branch, section, search, semester, limit });
+      const toppersData = await getSectionToppersData({ batch, branch, section, search, semester, emailStatus, limit });
       return res.json(toppersData);
     }
 

@@ -7,14 +7,16 @@ const PageAnalytics = require("../models/PageAnalytics");
 const TrafficQueueConfig = require("../models/TrafficQueueConfig");
 const liveTrafficManager = require("../utils/liveTrafficManager");
 
-// Vercel Free Hobby Tier Quota Limits
+// Vercel Free Hobby Tier Quota Limits (Official Vercel Documentation)
 const HOBBY_LIMITS = {
-  MONTHLY_REQUESTS_LIMIT: 100000, // 100,000 Serverless Invocations
-  DAILY_REQUESTS_BUDGET: 3333,    // ~100,000 / 30 days
-  BANDWIDTH_LIMIT_GB: 100,        // 100 GB Fast Data Transfer
-  TIMEOUT_SECONDS: 10,            // 10s Serverless Execution Timeout
-  CONCURRENCY_LIMIT: 100,         // 100 Concurrent Executions
-  BYTES_PER_INVOCATION_EST: 28672 // ~28 KB avg payload + headers
+  MONTHLY_REQUESTS_LIMIT: 1000000, // 1,000,000 (1M) Serverless Invocations
+  DAILY_REQUESTS_BUDGET: 33333,    // ~1,000,000 / 30 days
+  ACTIVE_CPU_LIMIT_HOURS: 4.0,     // 4.0 CPU-Hours (14,400s) Active CPU Time
+  DAILY_CPU_BUDGET_SECONDS: 480,   // ~14,400s / 30 days
+  BANDWIDTH_LIMIT_GB: 100,         // 100 GB Fast Data Transfer
+  TIMEOUT_SECONDS: 60,             // 60s Serverless Execution Timeout
+  CONCURRENCY_LIMIT: 100,          // 100 Concurrent Executions
+  BYTES_PER_INVOCATION_EST: 28672  // ~28 KB avg payload + headers
 };
 
 const EXCLUDED_STUDENT_REG = "230301120327";
@@ -147,25 +149,44 @@ router.get("/", async (req, res) => {
 
     // Determine Peak Hour
     let maxHourCount = 0;
-    let peakHourIndex = 20; // fallback 8 PM
+    let peakHourIndex = -1;
     finalHourlyRequests.forEach((count, h) => {
       if (count > maxHourCount) {
         maxHourCount = count;
         peakHourIndex = h;
       }
     });
-    const peakHourText = formatHourSlot(peakHourIndex);
+
+    // If today's telemetry has 0 requests, aggregate historical monthly hourly telemetry to identify natural peak
+    if (maxHourCount === 0 && monthlyMetrics.length > 0) {
+      const historicalHourly = new Array(24).fill(0);
+      monthlyMetrics.forEach((m) => {
+        if (Array.isArray(m.hourlyRequests)) {
+          m.hourlyRequests.forEach((cnt, h) => {
+            historicalHourly[h] += cnt || 0;
+          });
+        }
+      });
+      historicalHourly.forEach((cnt, h) => {
+        if (cnt > maxHourCount) {
+          maxHourCount = cnt;
+          peakHourIndex = h;
+        }
+      });
+    }
+
+    const peakHourText = peakHourIndex >= 0 ? formatHourSlot(peakHourIndex) : "Awaiting Traffic";
 
     // Determine Peak Day
     let maxDayCount = 0;
-    let peakDayIndex = 2; // fallback Tuesday
+    let peakDayIndex = -1;
     aggregateDays.forEach((count, d) => {
       if (count > maxDayCount) {
         maxDayCount = count;
         peakDayIndex = d;
       }
     });
-    const peakDayText = DAYS_NAMES[peakDayIndex] || "Tuesday";
+    const peakDayText = peakDayIndex >= 0 ? (DAYS_NAMES[peakDayIndex] || "Today") : "Today";
 
     // ─── Calculate Quotas & Percentages ─────────────────────────────
     const todayBudget = HOBBY_LIMITS.DAILY_REQUESTS_BUDGET;
@@ -178,9 +199,16 @@ router.get("/", async (req, res) => {
     const monthRemaining = Math.max(0, monthLimit - monthUsed);
     const monthPercent = parseFloat(((monthUsed / monthLimit) * 100).toFixed(1));
 
-    // Burn Rate & Month-End Projection
-    const dailyBurnRate = Math.round(monthUsed / Math.max(1, dayOfMonth));
-    const projectedMonthEndRequests = Math.round(dailyBurnRate * daysInMonth);
+    // Zero-drain accurate projection:
+    // Current month-end projection = already consumed requests + remaining days projected at average daily burn rate
+    const safeDayOfMonth = Math.max(1, dayOfMonth);
+    const dailyBurnRateExact = monthUsed / safeDayOfMonth;
+    const remainingDays = Math.max(0, daysInMonth - safeDayOfMonth);
+    const projectedMonthEndRequests = Math.max(
+      monthUsed,
+      Math.round(monthUsed + (dailyBurnRateExact * remainingDays))
+    );
+    const dailyBurnRate = parseFloat(dailyBurnRateExact.toFixed(1));
     const projectedMonthPercent = parseFloat(((projectedMonthEndRequests / monthLimit) * 100).toFixed(1));
 
     let projectionStatus = "HEALTHY";
@@ -248,19 +276,54 @@ router.get("/", async (req, res) => {
     routeBreakdown.sort((a, b) => b.estimatedInvocations - a.estimatedInvocations);
 
     // ─── Auto-Defense Traffic Policies ──────────────────────────────
-    // Recommend Enterprise Auto-Handling Policy based on current burn rate & today usage
+    // 1. Recommend Enterprise Auto-Handling Policy based on current burn rate & today usage
     let recommendedDefensePolicy = "OPTIMAL";
-    let defenseBadge = "Optimal Mode";
-    let defenseDescription = "Direct serverless execution. Caching active. Normal operation.";
+    let recommendedBadge = "Optimal Speed Mode";
+    let recommendedDescription = "Direct serverless execution. Caching active. Normal operation.";
 
     if (todayPercent >= 90 || projectedMonthPercent >= 100) {
       recommendedDefensePolicy = "CRITICAL_SHIELD";
-      defenseBadge = "Critical Emergency Shield";
-      defenseDescription = "High quota exhaustion risk. Strict queueing recommended to prevent Vercel 429 Hobby lockout.";
+      recommendedBadge = "Critical Emergency Shield";
+      recommendedDescription = "High quota exhaustion risk. Strict queueing recommended to prevent Vercel 429 Hobby lockout.";
     } else if (todayPercent >= 70 || projectedMonthPercent >= 80) {
       recommendedDefensePolicy = "SURGE_PROTECTION";
-      defenseBadge = "Surge Protection Alert";
-      defenseDescription = "Elevated traffic detected. Enabling queue for heavy routes preserves free tier allocation.";
+      recommendedBadge = "Surge Protection";
+      recommendedDescription = "Elevated traffic detected. Enabling queue for heavy routes preserves free tier allocation.";
+    }
+
+    // 2. Currently Active Policy based on stored database configuration
+    let activePolicy = "OPTIMAL";
+    let activeBadge = "Optimal Speed Mode";
+    let activeColor = "#10b981";
+
+    if (queueConfig.queueEnabled) {
+      const activeCap = Number(queueConfig.maxActiveCapacity) || 0;
+      if (activeCap <= 75) {
+        activePolicy = "CRITICAL_SHIELD";
+        activeBadge = "Critical Emergency Shield";
+        activeColor = "#ef4444";
+      } else if (activeCap <= 175) {
+        activePolicy = "SURGE_PROTECTION";
+        activeBadge = "Surge Protection";
+        activeColor = "#f59e0b";
+      } else {
+        activePolicy = "CUSTOM";
+        activeBadge = "Custom Queue Shield";
+        activeColor = "#6366f1";
+      }
+    }
+
+    // 3. Status alignment
+    let statusAlignment = "ALIGNED";
+    if (activePolicy === recommendedDefensePolicy) {
+      statusAlignment = "ALIGNED";
+    } else if (
+      (recommendedDefensePolicy === "CRITICAL_SHIELD" && activePolicy !== "CRITICAL_SHIELD") ||
+      (recommendedDefensePolicy === "SURGE_PROTECTION" && activePolicy === "OPTIMAL")
+    ) {
+      statusAlignment = "UNDER_PROTECTED";
+    } else {
+      statusAlignment = "OVER_PROTECTED";
     }
 
     // Peak Users Count
@@ -291,6 +354,13 @@ router.get("/", async (req, res) => {
         projectedMonthPercent,
         projectionStatus,
       },
+      cpu: {
+        limitHours: HOBBY_LIMITS.ACTIVE_CPU_LIMIT_HOURS,
+        limitSeconds: 14400,
+        estimatedUsedSeconds: Math.round(effectiveMonthRequests * 0.08),
+        estimatedUsedHours: parseFloat(((effectiveMonthRequests * 0.08) / 3600).toFixed(3)),
+        percent: parseFloat((((effectiveMonthRequests * 0.08) / 14400) * 100).toFixed(1)),
+      },
       bandwidth: {
         usedGB: bandwidthGB,
         limitGB: bandwidthLimitGB,
@@ -316,9 +386,15 @@ router.get("/", async (req, res) => {
         currentQueueEnabled: Boolean(queueConfig.queueEnabled),
         autoTriggerEnabled: Boolean(queueConfig.autoTriggerEnabled),
         maxActiveCapacity: queueConfig.maxActiveCapacity || 200,
+        activePolicy,
+        activeBadge,
+        activeColor,
         recommendedDefensePolicy,
-        defenseBadge,
-        defenseDescription,
+        recommendedBadge,
+        recommendedDescription,
+        statusAlignment,
+        defenseBadge: activeBadge,
+        defenseDescription: recommendedDescription,
       },
     });
   } catch (err) {

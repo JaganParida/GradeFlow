@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import { motion } from "framer-motion";
-import { getAdminCache, setAdminCache, onAdminCacheDirty, AdminCacheScopes } from "../utils/adminRealtimeCache";
+import { getAdminCache, setAdminCache, invalidateAdminCache, onAdminCacheDirty, AdminCacheScopes } from "../utils/adminRealtimeCache";
 import { AdminVercelQuotaSkeleton } from "./LoadingSpinner";
 import {
   Zap,
@@ -124,6 +123,8 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
           type: "success",
           text: `Applied ${policyName.replace("_", " ")} defense policy successfully!`,
         });
+        // Invalidate cached traffic and quota metrics across admin dashboard
+        invalidateAdminCache(AdminCacheScopes.TRAFFIC);
         await fetchQuotaMetrics(true);
       } else {
         setPolicyMessage({
@@ -261,7 +262,20 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
   const month = data?.month || { used: 0, limit: 1000000, remaining: 1000000, percent: 0, dailyBurnRate: 0, projectedMonthEndRequests: 0, projectedMonthPercent: 0, projectionStatus: "HEALTHY" };
   const bandwidth = data?.bandwidth || { usedGB: 0, limitGB: 100, remainingGB: 100, percent: 0 };
   const peakTiming = data?.peakTiming || { peakHourText: "8:00 PM", peakDayText: "Today", totalActiveStudents: 0, hourlyDistribution: [] };
-  const defenseSystem = data?.defenseSystem || { currentQueueEnabled: false, autoTriggerEnabled: true, maxActiveCapacity: 200, recommendedDefensePolicy: "OPTIMAL", defenseBadge: "Optimal Mode", defenseDescription: "Direct serverless execution." };
+  const defenseSystem = data?.defenseSystem || {
+    currentQueueEnabled: false,
+    autoTriggerEnabled: true,
+    maxActiveCapacity: 250,
+    activePolicy: "OPTIMAL",
+    activeBadge: "Optimal Speed Mode",
+    activeColor: "#10b981",
+    recommendedDefensePolicy: "OPTIMAL",
+    recommendedBadge: "Optimal Speed Mode",
+    recommendedDescription: "Direct serverless execution. Caching active. Normal operation.",
+    statusAlignment: "ALIGNED",
+    defenseBadge: "Optimal Speed Mode",
+    defenseDescription: "Direct serverless execution.",
+  };
   const timestamp = data?.timestamp || "";
 
   const maxHistogramRequests = Math.max(
@@ -755,8 +769,8 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
               whiteSpace: "nowrap",
             }}
           >
-            <span>Projected:</span>
-            <strong style={{ color: "#0f172a" }}>~{month.projectedMonthEndRequests.toLocaleString()}</strong>
+            <span>Month Projection:</span>
+            <strong style={{ color: "#0f172a" }}>Est. {month.projectedMonthEndRequests.toLocaleString()} / mo</strong>
           </div>
         </div>
 
@@ -930,7 +944,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                   color: defenseSystem.currentQueueEnabled ? "#d97706" : "#059669",
                 }}
               >
-                {defenseSystem.currentQueueEnabled ? "Queue" : "Direct"}
+                {defenseSystem.currentQueueEnabled ? "Queue Active" : "Direct Mode"}
               </span>
             </div>
 
@@ -948,11 +962,8 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                   height: 7,
                   borderRadius: "50%",
                   background:
-                    defenseSystem.recommendedDefensePolicy === "CRITICAL_SHIELD"
-                      ? "#ef4444"
-                      : defenseSystem.recommendedDefensePolicy === "SURGE_PROTECTION"
-                      ? "#f59e0b"
-                      : "#10b981",
+                    defenseSystem.activeColor ||
+                    (defenseSystem.currentQueueEnabled ? "#f59e0b" : "#10b981"),
                   flexShrink: 0,
                 }}
               />
@@ -966,7 +977,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                   whiteSpace: "nowrap",
                 }}
               >
-                {defenseSystem.defenseBadge}
+                {defenseSystem.activeBadge || (defenseSystem.currentQueueEnabled ? "Traffic Queue" : "Optimal Speed Mode")}
               </span>
             </div>
 
@@ -979,7 +990,9 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                 whiteSpace: "nowrap",
               }}
             >
-              Cap: {defenseSystem.maxActiveCapacity} active
+              {defenseSystem.currentQueueEnabled
+                ? `Queue Cap: ${defenseSystem.maxActiveCapacity} active`
+                : `Direct Serverless (Cap ${defenseSystem.maxActiveCapacity})`}
             </div>
           </div>
 
@@ -998,8 +1011,23 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
               whiteSpace: "nowrap",
             }}
           >
-            <span>Status:</span>
-            <strong style={{ color: "#059669" }}>Protected</strong>
+            <span>Protection:</span>
+            <strong
+              style={{
+                color:
+                  defenseSystem.statusAlignment === "ALIGNED"
+                    ? "#059669"
+                    : defenseSystem.statusAlignment === "OVER_PROTECTED"
+                    ? "#2563eb"
+                    : "#d97706",
+              }}
+            >
+              {defenseSystem.statusAlignment === "ALIGNED"
+                ? "Optimal"
+                : defenseSystem.statusAlignment === "OVER_PROTECTED"
+                ? "Max Shield"
+                : "Elevated"}
+            </strong>
           </div>
         </div>
       </div>
@@ -1122,7 +1150,10 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
             }}
           >
             {(peakTiming?.hourlyDistribution || []).map((h) => {
-              const isPeak = h.hour === peakTiming.peakHourIndex;
+              const isPeak =
+                peakTiming.peakHourIndex >= 0 &&
+                h.hour === peakTiming.peakHourIndex &&
+                h.requests > 0;
               const heightPercent =
                 maxHistogramRequests > 0
                   ? Math.max(8, Math.round((h.requests / maxHistogramRequests) * 100))
@@ -1182,7 +1213,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
             <span>12 AM</span>
             <span>6 AM</span>
             <span>12 PM</span>
-            <span style={{ color: "#7c3aed", fontWeight: 800 }}>Peak 8 PM</span>
+            <span>6 PM</span>
             <span>11 PM</span>
           </div>
         </div>
@@ -1247,7 +1278,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
               whiteSpace: "nowrap",
             }}
           >
-            Active: {defenseSystem.defenseBadge}
+            Active: {defenseSystem.activeBadge || (defenseSystem.currentQueueEnabled ? "Traffic Queue" : "Optimal Speed Mode")}
           </span>
         </div>
 
@@ -1261,205 +1292,405 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
           }}
         >
           {/* OPTIMAL */}
-          <div
-            style={{
-              background: "#ffffff",
-              borderRadius: 10,
-              border:
-                defenseSystem.recommendedDefensePolicy === "OPTIMAL"
-                  ? "1.5px solid #10b981"
-                  : "1px solid #e2e8f0",
-              padding: isMobile ? "10px 12px" : "14px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              boxSizing: "border-box",
-            }}
-          >
-            <div>
+          {(() => {
+            const isCurrentActive =
+              (defenseSystem.activePolicy ||
+                (defenseSystem.currentQueueEnabled ? "CUSTOM" : "OPTIMAL")) === "OPTIMAL";
+            const isRecommended = defenseSystem.recommendedDefensePolicy === "OPTIMAL";
+            return (
               <div
                 style={{
+                  background: isCurrentActive ? "#f0fdf4" : "#ffffff",
+                  borderRadius: 10,
+                  border: isCurrentActive
+                    ? "2px solid #10b981"
+                    : isRecommended
+                    ? "1.5px dashed #10b981"
+                    : "1px solid #e2e8f0",
+                  padding: isMobile ? "10px 12px" : "14px",
                   display: "flex",
+                  flexDirection: "column",
                   justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 6,
+                  boxSizing: "border-box",
+                  boxShadow: isCurrentActive
+                    ? "0 2px 8px rgba(16, 185, 129, 0.12)"
+                    : "none",
                 }}
               >
-                <span
+                <div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 6,
+                      flexWrap: "wrap",
+                      gap: 4,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <span
+                        style={{
+                          fontSize: 9.5,
+                          fontWeight: 800,
+                          padding: "1px 6px",
+                          borderRadius: 5,
+                          background: "#ecfdf5",
+                          color: "#047857",
+                          border: "1px solid #a7f3d0",
+                        }}
+                      >
+                        Normal (&lt;70%)
+                      </span>
+                      {isRecommended && (
+                        <span
+                          style={{
+                            fontSize: 9,
+                            fontWeight: 800,
+                            padding: "1px 6px",
+                            borderRadius: 4,
+                            background: "#fef3c7",
+                            color: "#b45309",
+                            border: "1px solid #fde68a",
+                          }}
+                        >
+                          ★ RECOMMENDED
+                        </span>
+                      )}
+                    </div>
+                    {isCurrentActive ? (
+                      <span
+                        style={{
+                          fontSize: 9,
+                          fontWeight: 800,
+                          padding: "1px 6px",
+                          borderRadius: 4,
+                          background: "#10b981",
+                          color: "#ffffff",
+                        }}
+                      >
+                        ✓ ACTIVE
+                      </span>
+                    ) : (
+                      <CheckCircle2 size={14} color="#10b981" />
+                    )}
+                  </div>
+                  <h4
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 800,
+                      color: "#0f172a",
+                      margin: "2px 0",
+                    }}
+                  >
+                    Optimal Speed Mode
+                  </h4>
+                  <p
+                    style={{
+                      fontSize: 10.5,
+                      color: "#64748b",
+                      margin: 0,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    Direct serverless invocation. Queue off. Cap: 250 students.
+                  </p>
+                </div>
+                <button
+                  onClick={() => !isCurrentActive && handleApplyPolicy("OPTIMAL")}
+                  disabled={isCurrentActive || applyingPolicy !== null}
                   style={{
-                    fontSize: 9.5,
-                    fontWeight: 800,
-                    padding: "1px 6px",
-                    borderRadius: 5,
-                    background: "#ecfdf5",
-                    color: "#047857",
-                    border: "1px solid #a7f3d0",
+                    marginTop: 10,
+                    width: "100%",
+                    padding: "6px",
+                    background: isCurrentActive ? "#e2e8f0" : "#10b981",
+                    color: isCurrentActive ? "#475569" : "#ffffff",
+                    borderRadius: 6,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    border: isCurrentActive ? "1px solid #cbd5e1" : "none",
+                    cursor: isCurrentActive
+                      ? "default"
+                      : applyingPolicy
+                      ? "not-allowed"
+                      : "pointer",
                   }}
                 >
-                  Normal (&lt;70%)
-                </span>
-                <CheckCircle2 size={14} color="#10b981" />
+                  {isCurrentActive
+                    ? "✓ Currently Active"
+                    : applyingPolicy === "OPTIMAL"
+                    ? "Applying..."
+                    : "Apply Mode"}
+                </button>
               </div>
-              <h4 style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", margin: "2px 0" }}>
-                Optimal Speed Mode
-              </h4>
-              <p style={{ fontSize: 10.5, color: "#64748b", margin: 0, lineHeight: 1.4 }}>
-                Direct serverless invocation. Queue off. Cap: 250 students.
-              </p>
-            </div>
-            <button
-              onClick={() => handleApplyPolicy("OPTIMAL")}
-              disabled={applyingPolicy !== null}
-              style={{
-                marginTop: 10,
-                width: "100%",
-                padding: "6px",
-                background: "#10b981",
-                color: "#ffffff",
-                borderRadius: 6,
-                fontSize: 11,
-                fontWeight: 700,
-                border: "none",
-                cursor: applyingPolicy ? "not-allowed" : "pointer",
-              }}
-            >
-              {applyingPolicy === "OPTIMAL" ? "Applying..." : "Apply Mode"}
-            </button>
-          </div>
+            );
+          })()}
 
           {/* SURGE */}
-          <div
-            style={{
-              background: "#ffffff",
-              borderRadius: 10,
-              border:
-                defenseSystem.recommendedDefensePolicy === "SURGE_PROTECTION"
-                  ? "1.5px solid #f59e0b"
-                  : "1px solid #e2e8f0",
-              padding: isMobile ? "10px 12px" : "14px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              boxSizing: "border-box",
-            }}
-          >
-            <div>
+          {(() => {
+            const isCurrentActive = defenseSystem.activePolicy === "SURGE_PROTECTION";
+            const isRecommended = defenseSystem.recommendedDefensePolicy === "SURGE_PROTECTION";
+            return (
               <div
                 style={{
+                  background: isCurrentActive ? "#fffdf5" : "#ffffff",
+                  borderRadius: 10,
+                  border: isCurrentActive
+                    ? "2px solid #f59e0b"
+                    : isRecommended
+                    ? "1.5px dashed #f59e0b"
+                    : "1px solid #e2e8f0",
+                  padding: isMobile ? "10px 12px" : "14px",
                   display: "flex",
+                  flexDirection: "column",
                   justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 6,
+                  boxSizing: "border-box",
+                  boxShadow: isCurrentActive
+                    ? "0 2px 8px rgba(245, 158, 11, 0.12)"
+                    : "none",
                 }}
               >
-                <span
+                <div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 6,
+                      flexWrap: "wrap",
+                      gap: 4,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <span
+                        style={{
+                          fontSize: 9.5,
+                          fontWeight: 800,
+                          padding: "1px 6px",
+                          borderRadius: 5,
+                          background: "#fffbeb",
+                          color: "#b45309",
+                          border: "1px solid #fde68a",
+                        }}
+                      >
+                        Surge (70%-90%)
+                      </span>
+                      {isRecommended && (
+                        <span
+                          style={{
+                            fontSize: 9,
+                            fontWeight: 800,
+                            padding: "1px 6px",
+                            borderRadius: 4,
+                            background: "#fef3c7",
+                            color: "#b45309",
+                            border: "1px solid #fde68a",
+                          }}
+                        >
+                          ★ RECOMMENDED
+                        </span>
+                      )}
+                    </div>
+                    {isCurrentActive ? (
+                      <span
+                        style={{
+                          fontSize: 9,
+                          fontWeight: 800,
+                          padding: "1px 6px",
+                          borderRadius: 4,
+                          background: "#f59e0b",
+                          color: "#ffffff",
+                        }}
+                      >
+                        ✓ ACTIVE
+                      </span>
+                    ) : (
+                      <TrendingUp size={14} color="#f59e0b" />
+                    )}
+                  </div>
+                  <h4
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 800,
+                      color: "#0f172a",
+                      margin: "2px 0",
+                    }}
+                  >
+                    Surge Protection
+                  </h4>
+                  <p
+                    style={{
+                      fontSize: 10.5,
+                      color: "#64748b",
+                      margin: 0,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    Enables queue at 150 students. Paces requests to protect budget.
+                  </p>
+                </div>
+                <button
+                  onClick={() => !isCurrentActive && handleApplyPolicy("SURGE_PROTECTION")}
+                  disabled={isCurrentActive || applyingPolicy !== null}
                   style={{
-                    fontSize: 9.5,
-                    fontWeight: 800,
-                    padding: "1px 6px",
-                    borderRadius: 5,
-                    background: "#fffbeb",
-                    color: "#b45309",
-                    border: "1px solid #fde68a",
+                    marginTop: 10,
+                    width: "100%",
+                    padding: "6px",
+                    background: isCurrentActive ? "#e2e8f0" : "#f59e0b",
+                    color: isCurrentActive ? "#475569" : "#ffffff",
+                    borderRadius: 6,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    border: isCurrentActive ? "1px solid #cbd5e1" : "none",
+                    cursor: isCurrentActive
+                      ? "default"
+                      : applyingPolicy
+                      ? "not-allowed"
+                      : "pointer",
                   }}
                 >
-                  Surge (70%-90%)
-                </span>
-                <TrendingUp size={14} color="#f59e0b" />
+                  {isCurrentActive
+                    ? "✓ Currently Active"
+                    : applyingPolicy === "SURGE_PROTECTION"
+                    ? "Applying..."
+                    : "Apply Mode"}
+                </button>
               </div>
-              <h4 style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", margin: "2px 0" }}>
-                Surge Protection
-              </h4>
-              <p style={{ fontSize: 10.5, color: "#64748b", margin: 0, lineHeight: 1.4 }}>
-                Enables queue at 150 students. Paces requests to protect budget.
-              </p>
-            </div>
-            <button
-              onClick={() => handleApplyPolicy("SURGE_PROTECTION")}
-              disabled={applyingPolicy !== null}
-              style={{
-                marginTop: 10,
-                width: "100%",
-                padding: "6px",
-                background: "#f59e0b",
-                color: "#ffffff",
-                borderRadius: 6,
-                fontSize: 11,
-                fontWeight: 700,
-                border: "none",
-                cursor: applyingPolicy ? "not-allowed" : "pointer",
-              }}
-            >
-              {applyingPolicy === "SURGE_PROTECTION" ? "Applying..." : "Apply Mode"}
-            </button>
-          </div>
+            );
+          })()}
 
           {/* CRITICAL */}
-          <div
-            style={{
-              background: "#ffffff",
-              borderRadius: 10,
-              border:
-                defenseSystem.recommendedDefensePolicy === "CRITICAL_SHIELD"
-                  ? "1.5px solid #ef4444"
-                  : "1px solid #e2e8f0",
-              padding: isMobile ? "10px 12px" : "14px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              boxSizing: "border-box",
-            }}
-          >
-            <div>
+          {(() => {
+            const isCurrentActive = defenseSystem.activePolicy === "CRITICAL_SHIELD";
+            const isRecommended = defenseSystem.recommendedDefensePolicy === "CRITICAL_SHIELD";
+            return (
               <div
                 style={{
+                  background: isCurrentActive ? "#fefcfc" : "#ffffff",
+                  borderRadius: 10,
+                  border: isCurrentActive
+                    ? "2px solid #ef4444"
+                    : isRecommended
+                    ? "1.5px dashed #ef4444"
+                    : "1px solid #e2e8f0",
+                  padding: isMobile ? "10px 12px" : "14px",
                   display: "flex",
+                  flexDirection: "column",
                   justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 6,
+                  boxSizing: "border-box",
+                  boxShadow: isCurrentActive
+                    ? "0 2px 8px rgba(239, 68, 68, 0.12)"
+                    : "none",
                 }}
               >
-                <span
+                <div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 6,
+                      flexWrap: "wrap",
+                      gap: 4,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <span
+                        style={{
+                          fontSize: 9.5,
+                          fontWeight: 800,
+                          padding: "1px 6px",
+                          borderRadius: 5,
+                          background: "#fef2f2",
+                          color: "#b91c1c",
+                          border: "1px solid #fecaca",
+                        }}
+                      >
+                        High Risk (&gt;90%)
+                      </span>
+                      {isRecommended && (
+                        <span
+                          style={{
+                            fontSize: 9,
+                            fontWeight: 800,
+                            padding: "1px 6px",
+                            borderRadius: 4,
+                            background: "#fef3c7",
+                            color: "#b45309",
+                            border: "1px solid #fde68a",
+                          }}
+                        >
+                          ★ RECOMMENDED
+                        </span>
+                      )}
+                    </div>
+                    {isCurrentActive ? (
+                      <span
+                        style={{
+                          fontSize: 9,
+                          fontWeight: 800,
+                          padding: "1px 6px",
+                          borderRadius: 4,
+                          background: "#ef4444",
+                          color: "#ffffff",
+                        }}
+                      >
+                        ✓ ACTIVE
+                      </span>
+                    ) : (
+                      <ShieldAlert size={14} color="#ef4444" />
+                    )}
+                  </div>
+                  <h4
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 800,
+                      color: "#0f172a",
+                      margin: "2px 0",
+                    }}
+                  >
+                    Critical Emergency Shield
+                  </h4>
+                  <p
+                    style={{
+                      fontSize: 10.5,
+                      color: "#64748b",
+                      margin: 0,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    Tight queue at 50 students. Guarantees 0 Vercel 429 lockouts.
+                  </p>
+                </div>
+                <button
+                  onClick={() => !isCurrentActive && handleApplyPolicy("CRITICAL_SHIELD")}
+                  disabled={isCurrentActive || applyingPolicy !== null}
                   style={{
-                    fontSize: 9.5,
-                    fontWeight: 800,
-                    padding: "1px 6px",
-                    borderRadius: 5,
-                    background: "#fef2f2",
-                    color: "#b91c1c",
-                    border: "1px solid #fecaca",
+                    marginTop: 10,
+                    width: "100%",
+                    padding: "6px",
+                    background: isCurrentActive ? "#e2e8f0" : "#ef4444",
+                    color: isCurrentActive ? "#475569" : "#ffffff",
+                    borderRadius: 6,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    border: isCurrentActive ? "1px solid #cbd5e1" : "none",
+                    cursor: isCurrentActive
+                      ? "default"
+                      : applyingPolicy
+                      ? "not-allowed"
+                      : "pointer",
                   }}
                 >
-                  High Risk (&gt;90%)
-                </span>
-                <ShieldAlert size={14} color="#ef4444" />
+                  {isCurrentActive
+                    ? "✓ Currently Active"
+                    : applyingPolicy === "CRITICAL_SHIELD"
+                    ? "Applying..."
+                    : "Apply Mode"}
+                </button>
               </div>
-              <h4 style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", margin: "2px 0" }}>
-                Critical Emergency Shield
-              </h4>
-              <p style={{ fontSize: 10.5, color: "#64748b", margin: 0, lineHeight: 1.4 }}>
-                Tight queue at 50 students. Guarantees 0 Vercel 429 lockouts.
-              </p>
-            </div>
-            <button
-              onClick={() => handleApplyPolicy("CRITICAL_SHIELD")}
-              disabled={applyingPolicy !== null}
-              style={{
-                marginTop: 10,
-                width: "100%",
-                padding: "6px",
-                background: "#ef4444",
-                color: "#ffffff",
-                borderRadius: 6,
-                fontSize: 11,
-                fontWeight: 700,
-                border: "none",
-                cursor: applyingPolicy ? "not-allowed" : "pointer",
-              }}
-            >
-              {applyingPolicy === "CRITICAL_SHIELD" ? "Applying..." : "Apply Mode"}
-            </button>
-          </div>
+            );
+          })()}
         </div>
       </div>
 

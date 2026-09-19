@@ -1754,6 +1754,7 @@ function SectionToppersCard({ authHeaders, API }) {
   const [batch, setBatch] = useState("2023");
   const [branch, setBranch] = useState("CSE");
   const [section, setSection] = useState("Sec A");
+  const [emailFilter, setEmailFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [limit] = useState(10);
   const [selectedStudentForEmail, setSelectedStudentForEmail] = useState(null);
@@ -1846,6 +1847,9 @@ function SectionToppersCard({ authHeaders, API }) {
         .post(`${API}/admin/section-toppers/topper-email-status`, { regNo: selectedStudentForEmail.regNo, status: "SUCCESS" }, authHeaders)
         .catch(() => {});
 
+      toppersCacheRef.current.clear();
+      invalidateAdminCache(AdminCacheScopes.TOPPERS);
+
       setData((prev) => ({
         ...prev,
         students: prev.students.map((st) => {
@@ -1865,6 +1869,9 @@ function SectionToppersCard({ authHeaders, API }) {
       axios
         .post(`${API}/admin/section-toppers/topper-email-status`, { regNo: selectedStudentForEmail.regNo, status: "FAILED", errorMsg: errMessage }, authHeaders)
         .catch(() => {});
+
+      toppersCacheRef.current.clear();
+      invalidateAdminCache(AdminCacheScopes.TOPPERS);
     }
   }
 
@@ -1872,6 +1879,7 @@ function SectionToppersCard({ authHeaders, API }) {
     const activeBatch = overrideFilters.batch !== undefined ? overrideFilters.batch : batch;
     const activeBranch = overrideFilters.branch !== undefined ? overrideFilters.branch : branch;
     const activeSection = overrideFilters.section !== undefined ? overrideFilters.section : section;
+    const activeEmailFilter = overrideFilters.emailFilter !== undefined ? overrideFilters.emailFilter : emailFilter;
     const activeSearch = overrideFilters.search !== undefined ? overrideFilters.search : search;
 
     const cacheKey = JSON.stringify({
@@ -1879,10 +1887,11 @@ function SectionToppersCard({ authHeaders, API }) {
       batch: activeBatch,
       branch: activeBranch,
       section: activeSection,
+      emailFilter: activeEmailFilter,
       search: activeSearch,
     });
 
-    const storageKey = `gf_admin_toppers_${activeBatch}_${activeBranch}_${activeSection}_${activeSearch}`;
+    const storageKey = `gf_admin_toppers_${activeBatch}_${activeBranch}_${activeSection}_${activeEmailFilter}_${activeSearch}`;
 
     if (!forceRefetch) {
       if (toppersCacheRef.current.has(cacheKey)) {
@@ -1906,6 +1915,7 @@ function SectionToppersCard({ authHeaders, API }) {
       if (activeBatch) params.append("batch", activeBatch);
       if (activeBranch) params.append("branch", activeBranch);
       if (activeSection) params.append("section", activeSection);
+      if (activeEmailFilter && activeEmailFilter !== "all") params.append("emailStatus", activeEmailFilter);
       if (activeSearch) params.append("search", activeSearch);
 
       const res = await axios.get(`${API}/admin/section-toppers?${params}`, authHeaders);
@@ -1937,6 +1947,7 @@ function SectionToppersCard({ authHeaders, API }) {
     let newBatch = batch;
     let newBranch = branch;
     let newSection = section;
+    let newEmailFilter = emailFilter;
     let newSearch = search;
 
     if (field === "batch") { setBatch(val); newBatch = val; }
@@ -1949,12 +1960,14 @@ function SectionToppersCard({ authHeaders, API }) {
       }
     }
     if (field === "section") { setSection(val); newSection = val; }
+    if (field === "emailFilter") { setEmailFilter(val); newEmailFilter = val; }
     if (field === "search") { setSearch(val); newSearch = val; }
 
     fetchSectionToppers(false, {
       batch: newBatch,
       branch: newBranch,
       section: newSection,
+      emailFilter: newEmailFilter,
       search: newSearch,
     });
   }
@@ -1968,6 +1981,10 @@ function SectionToppersCard({ authHeaders, API }) {
         padding: isMobile ? "16px 14px" : "24px 20px",
         marginBottom: 28,
         boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+        width: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box",
+        overflow: "hidden",
       }}
     >
       {/* Card Header Title */}
@@ -2004,20 +2021,20 @@ function SectionToppersCard({ authHeaders, API }) {
           borderRadius: 14,
           padding: "14px 16px",
           marginBottom: 20,
+          width: "100%",
+          boxSizing: "border-box",
         }}
       >
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: isMobile
-              ? "1fr"
-              : "minmax(220px, 1.5fr) repeat(3, minmax(125px, 1fr)) auto",
+            display: "flex",
+            flexWrap: "wrap",
             gap: 10,
-            alignItems: "end",
+            alignItems: "flex-end",
           }}
         >
           {/* Search Student Input */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 200px", minWidth: 180 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Search Student / Reg. No</label>
             <div style={{ position: "relative", width: "100%" }}>
               <Search size={14} color="#64748b" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
@@ -2029,10 +2046,10 @@ function SectionToppersCard({ authHeaders, API }) {
                   const val = e.target.value;
                   setSearch(val);
                   if (val === "") {
-                    fetchSectionToppers(false, { batch, branch, section, search: "" });
+                    fetchSectionToppers(false, { batch, branch, section, emailFilter, search: "" });
                   }
                 }}
-                onKeyDown={(e) => e.key === "Enter" && fetchSectionToppers(false, { batch, branch, section, search })}
+                onKeyDown={(e) => e.key === "Enter" && fetchSectionToppers(false, { batch, branch, section, emailFilter, search })}
                 style={{
                   width: "100%",
                   padding: "8px 12px 8px 32px",
@@ -2049,7 +2066,7 @@ function SectionToppersCard({ authHeaders, API }) {
           </div>
 
           {/* Batch */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 120px", minWidth: 110 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Batch</label>
             <select
               value={batch}
@@ -2077,7 +2094,7 @@ function SectionToppersCard({ authHeaders, API }) {
           </div>
 
           {/* Branch */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 120px", minWidth: 110 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Branch</label>
             <select
               value={branch}
@@ -2108,7 +2125,7 @@ function SectionToppersCard({ authHeaders, API }) {
           </div>
 
           {/* Section (Only A through L) */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 120px", minWidth: 110 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Section</label>
             <select
               value={section}
@@ -2151,11 +2168,38 @@ function SectionToppersCard({ authHeaders, API }) {
             </select>
           </div>
 
+          {/* Email Status Filter */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 130px", minWidth: 120 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Email Status</label>
+            <select
+              value={emailFilter}
+              onChange={(e) => handleFilterChange("emailFilter", e.target.value)}
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                borderRadius: 8,
+                border: "1.5px solid #cbd5e1",
+                background: "#ffffff",
+                color: "#0f172a",
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+                boxSizing: "border-box",
+              }}
+            >
+              <option value="all">All Status</option>
+              <option value="sent">Email Sent</option>
+              <option value="not_sent">Not Sent</option>
+              <option value="failed">Delivery Failed</option>
+            </select>
+          </div>
+
           {/* Search Button */}
           <button
-            onClick={() => fetchSectionToppers(false, { batch, branch, section, search })}
+            onClick={() => fetchSectionToppers(false, { batch, branch, section, emailFilter, search })}
             style={{
               width: isMobile ? "100%" : "auto",
+              flex: isMobile ? "1 1 100%" : "0 0 auto",
               padding: "9px 20px",
               borderRadius: 8,
               background: "#0f172a",
@@ -2298,8 +2342,8 @@ function SectionToppersCard({ authHeaders, API }) {
         </div>
       ) : (
         /* Desktop Data Table */
-        <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 12 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 12.5 }}>
+        <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 12, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
+          <table style={{ width: "100%", minWidth: 1040, borderCollapse: "collapse", textAlign: "left", fontSize: 12.5 }}>
             <thead>
               <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", color: "#475569" }}>
                 <th style={{ padding: "12px 10px", fontWeight: 700, width: 35 }}>#</th>
@@ -2356,7 +2400,7 @@ function SectionToppersCard({ authHeaders, API }) {
                   <td style={{ padding: "12px 10px" }}>
                     <span style={{ fontWeight: 800, color: "#7c3aed", fontSize: 13 }}>#{st.universityRank || "-"}</span>
                   </td>
-                  <td style={{ padding: "12px 12px", fontSize: 11.5 }}>
+                  <td style={{ padding: "12px 12px", fontSize: 11.5, whiteSpace: "nowrap" }}>
                     {st.lastTopperEmailStatus === "SUCCESS" ? (
                       <span style={{ color: "#059669", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
                         <Check size={12} /> Sent {formatTimeAgo(st.lastTopperEmailSentAt)}
@@ -2369,7 +2413,7 @@ function SectionToppersCard({ authHeaders, API }) {
                       <span style={{ color: "#94a3b8" }}>Not Sent Yet</span>
                     )}
                   </td>
-                  <td style={{ padding: "12px 12px", textAlign: "center" }}>
+                  <td style={{ padding: "12px 12px", textAlign: "center", whiteSpace: "nowrap" }}>
                     <button
                       onClick={() => handleOpenEmailModal(st)}
                       style={{
@@ -2820,6 +2864,10 @@ function BacklogTrackerCard({ authHeaders, API }) {
         boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
         scrollMarginTop: 90,
         transform: "translateZ(0)",
+        width: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box",
+        overflow: "hidden",
       }}
     >
       <style>{`
@@ -2870,20 +2918,20 @@ function BacklogTrackerCard({ authHeaders, API }) {
           borderRadius: 14,
           padding: "14px 16px",
           marginBottom: 20,
+          width: "100%",
+          boxSizing: "border-box",
         }}
       >
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: isMobile
-              ? "1fr"
-              : "minmax(190px, 1.2fr) repeat(5, minmax(105px, 1fr)) auto",
+            display: "flex",
+            flexWrap: "wrap",
             gap: 10,
-            alignItems: "end",
+            alignItems: "flex-end",
           }}
         >
           {/* Search Input */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 200px", minWidth: 180 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Search Records</label>
             <div style={{ position: "relative", width: "100%" }}>
               <Search size={14} color="#64748b" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
@@ -2921,7 +2969,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
           </div>
 
           {/* Batch Select */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 110px", minWidth: 105 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Batch</label>
             <select
               value={batch}
@@ -2949,7 +2997,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
           </div>
 
           {/* Branch Select */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 110px", minWidth: 105 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Branch</label>
             <select
               value={branch}
@@ -2986,7 +3034,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
           </div>
 
           {/* Section Select (Branch-Aware) */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 110px", minWidth: 105 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Section</label>
             <select
               value={section}
@@ -3030,7 +3078,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
           </div>
 
           {/* Semester Select */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 110px", minWidth: 105 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Semester</label>
             <select
               value={semester}
@@ -3061,7 +3109,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
           </div>
 
           {/* Email Status Select */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 120px", minWidth: 110 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Email Status</label>
             <select
               value={emailFilter}
@@ -3091,6 +3139,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
             onClick={() => fetchBacklogs(1, search)}
             style={{
               width: isMobile ? "100%" : "auto",
+              flex: isMobile ? "1 1 100%" : "0 0 auto",
               padding: "9px 20px",
               borderRadius: 8,
               background: "#0f172a",
@@ -3327,16 +3376,16 @@ function BacklogTrackerCard({ authHeaders, API }) {
         </div>
       ) : (
         /* Desktop Table with Rich Expandable Rows */
-        <div className="gf-backlog-table-container" style={{ overflowX: "auto", overscrollBehaviorX: "contain", border: "1px solid #e2e8f0", borderRadius: 12 }}>
-          <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", textAlign: "left", fontSize: 12.5 }}>
+        <div className="gf-backlog-table-container" style={{ overflowX: "auto", overscrollBehaviorX: "contain", border: "1px solid #e2e8f0", borderRadius: 12, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
+          <table style={{ width: "100%", minWidth: 1060, borderCollapse: "collapse", textAlign: "left", fontSize: 12.5 }}>
             <colgroup>
               <col style={{ width: 44 }} />
-              <col style={{ width: "23%" }} />
-              <col style={{ width: "18%" }} />
-              <col style={{ width: "18%" }} />
+              <col style={{ width: "22%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "16%" }} />
               <col style={{ width: "13%" }} />
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "14%" }} />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "20%" }} />
             </colgroup>
             <thead>
               <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", color: "#475569" }}>
@@ -3389,7 +3438,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
                           CGPA: <strong style={{ color: "#0f172a" }}>{st.rankInfo?.cgpa?.toFixed(2) || (st.cgpa ? st.cgpa.toFixed(2) : "0.00")}</strong>
                         </div>
                       </td>
-                      <td style={{ padding: "14px 10px" }}>
+                      <td style={{ padding: "14px 10px", whiteSpace: "nowrap" }}>
                         <span style={{ fontWeight: 800, color: "#dc2626", background: "#fef2f2", border: "1px solid #fecaca", padding: "3px 8px", borderRadius: 6, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}>
                           <AlertTriangle size={12} color="#dc2626" /> {st.totalBacklogs || st.backlogs?.length || 0} Backlogs
                         </span>
@@ -3414,7 +3463,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
                               <span
                                 key={sem}
                                 style={{
-                                  background: "#fffbeb",
+                                   background: "#fffbeb",
                                   border: "1px solid #fde68a",
                                   color: "#b45309",
                                   fontSize: 10.5,
@@ -3431,8 +3480,8 @@ function BacklogTrackerCard({ authHeaders, API }) {
                           )}
                         </div>
                       </td>
-                      <td style={{ padding: "14px 12px", textAlign: "right" }}>
-                        <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                      <td style={{ padding: "14px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "inline-flex", gap: 6, alignItems: "center", justifyContent: "flex-end" }}>
                           <button
                             onClick={() => handleOpenEmailModal(st)}
                             style={{
@@ -3447,6 +3496,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
                               alignItems: "center",
                               gap: 4,
                               cursor: "pointer",
+                              whiteSpace: "nowrap",
                             }}
                           >
                             <Mail size={11} /> {st.lastEmailStatus === "SUCCESS" ? "Resend Email" : "Send Email"}
@@ -3466,6 +3516,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
                               alignItems: "center",
                               gap: 4,
                               cursor: "pointer",
+                              whiteSpace: "nowrap",
                             }}
                           >
                             {isExpanded ? <><ChevronUp size={12} /> Hide Details</> : <><ChevronDown size={12} /> View Backlogs</>}

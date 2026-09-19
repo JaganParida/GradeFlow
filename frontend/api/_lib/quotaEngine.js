@@ -130,14 +130,33 @@ async function getVercelQuotaData(forceRefresh = false) {
   }
 
   let maxHourCount = 0;
-  let peakHourIndex = 20;
+  let peakHourIndex = -1;
   finalHourlyRequests.forEach((count, h) => {
     if (count > maxHourCount) {
       maxHourCount = count;
       peakHourIndex = h;
     }
   });
-  const peakHourText = formatHourSlot(peakHourIndex);
+
+  // If today's telemetry has 0 requests, aggregate historical monthly hourly telemetry to identify natural peak
+  if (maxHourCount === 0 && safeMonthlyMetrics.length > 0) {
+    const historicalHourly = new Array(24).fill(0);
+    safeMonthlyMetrics.forEach((m) => {
+      if (Array.isArray(m.hourlyRequests)) {
+        m.hourlyRequests.forEach((cnt, h) => {
+          historicalHourly[h] += cnt || 0;
+        });
+      }
+    });
+    historicalHourly.forEach((cnt, h) => {
+      if (cnt > maxHourCount) {
+        maxHourCount = cnt;
+        peakHourIndex = h;
+      }
+    });
+  }
+
+  const peakHourText = peakHourIndex >= 0 ? formatHourSlot(peakHourIndex) : "Awaiting Traffic";
 
   const aggregateDays = new Array(7).fill(0);
   safeMonthlyMetrics.forEach((m) => {
@@ -147,14 +166,14 @@ async function getVercelQuotaData(forceRefresh = false) {
   });
 
   let maxDayCount = 0;
-  let peakDayIndex = dayOfWeek;
+  let peakDayIndex = -1;
   aggregateDays.forEach((count, d) => {
     if (count > maxDayCount) {
       maxDayCount = count;
       peakDayIndex = d;
     }
   });
-  const peakDayText = DAYS_NAMES[peakDayIndex] || "Today";
+  const peakDayText = peakDayIndex >= 0 ? (DAYS_NAMES[peakDayIndex] || "Today") : "Today";
 
   const todayBudget = HOBBY_LIMITS.DAILY_REQUESTS_BUDGET;
   const todayUsed = effectiveTodayRequests;
@@ -166,8 +185,16 @@ async function getVercelQuotaData(forceRefresh = false) {
   const monthRemaining = Math.max(0, monthLimit - monthUsed);
   const monthPercent = parseFloat(((monthUsed / monthLimit) * 100).toFixed(1));
 
-  const dailyBurnRate = Math.round(monthUsed / Math.max(1, dayOfMonth));
-  const projectedMonthEndRequests = Math.round(dailyBurnRate * daysInMonth);
+  // Zero-drain accurate projection:
+  // Current month-end projection = already consumed requests + remaining days projected at average daily burn rate
+  const safeDayOfMonth = Math.max(1, dayOfMonth);
+  const dailyBurnRateExact = monthUsed / safeDayOfMonth;
+  const remainingDays = Math.max(0, daysInMonth - safeDayOfMonth);
+  const projectedMonthEndRequests = Math.max(
+    monthUsed,
+    Math.round(monthUsed + (dailyBurnRateExact * remainingDays))
+  );
+  const dailyBurnRate = parseFloat(dailyBurnRateExact.toFixed(1));
   const projectedMonthPercent = parseFloat(((projectedMonthEndRequests / monthLimit) * 100).toFixed(1));
 
   let projectionStatus = "HEALTHY";
@@ -214,18 +241,54 @@ async function getVercelQuotaData(forceRefresh = false) {
 
   routeBreakdown.sort((a, b) => b.estimatedInvocations - a.estimatedInvocations);
 
+  // 1. Recommended Defense Policy based on quota usage
   let recommendedDefensePolicy = "OPTIMAL";
-  let defenseBadge = "Optimal Mode";
-  let defenseDescription = "Direct serverless execution. Caching active. Normal operation.";
+  let recommendedBadge = "Optimal Speed Mode";
+  let recommendedDescription = "Direct serverless execution. Caching active. Normal operation.";
 
   if (todayPercent >= 90 || projectedMonthPercent >= 100) {
     recommendedDefensePolicy = "CRITICAL_SHIELD";
-    defenseBadge = "Critical Emergency Shield";
-    defenseDescription = "High quota exhaustion risk. Strict queueing recommended to prevent Vercel 429 Hobby lockout.";
+    recommendedBadge = "Critical Emergency Shield";
+    recommendedDescription = "High quota exhaustion risk. Strict queueing recommended to prevent Vercel 429 Hobby lockout.";
   } else if (todayPercent >= 70 || projectedMonthPercent >= 80) {
     recommendedDefensePolicy = "SURGE_PROTECTION";
-    defenseBadge = "Surge Protection Alert";
-    defenseDescription = "Elevated traffic detected. Enabling queue for heavy routes preserves free tier allocation.";
+    recommendedBadge = "Surge Protection";
+    recommendedDescription = "Elevated traffic detected. Enabling queue for heavy routes preserves free tier allocation.";
+  }
+
+  // 2. Currently Active Policy based on stored database configuration
+  let activePolicy = "OPTIMAL";
+  let activeBadge = "Optimal Speed Mode";
+  let activeColor = "#10b981";
+
+  if (queueConfig.queueEnabled) {
+    const activeCap = Number(queueConfig.maxActiveCapacity) || 0;
+    if (activeCap <= 75) {
+      activePolicy = "CRITICAL_SHIELD";
+      activeBadge = "Critical Emergency Shield";
+      activeColor = "#ef4444";
+    } else if (activeCap <= 175) {
+      activePolicy = "SURGE_PROTECTION";
+      activeBadge = "Surge Protection";
+      activeColor = "#f59e0b";
+    } else {
+      activePolicy = "CUSTOM";
+      activeBadge = "Custom Queue Shield";
+      activeColor = "#6366f1";
+    }
+  }
+
+  // 3. Status alignment between current configuration and recommendation
+  let statusAlignment = "ALIGNED";
+  if (activePolicy === recommendedDefensePolicy) {
+    statusAlignment = "ALIGNED";
+  } else if (
+    (recommendedDefensePolicy === "CRITICAL_SHIELD" && activePolicy !== "CRITICAL_SHIELD") ||
+    (recommendedDefensePolicy === "SURGE_PROTECTION" && activePolicy === "OPTIMAL")
+  ) {
+    statusAlignment = "UNDER_PROTECTED";
+  } else {
+    statusAlignment = "OVER_PROTECTED";
   }
 
   const result = {
@@ -285,9 +348,16 @@ async function getVercelQuotaData(forceRefresh = false) {
       currentQueueEnabled: Boolean(queueConfig.queueEnabled),
       autoTriggerEnabled: Boolean(queueConfig.autoTriggerEnabled),
       maxActiveCapacity: queueConfig.maxActiveCapacity || 200,
+      activePolicy,
+      activeBadge,
+      activeColor,
       recommendedDefensePolicy,
-      defenseBadge,
-      defenseDescription,
+      recommendedBadge,
+      recommendedDescription,
+      statusAlignment,
+      // Backward-compatibility aliases
+      defenseBadge: activeBadge,
+      defenseDescription: recommendedDescription,
     },
   };
 
@@ -295,6 +365,11 @@ async function getVercelQuotaData(forceRefresh = false) {
   cachedQuotaTimestamp = now;
 
   return result;
+}
+
+function invalidateQuotaCache() {
+  cachedQuotaData = null;
+  cachedQuotaTimestamp = 0;
 }
 
 module.exports = {
@@ -305,4 +380,5 @@ module.exports = {
   formatHourSlot,
   getRouteCategory,
   getVercelQuotaData,
+  invalidateQuotaCache,
 };

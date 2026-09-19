@@ -1,6 +1,6 @@
 const connectToDatabase = require("./_lib/db");
 const TrafficQueueConfig = require("./_lib/models/TrafficQueueConfig");
-const { getVercelQuotaData } = require("./_lib/quotaEngine");
+const { getVercelQuotaData, invalidateQuotaCache } = require("./_lib/quotaEngine");
 const { applyCors } = require("./_lib/cors");
 const jwt = require("jsonwebtoken");
 
@@ -86,6 +86,9 @@ module.exports = async function handler(req, res) {
         { $set: updateFields },
         { new: true, upsert: true }
       );
+
+      // Invalidate serverless in-memory cache so subsequent GET immediately returns fresh active defense state
+      invalidateQuotaCache();
 
       return res.json({
         success: true,

@@ -188,10 +188,17 @@ function generateTopperEmailHtml({
       ` : ''}
     </table>
 
-    <!-- Leaderboards Link -->
+    <!-- Website & Leaderboards Links -->
+    <div style="margin: 18px 0 20px 0; padding: 14px 18px; background-color: #f0f7ff; border: 1px solid #cce3ff; border-radius: 6px;">
+      <p style="margin: 0; font-size: 14px; color: #1e3a8a;">
+        <strong>Visit GradeFlow for live leaderboards & complete section analytics:</strong><br>
+        <a href="https://grade-flow-six.vercel.app/" style="color: #2563eb; font-weight: bold; text-decoration: underline; display: inline-block; margin-top: 4px;">https://grade-flow-six.vercel.app/</a>
+      </p>
+    </div>
+
     <p style="margin: 0 0 20px 0; font-size: 13.5px; color: #475569; line-height: 1.6;">
       View full department leaderboards and section rankings on GradeFlow:<br>
-      <a href="${baseUrl}/leaderboard" style="color: #2563eb; font-weight: 600; text-decoration: underline;">${baseUrl}/leaderboard</a>
+      <a href="https://grade-flow-six.vercel.app/leaderboard" style="color: #2563eb; font-weight: 600; text-decoration: underline;">https://grade-flow-six.vercel.app/leaderboard</a>
     </p>
 
     <!-- Important Support & Verification Section -->
