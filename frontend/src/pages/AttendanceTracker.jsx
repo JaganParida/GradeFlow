@@ -790,6 +790,32 @@ export default function AttendanceTracker() {
           components: comps,
           section: selectedSection,
         });
+      } else {
+        // Preserve valid elective/minor subjects detected from ERP that may not be in the default section timetable
+        const cleanName = cleanSubjectBaseName(s.name) || s.name;
+        if (cleanName && (cleanName.match(/[a-zA-Z]/g) || []).length >= 3) {
+          const comps =
+            Array.isArray(s.components) && s.components.length > 0
+              ? s.components.map((c) => ({
+                  type: (c.type || "PP").toUpperCase(),
+                  attended: Number(c.attended) || 0,
+                  delivered: Number(c.delivered) || 0,
+                }))
+              : [
+                  {
+                    type: "PP",
+                    attended: Number(s.attendedClasses) || 0,
+                    delivered: Number(s.totalClasses) || 0,
+                  },
+                ];
+
+          formatted.push({
+            subjectName: cleanName,
+            code: s.code || "",
+            components: comps,
+            section: selectedSection,
+          });
+        }
       }
     });
 
