@@ -1995,16 +1995,13 @@ export default function AttendanceTracker() {
   };
 
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [resetModalStep, setResetModalStep] = useState("confirm"); // "confirm" | "countdown" | "undone" | "completed"
   const [isResetPending, setIsResetPending] = useState(false);
-  const [resetCountdown, setResetCountdown] = useState(null);
-  const [undoSuccessMsg, setUndoSuccessMsg] = useState("");
+  const [resetCountdown, setResetCountdown] = useState(10);
   const resetBackupRef = useRef(null);
   const resetCountdownTimerRef = useRef(null);
-  const resetFinalizeTimerRef = useRef(null);
 
   const handleStartResetWithUndo = () => {
-    setIsResetModalOpen(false);
-
     // 1. Snapshot all current attendance state for non-destructive undo restoration
     const backup = {
       savedSubjects: JSON.parse(JSON.stringify(savedSubjects || [])),
@@ -2031,14 +2028,12 @@ export default function AttendanceTracker() {
       setComponentInputs([{ type: "PP", attended: 0, delivered: 0 }]);
     }
 
-    // 3. Clear existing timers if any
+    // 3. Switch modal directly into Google-style circular countdown view
     if (resetCountdownTimerRef.current) clearInterval(resetCountdownTimerRef.current);
-    if (resetFinalizeTimerRef.current) clearTimeout(resetFinalizeTimerRef.current);
 
-    // 4. Start 10-second countdown with active Undo option
+    setResetModalStep("countdown");
     setIsResetPending(true);
     setResetCountdown(10);
-    setUndoSuccessMsg("");
 
     const startTime = Date.now();
     const DURATION_SEC = 10;
@@ -2053,17 +2048,13 @@ export default function AttendanceTracker() {
         resetCountdownTimerRef.current = null;
         handleFinalizeReset();
       }
-    }, 250);
+    }, 200);
   };
 
   const handleUndoReset = () => {
     if (resetCountdownTimerRef.current) {
       clearInterval(resetCountdownTimerRef.current);
       resetCountdownTimerRef.current = null;
-    }
-    if (resetFinalizeTimerRef.current) {
-      clearTimeout(resetFinalizeTimerRef.current);
-      resetFinalizeTimerRef.current = null;
     }
 
     let backup = resetBackupRef.current;
@@ -2090,17 +2081,19 @@ export default function AttendanceTracker() {
 
     resetBackupRef.current = null;
     setIsResetPending(false);
-    setResetCountdown(null);
+    setResetCountdown(10);
 
-    setUndoSuccessMsg("Reset cancelled! All your attendance records and check-ins have been 100% preserved.");
+    // Show instant success feedback inside the modal before closing
+    setResetModalStep("undone");
     setTimeout(() => {
-      setUndoSuccessMsg("");
-    }, 4500);
+      setIsResetModalOpen(false);
+      setResetModalStep("confirm");
+    }, 1600);
   };
 
   const handleFinalizeReset = () => {
     setIsResetPending(false);
-    setResetCountdown(null);
+    setResetCountdown(0);
     resetBackupRef.current = null;
 
     try {
@@ -2109,14 +2102,20 @@ export default function AttendanceTracker() {
       sessionStorage.removeItem("gf_attendance_reset_backup");
     } catch (_) {}
 
-    // Permanently commit reset to database (only after full 10-second grace window expires!)
+    // Permanently commit reset to database (only after full 10-second circular countdown expires!)
     syncAttendanceToDb([], {}, targetGoal);
+
+    // Show completion feedback inside the modal before closing
+    setResetModalStep("completed");
+    setTimeout(() => {
+      setIsResetModalOpen(false);
+      setResetModalStep("confirm");
+    }, 1600);
   };
 
   useEffect(() => {
     return () => {
       if (resetCountdownTimerRef.current) clearInterval(resetCountdownTimerRef.current);
-      if (resetFinalizeTimerRef.current) clearTimeout(resetFinalizeTimerRef.current);
     };
   }, []);
 
@@ -2195,7 +2194,12 @@ export default function AttendanceTracker() {
   ], [hasSavedAttendance, allSectionSubjects.length]);
 
   const handleResetAllAttendance = () => {
-    if (isResetPending) return;
+    if (isResetPending) {
+      setResetModalStep("countdown");
+      setIsResetModalOpen(true);
+      return;
+    }
+    setResetModalStep("confirm");
     setIsResetModalOpen(true);
   };
 
@@ -6250,295 +6254,367 @@ export default function AttendanceTracker() {
         API={API}
       />
 
-      {/* Reset Attendance Data Confirmation Modal */}
-      <AnimatePresence>
-        {isResetModalOpen && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(15, 23, 42, 0.65)",
-              backdropFilter: "blur(4px)",
-              zIndex: 99999,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 16,
-            }}
-            onClick={() => setIsResetModalOpen(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.94, y: 12 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 12 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: "#ffffff",
-                borderRadius: 20,
-                padding: "24px 22px",
-                maxWidth: 420,
-                width: "100%",
-                border: "1px solid #e2e8f0",
-                boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
-                display: "flex",
-                flexDirection: "column",
-                gap: 16,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 12,
-                    background: "#fee2e2",
-                    border: "1px solid #fecaca",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  <RotateCcw size={22} color="#dc2626" />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.3px" }}>
-                    Reset Attendance Data?
-                  </h3>
-                  <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
-                    Revert all changes to default section routine
-                  </p>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  background: "#fef2f2",
-                  border: "1px solid #fecaca",
-                  borderRadius: 12,
-                  padding: "12px 14px",
-                  fontSize: 12.5,
-                  color: "#991b1b",
-                  lineHeight: 1.45,
-                }}
-              >
-                This will clear all marked daily check-ins, custom subject calculations, and reset to Section <strong>{selectedSection}</strong> default routine values.
-                <div
-                  style={{
-                    marginTop: 9,
-                    paddingTop: 8,
-                    borderTop: "1px dashed #fca5a5",
-                    fontSize: 11.5,
-                    color: "#991b1b",
-                    fontWeight: 700,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <span>⏱️</span>
-                  <span>Includes a <strong>10-second Undo window</strong> to restore all your data if clicked accidentally.</span>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 4 }}>
-                <button
-                  type="button"
-                  onClick={() => setIsResetModalOpen(false)}
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: 10,
-                    border: "1px solid #cbd5e1",
-                    background: "#ffffff",
-                    color: "#475569",
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleStartResetWithUndo}
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: 10,
-                    border: "none",
-                    background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
-                    color: "#ffffff",
-                    fontSize: 12.5,
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    boxShadow: "0 2px 8px rgba(220, 38, 38, 0.3)",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  Yes, Reset Data
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* ── 10-Second Undo Countdown & Status Banner (Portaled to document.body) ── */}
+      {/* ── Perfectly Centered Reset Attendance Modal (All Devices & Viewports) ── */}
       {typeof document !== "undefined" &&
         createPortal(
           <AnimatePresence>
-            {isResetPending && resetCountdown !== null && (
-              <motion.div
-                initial={{ opacity: 0, y: 50, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 40, scale: 0.95 }}
-                transition={{ duration: 0.25, ease: "easeOut" }}
+            {isResetModalOpen && (
+              <div
                 style={{
                   position: "fixed",
-                  bottom: isMobile ? 86 : 28,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  zIndex: 9999999,
-                  maxWidth: 520,
-                  width: "calc(100% - 28px)",
-                  background: "#0f172a",
-                  color: "#ffffff",
-                  borderRadius: 16,
-                  padding: "12px 16px",
-                  boxShadow: "0 20px 35px -10px rgba(15, 23, 42, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.15)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 9,
-                  boxSizing: "border-box",
-                  backdropFilter: "blur(12px)",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
-                    <div
-                      style={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: 10,
-                        background: "rgba(239, 68, 68, 0.2)",
-                        border: "1.5px solid rgba(239, 68, 68, 0.5)",
-                        color: "#fca5a5",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                        fontSize: 14,
-                        fontWeight: 900,
-                        fontVariantNumeric: "tabular-nums",
-                      }}
-                    >
-                      {resetCountdown}s
-                    </div>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ fontSize: 13.5, fontWeight: 800, color: "#ffffff", letterSpacing: "-0.2px" }}>
-                          Attendance Data Reset
-                        </span>
-                        <span
-                          style={{
-                            width: 7,
-                            height: 7,
-                            borderRadius: "50%",
-                            background: "#ef4444",
-                            display: "inline-block",
-                            boxShadow: "0 0 8px #ef4444",
-                          }}
-                        />
-                      </div>
-                      <p style={{ margin: "2px 0 0 0", fontSize: 11.5, color: "#94a3b8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        Permanently deleting in <strong style={{ color: "#fca5a5" }}>{resetCountdown}s</strong> • Tap Undo to preserve
-                      </p>
-                    </div>
-                  </div>
-
-                  <motion.button
-                    type="button"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.94 }}
-                    onClick={handleUndoReset}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "8px 15px",
-                      borderRadius: 10,
-                      border: "none",
-                      background: "#ffffff",
-                      color: "#0f172a",
-                      fontSize: 12.5,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      boxShadow: "0 2px 10px rgba(255, 255, 255, 0.25)",
-                      flexShrink: 0,
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    <RotateCcw size={13} color="#0f172a" />
-                    <span>UNDO ({resetCountdown}s)</span>
-                  </motion.button>
-                </div>
-
-                {/* Depleting animated progress bar */}
-                <div
-                  style={{
-                    width: "100%",
-                    height: 4,
-                    borderRadius: 99,
-                    background: "rgba(255, 255, 255, 0.14)",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      height: "100%",
-                      width: `${Math.max(0, Math.min(100, (resetCountdown / 10) * 100))}%`,
-                      background: "linear-gradient(90deg, #ef4444 0%, #f59e0b 100%)",
-                      transition: "width 0.25s linear",
-                      borderRadius: 99,
-                    }}
-                  />
-                </div>
-              </motion.div>
-            )}
-
-            {/* Undo Success Confirmation Banner */}
-            {undoSuccessMsg && (
-              <motion.div
-                initial={{ opacity: 0, y: 40, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                transition={{ duration: 0.25, ease: "easeOut" }}
-                style={{
-                  position: "fixed",
-                  bottom: isMobile ? 86 : 28,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  zIndex: 9999999,
-                  maxWidth: 500,
-                  width: "calc(100% - 28px)",
-                  background: "#064e3b",
-                  color: "#ffffff",
-                  borderRadius: 14,
-                  padding: "12px 16px",
-                  boxShadow: "0 20px 30px -10px rgba(6, 78, 59, 0.5), 0 0 0 1px rgba(52, 211, 153, 0.3)",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  width: "100vw",
+                  height: "100vh",
+                  background: "rgba(15, 23, 42, 0.72)",
+                  backdropFilter: "blur(6px)",
+                  WebkitBackdropFilter: "blur(6px)",
+                  zIndex: 99999999,
                   display: "flex",
                   alignItems: "center",
-                  gap: 10,
+                  justifyContent: "center",
+                  padding: "16px",
                   boxSizing: "border-box",
-                  backdropFilter: "blur(12px)",
+                  overflowY: "auto",
+                }}
+                onClick={() => {
+                  if (resetModalStep === "countdown") {
+                    handleUndoReset();
+                  } else if (resetModalStep === "confirm") {
+                    setIsResetModalOpen(false);
+                  }
                 }}
               >
-                <CheckCircle2 size={20} color="#34d399" style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: "#ecfdf5", lineHeight: 1.35 }}>
-                  {undoSuccessMsg}
-                </span>
-              </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.94, y: 0 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.94, y: 0 }}
+                  transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    background: "#ffffff",
+                    borderRadius: 22,
+                    padding: isMobile ? "22px 18px" : "26px 24px",
+                    maxWidth: 430,
+                    width: "100%",
+                    margin: "auto",
+                    border: "1px solid #e2e8f0",
+                    boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.28), 0 0 0 1px rgba(15, 23, 42, 0.06)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 16,
+                    boxSizing: "border-box",
+                    position: "relative",
+                  }}
+                >
+                  {/* Step 1: Initial Confirmation Dialog */}
+                  {resetModalStep === "confirm" && (
+                    <>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 12,
+                            background: "#fee2e2",
+                            border: "1px solid #fecaca",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <RotateCcw size={22} color="#dc2626" />
+                        </div>
+                        <div>
+                          <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.3px" }}>
+                            Reset Attendance Data?
+                          </h3>
+                          <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
+                            Revert all changes to default section routine
+                          </p>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          background: "#fef2f2",
+                          border: "1px solid #fecaca",
+                          borderRadius: 12,
+                          padding: "12px 14px",
+                          fontSize: 12.5,
+                          color: "#991b1b",
+                          lineHeight: 1.45,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 8,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                          <AlertTriangle size={16} color="#dc2626" style={{ flexShrink: 0, marginTop: 2 }} />
+                          <span>
+                            This will clear all marked daily check-ins, custom subject calculations, and reset to Section <strong>{selectedSection}</strong> default routine values.
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            paddingTop: 8,
+                            borderTop: "1px dashed #fca5a5",
+                            fontSize: 11.5,
+                            color: "#991b1b",
+                            fontWeight: 700,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <Clock size={13} color="#dc2626" style={{ flexShrink: 0 }} />
+                          <span>Includes a 10-second circular countdown to Undo if clicked accidentally.</span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 4 }}>
+                        <button
+                          type="button"
+                          onClick={() => setIsResetModalOpen(false)}
+                          style={{
+                            padding: "11px 14px",
+                            borderRadius: 10,
+                            border: "1px solid #cbd5e1",
+                            background: "#ffffff",
+                            color: "#475569",
+                            fontSize: 12.5,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleStartResetWithUndo}
+                          style={{
+                            padding: "11px 14px",
+                            borderRadius: 10,
+                            border: "none",
+                            background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
+                            color: "#ffffff",
+                            fontSize: 12.5,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            boxShadow: "0 2px 8px rgba(220, 38, 38, 0.3)",
+                            transition: "all 0.15s ease",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <RotateCcw size={14} color="#ffffff" />
+                          <span>Yes, Reset Data</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Step 2: Google-Style Circular SVG Timer Countdown Centerpiece */}
+                  {resetModalStep === "countdown" && (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 14 }}>
+                      <div>
+                        <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.3px" }}>
+                          Resetting Attendance Data
+                        </h3>
+                        <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0 0" }}>
+                          You have 10 seconds to cancel and keep all records
+                        </p>
+                      </div>
+
+                      {/* Google-Style SVG Circular Timer Ring */}
+                      <div style={{ position: "relative", width: 136, height: 136, display: "flex", alignItems: "center", justifyContent: "center", margin: "4px 0" }}>
+                        <svg width="136" height="136" viewBox="0 0 120 120" style={{ transform: "rotate(-90deg)", overflow: "visible" }}>
+                          <defs>
+                            <linearGradient id="gfResetTimerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor="#ef4444" />
+                              <stop offset="100%" stopColor="#f59e0b" />
+                            </linearGradient>
+                          </defs>
+                          {/* Background Track Circle */}
+                          <circle
+                            cx="60"
+                            cy="60"
+                            r="50"
+                            fill="none"
+                            stroke="#f1f5f9"
+                            strokeWidth="8"
+                          />
+                          {/* Animated Depleting Circle */}
+                          <circle
+                            cx="60"
+                            cy="60"
+                            r="50"
+                            fill="none"
+                            stroke="url(#gfResetTimerGrad)"
+                            strokeWidth="8"
+                            strokeLinecap="round"
+                            strokeDasharray="314.159"
+                            strokeDashoffset={314.159 * (1 - Math.max(0, resetCountdown) / 10)}
+                            style={{
+                              transition: "stroke-dashoffset 0.2s linear",
+                            }}
+                          />
+                        </svg>
+
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            pointerEvents: "none",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 38,
+                              fontWeight: 900,
+                              color: "#0f172a",
+                              lineHeight: 1,
+                              fontFamily: "'DM Sans', -apple-system, sans-serif",
+                              fontVariantNumeric: "tabular-nums",
+                              letterSpacing: "-1px",
+                            }}
+                          >
+                            {resetCountdown}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 800,
+                              color: "#64748b",
+                              textTransform: "uppercase",
+                              letterSpacing: "1.2px",
+                              marginTop: 3,
+                            }}
+                          >
+                            SECONDS
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Info Notice Card (SVG Only, No Emojis) */}
+                      <div
+                        style={{
+                          background: "#fef2f2",
+                          border: "1px solid #fecaca",
+                          borderRadius: 12,
+                          padding: "10px 14px",
+                          fontSize: 12,
+                          color: "#991b1b",
+                          lineHeight: 1.4,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
+                          width: "100%",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        <ShieldAlert size={14} color="#dc2626" style={{ flexShrink: 0 }} />
+                        <span>Permanent deletion starts when the timer reaches 0.</span>
+                      </div>
+
+                      {/* Prominent Center Undo Button */}
+                      <motion.button
+                        type="button"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.96 }}
+                        onClick={handleUndoReset}
+                        style={{
+                          width: "100%",
+                          padding: "12px 18px",
+                          borderRadius: 12,
+                          border: "none",
+                          background: "#0f172a",
+                          color: "#ffffff",
+                          fontSize: 13.5,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 8,
+                          boxShadow: "0 4px 12px rgba(15, 23, 42, 0.2)",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <RotateCcw size={15} color="#ffffff" />
+                        <span>Undo & Restore All Data</span>
+                      </motion.button>
+                    </div>
+                  )}
+
+                  {/* Step 3: Undo Success Feedback */}
+                  {resetModalStep === "undone" && (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 12, padding: "12px 0" }}>
+                      <div
+                        style={{
+                          width: 60,
+                          height: 60,
+                          borderRadius: "50%",
+                          background: "#ecfdf5",
+                          border: "2px solid #a7f3d0",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <CheckCircle2 size={34} color="#059669" />
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: 18, fontWeight: 800, color: "#065f46", margin: 0, letterSpacing: "-0.3px" }}>
+                          Reset Cancelled!
+                        </h3>
+                        <p style={{ fontSize: 12.5, color: "#047857", margin: "4px 0 0 0", lineHeight: 1.4 }}>
+                          All attendance records, check-ins, and calculations have been 100% preserved.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 4: Reset Finalized Feedback */}
+                  {resetModalStep === "completed" && (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 12, padding: "12px 0" }}>
+                      <div
+                        style={{
+                          width: 60,
+                          height: 60,
+                          borderRadius: "50%",
+                          background: "#f1f5f9",
+                          border: "2px solid #e2e8f0",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Check size={32} color="#475569" />
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.3px" }}>
+                          Attendance Data Reset
+                        </h3>
+                        <p style={{ fontSize: 12.5, color: "#64748b", margin: "4px 0 0 0", lineHeight: 1.4 }}>
+                          Attendance routine has been reset to Section {selectedSection} defaults.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              </div>
             )}
           </AnimatePresence>,
           document.body
