@@ -19,6 +19,9 @@ const studentSchema = new mongoose.Schema(
     lastEmailSentAt: { type: Date },
     lastEmailStatus: { type: String, default: null },
     lastEmailError: { type: String },
+    lastBacklogEmailSentAt: { type: Date },
+    lastBacklogEmailStatus: { type: String, default: null },
+    lastBacklogEmailError: { type: String },
     lastTopperEmailSentAt: { type: Date },
     lastTopperEmailStatus: { type: String, default: null },
     lastTopperEmailError: { type: String }

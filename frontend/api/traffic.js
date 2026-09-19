@@ -5,8 +5,10 @@ const StudentSession = require("./_lib/models/StudentSession");
 const Ranking = require("./_lib/models/Ranking");
 const StudentRouteActivity = require("./_lib/models/StudentRouteActivity");
 const VercelQuotaMetric = require("./_lib/models/VercelQuotaMetric");
+const LiveVisitor = require("./_lib/models/LiveVisitor");
 const { applyCors } = require("./_lib/cors");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 
 function parseCookies(cookieHeader) {
   const cookies = {};
@@ -151,6 +153,32 @@ function calculatePeakDay(dayCounts) {
   return DAYS_NAMES[peakIdx] || "Weekdays";
 }
 
+let cachedConfig = null;
+let cachedConfigTime = 0;
+const CONFIG_CACHE_TTL_MS = 15000;
+
+async function getCachedQueueConfig(forceRefresh = false) {
+  const now = Date.now();
+  if (!forceRefresh && cachedConfig && now - cachedConfigTime < CONFIG_CACHE_TTL_MS) {
+    return cachedConfig;
+  }
+  let config = await TrafficQueueConfig.findOne({ key: "global_traffic_config" }).lean();
+  if (!config) {
+    const created = await TrafficQueueConfig.create({
+      key: "global_traffic_config",
+      queueEnabled: false,
+      autoTriggerEnabled: true,
+      maxActiveCapacity: 200,
+      queueMessage: "We are currently experiencing high student traffic. You have been placed in a virtual queue to ensure smooth access.",
+      estimatedWaitPerStudentSeconds: 15,
+    });
+    config = created.toObject ? created.toObject() : created;
+  }
+  cachedConfig = config;
+  cachedConfigTime = now;
+  return config;
+}
+
 module.exports = async function handler(req, res) {
   if (applyCors(req, res, "GET,POST,OPTIONS")) return;
 
@@ -160,21 +188,148 @@ module.exports = async function handler(req, res) {
     const urlObj = new URL(req.url, "http://localhost");
     const pathname = urlObj.pathname.toLowerCase();
     const isAdminRequest = pathname.includes("/admin/traffic") || req.query.admin === "true";
+    const action = (req.query.action || "").toLowerCase();
 
-    // ─── 1. Admin Live Traffic Overview (On-Demand Fetch, No Interval) ─────────
+    // Safely parse bodyData (handles pre-parsed objects or raw JSON strings from sendBeacon)
+    let bodyData = req.body || {};
+    if (typeof bodyData === "string") {
+      try {
+        bodyData = JSON.parse(bodyData);
+      } catch {}
+    }
+
+    // ─── 1. Admin Live Traffic & Queue Controls ──────────────────────────────
     if (isAdminRequest) {
       if (!verifyAdmin(req)) {
         return res.status(401).json({ success: false, message: "Unauthorized admin access." });
       }
 
-      const action = (req.query.action || "").toLowerCase();
+      // Admin Action: Update Queue Config
+      if (pathname.includes("/queue/config") || action === "queue-config") {
+        const {
+          queueEnabled,
+          autoTriggerEnabled,
+          maxActiveCapacity,
+          queueMessage,
+          estimatedWaitPerStudentSeconds,
+        } = bodyData;
 
-      if (req.method === "GET" || action === "live-overview" || !action) {
-        const config = (await TrafficQueueConfig.findOne({ key: "global_traffic_config" })) || {
-          queueEnabled: false,
-          autoTriggerEnabled: true,
-          maxActiveCapacity: 200,
+        const updateFields = {
+          updatedBy: "admin",
+          updatedAt: new Date(),
         };
+
+        if (queueEnabled !== undefined) updateFields.queueEnabled = Boolean(queueEnabled);
+        if (autoTriggerEnabled !== undefined) updateFields.autoTriggerEnabled = Boolean(autoTriggerEnabled);
+        if (maxActiveCapacity !== undefined) updateFields.maxActiveCapacity = Math.max(1, parseInt(maxActiveCapacity, 10) || 200);
+        if (queueMessage !== undefined) updateFields.queueMessage = String(queueMessage).slice(0, 500);
+        if (estimatedWaitPerStudentSeconds !== undefined) {
+          updateFields.estimatedWaitPerStudentSeconds = Math.max(1, parseInt(estimatedWaitPerStudentSeconds, 10) || 15);
+        }
+
+        const updatedConfig = await TrafficQueueConfig.findOneAndUpdate(
+          { key: "global_traffic_config" },
+          { $set: updateFields },
+          { new: true, upsert: true }
+        ).lean();
+
+        cachedConfig = updatedConfig;
+        cachedConfigTime = Date.now();
+
+        return res.json({
+          success: true,
+          message: "Traffic & queue settings updated successfully.",
+          config: updatedConfig,
+        });
+      }
+
+      // Admin Action: Batch Admit Next N Students
+      if (pathname.includes("/queue/admit-next") || action === "admit-next") {
+        const count = Math.max(1, parseInt(bodyData.count, 10) || 10);
+        const queuedToAdmit = await LiveVisitor.find({ status: "QUEUED" })
+          .sort({ queueJoinedAt: 1 })
+          .limit(count)
+          .select("_id token")
+          .lean();
+
+        if (queuedToAdmit.length === 0) {
+          return res.json({
+            success: true,
+            admittedCount: 0,
+            message: "No students currently waiting in queue.",
+          });
+        }
+
+        const ids = queuedToAdmit.map((v) => v._id);
+        const admissionTicket = `ticket_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
+
+        await LiveVisitor.updateMany(
+          { _id: { $in: ids } },
+          { $set: { status: "ADMITTED", admissionTicket, lastSeenAt: new Date() } }
+        );
+
+        return res.json({
+          success: true,
+          admittedCount: queuedToAdmit.length,
+          message: `Successfully admitted ${queuedToAdmit.length} student(s) from the virtual queue.`,
+        });
+      }
+
+      // Admin Action: Admit Specific Student
+      if (pathname.includes("/queue/admit-student") || action === "admit-student") {
+        const identifier = (bodyData.identifier || "").trim();
+        if (!identifier) {
+          return res.status(400).json({ success: false, message: "Student identifier required." });
+        }
+
+        const admissionTicket = `ticket_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
+        const updated = await LiveVisitor.findOneAndUpdate(
+          {
+            status: "QUEUED",
+            $or: [{ token: identifier }, { regNo: identifier.toUpperCase() }],
+          },
+          { $set: { status: "ADMITTED", admissionTicket, lastSeenAt: new Date() } },
+          { new: true }
+        );
+
+        if (!updated) {
+          return res.status(404).json({ success: false, message: "Student not found in active queue." });
+        }
+
+        return res.json({
+          success: true,
+          message: "Student admitted successfully.",
+        });
+      }
+
+      // Admin Action: Flush or Admit All
+      if (pathname.includes("/queue/flush") || action === "queue-flush" || action === "flush") {
+        const admitAll = bodyData.admitAll !== false;
+
+        if (admitAll) {
+          const admissionTicket = `ticket_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
+          const resUpdate = await LiveVisitor.updateMany(
+            { status: "QUEUED" },
+            { $set: { status: "ADMITTED", admissionTicket, lastSeenAt: new Date() } }
+          );
+          return res.json({
+            success: true,
+            flushedCount: resUpdate.modifiedCount,
+            message: `Successfully admitted all ${resUpdate.modifiedCount} student(s) from the queue.`,
+          });
+        } else {
+          const resDel = await LiveVisitor.deleteMany({ status: "QUEUED" });
+          return res.json({
+            success: true,
+            flushedCount: resDel.deletedCount,
+            message: `Successfully cleared ${resDel.deletedCount} student(s) from the queue.`,
+          });
+        }
+      }
+
+      // Admin Live Overview
+      if (req.method === "GET" || action === "live-overview" || !action) {
+        const config = await getCachedQueueConfig();
 
         const pages = await PageAnalytics.find({}, "route pageTitle totalViews lastVisitedAt").sort({ totalViews: -1 }).lean();
         const totalPages = pages.length;
@@ -193,6 +348,34 @@ module.exports = async function handler(req, res) {
           .limit(200)
           .lean();
 
+        // Queued students from LiveVisitor
+        const totalQueuedUsers = await LiveVisitor.countDocuments({ status: "QUEUED" });
+        const isQueueActive = Boolean(
+          config.queueEnabled ||
+          (config.autoTriggerEnabled && studentActivities.length >= (config.maxActiveCapacity || 200))
+        );
+
+        const queuedDocs = await LiveVisitor.find({ status: "QUEUED" })
+          .sort({ queueJoinedAt: 1 })
+          .limit(100)
+          .lean();
+
+        const waitPerStudent = config.estimatedWaitPerStudentSeconds || 15;
+        const queuedStudents = queuedDocs.map((q, idx) => ({
+          queueId: q.token,
+          position: idx + 1,
+          token: q.token,
+          regNo: q.regNo,
+          studentName: q.studentName || (q.regNo ? `Student (${q.regNo})` : "Guest Visitor"),
+          branch: q.branch || "General",
+          requestedRoute: q.currentRoute || "/",
+          deviceType: q.deviceType || "Desktop",
+          os: q.os || "Unknown",
+          browser: q.browser || "Unknown",
+          joinedAt: q.queueJoinedAt || q.createdAt,
+          estimatedWaitSecs: (idx + 1) * waitPerStudent,
+        }));
+
         // Calculate Overall Route Distribution from student activities
         const routeDistribution = {};
         let totalTimeSpentAllStudents = 0;
@@ -210,11 +393,12 @@ module.exports = async function handler(req, res) {
           totalTrackedUsers: studentActivities.length,
           totalActiveUsers: studentActivities.length,
           totalLoggedInSessions: studentActivities.length,
-          totalQueuedUsers: 0,
+          totalQueuedUsers,
           maxActiveCapacity: config.maxActiveCapacity || 200,
           queueEnabled: Boolean(config.queueEnabled),
           autoTriggerEnabled: Boolean(config.autoTriggerEnabled),
-          isQueueActive: false,
+          isQueueActive,
+          queuedStudents,
           activeStudents: studentActivities.map((s) => ({
             token: s.regNo,
             regNo: s.regNo,
@@ -271,16 +455,152 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // ─── 2. Student Route & Device Activity Logging (Zero Live Heartbeat, 100% Vercel Safe) ───
-    const action = (req.query.action || "").toLowerCase();
+    // ─── 2. Student Queue Status & Leave Actions ──────────────────────────────
+    if (action === "queue-status" || pathname.endsWith("/queue-status")) {
+      const token = req.query.token || bodyData.token;
+      const ticket = req.query.ticket || bodyData.ticket;
+      const regNo = req.query.regNo || bodyData.regNo;
+      const requestedRoute = req.query.route || bodyData.route || "/";
+      const studentName = req.query.studentName || bodyData.studentName;
+      const branch = req.query.branch || bodyData.branch;
+      const batch = req.query.batch || bodyData.batch;
+      const deviceType = req.query.deviceType || bodyData.deviceType || "Desktop";
+      const os = req.query.os || bodyData.os || "Unknown";
+      const browser = req.query.browser || bodyData.browser || "Unknown";
 
-    // Safely parse bodyData (handles pre-parsed objects or raw JSON strings from sendBeacon)
-    let bodyData = req.body || {};
-    if (typeof bodyData === "string") {
-      try {
-        bodyData = JSON.parse(bodyData);
-      } catch {}
+      if (!token) {
+        return res.status(400).json({ success: false, message: "Visitor token required" });
+      }
+
+      // Exempt Admins
+      if (verifyAdmin(req)) {
+        return res.json({
+          success: true,
+          queueActive: false,
+          inQueue: false,
+          isAdmitted: true,
+          bypass: true,
+        });
+      }
+
+      const config = await getCachedQueueConfig();
+      const activeCount = await StudentRouteActivity.countDocuments({
+        regNo: { $ne: EXCLUDED_STUDENT_REG },
+        lastActiveAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) },
+      });
+
+      const queueActive = Boolean(
+        config.queueEnabled ||
+        (config.autoTriggerEnabled && activeCount >= (config.maxActiveCapacity || 200))
+      );
+
+      // If client provided a ticket, verify validity (valid for 2 hours)
+      if (ticket) {
+        const match = ticket.match(/^ticket_(\d+)_/);
+        if (match) {
+          const ticketTime = parseInt(match[1], 10);
+          if (Date.now() - ticketTime < 2 * 60 * 60 * 1000) {
+            return res.json({
+              success: true,
+              queueActive,
+              inQueue: false,
+              isAdmitted: true,
+              ticket,
+            });
+          }
+        }
+      }
+
+      // Check visitor status in LiveVisitor
+      let visitor = await LiveVisitor.findOne({ token });
+
+      if (visitor && visitor.status === "ADMITTED") {
+        return res.json({
+          success: true,
+          queueActive,
+          inQueue: false,
+          isAdmitted: true,
+          ticket: visitor.admissionTicket || `ticket_${Date.now()}_admitted`,
+        });
+      }
+
+      // If queue is NOT active:
+      if (!queueActive) {
+        if (visitor && visitor.status === "QUEUED") {
+          visitor.status = "ACTIVE";
+          visitor.lastSeenAt = new Date();
+          await visitor.save().catch(() => {});
+        }
+        return res.json({
+          success: true,
+          queueActive: false,
+          inQueue: false,
+          isAdmitted: true,
+        });
+      }
+
+      // Queue IS active: place/update visitor in queue
+      const now = new Date();
+      if (!visitor) {
+        try {
+          visitor = await LiveVisitor.create({
+            token,
+            regNo: regNo ? String(regNo).toUpperCase().trim() : null,
+            studentName: studentName || (regNo ? `Student (${regNo})` : "Guest Visitor"),
+            branch: branch || "General",
+            batch: batch || "2023",
+            currentRoute: normalizeRoute(requestedRoute),
+            pageTitle: getFriendlyPageTitle(requestedRoute),
+            deviceType,
+            os,
+            browser,
+            status: "QUEUED",
+            queueJoinedAt: now,
+            lastSeenAt: now,
+            isGuest: !regNo,
+          });
+        } catch {
+          visitor = await LiveVisitor.findOne({ token });
+        }
+      } else {
+        visitor.status = "QUEUED";
+        if (!visitor.queueJoinedAt) visitor.queueJoinedAt = now;
+        visitor.lastSeenAt = now;
+        if (requestedRoute) visitor.currentRoute = normalizeRoute(requestedRoute);
+        await visitor.save().catch(() => {});
+      }
+
+      // Compute FIFO position using fast compound index range scan
+      const position = (await LiveVisitor.countDocuments({
+        status: "QUEUED",
+        queueJoinedAt: { $lt: visitor?.queueJoinedAt || now },
+      })) + 1;
+
+      const totalInQueue = await LiveVisitor.countDocuments({ status: "QUEUED" });
+      const waitPerStudent = config.estimatedWaitPerStudentSeconds || 15;
+      const estimatedWaitSecs = position * waitPerStudent;
+
+      return res.json({
+        success: true,
+        queueActive: true,
+        inQueue: true,
+        isAdmitted: false,
+        position,
+        totalInQueue,
+        estimatedWaitSecs,
+        message: config.queueMessage,
+      });
     }
+
+    if (action === "queue-leave" || pathname.endsWith("/queue-leave")) {
+      const token = req.query.token || bodyData.token;
+      if (token) {
+        await LiveVisitor.deleteOne({ token }).catch(() => {});
+      }
+      return res.json({ success: true, message: "Left virtual waiting queue." });
+    }
+
+    // ─── 3. Student Route & Device Activity Logging (Zero Live Heartbeat, 100% Vercel Safe) ───
 
     if (
       action === "log-activity" ||

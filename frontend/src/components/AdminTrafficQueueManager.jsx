@@ -182,7 +182,8 @@ export default function AdminTrafficQueueManager({ API, authHeaders, isMobile })
       );
       if (res.data?.success) {
         notifySuccess(res.data.message || `Admitted next ${count} students.`);
-        fetchOverview();
+        invalidateAdminCache(AdminCacheScopes.TRAFFIC);
+        fetchOverview(true);
       }
     } catch (err) {
       notifyError(err.response?.data?.message || "Failed to admit students");
@@ -200,7 +201,8 @@ export default function AdminTrafficQueueManager({ API, authHeaders, isMobile })
       );
       if (res.data?.success) {
         notifySuccess("Student admitted successfully!");
-        fetchOverview();
+        invalidateAdminCache(AdminCacheScopes.TRAFFIC);
+        fetchOverview(true);
       }
     } catch (err) {
       notifyError(err.response?.data?.message || "Failed to admit student");
@@ -226,7 +228,8 @@ export default function AdminTrafficQueueManager({ API, authHeaders, isMobile })
       );
       if (res.data?.success) {
         notifySuccess(res.data.message);
-        fetchOverview();
+        invalidateAdminCache(AdminCacheScopes.TRAFFIC);
+        fetchOverview(true);
       }
     } catch (err) {
       notifyError(err.response?.data?.message || "Failed to flush queue");

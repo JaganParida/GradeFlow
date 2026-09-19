@@ -14,6 +14,8 @@ const {
 const StudentRouteActivity = require("../models/StudentRouteActivity");
 const VercelQuotaMetric = require("../models/VercelQuotaMetric");
 const PageAnalytics = require("../models/PageAnalytics");
+const LiveVisitor = require("../models/LiveVisitor");
+const TrafficQueueConfig = require("../models/TrafficQueueConfig");
 
 function getIstHour() {
   const now = new Date();
@@ -322,54 +324,155 @@ router.post("/heartbeat", async (req, res) => {
   }
 });
 
-// ─── GET /api/traffic/queue-status ───────────────────────────────────────────
-router.get("/queue-status", (req, res) => {
-  const token = req.query.token;
-  if (!token) {
-    return res.status(400).json({ success: false, message: "Token required" });
-  }
+// ─── GET & POST /api/traffic/queue-status ─────────────────────────────────────
+const handleQueueStatus = async (req, res) => {
+  try {
+    const token = req.query.token || req.body?.token;
+    const ticket = req.query.ticket || req.body?.ticket;
+    const regNo = req.query.regNo || req.body?.regNo;
+    const requestedRoute = req.query.route || req.body?.route || "/";
+    const studentName = req.query.studentName || req.body?.studentName;
+    const branch = req.query.branch || req.body?.branch;
+    const batch = req.query.batch || req.body?.batch;
+    const deviceType = req.query.deviceType || req.body?.deviceType || "Desktop";
+    const os = req.query.os || req.body?.os || "Unknown";
+    const browser = req.query.browser || req.body?.browser || "Unknown";
 
-  if (isTokenAdmitted(token)) {
+    if (!token) {
+      return res.status(400).json({ success: false, message: "Token required" });
+    }
+
+    const config = (await TrafficQueueConfig.findOne({ key: "global_traffic_config" }).lean()) || currentConfig;
+
+    const activeCount = await StudentRouteActivity.countDocuments({
+      regNo: { $ne: "230301120327" },
+      lastActiveAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) },
+    });
+
+    const queueActive = Boolean(
+      config.queueEnabled ||
+      (config.autoTriggerEnabled && activeCount >= (config.maxActiveCapacity || 200)) ||
+      isQueueActive()
+    );
+
+    // Verify ticket
+    if (ticket) {
+      const match = ticket.match(/^ticket_(\d+)_/);
+      if (match) {
+        const ticketTime = parseInt(match[1], 10);
+        if (Date.now() - ticketTime < 2 * 60 * 60 * 1000) {
+          return res.json({
+            success: true,
+            queueActive,
+            inQueue: false,
+            isAdmitted: true,
+            ticket,
+          });
+        }
+      }
+    }
+
+    if (isTokenAdmitted(token)) {
+      return res.json({
+        success: true,
+        queueActive,
+        inQueue: false,
+        isAdmitted: true,
+      });
+    }
+
+    let visitor = await LiveVisitor.findOne({ token });
+
+    if (visitor && visitor.status === "ADMITTED") {
+      return res.json({
+        success: true,
+        queueActive,
+        inQueue: false,
+        isAdmitted: true,
+        ticket: visitor.admissionTicket || `ticket_${Date.now()}_admitted`,
+      });
+    }
+
+    if (!queueActive) {
+      if (visitor && visitor.status === "QUEUED") {
+        visitor.status = "ACTIVE";
+        visitor.lastSeenAt = new Date();
+        await visitor.save().catch(() => {});
+      }
+      return res.json({
+        success: true,
+        queueActive: false,
+        inQueue: false,
+        isAdmitted: true,
+      });
+    }
+
+    // Queue is active: upsert LiveVisitor
+    const now = new Date();
+    if (!visitor) {
+      try {
+        visitor = await LiveVisitor.create({
+          token,
+          regNo: regNo ? String(regNo).toUpperCase().trim() : null,
+          studentName: studentName || (regNo ? `Student (${regNo})` : "Guest Visitor"),
+          branch: branch || "General",
+          batch: batch || "2023",
+          currentRoute: requestedRoute,
+          pageTitle: requestedRoute,
+          deviceType,
+          os,
+          browser,
+          status: "QUEUED",
+          queueJoinedAt: now,
+          lastSeenAt: now,
+          isGuest: !regNo,
+        });
+      } catch {
+        visitor = await LiveVisitor.findOne({ token });
+      }
+    } else {
+      visitor.status = "QUEUED";
+      if (!visitor.queueJoinedAt) visitor.queueJoinedAt = now;
+      visitor.lastSeenAt = now;
+      await visitor.save().catch(() => {});
+    }
+
+    const position = (await LiveVisitor.countDocuments({
+      status: "QUEUED",
+      queueJoinedAt: { $lt: visitor?.queueJoinedAt || now },
+    })) + 1;
+
+    const totalInQueue = await LiveVisitor.countDocuments({ status: "QUEUED" });
+    const waitPerStudent = config.estimatedWaitPerStudentSeconds || 15;
+    const estimatedWaitSecs = position * waitPerStudent;
+
     return res.json({
       success: true,
-      queued: false,
-      admitted: true,
+      queueActive: true,
+      inQueue: true,
+      isAdmitted: false,
+      position,
+      totalInQueue,
+      estimatedWaitSecs,
+      message: config.queueMessage || currentConfig.queueMessage,
     });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
+};
 
-  // Check waiting queue position
-  const { getLiveStatsSummary } = require("../utils/liveTrafficManager");
-  const summary = getLiveStatsSummary();
-  const queuedItem = summary.queuedStudents.find((q) => q.token === token);
-
-  if (queuedItem) {
-    return res.json({
-      success: true,
-      queued: true,
-      admitted: false,
-      position: queuedItem.position,
-      totalInQueue: summary.totalQueuedUsers,
-      estimatedWaitSecs: queuedItem.estimatedWaitSecs,
-      message: currentConfig.queueMessage,
-    });
-  }
-
-  // Neither active nor queued
-  return res.json({
-    success: true,
-    queued: isQueueActive(),
-    admitted: false,
-  });
-});
+router.get("/queue-status", handleQueueStatus);
+router.post("/queue-status", handleQueueStatus);
 
 // ─── POST /api/traffic/queue-leave ───────────────────────────────────────────
-router.post("/queue-leave", (req, res) => {
-  const { token } = req.body;
+router.post("/queue-leave", async (req, res) => {
+  const token = req.body?.token || req.query?.token;
   if (token) {
+    await LiveVisitor.deleteOne({ token }).catch(() => {});
     removeFromQueue(token);
     removeActiveUser(token);
   }
-  res.json({ success: true });
+  res.json({ success: true, message: "Left virtual waiting queue." });
 });
 
 // ─── POST /api/traffic/leave ─────────────────────────────────────────────────

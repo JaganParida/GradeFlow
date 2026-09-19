@@ -290,6 +290,10 @@ async function syncRankingsMetadataAndBroadcast(semester = null) {
     statsCacheTimestamp = 0;
     defaultBootstrapCache = null;
     defaultBootstrapCacheTime = 0;
+    defaultBacklogsCache = null;
+    defaultBacklogsCacheTime = 0;
+    defaultToppersCache = null;
+    defaultToppersCacheTime = 0;
     await broadcastRealtimeEvent("rankings-updated", {
       timestamp: newVersion,
       version: newVersion,
@@ -583,8 +587,8 @@ async function getSectionToppersData({ batch = "2023", branch = "CSE", section =
   return result;
 }
 
-async function getBacklogsData({ batch = "", branch = "", section = "", semester = "", search = "", page = 1, limit = 20 } = {}) {
-  const isDefault = !batch && !branch && !section && !semester && !search && page === 1 && (Number(limit) === 20 || Number(limit) === 50);
+async function getBacklogsData({ batch = "", branch = "", section = "", semester = "", search = "", emailStatus = "", page = 1, limit = 20 } = {}) {
+  const isDefault = !batch && !branch && !section && !semester && !search && (!emailStatus || emailStatus === "all") && page === 1 && (Number(limit) === 20 || Number(limit) === 50);
   if (isDefault && defaultBacklogsCache && (Date.now() - defaultBacklogsCacheTime < BACKLOGS_CACHE_TTL_MS)) {
     return defaultBacklogsCache;
   }
@@ -626,15 +630,27 @@ async function getBacklogsData({ batch = "", branch = "", section = "", semester
     return emptyResult;
   }
 
-  const semResults = await SemesterResult.find(
-    { regNo: { $in: candidateRegNos } },
-    "regNo batch branch section studentName semester subjects.subjectName subjects.subjectCode subjects.grade subjects.credits"
-  ).sort({ semester: 1 }).lean().catch(() => []);
+  const [semResults, studentsTracking] = await Promise.all([
+    SemesterResult.find(
+      { regNo: { $in: candidateRegNos } },
+      "regNo batch branch section studentName semester subjects"
+    ).sort({ semester: 1 }).lean().catch(() => []),
+    Student.find(
+      { regNo: { $in: candidateRegNos } },
+      "regNo lastEmailSentAt lastEmailStatus lastEmailError lastBacklogEmailSentAt lastBacklogEmailStatus lastBacklogEmailError"
+    ).lean().catch(() => []),
+  ]);
+
+  const studentTrackingMap = new Map();
+  studentsTracking.forEach((st) => {
+    if (!st.regNo) return;
+    studentTrackingMap.set(String(st.regNo).trim().toUpperCase(), st);
+  });
 
   const studentResultsMap = new Map();
   semResults.forEach((r) => {
     if (!r.regNo || !r.subjects || !r.subjects.length) return;
-    const regNo = String(r.regNo).trim();
+    const regNo = String(r.regNo).trim().toUpperCase();
     if (!studentResultsMap.has(regNo)) studentResultsMap.set(regNo, []);
     studentResultsMap.get(regNo).push(r);
   });
@@ -662,12 +678,16 @@ async function getBacklogsData({ batch = "", branch = "", section = "", semester
     }
     if (rawSec && !rawSec.startsWith("Sec") && rawSec !== "N/A") rawSec = `Sec ${rawSec}`;
 
-
     const semBreakdown = {};
     backlogs.forEach((sub) => {
       const sNum = sub.semester || 1;
       semBreakdown[sNum] = (semBreakdown[sNum] || 0) + 1;
     });
+
+    const trackingInfo = studentTrackingMap.get(regNo) || {};
+    const sentAt = trackingInfo.lastBacklogEmailSentAt || trackingInfo.lastEmailSentAt || null;
+    const emailStatusVal = trackingInfo.lastBacklogEmailStatus || trackingInfo.lastEmailStatus || null;
+    const emailErr = trackingInfo.lastBacklogEmailError || trackingInfo.lastEmailError || null;
 
     studentBacklogMap.set(regNo, {
       regNo,
@@ -679,9 +699,9 @@ async function getBacklogsData({ batch = "", branch = "", section = "", semester
       backlogs,
       semBreakdown,
       rankInfo: null,
-      lastEmailSentAt: null,
-      lastEmailStatus: null,
-      lastEmailError: null,
+      lastEmailSentAt: sentAt ? (sentAt.toISOString ? sentAt.toISOString() : String(sentAt)) : null,
+      lastEmailStatus: emailStatusVal,
+      lastEmailError: emailErr,
     });
   });
 
@@ -710,6 +730,15 @@ async function getBacklogsData({ batch = "", branch = "", section = "", semester
       (s) => s.regNo.toLowerCase().includes(q) || s.studentName.toLowerCase().includes(q)
     );
   }
+  if (emailStatus && emailStatus !== "all") {
+    if (emailStatus === "sent") {
+      studentList = studentList.filter((s) => s.lastEmailStatus === "SUCCESS");
+    } else if (emailStatus === "not_sent") {
+      studentList = studentList.filter((s) => s.lastEmailStatus !== "SUCCESS");
+    } else if (emailStatus === "failed") {
+      studentList = studentList.filter((s) => s.lastEmailStatus === "FAILED");
+    }
+  }
 
   studentList.sort((a, b) => b.totalBacklogs - a.totalBacklogs);
 
@@ -722,24 +751,15 @@ async function getBacklogsData({ batch = "", branch = "", section = "", semester
 
   const paginatedRegNos = paginatedStudents.map((s) => s.regNo);
   if (paginatedRegNos.length > 0) {
-    const [rankings, studentsTracking] = await Promise.all([
-      Ranking.find(
-        { regNo: { $in: paginatedRegNos } },
-        "regNo semester cgpa universityRank cgpaRank deptCgpaRank deptRank sectionCgpaRank sectionSgpaRank"
-      ).lean().catch(() => []),
-      Student.find(
-        { regNo: { $in: paginatedRegNos } },
-        "regNo lastBacklogEmailSentAt lastBacklogEmailStatus lastBacklogEmailError"
-      ).lean().catch(() => []),
-    ]);
-
-    const studentTrackingMap = new Map();
-    studentsTracking.forEach((st) => studentTrackingMap.set(st.regNo, st));
+    const rankings = await Ranking.find(
+      { regNo: { $in: paginatedRegNos } },
+      "regNo semester cgpa universityRank cgpaRank deptCgpaRank deptRank sectionCgpaRank sectionSgpaRank"
+    ).lean().catch(() => []);
 
     const studentRankingMap = new Map();
     rankings.forEach((rk) => {
       if (!rk.regNo) return;
-      const regNo = String(rk.regNo).trim();
+      const regNo = String(rk.regNo).trim().toUpperCase();
       const existing = studentRankingMap.get(regNo);
       if (!existing || rk.semester > existing.semester) {
         studentRankingMap.set(regNo, {
@@ -757,10 +777,6 @@ async function getBacklogsData({ batch = "", branch = "", section = "", semester
 
     paginatedStudents.forEach((s) => {
       s.rankInfo = studentRankingMap.get(s.regNo) || null;
-      const trackingInfo = studentTrackingMap.get(s.regNo) || {};
-      s.lastEmailSentAt = trackingInfo.lastBacklogEmailSentAt ? (trackingInfo.lastBacklogEmailSentAt.toISOString ? trackingInfo.lastBacklogEmailSentAt.toISOString() : String(trackingInfo.lastBacklogEmailSentAt)) : null;
-      s.lastEmailStatus = trackingInfo.lastBacklogEmailStatus || null;
-      s.lastEmailError = trackingInfo.lastBacklogEmailError || null;
     });
   }
 
@@ -2110,6 +2126,16 @@ module.exports = async function handler(req, res) {
         console.error("[UpdateGrade] Ranking regen error:", e?.message || e)
       );
 
+      // Invalidate server caches immediately so backlogs and stats reflect updated state
+      defaultBacklogsCache = null;
+      defaultBacklogsCacheTime = 0;
+      defaultToppersCache = null;
+      defaultToppersCacheTime = 0;
+      statsCache = null;
+      statsCacheTimestamp = 0;
+      defaultBootstrapCache = null;
+      defaultBootstrapCacheTime = 0;
+
       // Notify this student in real-time across active tabs/devices (<1s)
       await publishStudentRealtimeEvent(trimmedRegNo, "results-updated", {
         regNo: trimmedRegNo,
@@ -2176,6 +2202,16 @@ module.exports = async function handler(req, res) {
       await generateRankingForSemester(semNum, null, true, studentBatch).catch((e) =>
         console.error("[DeleteResult] Ranking regen error:", e?.message || e)
       );
+
+      // Invalidate server caches immediately so backlogs and stats reflect updated state
+      defaultBacklogsCache = null;
+      defaultBacklogsCacheTime = 0;
+      defaultToppersCache = null;
+      defaultToppersCacheTime = 0;
+      statsCache = null;
+      statsCacheTimestamp = 0;
+      defaultBootstrapCache = null;
+      defaultBootstrapCacheTime = 0;
 
       // Notify this student in real-time across active tabs/devices (<1s)
       await publishStudentRealtimeEvent(cleanRegNo, "results-updated", {
@@ -2260,10 +2296,11 @@ module.exports = async function handler(req, res) {
       const section = req.query.section ? String(req.query.section).trim() : "";
       const search = req.query.search ? String(req.query.search).trim() : "";
       const semester = req.query.semester;
+      const emailStatus = req.query.emailStatus ? String(req.query.emailStatus).trim().toLowerCase() : "";
       const page = Math.max(1, parseInt(req.query.page, 10) || 1);
       const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
 
-      const backlogsData = await getBacklogsData({ batch, branch, section, semester, search, page, limit });
+      const backlogsData = await getBacklogsData({ batch, branch, section, semester, search, emailStatus, page, limit });
       return res.json(backlogsData);
     }
 
@@ -2292,7 +2329,7 @@ module.exports = async function handler(req, res) {
     // 15. POST /backlogs/email-status
     if (action === "backlogs-email-status" || cleanUrl.includes("/backlogs/email-status") || cleanUrl.includes("/email-status")) {
       const { regNo, status, errorMsg } = req.body || {};
-      const cleanRegNo = String(regNo || "").trim();
+      const cleanRegNo = String(regNo || "").trim().toUpperCase();
       if (!cleanRegNo) {
         return res.status(400).json({ message: "Registration number required" });
       }
@@ -2304,10 +2341,15 @@ module.exports = async function handler(req, res) {
             lastEmailSentAt: status === "SUCCESS" ? new Date() : undefined,
             lastEmailStatus: status,
             lastEmailError: errorMsg || null,
+            lastBacklogEmailSentAt: status === "SUCCESS" ? new Date() : undefined,
+            lastBacklogEmailStatus: status,
+            lastBacklogEmailError: errorMsg || null,
           },
         },
         { upsert: true }
       );
+      defaultBacklogsCache = null;
+      defaultBacklogsCacheTime = 0;
       return res.json({ success: true });
     }
 

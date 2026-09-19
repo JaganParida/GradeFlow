@@ -2571,6 +2571,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
   const [branch, setBranch] = useState("");
   const [section, setSection] = useState("");
   const [semester, setSemester] = useState("");
+  const [emailFilter, setEmailFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
@@ -2700,6 +2701,9 @@ function BacklogTrackerCard({ authHeaders, API }) {
         .post(`${API}/admin/backlogs/email-status`, { regNo: selectedStudentForEmail.regNo, status: "SUCCESS" }, authHeaders)
         .catch(() => {});
 
+      backlogCacheRef.current.clear();
+      invalidateAdminCache(AdminCacheScopes.BACKLOGS);
+
       setData((prev) => ({
         ...prev,
         students: (prev.students || []).map((st) => {
@@ -2719,6 +2723,23 @@ function BacklogTrackerCard({ authHeaders, API }) {
       axios
         .post(`${API}/admin/backlogs/email-status`, { regNo: selectedStudentForEmail.regNo, status: "FAILED", errorMsg: errMessage }, authHeaders)
         .catch(() => {});
+
+      backlogCacheRef.current.clear();
+      invalidateAdminCache(AdminCacheScopes.BACKLOGS);
+
+      setData((prev) => ({
+        ...prev,
+        students: (prev.students || []).map((st) => {
+          if (st.regNo === selectedStudentForEmail.regNo) {
+            return {
+              ...st,
+              lastEmailStatus: "FAILED",
+              lastEmailError: errMessage,
+            };
+          }
+          return st;
+        }),
+      }));
     }
   }
 
@@ -2727,11 +2748,12 @@ function BacklogTrackerCard({ authHeaders, API }) {
     const activeBranch = overrideFilters ? overrideFilters.branch : branch;
     const activeSection = overrideFilters ? overrideFilters.section : section;
     const activeSemester = overrideFilters ? overrideFilters.semester : semester;
+    const activeEmailFilter = overrideFilters ? overrideFilters.emailFilter : emailFilter;
     const activeSearch = searchQuery !== undefined ? searchQuery : (overrideFilters ? overrideFilters.search : search);
     const activePage = targetPage || 1;
     const activeLimit = overrideLimit !== null && overrideLimit !== undefined ? overrideLimit : limit;
 
-    const cacheKey = `${activePage}_${activeBatch}_${activeBranch}_${activeSection}_${activeSemester}_${activeSearch}_${activeLimit}`;
+    const cacheKey = `${activePage}_${activeBatch}_${activeBranch}_${activeSection}_${activeSemester}_${activeEmailFilter}_${activeSearch}_${activeLimit}`;
     const storageKey = `gf_admin_backlog_${cacheKey}`;
 
     if (!forceRefresh) {
@@ -2756,6 +2778,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
       if (activeBranch) params.append("branch", activeBranch);
       if (activeSection) params.append("section", activeSection);
       if (activeSemester) params.append("semester", activeSemester);
+      if (activeEmailFilter && activeEmailFilter !== "all") params.append("emailStatus", activeEmailFilter);
       if (activeSearch) params.append("search", activeSearch);
       params.append("page", activePage);
       params.append("limit", activeLimit);
@@ -2775,7 +2798,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
   useEffect(() => {
     setPage(1);
     fetchBacklogs(1);
-  }, [batch, branch, section, semester, limit]);
+  }, [batch, branch, section, semester, emailFilter, limit]);
 
   // Real-time reactive invalidation listener for backlogs & rankings
   useEffect(() => {
@@ -2783,7 +2806,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
       backlogCacheRef.current.clear();
       fetchBacklogs(page, search, null, true);
     });
-  }, [page, search, batch, branch, section, semester, limit]);
+  }, [page, search, batch, branch, section, semester, emailFilter, limit]);
 
   return (
     <div
@@ -2854,7 +2877,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
             display: "grid",
             gridTemplateColumns: isMobile
               ? "1fr"
-              : "minmax(220px, 1.4fr) repeat(4, minmax(115px, 1fr)) auto",
+              : "minmax(190px, 1.2fr) repeat(5, minmax(105px, 1fr)) auto",
             gap: 10,
             alignItems: "end",
           }}
@@ -3037,6 +3060,32 @@ function BacklogTrackerCard({ authHeaders, API }) {
             </select>
           </div>
 
+          {/* Email Status Select */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Email Status</label>
+            <select
+              value={emailFilter}
+              onChange={(e) => setEmailFilter(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                borderRadius: 8,
+                border: "1.5px solid #cbd5e1",
+                background: "#ffffff",
+                color: "#0f172a",
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+                boxSizing: "border-box",
+              }}
+            >
+              <option value="all">All Status</option>
+              <option value="sent">Email Sent</option>
+              <option value="not_sent">Not Sent</option>
+              <option value="failed">Delivery Failed</option>
+            </select>
+          </div>
+
           {/* Search Button */}
           <button
             onClick={() => fetchBacklogs(1, search)}
@@ -3215,11 +3264,21 @@ function BacklogTrackerCard({ authHeaders, API }) {
                 </div>
 
                 {/* Email Sent Status Info */}
-                {st.lastEmailStatus === "SUCCESS" && (
-                  <div style={{ fontSize: 11, color: "#059669", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
-                    <Check size={12} /> Sent {formatTimeAgo(st.lastEmailSentAt)}
-                  </div>
-                )}
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  {st.lastEmailStatus === "SUCCESS" ? (
+                    <span style={{ fontSize: 11, color: "#059669", background: "#ecfdf5", border: "1px solid #a7f3d0", padding: "2px 8px", borderRadius: 6, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <Check size={12} /> Email Sent {formatTimeAgo(st.lastEmailSentAt)}
+                    </span>
+                  ) : st.lastEmailStatus === "FAILED" ? (
+                    <span style={{ fontSize: 11, color: "#dc2626", background: "#fef2f2", border: "1px solid #fecaca", padding: "2px 8px", borderRadius: 6, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <AlertTriangle size={12} /> Delivery Failed
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 11, color: "#64748b", background: "#f1f5f9", border: "1px solid #e2e8f0", padding: "2px 8px", borderRadius: 6, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <Clock size={12} /> Email Not Sent
+                    </span>
+                  )}
+                </div>
 
                 {/* Expanded Backlog Subjects Accordion */}
                 <AnimatePresence>
@@ -3334,9 +3393,17 @@ function BacklogTrackerCard({ authHeaders, API }) {
                         <span style={{ fontWeight: 800, color: "#dc2626", background: "#fef2f2", border: "1px solid #fecaca", padding: "3px 8px", borderRadius: 6, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}>
                           <AlertTriangle size={12} color="#dc2626" /> {st.totalBacklogs || st.backlogs?.length || 0} Backlogs
                         </span>
-                        {st.lastEmailStatus === "SUCCESS" && (
+                        {st.lastEmailStatus === "SUCCESS" ? (
                           <div style={{ fontSize: 11, color: "#059669", fontWeight: 700, marginTop: 4, display: "flex", alignItems: "center", gap: 3 }}>
                             <Check size={11} /> Sent {formatTimeAgo(st.lastEmailSentAt)}
+                          </div>
+                        ) : st.lastEmailStatus === "FAILED" ? (
+                          <div style={{ fontSize: 11, color: "#dc2626", fontWeight: 700, marginTop: 4, display: "flex", alignItems: "center", gap: 3 }}>
+                            <AlertTriangle size={11} /> Delivery Failed
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, marginTop: 4, display: "flex", alignItems: "center", gap: 3 }}>
+                            <Clock size={11} /> Not Sent
                           </div>
                         )}
                       </td>

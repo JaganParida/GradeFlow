@@ -265,6 +265,27 @@ module.exports = async function handler(req, res) {
     };
 
     const info = await sendMailWithFailover(mailOptions);
+
+    try {
+      const Student = require("./_lib/models/Student");
+      await Student.findOneAndUpdate(
+        { regNo: cleanRegNo },
+        {
+          $set: {
+            lastBacklogEmailSentAt: new Date(),
+            lastBacklogEmailStatus: "SUCCESS",
+            lastBacklogEmailError: null,
+            lastEmailSentAt: new Date(),
+            lastEmailStatus: "SUCCESS",
+            lastEmailError: null,
+          },
+        },
+        { upsert: true }
+      );
+    } catch (dbErr) {
+      console.warn("[Emails] Could not persist backlog email status:", dbErr?.message || dbErr);
+    }
+
     return res.json({
       success: true,
       message: `Backlog notification email successfully dispatched to ${recipientEmail}`,

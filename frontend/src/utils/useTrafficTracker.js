@@ -20,14 +20,50 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
   const isAdminRoute = location.pathname === "/admin" || location.pathname.startsWith("/admin/");
   const isAuthorizedAdmin = Boolean(adminToken) || isAdminRoute;
 
-  // Stable dummy queueState for backwards-compatibility with App.jsx
-  const [queueState] = useState({
-    inQueue: false,
-    position: 0,
-    totalInQueue: 0,
-    estimatedWaitSecs: 0,
-    message: "",
-    isAdmitted: true,
+  // Retrieve or create persistent visitor token
+  const getOrCreateVisitorToken = () => {
+    try {
+      let tok = sessionStorage.getItem("gf_visitor_token");
+      if (!tok) {
+        tok = `vis_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+        sessionStorage.setItem("gf_visitor_token", tok);
+      }
+      return tok;
+    } catch {
+      return `vis_${Date.now()}`;
+    }
+  };
+
+  // Retrieve stored 2-hour admission ticket if still valid
+  const getStoredAdmissionTicket = () => {
+    try {
+      const ticket = sessionStorage.getItem("gf_queue_admitted_ticket");
+      if (!ticket) return null;
+      const match = ticket.match(/^ticket_(\d+)_/);
+      if (match) {
+        const time = parseInt(match[1], 10);
+        if (Date.now() - time < 2 * 60 * 60 * 1000) {
+          return ticket;
+        }
+      }
+      sessionStorage.removeItem("gf_queue_admitted_ticket");
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Active virtual waiting queue state
+  const [queueState, setQueueState] = useState(() => {
+    const validTicket = getStoredAdmissionTicket();
+    return {
+      inQueue: false,
+      position: 0,
+      totalInQueue: 0,
+      estimatedWaitSecs: 0,
+      message: "",
+      isAdmitted: Boolean(validTicket) || isAuthorizedAdmin,
+    };
   });
 
   // Resolve student registration number
@@ -197,9 +233,145 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
     };
   }, [isAuthorizedAdmin, studentSession?.regNo, studentData?.regNo]);
 
+  // ─── Queue Status Checking & Polling (Zero-Waste CPU & Request Throttling) ───
+  const checkQueueStatus = async (isPeriodicWait = false) => {
+    if (isAuthorizedAdmin || isOldDomainEnvironment()) return;
+
+    const validTicket = getStoredAdmissionTicket();
+    if (validTicket) {
+      if (queueState.inQueue) {
+        setQueueState((prev) => ({ ...prev, inQueue: false, isAdmitted: true }));
+      }
+      return;
+    }
+
+    // Cooldown check for initial / route checks when queue was recently confirmed inactive (60s)
+    if (!isPeriodicWait) {
+      try {
+        const lastInactiveStr = sessionStorage.getItem("gf_queue_last_inactive");
+        const lastInactive = lastInactiveStr ? parseInt(lastInactiveStr, 10) : 0;
+        if (Date.now() - lastInactive < 60 * 1000) {
+          return;
+        }
+      } catch {}
+    }
+
+    const token = getOrCreateVisitorToken();
+    const regNo = resolveRegNo();
+    const studentName = studentData?.studentName || studentSession?.studentName || null;
+    const branch = studentData?.branch || studentSession?.branch || null;
+    const batch = studentData?.batch || studentSession?.batch || null;
+
+    const deviceInfo = parseDeviceDetails({
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+      platform: typeof navigator !== "undefined" ? navigator.platform : "",
+    });
+
+    try {
+      const res = await axios.get(`${API_BASE}/traffic/queue-status`, {
+        params: {
+          token,
+          ticket: validTicket,
+          regNo,
+          studentName,
+          branch,
+          batch,
+          route: currentRouteRef.current || "/",
+          deviceType: deviceInfo.deviceType,
+          os: deviceInfo.os,
+          browser: deviceInfo.browser,
+        },
+        timeout: 6000,
+      });
+
+      if (res.data) {
+        if (res.data.isAdmitted || res.data.admitted) {
+          if (res.data.ticket) {
+            try {
+              sessionStorage.setItem("gf_queue_admitted_ticket", res.data.ticket);
+            } catch {}
+          }
+          try {
+            sessionStorage.setItem("gf_queue_last_inactive", String(Date.now()));
+          } catch {}
+          setQueueState({
+            inQueue: false,
+            position: 0,
+            totalInQueue: 0,
+            estimatedWaitSecs: 0,
+            message: "",
+            isAdmitted: true,
+          });
+        } else if (res.data.inQueue || res.data.queued) {
+          try {
+            sessionStorage.removeItem("gf_queue_last_inactive");
+          } catch {}
+          setQueueState({
+            inQueue: true,
+            position: res.data.position || 1,
+            totalInQueue: res.data.totalInQueue || 1,
+            estimatedWaitSecs: res.data.estimatedWaitSecs || 15,
+            message: res.data.message || "",
+            isAdmitted: false,
+          });
+        } else {
+          // Queue inactive
+          try {
+            sessionStorage.setItem("gf_queue_last_inactive", String(Date.now()));
+          } catch {}
+          setQueueState({
+            inQueue: false,
+            position: 0,
+            totalInQueue: 0,
+            estimatedWaitSecs: 0,
+            message: "",
+            isAdmitted: true,
+          });
+        }
+      }
+    } catch {
+      // Network failure: fail open so students are not locked out
+    }
+  };
+
+  // Check queue on navigation or initial load (throttled by 60s cooldown when inactive)
+  useEffect(() => {
+    if (isAuthorizedAdmin || isOldDomainEnvironment()) return;
+    checkQueueStatus(false);
+  }, [location.pathname, isAuthorizedAdmin]);
+
+  // Gentle 12-second polling ONLY when student is actively held in waiting queue
+  useEffect(() => {
+    if (!queueState.inQueue || isAuthorizedAdmin) return;
+
+    const interval = setInterval(() => {
+      checkQueueStatus(true);
+    }, 12000);
+
+    return () => clearInterval(interval);
+  }, [queueState.inQueue, isAuthorizedAdmin]);
+
+  const leaveQueue = async () => {
+    try {
+      const token = getOrCreateVisitorToken();
+      await axios.post(`${API_BASE}/traffic/queue-leave`, { token }, { timeout: 4000 });
+    } catch {}
+    try {
+      sessionStorage.removeItem("gf_queue_last_inactive");
+    } catch {}
+    setQueueState({
+      inQueue: false,
+      position: 0,
+      totalInQueue: 0,
+      estimatedWaitSecs: 0,
+      message: "",
+      isAdmitted: true,
+    });
+  };
+
   return {
     queueState,
-    leaveQueue: () => {},
+    leaveQueue,
     isAuthorizedAdmin,
   };
 }

@@ -61,6 +61,21 @@ const liveVisitorSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    status: {
+      type: String,
+      enum: ["ACTIVE", "QUEUED", "ADMITTED"],
+      default: "ACTIVE",
+      index: true,
+    },
+    queueJoinedAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    admissionTicket: {
+      type: String,
+      default: null,
+    },
     lastSeenAt: {
       type: Date,
       default: Date.now,
@@ -71,6 +86,7 @@ const liveVisitorSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+liveVisitorSchema.index({ status: 1, queueJoinedAt: 1 });
 liveVisitorSchema.index({ lastSeenAt: -1 });
 
 module.exports =

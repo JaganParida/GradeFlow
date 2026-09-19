@@ -3,6 +3,8 @@ const router = express.Router();
 const { protect } = require("../middleware/auth");
 const PageAnalytics = require("../models/PageAnalytics");
 const TrafficQueueConfig = require("../models/TrafficQueueConfig");
+const LiveVisitor = require("../models/LiveVisitor");
+const crypto = require("crypto");
 const {
   getLiveStatsSummary,
   getCategorizedPageAnalytics,
@@ -43,16 +45,45 @@ router.get("/live-overview", async (req, res) => {
       routeDistribution[curr] = (routeDistribution[curr] || 0) + 1;
     });
 
+    // Queued students from LiveVisitor
+    const totalQueuedUsers = await LiveVisitor.countDocuments({ status: "QUEUED" });
+    const isQueueActive = Boolean(
+      config.queueEnabled ||
+      (config.autoTriggerEnabled && studentActivities.length >= (config.maxActiveCapacity || 200))
+    );
+
+    const queuedDocs = await LiveVisitor.find({ status: "QUEUED" })
+      .sort({ queueJoinedAt: 1 })
+      .limit(100)
+      .lean();
+
+    const waitPerStudent = config.estimatedWaitPerStudentSeconds || 15;
+    const queuedStudents = queuedDocs.map((q, idx) => ({
+      queueId: q.token,
+      position: idx + 1,
+      token: q.token,
+      regNo: q.regNo,
+      studentName: q.studentName || (q.regNo ? `Student (${q.regNo})` : "Guest Visitor"),
+      branch: q.branch || "General",
+      requestedRoute: q.currentRoute || "/",
+      deviceType: q.deviceType || "Desktop",
+      os: q.os || "Unknown",
+      browser: q.browser || "Unknown",
+      joinedAt: q.queueJoinedAt || q.createdAt,
+      estimatedWaitSecs: (idx + 1) * waitPerStudent,
+    }));
+
     res.json({
       success: true,
       totalTrackedUsers: studentActivities.length,
       totalActiveUsers: studentActivities.length,
       totalLoggedInSessions: studentActivities.length,
-      totalQueuedUsers: 0,
+      totalQueuedUsers,
       maxActiveCapacity: config.maxActiveCapacity || 200,
       queueEnabled: Boolean(config.queueEnabled),
       autoTriggerEnabled: Boolean(config.autoTriggerEnabled),
-      isQueueActive: false,
+      isQueueActive,
+      queuedStudents,
       activeStudents: studentActivities.map((s) => ({
         token: s.regNo,
         regNo: s.regNo,
@@ -161,10 +192,27 @@ router.post("/queue/config", async (req, res) => {
 
 // ─── POST /api/admin/traffic/queue/admit-next ─────────────────────────────────
 // Batch admit next N students from waiting queue
-router.post("/queue/admit-next", (req, res) => {
+router.post("/queue/admit-next", async (req, res) => {
   try {
     const count = Math.max(1, parseInt(req.body.count, 10) || 10);
-    const admittedCount = admitNextStudents(count);
+    const queuedToAdmit = await LiveVisitor.find({ status: "QUEUED" })
+      .sort({ queueJoinedAt: 1 })
+      .limit(count)
+      .select("_id token")
+      .lean();
+
+    let admittedCount = queuedToAdmit.length;
+    if (admittedCount > 0) {
+      const ids = queuedToAdmit.map((v) => v._id);
+      const admissionTicket = `ticket_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
+      await LiveVisitor.updateMany(
+        { _id: { $in: ids } },
+        { $set: { status: "ADMITTED", admissionTicket, lastSeenAt: new Date() } }
+      );
+    }
+    try {
+      admitNextStudents(count);
+    } catch {}
 
     res.json({
       success: true,
@@ -178,15 +226,28 @@ router.post("/queue/admit-next", (req, res) => {
 
 // ─── POST /api/admin/traffic/queue/admit-student ──────────────────────────────
 // Admit specific student by queueId or registration number
-router.post("/queue/admit-student", (req, res) => {
+router.post("/queue/admit-student", async (req, res) => {
   try {
     const { identifier } = req.body;
     if (!identifier) {
       return res.status(400).json({ success: false, message: "Student identifier required" });
     }
 
-    const success = admitSpecificStudent(identifier);
-    if (!success) {
+    const admissionTicket = `ticket_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
+    const updated = await LiveVisitor.findOneAndUpdate(
+      {
+        status: "QUEUED",
+        $or: [{ token: identifier }, { regNo: identifier.toUpperCase() }],
+      },
+      { $set: { status: "ADMITTED", admissionTicket, lastSeenAt: new Date() } },
+      { new: true }
+    );
+
+    try {
+      admitSpecificStudent(identifier);
+    } catch {}
+
+    if (!updated) {
       return res.status(404).json({ success: false, message: "Student not found in active queue." });
     }
 
@@ -201,10 +262,26 @@ router.post("/queue/admit-student", (req, res) => {
 
 // ─── POST /api/admin/traffic/queue/flush ──────────────────────────────────────
 // Clear or admit all students currently waiting in queue
-router.post("/queue/flush", (req, res) => {
+router.post("/queue/flush", async (req, res) => {
   try {
     const admitAll = req.body.admitAll !== false;
-    const flushedCount = flushWaitingQueue(admitAll);
+    let flushedCount = 0;
+
+    if (admitAll) {
+      const admissionTicket = `ticket_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
+      const resUpdate = await LiveVisitor.updateMany(
+        { status: "QUEUED" },
+        { $set: { status: "ADMITTED", admissionTicket, lastSeenAt: new Date() } }
+      );
+      flushedCount = resUpdate.modifiedCount;
+    } else {
+      const resDel = await LiveVisitor.deleteMany({ status: "QUEUED" });
+      flushedCount = resDel.deletedCount;
+    }
+
+    try {
+      flushWaitingQueue(admitAll);
+    } catch {}
 
     res.json({
       success: true,

@@ -1709,7 +1709,7 @@ router.delete("/results/:regNo/:semester", protect, requirePermission("results.d
 // Get backlog students breakdown & leaderboard for admin
 router.get("/backlogs", protect, requirePermission("backlogs.view", "backlogs", "backlogs.view"), validateAcademicFilters, async (req, res) => {
   try {
-    const { batch, branch, section, semester, search, page = 1, limit = 20 } = req.query;
+    const { batch, branch, section, semester, search, emailStatus, page = 1, limit = 20 } = req.query;
 
     const semCandidateFilter = {
       "subjects.grade": { $in: ["F", "R", "M", "S", "f", "r", "m", "s"] },
@@ -1740,7 +1740,7 @@ router.get("/backlogs", protect, requirePermission("backlogs.view", "backlogs", 
     const [semResults, rankings, studentsTracking] = await Promise.all([
       SemesterResult.find(
         { regNo: { $in: candidateRegNos } },
-        "regNo batch branch section studentName semester subjects.subjectName subjects.subjectCode subjects.grade subjects.credits"
+        "regNo batch branch section studentName semester subjects"
       ).sort({ semester: 1 }).lean(),
       Ranking.find(
         { regNo: { $in: candidateRegNos } },
@@ -1748,20 +1748,21 @@ router.get("/backlogs", protect, requirePermission("backlogs.view", "backlogs", 
       ).lean(),
       Student.find(
         { regNo: { $in: candidateRegNos } },
-        "regNo lastBacklogEmailSentAt lastBacklogEmailStatus lastBacklogEmailError"
+        "regNo lastEmailSentAt lastEmailStatus lastEmailError lastBacklogEmailSentAt lastBacklogEmailStatus lastBacklogEmailError"
       ).lean(),
     ]);
 
     const studentTrackingMap = new Map();
     studentsTracking.forEach((st) => {
-      studentTrackingMap.set(st.regNo, st);
+      if (!st.regNo) return;
+      studentTrackingMap.set(String(st.regNo).trim().toUpperCase(), st);
     });
 
     // Map rankings by regNo to get latest CGPA and Ranks
     const studentRankingMap = new Map();
     rankings.forEach((rk) => {
       if (!rk.regNo) return;
-      const regNo = String(rk.regNo).trim();
+      const regNo = String(rk.regNo).trim().toUpperCase();
       const existing = studentRankingMap.get(regNo);
       if (!existing || rk.semester > existing.semester) {
         studentRankingMap.set(regNo, {
@@ -1783,7 +1784,7 @@ router.get("/backlogs", protect, requirePermission("backlogs.view", "backlogs", 
     const studentResultsMap = new Map();
     semResults.forEach((r) => {
       if (!r.regNo || !r.subjects || !r.subjects.length) return;
-      const regNo = String(r.regNo).trim();
+      const regNo = String(r.regNo).trim().toUpperCase();
       if (!studentResultsMap.has(regNo)) {
         studentResultsMap.set(regNo, []);
       }
@@ -1817,9 +1818,11 @@ router.get("/backlogs", protect, requirePermission("backlogs.view", "backlogs", 
       }
       if (rawSec && !rawSec.startsWith("Sec") && rawSec !== "N/A") rawSec = `Sec ${rawSec}`;
 
-
       const rkInfo = studentRankingMap.get(regNo) || null;
       const trackingInfo = studentTrackingMap.get(regNo) || {};
+      const sentAt = trackingInfo.lastBacklogEmailSentAt || trackingInfo.lastEmailSentAt || null;
+      const emailStatusVal = trackingInfo.lastBacklogEmailStatus || trackingInfo.lastEmailStatus || null;
+      const emailErr = trackingInfo.lastBacklogEmailError || trackingInfo.lastEmailError || null;
 
       const semBreakdown = {};
       backlogs.forEach((sub) => {
@@ -1837,9 +1840,9 @@ router.get("/backlogs", protect, requirePermission("backlogs.view", "backlogs", 
         backlogs: backlogs,
         semBreakdown,
         rankInfo: rkInfo,
-        lastEmailSentAt: trackingInfo.lastEmailSentAt || null,
-        lastEmailStatus: trackingInfo.lastEmailStatus || null,
-        lastEmailError: trackingInfo.lastEmailError || null
+        lastEmailSentAt: sentAt ? (sentAt.toISOString ? sentAt.toISOString() : String(sentAt)) : null,
+        lastEmailStatus: emailStatusVal,
+        lastEmailError: emailErr
       });
     });
 
@@ -1869,6 +1872,15 @@ router.get("/backlogs", protect, requirePermission("backlogs.view", "backlogs", 
           s.regNo.toLowerCase().includes(q) ||
           s.studentName.toLowerCase().includes(q)
       );
+    }
+    if (emailStatus && emailStatus !== "all") {
+      if (emailStatus === "sent") {
+        studentList = studentList.filter((s) => s.lastEmailStatus === "SUCCESS");
+      } else if (emailStatus === "not_sent") {
+        studentList = studentList.filter((s) => s.lastEmailStatus !== "SUCCESS");
+      } else if (emailStatus === "failed") {
+        studentList = studentList.filter((s) => s.lastEmailStatus === "FAILED");
+      }
     }
 
     studentList.sort((a, b) => b.totalBacklogs - a.totalBacklogs);
@@ -2038,7 +2050,10 @@ router.post("/backlogs/send-email", protect, requirePermission("emails.send", "b
         {
           lastEmailSentAt: new Date(),
           lastEmailStatus: 'FAILED',
-          lastEmailError: err.message || 'Unknown error occurred'
+          lastEmailError: err.message || 'Unknown error occurred',
+          lastBacklogEmailSentAt: new Date(),
+          lastBacklogEmailStatus: 'FAILED',
+          lastBacklogEmailError: err.message || 'Unknown error occurred'
         },
         { upsert: true }
       ).catch(dbErr => console.error("Failed to update email log:", dbErr));
@@ -2054,7 +2069,7 @@ router.post("/backlogs/send-email", protect, requirePermission("emails.send", "b
 router.post("/backlogs/email-status", protect, requirePermission("backlogs.view", "backlogs", "backlogs.view"), async (req, res) => {
   try {
     const { regNo, status, error } = req.body;
-    const cleanRegNo = String(regNo || "").trim();
+    const cleanRegNo = String(regNo || "").trim().toUpperCase();
     if (!cleanRegNo) {
       return res.status(400).json({ message: "Registration number required" });
     }
@@ -2062,9 +2077,14 @@ router.post("/backlogs/email-status", protect, requirePermission("backlogs.view"
     await Student.findOneAndUpdate(
       { regNo: cleanRegNo },
       {
-        lastEmailSentAt: new Date(),
-        lastEmailStatus: status === "SUCCESS" ? "SUCCESS" : "FAILED",
-        lastEmailError: error || null
+        $set: {
+          lastEmailSentAt: status === "SUCCESS" ? new Date() : undefined,
+          lastEmailStatus: status === "SUCCESS" ? "SUCCESS" : "FAILED",
+          lastEmailError: error || null,
+          lastBacklogEmailSentAt: status === "SUCCESS" ? new Date() : undefined,
+          lastBacklogEmailStatus: status === "SUCCESS" ? "SUCCESS" : "FAILED",
+          lastBacklogEmailError: error || null
+        }
       },
       { upsert: true }
     );
