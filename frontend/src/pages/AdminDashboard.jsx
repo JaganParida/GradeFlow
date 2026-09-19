@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, Fragment } from "react";
+import React, { useState, useEffect, useRef, useMemo, Fragment } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
@@ -1842,36 +1842,58 @@ function SectionToppersCard({ authHeaders, API }) {
     setSendingEmail(false);
 
     if (success && resData) {
+      const nowIso = new Date().toISOString();
       setEmailSuccessMsg(resData.message || `Congratulatory email sent to ${customEmailInput}`);
-      axios
-        .post(`${API}/admin/section-toppers/topper-email-status`, { regNo: selectedStudentForEmail.regNo, status: "SUCCESS" }, authHeaders)
-        .catch(() => {});
 
-      toppersCacheRef.current.clear();
-      invalidateAdminCache(AdminCacheScopes.TOPPERS);
-
+      // 1. Instantly update student status in-place (smooth, zero skeleton flash)
       setData((prev) => ({
         ...prev,
-        students: prev.students.map((st) => {
+        students: (prev.students || []).map((st) => {
           if (st.regNo === selectedStudentForEmail.regNo) {
             return {
               ...st,
               lastTopperEmailStatus: "SUCCESS",
-              lastTopperEmailSentAt: new Date().toISOString(),
+              lastTopperEmailSentAt: nowIso,
               lastTopperEmailError: null,
             };
           }
           return st;
         }),
       }));
-    } else {
-      setEmailErrorMsg(errMessage || "Failed to send email");
-      axios
-        .post(`${API}/admin/section-toppers/topper-email-status`, { regNo: selectedStudentForEmail.regNo, status: "FAILED", errorMsg: errMessage }, authHeaders)
-        .catch(() => {});
+
+      // 2. Persist to MongoDB and await it
+      try {
+        await axios.post(
+          `${API}/admin/section-toppers/topper-email-status`,
+          { regNo: selectedStudentForEmail.regNo, status: "SUCCESS" },
+          authHeaders
+        );
+      } catch (_) {}
 
       toppersCacheRef.current.clear();
-      invalidateAdminCache(AdminCacheScopes.TOPPERS);
+    } else {
+      setEmailErrorMsg(errMessage || "Failed to send email");
+      setData((prev) => ({
+        ...prev,
+        students: (prev.students || []).map((st) => {
+          if (st.regNo === selectedStudentForEmail.regNo) {
+            return {
+              ...st,
+              lastTopperEmailStatus: "FAILED",
+              lastTopperEmailError: errMessage,
+            };
+          }
+          return st;
+        }),
+      }));
+      try {
+        await axios.post(
+          `${API}/admin/section-toppers/topper-email-status`,
+          { regNo: selectedStudentForEmail.regNo, status: "FAILED", errorMsg: errMessage },
+          authHeaders
+        );
+      } catch (_) {}
+      toppersCacheRef.current.clear();
     }
   }
 
@@ -1879,7 +1901,6 @@ function SectionToppersCard({ authHeaders, API }) {
     const activeBatch = overrideFilters.batch !== undefined ? overrideFilters.batch : batch;
     const activeBranch = overrideFilters.branch !== undefined ? overrideFilters.branch : branch;
     const activeSection = overrideFilters.section !== undefined ? overrideFilters.section : section;
-    const activeEmailFilter = overrideFilters.emailFilter !== undefined ? overrideFilters.emailFilter : emailFilter;
     const activeSearch = overrideFilters.search !== undefined ? overrideFilters.search : search;
 
     const cacheKey = JSON.stringify({
@@ -1887,11 +1908,10 @@ function SectionToppersCard({ authHeaders, API }) {
       batch: activeBatch,
       branch: activeBranch,
       section: activeSection,
-      emailFilter: activeEmailFilter,
       search: activeSearch,
     });
 
-    const storageKey = `gf_admin_toppers_${activeBatch}_${activeBranch}_${activeSection}_${activeEmailFilter}_${activeSearch}`;
+    const storageKey = `gf_admin_toppers_${activeBatch}_${activeBranch}_${activeSection}_${activeSearch}`;
 
     if (!forceRefetch) {
       if (toppersCacheRef.current.has(cacheKey)) {
@@ -1915,7 +1935,6 @@ function SectionToppersCard({ authHeaders, API }) {
       if (activeBatch) params.append("batch", activeBatch);
       if (activeBranch) params.append("branch", activeBranch);
       if (activeSection) params.append("section", activeSection);
-      if (activeEmailFilter && activeEmailFilter !== "all") params.append("emailStatus", activeEmailFilter);
       if (activeSearch) params.append("search", activeSearch);
 
       const res = await axios.get(`${API}/admin/section-toppers?${params}`, authHeaders);
@@ -1944,10 +1963,14 @@ function SectionToppersCard({ authHeaders, API }) {
   }, []);
 
   function handleFilterChange(field, val) {
+    if (field === "emailFilter") {
+      setEmailFilter(val);
+      return; // In-memory filtering on top 10 toppers - never re-fetches or pulls outside students
+    }
+
     let newBatch = batch;
     let newBranch = branch;
     let newSection = section;
-    let newEmailFilter = emailFilter;
     let newSearch = search;
 
     if (field === "batch") { setBatch(val); newBatch = val; }
@@ -1960,17 +1983,25 @@ function SectionToppersCard({ authHeaders, API }) {
       }
     }
     if (field === "section") { setSection(val); newSection = val; }
-    if (field === "emailFilter") { setEmailFilter(val); newEmailFilter = val; }
     if (field === "search") { setSearch(val); newSearch = val; }
 
     fetchSectionToppers(false, {
       batch: newBatch,
       branch: newBranch,
       section: newSection,
-      emailFilter: newEmailFilter,
       search: newSearch,
     });
   }
+
+  // Filter strictly from the canonical Top 10 toppers of this section
+  const displayedStudents = useMemo(() => {
+    const list = data.students || [];
+    if (!emailFilter || emailFilter === "all") return list;
+    if (emailFilter === "sent") return list.filter((s) => s.lastTopperEmailStatus === "SUCCESS");
+    if (emailFilter === "not_sent") return list.filter((s) => !s.lastTopperEmailStatus || s.lastTopperEmailStatus !== "SUCCESS");
+    if (emailFilter === "failed") return list.filter((s) => s.lastTopperEmailStatus === "FAILED");
+    return list;
+  }, [data.students, emailFilter]);
 
   return (
     <div
@@ -2008,7 +2039,7 @@ function SectionToppersCard({ authHeaders, API }) {
             Section Academic Toppers
           </h3>
           <span style={{ fontSize: 12, color: "#64748b" }}>
-            Total {data.totalToppers || data.students?.length || 0} Toppers Found
+            Total {displayedStudents.length} of {data.students?.length || 0} Toppers Found
           </span>
         </div>
       </div>
@@ -2224,14 +2255,14 @@ function SectionToppersCard({ authHeaders, API }) {
       {/* Toppers Content */}
       {loading ? (
         <SectionToppersSkeleton />
-      ) : !data.students || data.students.length === 0 ? (
+      ) : !displayedStudents || displayedStudents.length === 0 ? (
         <div style={{ textAlign: "center", padding: "30px 0", color: "#94a3b8", fontSize: 13 }}>
           No section toppers found matching the current filters.
         </div>
       ) : isMobile ? (
         /* Mobile Card View (Zero Horizontal Scrolling) */
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {(data.students || []).map((st, idx) => (
+          {(displayedStudents || []).map((st, idx) => (
             <div
               key={st.regNo || idx}
               style={{
@@ -2361,7 +2392,7 @@ function SectionToppersCard({ authHeaders, API }) {
               </tr>
             </thead>
             <tbody>
-              {(data.students || []).map((st, idx) => (
+              {(displayedStudents || []).map((st, idx) => (
                 <tr
                   key={st.regNo || idx}
                   style={{ borderBottom: "1px solid #f1f5f9", transition: "background 0.15s" }}
@@ -2740,14 +2771,10 @@ function BacklogTrackerCard({ authHeaders, API }) {
     }
 
     if (success && resData) {
+      const nowIso = new Date().toISOString();
       setEmailSuccessMsg(resData.message || `Notification email sent to ${customEmailInput}`);
-      axios
-        .post(`${API}/admin/backlogs/email-status`, { regNo: selectedStudentForEmail.regNo, status: "SUCCESS" }, authHeaders)
-        .catch(() => {});
 
-      backlogCacheRef.current.clear();
-      invalidateAdminCache(AdminCacheScopes.BACKLOGS);
-
+      // 1. Instantly update student status in-place (smooth, zero skeleton flash)
       setData((prev) => ({
         ...prev,
         students: (prev.students || []).map((st) => {
@@ -2755,22 +2782,26 @@ function BacklogTrackerCard({ authHeaders, API }) {
             return {
               ...st,
               lastEmailStatus: "SUCCESS",
-              lastEmailSentAt: new Date().toISOString(),
+              lastEmailSentAt: nowIso,
               lastEmailError: null,
             };
           }
           return st;
         }),
       }));
-    } else {
-      setEmailErrorMsg(errMessage || "Failed to send email");
-      axios
-        .post(`${API}/admin/backlogs/email-status`, { regNo: selectedStudentForEmail.regNo, status: "FAILED", errorMsg: errMessage }, authHeaders)
-        .catch(() => {});
+
+      // 2. Persist to MongoDB and await it
+      try {
+        await axios.post(
+          `${API}/admin/backlogs/email-status`,
+          { regNo: selectedStudentForEmail.regNo, status: "SUCCESS" },
+          authHeaders
+        );
+      } catch (_) {}
 
       backlogCacheRef.current.clear();
-      invalidateAdminCache(AdminCacheScopes.BACKLOGS);
-
+    } else {
+      setEmailErrorMsg(errMessage || "Failed to send email");
       setData((prev) => ({
         ...prev,
         students: (prev.students || []).map((st) => {
@@ -2784,6 +2815,16 @@ function BacklogTrackerCard({ authHeaders, API }) {
           return st;
         }),
       }));
+
+      try {
+        await axios.post(
+          `${API}/admin/backlogs/email-status`,
+          { regNo: selectedStudentForEmail.regNo, status: "FAILED", errorMsg: errMessage, error: errMessage },
+          authHeaders
+        );
+      } catch (_) {}
+
+      backlogCacheRef.current.clear();
     }
   }
 
@@ -2792,12 +2833,11 @@ function BacklogTrackerCard({ authHeaders, API }) {
     const activeBranch = overrideFilters ? overrideFilters.branch : branch;
     const activeSection = overrideFilters ? overrideFilters.section : section;
     const activeSemester = overrideFilters ? overrideFilters.semester : semester;
-    const activeEmailFilter = overrideFilters ? overrideFilters.emailFilter : emailFilter;
     const activeSearch = searchQuery !== undefined ? searchQuery : (overrideFilters ? overrideFilters.search : search);
     const activePage = targetPage || 1;
     const activeLimit = overrideLimit !== null && overrideLimit !== undefined ? overrideLimit : limit;
 
-    const cacheKey = `${activePage}_${activeBatch}_${activeBranch}_${activeSection}_${activeSemester}_${activeEmailFilter}_${activeSearch}_${activeLimit}`;
+    const cacheKey = `${activePage}_${activeBatch}_${activeBranch}_${activeSection}_${activeSemester}_${activeSearch}_${activeLimit}`;
     const storageKey = `gf_admin_backlog_${cacheKey}`;
 
     if (!forceRefresh) {
@@ -2822,7 +2862,6 @@ function BacklogTrackerCard({ authHeaders, API }) {
       if (activeBranch) params.append("branch", activeBranch);
       if (activeSection) params.append("section", activeSection);
       if (activeSemester) params.append("semester", activeSemester);
-      if (activeEmailFilter && activeEmailFilter !== "all") params.append("emailStatus", activeEmailFilter);
       if (activeSearch) params.append("search", activeSearch);
       params.append("page", activePage);
       params.append("limit", activeLimit);
@@ -2842,7 +2881,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
   useEffect(() => {
     setPage(1);
     fetchBacklogs(1);
-  }, [batch, branch, section, semester, emailFilter, limit]);
+  }, [batch, branch, section, semester, limit]);
 
   // Real-time reactive invalidation listener for backlogs & rankings
   useEffect(() => {
@@ -2850,7 +2889,17 @@ function BacklogTrackerCard({ authHeaders, API }) {
       backlogCacheRef.current.clear();
       fetchBacklogs(page, search, null, true);
     });
-  }, [page, search, batch, branch, section, semester, emailFilter, limit]);
+  }, [page, search, batch, branch, section, semester, limit]);
+
+  // Filter strictly in-memory from the loaded section/page students without re-fetching or pulling outside students
+  const displayedStudents = useMemo(() => {
+    const list = data.students || [];
+    if (!emailFilter || emailFilter === "all") return list;
+    if (emailFilter === "sent") return list.filter((s) => s.lastEmailStatus === "SUCCESS");
+    if (emailFilter === "not_sent") return list.filter((s) => !s.lastEmailStatus || s.lastEmailStatus !== "SUCCESS");
+    if (emailFilter === "failed") return list.filter((s) => s.lastEmailStatus === "FAILED");
+    return list;
+  }, [data.students, emailFilter]);
 
   return (
     <div
@@ -3164,14 +3213,14 @@ function BacklogTrackerCard({ authHeaders, API }) {
       {/* Backlogs Content */}
       {loading ? (
         <BacklogTrackerSkeleton />
-      ) : !data.students || data.students.length === 0 ? (
+      ) : !displayedStudents || displayedStudents.length === 0 ? (
         <div style={{ textAlign: "center", padding: "30px 0", color: "#94a3b8", fontSize: 13 }}>
-          No backlog records found.
+          {emailFilter !== "all" ? `No students found matching email status "${emailFilter}".` : "No backlog records found."}
         </div>
       ) : isMobile ? (
         /* Mobile Card View (Zero Horizontal Scrolling) */
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {(data.students || []).map((st, idx) => {
+          {(displayedStudents || []).map((st, idx) => {
             const isExpanded = expandedRegNo === st.regNo;
             return (
               <div
@@ -3399,7 +3448,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
               </tr>
             </thead>
             <tbody>
-              {(data.students || []).map((st, idx) => {
+              {(displayedStudents || []).map((st, idx) => {
                 const isExpanded = expandedRegNo === st.regNo;
                 return (
                   <Fragment key={st.regNo || idx}>
@@ -3593,15 +3642,17 @@ function BacklogTrackerCard({ authHeaders, API }) {
           <span style={{ fontSize: 12.5, color: "#64748b", fontWeight: 500 }}>
             Showing{" "}
             <strong style={{ color: "#0f172a" }}>
-              {data.totalStudentsWithBacklogs > 0 ? (page - 1) * limit + 1 : 0}
+              {displayedStudents.length > 0 ? (page - 1) * limit + 1 : 0}
             </strong>{" "}
             -{" "}
             <strong style={{ color: "#0f172a" }}>
-              {Math.min(page * limit, data.totalStudentsWithBacklogs || 0)}
+              {(page - 1) * limit + displayedStudents.length}
             </strong>{" "}
             of{" "}
             <strong style={{ color: "#0f172a" }}>
-              {(data.totalStudentsWithBacklogs || 0).toLocaleString()}
+              {emailFilter !== "all"
+                ? `${displayedStudents.length} filtered (${(data.totalStudentsWithBacklogs || 0).toLocaleString()} total)`
+                : (data.totalStudentsWithBacklogs || 0).toLocaleString()}
             </strong>{" "}
             students
           </span>
