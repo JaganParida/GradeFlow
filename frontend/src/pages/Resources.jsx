@@ -422,7 +422,6 @@ export default function Resources() {
           alignItems: "start",
           width: "100%",
           boxSizing: "border-box",
-          overflowX: "hidden",
         }}
         className="gf-resources-layout"
       >
@@ -1473,9 +1472,7 @@ export default function Resources() {
                   flexDirection: "column",
                   gap: isMobile ? 14 : 20,
                   width: "100%",
-                  maxWidth: "100%",
                   boxSizing: "border-box",
-                  overflowX: "hidden",
                   margin: 0,
                 }}
               >
