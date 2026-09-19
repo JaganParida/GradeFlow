@@ -2613,16 +2613,6 @@ router.get("/section-toppers", protect, requirePermission("toppers.view", "toppe
       "regNo semester studentName batch branch cgpa sgpa sectionCgpaRank sectionSgpaRank deptCgpaRank deptRank universityRank cgpaRank"
     ).sort({ cgpa: -1, sgpa: -1 }).lean();
 
-    const matchedRegNos = allRankings.map((r) => r.regNo);
-    const studentsTracking = matchedRegNos.length > 0
-      ? await Student.find({ regNo: { $in: matchedRegNos } }, "regNo lastTopperEmailSentAt lastTopperEmailStatus lastTopperEmailError").lean()
-      : [];
-
-    const studentTrackingMap = new Map();
-    studentsTracking.forEach((st) => {
-      studentTrackingMap.set(st.regNo, st);
-    });
-
     let filteredRankings = allRankings;
 
     if (semester) {
@@ -2680,9 +2670,9 @@ router.get("/section-toppers", protect, requirePermission("toppers.view", "toppe
         deptCgpaRank: rk.deptCgpaRank || null,
         deptRank: rk.deptRank || null,
         universityRank: rk.universityRank || rk.cgpaRank || null,
-        lastTopperEmailSentAt: tracking.lastTopperEmailSentAt ? tracking.lastTopperEmailSentAt.toISOString() : null,
-        lastTopperEmailStatus: tracking.lastTopperEmailStatus || null,
-        lastTopperEmailError: tracking.lastTopperEmailError || null,
+        lastTopperEmailSentAt: null,
+        lastTopperEmailStatus: null,
+        lastTopperEmailError: null,
       });
     });
 
@@ -2728,6 +2718,24 @@ router.get("/section-toppers", protect, requirePermission("toppers.view", "toppe
 
     // Include all students holding Section Rank 1 through Rank 10 (including ties and rank 10 holders)
     let top10Toppers = validStudents.filter((s) => Number(s.sectionCgpaRank) <= 10);
+
+    const topperRegNos = top10Toppers.map((s) => s.regNo);
+    if (topperRegNos.length > 0) {
+      const studentsTracking = await Student.find(
+        { regNo: { $in: topperRegNos } },
+        "regNo lastTopperEmailSentAt lastTopperEmailStatus lastTopperEmailError"
+      ).lean().catch(() => []);
+
+      const studentTrackingMap = new Map();
+      studentsTracking.forEach((st) => studentTrackingMap.set(st.regNo, st));
+
+      top10Toppers.forEach((s) => {
+        const tracking = studentTrackingMap.get(s.regNo) || {};
+        s.lastTopperEmailSentAt = tracking.lastTopperEmailSentAt ? tracking.lastTopperEmailSentAt.toISOString() : null;
+        s.lastTopperEmailStatus = tracking.lastTopperEmailStatus || null;
+        s.lastTopperEmailError = tracking.lastTopperEmailError || null;
+      });
+    }
 
     const cleanEmailStatus = String(emailStatus || "").trim().toLowerCase();
     if (cleanEmailStatus === "sent") {

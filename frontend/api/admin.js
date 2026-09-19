@@ -554,18 +554,20 @@ async function getSectionToppersData({ batch = "2023", branch = "CSE", section =
     prevCgpa = s.cgpa;
   });
 
-  // Attach tracking info before email status filtering
-  const allCandidateRegNos = validStudents.map((s) => s.regNo);
-  if (allCandidateRegNos.length > 0) {
+  // Only actual toppers (Section Rank <= Math.max(10, limit)) are candidates for topper listing
+  let topperCandidates = validStudents.filter((s) => Number(s.sectionCgpaRank) <= Math.max(10, limit));
+
+  const candidateRegNos = topperCandidates.map((s) => s.regNo);
+  if (candidateRegNos.length > 0) {
     const studentsTracking = await Student.find(
-      { regNo: { $in: allCandidateRegNos } },
+      { regNo: { $in: candidateRegNos } },
       "regNo lastTopperEmailSentAt lastTopperEmailStatus lastTopperEmailError"
     ).lean().catch(() => []);
 
     const studentTrackingMap = new Map();
     studentsTracking.forEach((st) => studentTrackingMap.set(st.regNo, st));
 
-    validStudents.forEach((s) => {
+    topperCandidates.forEach((s) => {
       const tracking = studentTrackingMap.get(s.regNo) || {};
       s.lastTopperEmailSentAt = tracking.lastTopperEmailSentAt ? tracking.lastTopperEmailSentAt.toISOString() : null;
       s.lastTopperEmailStatus = tracking.lastTopperEmailStatus || null;
@@ -575,17 +577,17 @@ async function getSectionToppersData({ batch = "2023", branch = "CSE", section =
 
   // Filter by emailStatus if specified
   if (emailStatus === "sent") {
-    validStudents = validStudents.filter((s) => s.lastTopperEmailStatus === "SUCCESS");
+    topperCandidates = topperCandidates.filter((s) => s.lastTopperEmailStatus === "SUCCESS");
   } else if (emailStatus === "not_sent") {
-    validStudents = validStudents.filter((s) => !s.lastTopperEmailStatus || s.lastTopperEmailStatus !== "SUCCESS");
+    topperCandidates = topperCandidates.filter((s) => !s.lastTopperEmailStatus || s.lastTopperEmailStatus !== "SUCCESS");
   } else if (emailStatus === "failed") {
-    validStudents = validStudents.filter((s) => s.lastTopperEmailStatus === "FAILED");
+    topperCandidates = topperCandidates.filter((s) => s.lastTopperEmailStatus === "FAILED");
   }
 
-  const topStudents = validStudents.slice(0, limit);
+  const topStudents = topperCandidates.slice(0, limit);
 
   const result = {
-    totalToppers: validStudents.length,
+    totalToppers: topperCandidates.length,
     students: topStudents,
   };
 
