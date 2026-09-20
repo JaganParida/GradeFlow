@@ -5125,5 +5125,8 @@ router.post("/cache/clear", protect, async (req, res) => {
   }
 });
 
+// Forward admin notifications to notifications router
+router.use("/notifications", require("./notifications"));
+
 module.exports = router;
 

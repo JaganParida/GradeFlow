@@ -132,6 +132,7 @@ app.use("/api/notifications", require("./routes/notifications"));
 app.use("/api/traffic", publicLimiter, require("./routes/traffic"));
 app.use("/api/admin/traffic", adminLimiter, csrfProtect, require("./routes/adminTraffic"));
 app.use("/api/admin/vercel-quota", adminLimiter, csrfProtect, require("./routes/adminVercelQuota"));
+app.use("/api/admin/notifications", adminLimiter, csrfProtect, require("./routes/notifications"));
 
 const AttendanceScanLog = require("./models/AttendanceScanLog");
 const Student = require("./models/Student");

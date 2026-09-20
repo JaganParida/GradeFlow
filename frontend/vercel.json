@@ -321,6 +321,30 @@
       "destination": "/api/vercel-quota.js"
     },
     {
+      "source": "/api/admin/notifications/broadcasts",
+      "destination": "/api/notifications.js?action=admin-broadcast-list"
+    },
+    {
+      "source": "/api/admin/notifications/broadcast/:id",
+      "destination": "/api/notifications.js?action=admin-broadcast-delete&id=:id"
+    },
+    {
+      "source": "/api/admin/notifications/broadcast",
+      "destination": "/api/notifications.js?action=admin-broadcast"
+    },
+    {
+      "source": "/api/notifications/broadcasts",
+      "destination": "/api/notifications.js?action=admin-broadcast-list"
+    },
+    {
+      "source": "/api/notifications/broadcast/:id",
+      "destination": "/api/notifications.js?action=admin-broadcast-delete&id=:id"
+    },
+    {
+      "source": "/api/notifications/broadcast",
+      "destination": "/api/notifications.js?action=admin-broadcast"
+    },
+    {
       "source": "/api/admin/notifications/:path*",
       "destination": "/api/notifications.js"
     },

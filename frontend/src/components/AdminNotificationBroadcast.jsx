@@ -143,6 +143,21 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
     };
   }, []);
 
+  const getRequestConfig = (extra = {}) => {
+    const rawHeaders = authHeaders?.headers || authHeaders || {};
+    const token = typeof window !== "undefined" ? (localStorage.getItem("adminToken") || localStorage.getItem("token")) : null;
+    return {
+      withCredentials: true,
+      ...extra,
+      headers: {
+        ...rawHeaders,
+        "X-Requested-With": "XMLHttpRequest",
+        ...(token ? { "x-admin-token": token } : {}),
+        ...(extra.headers || {}),
+      },
+    };
+  };
+
   const fetchBroadcasts = async (silent = false, forceRefresh = false) => {
     if (!forceRefresh) {
       const cached = getAdminCache("gf_admin_broadcasts_list");
@@ -154,7 +169,13 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
     }
     if (!silent) setHistoryLoading(true);
     try {
-      const res = await axios.get(`${API}/admin/notifications/broadcasts`, authHeaders);
+      const cfg = getRequestConfig();
+      let res;
+      try {
+        res = await axios.get(`${API}/admin/notifications/broadcasts?action=admin-broadcast-list`, cfg);
+      } catch {
+        res = await axios.get(`${API}/notifications?action=admin-broadcast-list`, cfg);
+      }
       if (res.data?.success) {
         const list = res.data.broadcasts || [];
         setBroadcasts(list);
@@ -162,7 +183,8 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
       }
     } catch {
       try {
-        const res2 = await axios.get(`${API}/notifications?action=admin-broadcast-list`, authHeaders);
+        const cfg = getRequestConfig();
+        const res2 = await axios.get(`${API}/notifications?action=admin-broadcast-list`, cfg);
         if (res2.data?.success) {
           const list = res2.data.broadcasts || [];
           setBroadcasts(list);
@@ -220,11 +242,12 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
     };
 
     try {
+      const cfg = getRequestConfig();
       let res;
       try {
-        res = await axios.post(`${API}/admin/notifications/broadcast`, payload, authHeaders);
+        res = await axios.post(`${API}/admin/notifications/broadcast?action=admin-broadcast`, payload, cfg);
       } catch {
-        res = await axios.post(`${API}/notifications?action=admin-broadcast`, payload, authHeaders);
+        res = await axios.post(`${API}/notifications?action=admin-broadcast`, payload, cfg);
       }
 
       if (res.data?.success) {
@@ -250,17 +273,18 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
     }
 
     try {
+      const cfg = getRequestConfig();
       let res;
       try {
-        res = await axios.delete(`${API}/admin/notifications/broadcast/${notificationId}`, {
-          ...authHeaders,
+        res = await axios.delete(`${API}/admin/notifications/broadcast/${notificationId}?action=admin-broadcast-delete`, {
+          ...cfg,
           data: { notificationId },
         });
       } catch {
         res = await axios.post(
           `${API}/notifications?action=admin-broadcast-delete`,
           { notificationId },
-          authHeaders
+          cfg
         );
       }
 
@@ -384,7 +408,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
   }, [activeExpandedBroadcast, drawerSubTab, studentSearch]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20, width: "100%", maxWidth: "100%", boxSizing: "border-box", overflow: "hidden" }}>
       {/* ── Feedback Notification Toast ── */}
       <AnimatePresence>
         {feedbackMsg && (
@@ -1454,8 +1478,25 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
           </div>
         ) : (
           /* Desktop Table View */
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, textAlign: "left" }}>
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "100%",
+              overflowX: "auto",
+              overscrollBehaviorX: "contain",
+              WebkitOverflowScrolling: "touch",
+              boxSizing: "border-box",
+            }}
+          >
+            <table
+              style={{
+                width: "100%",
+                minWidth: 980,
+                borderCollapse: "collapse",
+                fontSize: 12.5,
+                textAlign: "left",
+              }}
+            >
               <thead>
                 <tr style={{ background: "#f8fafc", borderBottom: "1.5px solid #e2e8f0", color: "#64748b", fontSize: 11.5, textTransform: "uppercase" }}>
                   <th style={{ padding: "11px 14px" }}>Announcement & Category</th>
@@ -1463,7 +1504,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
                   <th style={{ padding: "11px 14px" }}>Sent Date</th>
                   <th style={{ padding: "11px 14px" }}>Reads / Clicks</th>
                   <th style={{ padding: "11px 14px" }}>Dismissed</th>
-                  <th style={{ padding: "11px 14px", textAlign: "right" }}>Actions</th>
+                  <th style={{ padding: "11px 14px", textAlign: "right", whiteSpace: "nowrap" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1603,7 +1644,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
                         </td>
 
                         {/* Actions */}
-                        <td style={{ padding: "12px 14px", textAlign: "right" }}>
+                        <td style={{ padding: "12px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
                           <button
                             type="button"
                             onClick={() => handleDeleteBroadcast(b.notificationId)}

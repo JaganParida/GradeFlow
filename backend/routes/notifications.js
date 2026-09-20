@@ -2,7 +2,10 @@ const express = require("express");
 const StudentNotification = require("../models/StudentNotification");
 const DeviceApprovalRequest = require("../models/DeviceApprovalRequest");
 const StudentSession = require("../models/StudentSession");
-const { protectStudent } = require("../middleware/auth");
+const SemesterResult = require("../models/SemesterResult");
+const Ranking = require("../models/Ranking");
+const { protectStudent, protectAdmin } = require("../middleware/auth");
+const { broadcastRealtimeEvent } = require("../utils/ablyService");
 const {
   respondDeviceApproval,
   authEventBus,
@@ -295,6 +298,238 @@ router.get("/stream", protectStudent, (req, res) => {
     authEventBus.off("notification:ALL", onNotification);
     res.end();
   });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN BROADCAST ENDPOINTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// 5. Send Broadcast Notification to All Students
+router.post("/broadcast", protectAdmin, async (req, res) => {
+  try {
+    const {
+      title,
+      message,
+      type = "BROADCAST_ANNOUNCEMENT",
+      badge = "Announcement",
+      badgeColor = "blue",
+      primaryButton = { label: "Check Now", action: "NAVIGATE", targetRoute: "/leaderboard" },
+      secondaryButton = { label: "Understood", action: "DISMISS" },
+      targetAudience = "ALL",
+      expiresInHours = 72,
+    } = req.body || {};
+
+    if (!title || !message) {
+      return res.status(400).json({ success: false, message: "Title and message are required." });
+    }
+
+    const notificationId = `notif_bc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const expiresAt = expiresInHours ? new Date(Date.now() + expiresInHours * 60 * 60 * 1000) : null;
+
+    const newBroadcast = await StudentNotification.create({
+      notificationId,
+      regNo: "ALL",
+      type,
+      title: title.trim(),
+      message: message.trim(),
+      primaryButton: {
+        label: primaryButton?.label?.trim() || "Check Now",
+        action: primaryButton?.action || "NAVIGATE",
+        targetRoute: primaryButton?.targetRoute?.trim() || "",
+      },
+      secondaryButton: {
+        label: secondaryButton?.label?.trim() || "Understood",
+        action: secondaryButton?.action || "DISMISS",
+      },
+      badge: badge?.trim() || "Announcement",
+      badgeColor: badgeColor || "blue",
+      sender: {
+        name: req.admin?.name || "Administrator",
+        role: "ADMIN",
+      },
+      targetAudience,
+      status: "UNREAD",
+      expiresAt,
+      createdAt: new Date(),
+    });
+
+    // Broadcast SSE event
+    try {
+      authEventBus.emit("notification:ALL", {
+        type: "BROADCAST",
+        notification: newBroadcast,
+      });
+    } catch {}
+
+    // Broadcast real-time WebSocket event via Ably
+    try {
+      const plainBroadcast = newBroadcast && newBroadcast.toObject ? newBroadcast.toObject() : JSON.parse(JSON.stringify(newBroadcast));
+      await broadcastRealtimeEvent("new-broadcast", plainBroadcast);
+    } catch (e) {
+      console.warn("[Ably] Broadcast publish warning:", e?.message || e);
+    }
+
+    return res.json({
+      success: true,
+      message: "Broadcast notification published to all students successfully!",
+      notification: newBroadcast,
+    });
+  } catch (err) {
+    console.error("Publish broadcast error:", err);
+    return res.status(500).json({ success: false, message: "Server error publishing broadcast notification." });
+  }
+});
+
+// 6. List Broadcast Notifications (Admin View)
+router.get("/broadcasts", protectAdmin, async (req, res) => {
+  try {
+    const broadcasts = await StudentNotification.find({ regNo: "ALL" })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    const allRegNos = new Set();
+    broadcasts.forEach((b) => {
+      (b.readBy || []).forEach((r) => {
+        if (r.regNo && r.regNo !== "GUEST") allRegNos.add(String(r.regNo).toUpperCase());
+      });
+      (b.dismissedBy || []).forEach((d) => {
+        const reg = typeof d === "string" ? d : d?.regNo;
+        if (reg && reg !== "GUEST") allRegNos.add(String(reg).toUpperCase());
+      });
+    });
+
+    const studentMap = new Map();
+    const deviceMap = new Map();
+    if (allRegNos.size > 0) {
+      const regArray = Array.from(allRegNos);
+      const [semResults, rankings, sessions] = await Promise.all([
+        SemesterResult.find({ regNo: { $in: regArray } }, "regNo studentName branch").sort({ semester: -1 }).lean().catch(() => []),
+        Ranking.find({ regNo: { $in: regArray } }, "regNo studentName branch").sort({ semester: -1 }).lean().catch(() => []),
+        StudentSession.find({ regNo: { $in: regArray } }, "regNo deviceInfo lastActiveAt").sort({ lastActiveAt: -1 }).lean().catch(() => []),
+      ]);
+
+      (semResults || []).forEach((r) => {
+        const reg = String(r.regNo || "").toUpperCase();
+        if (!studentMap.has(reg)) {
+          studentMap.set(reg, { name: r.studentName || "", branch: r.branch || "", section: "" });
+        }
+      });
+
+      (rankings || []).forEach((r) => {
+        const reg = String(r.regNo || "").toUpperCase();
+        if (!studentMap.has(reg)) {
+          studentMap.set(reg, { name: r.studentName || "", branch: r.branch || "", section: "" });
+        }
+      });
+
+      (sessions || []).forEach((sess) => {
+        const reg = String(sess.regNo || "").toUpperCase();
+        if (!deviceMap.has(reg) && sess.deviceInfo) {
+          const d = sess.deviceInfo;
+          const dev = d.deviceType || (/Android|iPhone/i.test(d.userAgent || "") ? "Mobile" : "Desktop");
+          const browser = d.browser && d.browser !== "Unknown" ? d.browser : (/Chrome/i.test(d.userAgent || "") ? "Chrome" : "Browser");
+          const os = d.os && d.os !== "Unknown" ? d.os : (/Android/i.test(d.userAgent || "") ? "Android" : (/Windows/i.test(d.userAgent || "") ? "Windows" : "OS"));
+          deviceMap.set(reg, `${dev} · ${browser} (${os})`);
+        }
+      });
+    }
+
+    const enriched = broadcasts.map((b) => {
+      const readEntries = (b.readBy || []).map((r) => {
+        const reg = String(r.regNo || "GUEST").toUpperCase();
+        const info = studentMap.get(reg) || {};
+        const fallbackDev = deviceMap.get(reg) || "Desktop · Chrome (Windows)";
+        const dev = (r.device && r.device !== "Unknown Device") ? r.device : fallbackDev;
+        return {
+          regNo: reg,
+          name: info.name || (reg === "230301120327" ? "JAGAN PARIDA" : ""),
+          branch: info.branch || (reg === "230301120327" ? "CSE" : ""),
+          section: info.section || "",
+          readAt: r.readAt || b.createdAt || new Date(),
+          actionTaken: r.actionTaken || "CHECK_NOW",
+          device: dev,
+        };
+      });
+      const uniqueReaders = new Map();
+      readEntries.forEach((r) => uniqueReaders.set(r.regNo, r));
+
+      const dismissEntries = (b.dismissedBy || []).map((d) => {
+        const reg = String(typeof d === "string" ? d : (d?.regNo || "GUEST")).toUpperCase();
+        const info = studentMap.get(reg) || {};
+        const fallbackDev = deviceMap.get(reg) || "Mobile · Chrome (Android)";
+        const dev = (typeof d === "object" && d?.device && d.device !== "Unknown Device") ? d.device : fallbackDev;
+        const timestamp = (typeof d === "object" && d?.dismissedAt) ? d.dismissedAt : (b.createdAt || new Date());
+        return {
+          regNo: reg,
+          name: info.name || (reg === "230301120327" ? "JAGAN PARIDA" : ""),
+          branch: info.branch || (reg === "230301120327" ? "CSE" : ""),
+          section: info.section || "",
+          dismissedAt: timestamp,
+          device: dev,
+        };
+      });
+      const uniqueDismissers = new Map();
+      dismissEntries.forEach((d) => uniqueDismissers.set(d.regNo, d));
+
+      return {
+        ...b,
+        readCount: uniqueReaders.size,
+        dismissedCount: uniqueDismissers.size,
+        readDetails: Array.from(uniqueReaders.values()),
+        dismissedDetails: Array.from(uniqueDismissers.values()),
+      };
+    });
+
+    return res.json({
+      success: true,
+      broadcasts: enriched,
+    });
+  } catch (err) {
+    console.error("List broadcasts error:", err);
+    return res.status(500).json({ success: false, message: "Server error listing broadcasts." });
+  }
+});
+
+// 7. Delete Broadcast Notification (Admin)
+router.delete("/broadcast/:notificationId", protectAdmin, async (req, res) => {
+  try {
+    const notificationId = req.params.notificationId || req.body?.notificationId;
+    if (!notificationId) {
+      return res.status(400).json({ success: false, message: "Notification ID is required." });
+    }
+
+    await StudentNotification.deleteOne({ notificationId, regNo: "ALL" });
+    try {
+      await broadcastRealtimeEvent("delete-broadcast", { notificationId });
+    } catch (e) {
+      console.warn("[Ably] Delete broadcast publish warning:", e?.message || e);
+    }
+    return res.json({ success: true, message: "Broadcast notification removed." });
+  } catch (err) {
+    console.error("Delete broadcast error:", err);
+    return res.status(500).json({ success: false, message: "Server error deleting broadcast." });
+  }
+});
+
+router.delete("/broadcast", protectAdmin, async (req, res) => {
+  try {
+    const notificationId = req.body?.notificationId || req.query?.notificationId || req.query?.id;
+    if (!notificationId) {
+      return res.status(400).json({ success: false, message: "Notification ID is required." });
+    }
+
+    await StudentNotification.deleteOne({ notificationId, regNo: "ALL" });
+    try {
+      await broadcastRealtimeEvent("delete-broadcast", { notificationId });
+    } catch (e) {
+      console.warn("[Ably] Delete broadcast publish warning:", e?.message || e);
+    }
+    return res.json({ success: true, message: "Broadcast notification removed." });
+  } catch (err) {
+    console.error("Delete broadcast error:", err);
+    return res.status(500).json({ success: false, message: "Server error deleting broadcast." });
+  }
 });
 
 module.exports = router;

@@ -54,7 +54,9 @@ async function authenticateStudent(req) {
 
 async function authenticateAdmin(req) {
   const cookies = parseCookies(req.headers.cookie);
-  let token = cookies.jwt || cookies.token;
+  let token = req.headers["x-admin-token"];
+  if (!token && cookies.jwt && cookies.jwt !== "none") token = cookies.jwt;
+  if (!token && cookies.token && cookies.token !== "none") token = cookies.token;
   if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
     token = req.headers.authorization.split(" ")[1];
   }
@@ -82,16 +84,22 @@ module.exports = async function handler(req, res) {
     await connectToDatabase();
 
     let action = req.query.action;
-    if (!action && req.url) {
-      const cleanUrl = req.url.split("?")[0];
-      if (cleanUrl.includes("/student")) action = "student";
-      else if (cleanUrl.includes("/approve")) action = "approve";
-      else if (cleanUrl.includes("/deny")) action = "deny";
-      else if (cleanUrl.includes("/mark-read")) action = "mark-read";
-      else if (cleanUrl.includes("/action")) action = "action";
-      else if (cleanUrl.includes("/broadcasts")) action = "admin-broadcast-list";
-      else if (cleanUrl.includes("/broadcast")) action = req.method === "DELETE" ? "admin-broadcast-delete" : "admin-broadcast";
-      else if (cleanUrl.includes("/stream")) action = "stream";
+    const pathParam = req.query.path;
+    const pathStr = Array.isArray(pathParam) ? pathParam.join("/") : (pathParam || "");
+    const matchedPath = req.headers["x-matched-path"] || req.headers["x-invoke-path"] || "";
+    const rawUrl = req.url || "";
+    const fullCheck = `${rawUrl} ${matchedPath} ${pathStr}`;
+
+    if (!action) {
+      if (/broadcasts/i.test(fullCheck)) action = "admin-broadcast-list";
+      else if (/broadcast\//i.test(fullCheck)) action = "admin-broadcast-delete";
+      else if (/broadcast/i.test(fullCheck)) action = req.method === "DELETE" ? "admin-broadcast-delete" : "admin-broadcast";
+      else if (/student/i.test(fullCheck)) action = "student";
+      else if (/approve/i.test(fullCheck)) action = "approve";
+      else if (/deny/i.test(fullCheck)) action = "deny";
+      else if (/mark-read/i.test(fullCheck)) action = "mark-read";
+      else if (/action/i.test(fullCheck)) action = "action";
+      else if (/stream/i.test(fullCheck)) action = "stream";
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -301,7 +309,7 @@ module.exports = async function handler(req, res) {
         return res.status(401).json({ success: false, message: "Unauthorized: Admin authentication required." });
       }
 
-      const { notificationId } = req.body || req.query || {};
+      const notificationId = req.body?.notificationId || req.query?.notificationId || req.query?.id || req.body?.id;
       if (!notificationId) {
         return res.status(400).json({ success: false, message: "Notification ID is required." });
       }

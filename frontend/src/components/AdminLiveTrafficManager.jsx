@@ -165,6 +165,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
   const formatLastActive = (dateStr) => {
     if (!dateStr) return "Recently";
     const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "Recently";
     const now = new Date();
     const diffSecs = Math.floor((now - d) / 1000);
 
@@ -175,6 +176,14 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
       return `Today, ${timeStr}`;
     }
     return d.toLocaleDateString([], { month: "short", day: "numeric" }) + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  // Helper: Safely format time without throwing RangeError on invalid dates
+  const formatSafeTime = (dateVal, fallback = "Recently") => {
+    if (!dateVal) return fallback;
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return fallback;
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   // ─── Filtered Active Students List (Strictly Excludes Admin & 230301120327) ──
@@ -194,7 +203,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
       if (filterDevice !== "ALL") {
         const d = String(st.deviceType || "").toLowerCase();
         if (filterDevice === "Mobile" && !d.includes("mobile") && !d.includes("phone")) return false;
-        if (filterDevice === "Desktop" && !d.includes("desktop") && !d.includes("laptop")) return false;
+        if ((filterDevice === "Desktop" || filterDevice === "Laptop" || filterDevice === "Desktop / Laptop") && !d.includes("desktop") && !d.includes("laptop")) return false;
         if (filterDevice === "Tablet" && !d.includes("tablet") && !d.includes("ipad")) return false;
       }
 
@@ -237,7 +246,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
   };
 
   return (
-    <div id="admin-live-traffic-monitor" data-tab-content="live-traffic" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div id="admin-live-traffic-monitor" data-tab-content="live-traffic" style={{ display: "flex", flexDirection: "column", gap: 20, width: "100%", maxWidth: "100%", boxSizing: "border-box", overflow: "hidden" }}>
       {/* ── Notification Banners ── */}
       <AnimatePresence>
         {successMsg && (
@@ -707,6 +716,10 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
           borderRadius: 20,
           padding: isMobile ? "16px" : "20px 24px",
           boxShadow: "0 2px 12px rgba(15, 23, 42, 0.03)",
+          width: "100%",
+          maxWidth: "100%",
+          boxSizing: "border-box",
+          overflow: "hidden",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
@@ -788,7 +801,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
             >
               <option value="ALL">All Devices</option>
               <option value="Mobile">Mobile Only</option>
-              <option value="Desktop">Desktop Only</option>
+              <option value="Desktop / Laptop">Desktop / Laptop</option>
               <option value="Tablet">Tablet Only</option>
             </select>
           </div>
@@ -1145,7 +1158,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                                     {formatLastActive(vr.lastVisitedAt || st.lastActiveAt)}
                                   </span>
                                   <span style={{ color: "#94a3b8", fontSize: 9.5 }}>
-                                    {vr.lastVisitedAt ? new Date(vr.lastVisitedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Recently"}
+                                    {formatSafeTime(vr.lastVisitedAt, "Recently")}
                                   </span>
                                 </div>
                               </div>
@@ -1155,8 +1168,8 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                       </div>
                     ) : (
                       /* Desktop Table View */
-                      <div style={{ overflowX: "auto" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                      <div style={{ width: "100%", maxWidth: "100%", overflowX: "auto", boxSizing: "border-box" }}>
+                        <table style={{ width: "100%", minWidth: 680, borderCollapse: "collapse", fontSize: 12 }}>
                           <thead>
                             <tr
                               style={{
@@ -1259,12 +1272,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                                       {formatLastActive(vr.lastVisitedAt || st.lastActiveAt)}
                                     </div>
                                     <div style={{ color: "#94a3b8", fontSize: 10 }}>
-                                      {vr.lastVisitedAt
-                                        ? new Date(vr.lastVisitedAt).toLocaleTimeString([], {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                          })
-                                        : "Recently"}
+                                      {formatSafeTime(vr.lastVisitedAt, "Recently")}
                                     </div>
                                   </td>
 
@@ -1450,7 +1458,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                           {st.browser} on {st.os}
                         </span>
                         <span style={{ color: "#64748b", fontWeight: 600 }}>
-                          {st.lastActiveAt ? new Date(st.lastActiveAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Recently"}
+                          {formatSafeTime(st.lastActiveAt, "Recently")}
                         </span>
                       </div>
 
@@ -1493,8 +1501,36 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
               </div>
             ) : (
               /* Desktop Table View with Rich Activity Columns & Expandable Sub-Rows */
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, textAlign: "left" }}>
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: "100%",
+                  overflowX: "auto",
+                  overscrollBehaviorX: "contain",
+                  WebkitOverflowScrolling: "touch",
+                  boxSizing: "border-box",
+                }}
+              >
+                <table
+                  style={{
+                    width: "100%",
+                    minWidth: 1240,
+                    borderCollapse: "collapse",
+                    fontSize: 13,
+                    textAlign: "left",
+                    tableLayout: "fixed",
+                  }}
+                >
+                  <colgroup>
+                    <col style={{ width: "210px" }} />
+                    <col style={{ width: "140px" }} />
+                    <col style={{ width: "180px" }} />
+                    <col style={{ width: "150px" }} />
+                    <col style={{ width: "150px" }} />
+                    <col style={{ width: "160px" }} />
+                    <col style={{ width: "140px" }} />
+                    <col style={{ width: "110px" }} />
+                  </colgroup>
                   <thead>
                     <tr style={{ borderBottom: "1.5px solid #e2e8f0", color: "#64748b", fontSize: 11.5, textTransform: "uppercase" }}>
                       <th style={{ padding: "10px 12px" }}>Student</th>
@@ -1624,7 +1660,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                             </td>
 
                             {/* 8. Action: Expand Route Intelligence */}
-                            <td style={{ padding: "12px", textAlign: "right" }}>
+                            <td style={{ padding: "12px", textAlign: "right", whiteSpace: "nowrap" }}>
                               <button
                                 type="button"
                                 onClick={() => toggleExpandStudent(studentKey)}
@@ -1653,7 +1689,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                           {/* Expanded Deep Route Intelligence Drawer */}
                           {isExpanded && (
                             <tr key={`${studentKey}-expanded-drawer`} style={{ background: "#f8fafc" }}>
-                              <td colSpan={8} style={{ padding: "0 14px 16px 14px" }}>
+                              <td colSpan={8} style={{ padding: "0 14px 16px 14px", width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
                                 {renderRouteIntelligenceDetails(st)}
                               </td>
                             </tr>
