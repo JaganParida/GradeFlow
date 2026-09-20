@@ -19,6 +19,7 @@ import {
 } from "./components/LoadingSpinner";
 import { decodeStudentId, isEncryptedToken } from "./utils/studentIdEncoder";
 import { applyRouteMetadata } from "./utils/seo";
+import { Analytics as VercelAnalytics } from "@vercel/analytics/react";
 
 // Helper for resilient lazy loading with auto-recovery on deployment chunk hash changes
 const lazyWithRetry = (componentImport) =>
@@ -325,6 +326,7 @@ export default function App() {
       <SmoothScroll />
       <NetworkStatusListener />
       <Navbar />
+      <VercelAnalytics />
 
       {rateLimitError && (
         <RateLimitState
