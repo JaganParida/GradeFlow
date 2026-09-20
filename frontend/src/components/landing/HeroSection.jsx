@@ -16,12 +16,12 @@ import {
 } from "lucide-react";
 
 const SEMESTERS = [
-  { sem: 1, sgpa: 8.20, cgpa: 8.20, credits: 22, height: 50, label: "Sem 1" },
-  { sem: 2, sgpa: 8.45, cgpa: 8.32, credits: 24, height: 60, label: "Sem 2" },
-  { sem: 3, sgpa: 8.50, cgpa: 8.38, credits: 26, height: 65, label: "Sem 3" },
-  { sem: 4, sgpa: 8.65, cgpa: 8.45, credits: 24, height: 75, label: "Sem 4" },
-  { sem: 5, sgpa: 8.74, cgpa: 8.52, credits: 22, height: 82, label: "Sem 5" },
-  { sem: 6, sgpa: 9.10, cgpa: 8.74, credits: 18, height: 100, label: "Sem 6" },
+  { sem: 1, sgpa: 8.20, cgpa: 8.20, credits: 22, x: 24, y: 62, label: "Sem 1" },
+  { sem: 2, sgpa: 8.45, cgpa: 8.32, credits: 24, x: 88, y: 50, label: "Sem 2" },
+  { sem: 3, sgpa: 8.50, cgpa: 8.38, credits: 26, x: 152, y: 47, label: "Sem 3" },
+  { sem: 4, sgpa: 8.65, cgpa: 8.45, credits: 24, x: 216, y: 40, label: "Sem 4" },
+  { sem: 5, sgpa: 8.74, cgpa: 8.52, credits: 22, x: 280, y: 35, label: "Sem 5" },
+  { sem: 6, sgpa: 9.10, cgpa: 8.74, credits: 18, x: 344, y: 18, label: "Sem 6" },
 ];
 
 export default function HeroSection({
@@ -35,6 +35,10 @@ export default function HeroSection({
   const [activeSemIndex, setActiveSemIndex] = useState(5);
   const [targetSimGpa, setTargetSimGpa] = useState(9.30);
   const activeSem = SEMESTERS[activeSemIndex];
+  const prevSgpa = activeSemIndex > 0 ? SEMESTERS[activeSemIndex - 1].sgpa : 8.00;
+  const diff = activeSem.sgpa - prevSgpa;
+  const velocityText = `${diff >= 0 ? "+" : ""}${diff.toFixed(2)}`;
+  const projectedCgpa = ((1083.76 + targetSimGpa * 18) / 142).toFixed(2);
   return (
     <section
       className="gf-landing-hero"
@@ -313,78 +317,24 @@ export default function HeroSection({
           </motion.div>
         </div>
 
-        {/* Right Column: Sleek Compact Animated Academic Intelligence Cockpit */}
+        {/* Right Column: Clean Big-Tech Academic Cockpit (Non-Bulky, SVG Curve, Google/Stripe Grade) */}
         <div style={{ position: "relative", width: "100%", maxWidth: 440, margin: "0 auto" }}>
-          {/* Ambient Multi-Layer Radial Glow */}
+          {/* Subtle Ambient Radial Glow */}
           <div
             aria-hidden="true"
             style={{
               position: "absolute",
-              top: "5%",
-              left: "10%",
-              width: "360px",
-              height: "360px",
-              background: "radial-gradient(circle, rgba(37, 99, 235, 0.12) 0%, rgba(99, 102, 241, 0.05) 50%, rgba(255, 255, 255, 0) 70%)",
-              filter: "blur(50px)",
+              top: "6%",
+              left: "12%",
+              width: "320px",
+              height: "320px",
+              background: "radial-gradient(circle, rgba(37, 99, 235, 0.08) 0%, rgba(99, 102, 241, 0.03) 50%, rgba(255, 255, 255, 0) 70%)",
+              filter: "blur(44px)",
               zIndex: 0,
               pointerEvents: "none",
             }}
           />
 
-          {/* Floating Top-Right Verified Record Pill (SVG Only, No Emojis) */}
-          <div
-            className="gf-floating-badge-top"
-            style={{
-              position: "absolute",
-              top: -12,
-              right: 14,
-              zIndex: 25,
-              background: "#ffffff",
-              border: "1px solid #bfdbfe",
-              padding: "5px 12px",
-              borderRadius: 999,
-              boxShadow: "0 6px 18px rgba(37, 99, 235, 0.12), 0 2px 6px rgba(15, 23, 42, 0.04)",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 11,
-              fontWeight: 750,
-              color: "#1d4ed8",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 6px #10b981" }} />
-            <ShieldCheck size={13} color="#2563eb" strokeWidth={2.4} />
-            <span>Verified Record</span>
-          </div>
-
-          {/* Floating Bottom-Left Velocity Pill (SVG Only, No Emojis) */}
-          <div
-            className="gf-floating-badge-bottom"
-            style={{
-              position: "absolute",
-              bottom: -10,
-              left: -8,
-              zIndex: 25,
-              background: "#ffffff",
-              border: "1px solid #bbf7d0",
-              padding: "5px 12px",
-              borderRadius: 999,
-              boxShadow: "0 6px 18px rgba(16, 185, 129, 0.12), 0 2px 6px rgba(15, 23, 42, 0.04)",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 11,
-              fontWeight: 750,
-              color: "#065f46",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <TrendingUp size={13} color="#059669" strokeWidth={2.5} />
-            <span>+0.36 SGPA Velocity &bull; Top 5%</span>
-          </div>
-
-          {/* Float Wrapper */}
           <div className="gf-hero-float-wrapper">
             <div
               className="gf-hero-report-card"
@@ -394,14 +344,14 @@ export default function HeroSection({
                 width: "100%",
                 background: "#ffffff",
                 borderRadius: 18,
-                border: "1px solid rgba(226, 232, 240, 0.95)",
-                boxShadow: "0 20px 48px -12px rgba(15, 23, 42, 0.11), 0 8px 20px -6px rgba(15, 23, 42, 0.05), 0 0 0 1px rgba(15, 23, 42, 0.02)",
-                padding: "20px 22px",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 20px 48px -12px rgba(15, 23, 42, 0.08), 0 6px 18px -4px rgba(15, 23, 42, 0.04), 0 0 0 1px rgba(15, 23, 42, 0.02)",
+                padding: "22px 24px",
                 fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
                 cursor: "default",
               }}
             >
-              {/* Card Header: Institutional Branding & Live Sync Beacon */}
+              {/* Card Header: Institutional Identity & Live Record Pill */}
               <div
                 style={{
                   display: "flex",
@@ -409,14 +359,14 @@ export default function HeroSection({
                   justifyContent: "space-between",
                   paddingBottom: 14,
                   borderBottom: "1px solid #f1f5f9",
-                  marginBottom: 14,
+                  marginBottom: 16,
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div
                     style={{
-                      width: 32,
-                      height: 32,
+                      width: 34,
+                      height: 34,
                       borderRadius: 9,
                       background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
                       border: "1px solid #bfdbfe",
@@ -427,35 +377,34 @@ export default function HeroSection({
                       flexShrink: 0,
                     }}
                   >
-                    <GraduationCap size={17} strokeWidth={2.4} />
+                    <GraduationCap size={18} strokeWidth={2.4} />
                   </div>
                   <div style={{ textAlign: "left" }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", lineHeight: 1.2 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a", lineHeight: 1.2 }}>
                       Centurion University
                     </div>
-                    <div style={{ fontSize: 10.5, color: "#64748b", fontWeight: 500, marginTop: 1 }}>
+                    <div style={{ fontSize: 11, color: "#64748b", fontWeight: 500, marginTop: 1 }}>
                       B.Tech CSE &bull; Batch 2023–27
                     </div>
                   </div>
                 </div>
 
-                {/* Animated Live Sync Indicator */}
                 <div
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
-                    fontSize: 10.5,
-                    fontWeight: 700,
+                    fontSize: 11,
+                    fontWeight: 750,
                     color: "#065f46",
                     background: "#ecfdf5",
                     border: "1px solid #a7f3d0",
-                    padding: "3px 8px",
-                    borderRadius: 6,
+                    padding: "4px 9px",
+                    borderRadius: 999,
                   }}
                 >
                   <motion.span
-                    animate={{ scale: [1, 1.35, 1], opacity: [1, 0.6, 1] }}
+                    animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
                     transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
                     style={{
                       width: 6,
@@ -466,35 +415,43 @@ export default function HeroSection({
                       boxShadow: "0 0 6px #10b981",
                     }}
                   />
-                  <span>Live Engine</span>
+                  <ShieldCheck size={13} color="#059669" strokeWidth={2.5} />
+                  <span>Verified Record</span>
                 </div>
               </div>
 
-              {/* Active Semester Metric Display & Trend Pill */}
+              {/* Primary Metric Section (Open & Seamless, No Nested Gray Box) */}
               <div
                 style={{
                   display: "flex",
-                  alignItems: "center",
+                  alignItems: "flex-end",
                   justifyContent: "space-between",
-                  background: "linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)",
-                  border: "1px solid #dbeafe",
-                  borderRadius: 14,
-                  padding: "12px 14px",
-                  marginBottom: 14,
+                  marginBottom: 16,
+                  paddingTop: 2,
                 }}
               >
-                <div style={{ textAlign: "left" }}>
-                  <div style={{ fontSize: 10, fontWeight: 750, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                    {activeSem.label} SGPA
+                <div>
+                  <div
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 750,
+                      color: "#64748b",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      marginBottom: 4,
+                    }}
+                  >
+                    {activeSem.label} Performance
                   </div>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 2 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
                     <span
                       style={{
-                        fontSize: 26,
-                        fontWeight: 900,
+                        fontSize: 32,
+                        fontWeight: 850,
                         color: "#0f172a",
                         fontFamily: "'Space Mono', monospace",
                         lineHeight: 1,
+                        letterSpacing: "-0.02em",
                       }}
                     >
                       {activeSem.sgpa.toFixed(2)}
@@ -504,137 +461,53 @@ export default function HeroSection({
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 3,
-                        fontSize: 10,
-                        fontWeight: 800,
+                        fontSize: 10.5,
+                        fontWeight: 750,
                         color: "#15803d",
-                        background: "#dcfce7",
-                        padding: "2px 6px",
-                        borderRadius: 5,
+                        background: "#ecfdf5",
+                        border: "1px solid #bbf7d0",
+                        padding: "2px 7px",
+                        borderRadius: 6,
                       }}
                     >
                       <TrendingUp size={11} strokeWidth={2.8} />
-                      <span>{activeSem.sem === 6 ? "+0.36" : "+0.12"}</span>
+                      <span>{activeSemIndex === 0 ? "Baseline" : `${velocityText} SGPA`}</span>
                     </span>
                   </div>
                 </div>
 
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 10, fontWeight: 750, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                    Cumulative CGPA
+                  <div
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 750,
+                      color: "#64748b",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      marginBottom: 3,
+                    }}
+                  >
+                    Overall CGPA
                   </div>
                   <div
                     style={{
-                      fontSize: 18,
-                      fontWeight: 900,
+                      fontSize: 20,
+                      fontWeight: 850,
                       color: "#2563eb",
                       fontFamily: "'Space Mono', monospace",
-                      marginTop: 2,
+                      lineHeight: 1.1,
                     }}
                   >
                     {activeSem.cgpa.toFixed(2)}
                   </div>
-                  <div style={{ fontSize: 10, color: "#059669", fontWeight: 700, marginTop: 1 }}>
+                  <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, marginTop: 2 }}>
                     {activeSem.credits} Cr Cleared
                   </div>
                 </div>
               </div>
 
-              {/* Interactive 6-Semester Progression Sparkline / Bar Graph */}
-              <div style={{ marginBottom: 14 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    fontSize: 10.5,
-                    fontWeight: 750,
-                    color: "#64748b",
-                    marginBottom: 8,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.04em",
-                  }}
-                >
-                  <span>Progression (Sem 1 – 6)</span>
-                  <span style={{ color: "#2563eb", fontWeight: 800, textTransform: "none" }}>
-                    Tap bar to switch
-                  </span>
-                </div>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(6, 1fr)",
-                    gap: 6,
-                    height: 62,
-                    alignItems: "end",
-                    background: "#f8fafc",
-                    padding: "8px 10px 4px 10px",
-                    borderRadius: 12,
-                    border: "1px solid #f1f5f9",
-                  }}
-                >
-                  {SEMESTERS.map((s, idx) => {
-                    const isSelected = activeSemIndex === idx;
-                    return (
-                      <button
-                        key={s.sem}
-                        type="button"
-                        onClick={() => setActiveSemIndex(idx)}
-                        onMouseEnter={() => setActiveSemIndex(idx)}
-                        style={{
-                          height: "100%",
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "flex-end",
-                          alignItems: "center",
-                          background: "transparent",
-                          border: "none",
-                          padding: 0,
-                          cursor: "pointer",
-                          outline: "none",
-                        }}
-                      >
-                        <motion.div
-                          initial={{ height: 0 }}
-                          animate={{ height: `${s.height}%` }}
-                          transition={{ duration: 0.5, delay: idx * 0.06, ease: "easeOut" }}
-                          style={{
-                            width: "100%",
-                            borderRadius: 4,
-                            background: isSelected
-                              ? "linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%)"
-                              : "linear-gradient(180deg, #cbd5e1 0%, #94a3b8 100%)",
-                            boxShadow: isSelected ? "0 2px 8px rgba(37, 99, 235, 0.4)" : "none",
-                            transition: "background 0.15s ease, box-shadow 0.15s ease",
-                          }}
-                        />
-                        <span
-                          style={{
-                            fontSize: 9.5,
-                            fontWeight: isSelected ? 800 : 600,
-                            color: isSelected ? "#2563eb" : "#94a3b8",
-                            marginTop: 3,
-                            fontFamily: "'Space Mono', monospace",
-                          }}
-                        >
-                          S{s.sem}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Interactive Target GPA Simulator Slider (Clean 2 Lines) */}
-              <div
-                style={{
-                  background: "#fcfdfe",
-                  border: "1px solid #f1f5f9",
-                  borderRadius: 12,
-                  padding: "10px 12px",
-                  marginBottom: 12,
-                }}
-              >
+              {/* Fluid SVG Trajectory Spline Wave (Replaces Chunky Rectangular Buttons) */}
+              <div style={{ marginBottom: 16 }}>
                 <div
                   style={{
                     display: "flex",
@@ -643,23 +516,156 @@ export default function HeroSection({
                     marginBottom: 6,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 800, color: "#0f172a" }}>
-                    <Zap size={13} color="#2563eb" strokeWidth={2.6} />
+                  <span
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 750,
+                      color: "#64748b",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    Semester Progression
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "#2563eb",
+                      fontWeight: 650,
+                    }}
+                  >
+                    Interactive Curve
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    width: "100%",
+                    background: "linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)",
+                    borderRadius: 12,
+                    border: "1px solid #f1f5f9",
+                    padding: "10px 8px 6px 8px",
+                  }}
+                >
+                  <svg
+                    viewBox="0 0 368 96"
+                    style={{ width: "100%", height: "auto", display: "block", overflow: "visible" }}
+                  >
+                    <defs>
+                      <linearGradient id="gfTrajectoryGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#2563eb" stopOpacity="0.22" />
+                        <stop offset="100%" stopColor="#2563eb" stopOpacity="0.00" />
+                      </linearGradient>
+                    </defs>
+
+                    {/* Baseline reference line */}
+                    <line x1="20" y1="76" x2="348" y2="76" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="3 3" />
+
+                    {/* Smooth gradient area beneath spline */}
+                    <path
+                      d="M 24 62 C 56 62, 56 50, 88 50 C 120 50, 120 47, 152 47 C 184 47, 184 40, 216 40 C 248 40, 248 35, 280 35 C 312 35, 312 18, 344 18 L 344 76 L 24 76 Z"
+                      fill="url(#gfTrajectoryGradient)"
+                    />
+
+                    {/* Smooth stroke spline */}
+                    <path
+                      d="M 24 62 C 56 62, 56 50, 88 50 C 120 50, 120 47, 152 47 C 184 47, 184 40, 216 40 C 248 40, 248 35, 280 35 C 312 35, 312 18, 344 18"
+                      fill="none"
+                      stroke="#2563eb"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                    {/* Interactive semester node dots */}
+                    {SEMESTERS.map((s, idx) => {
+                      const isSelected = activeSemIndex === idx;
+                      return (
+                        <g
+                          key={s.sem}
+                          onClick={() => setActiveSemIndex(idx)}
+                          onMouseEnter={() => setActiveSemIndex(idx)}
+                          style={{ cursor: "pointer", outline: "none" }}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Semester ${s.sem} SGPA ${s.sgpa.toFixed(2)}`}
+                        >
+                          {/* Extended invisible hit target for effortless tapping/hovering */}
+                          <circle cx={s.x} cy={s.y} r="18" fill="transparent" />
+
+                          {/* Active glowing ring or quiet dot */}
+                          {isSelected ? (
+                            <>
+                              <circle cx={s.x} cy={s.y} r="9" fill="rgba(37, 99, 235, 0.18)" />
+                              <circle cx={s.x} cy={s.y} r="5.5" fill="#ffffff" stroke="#2563eb" strokeWidth="2.5" />
+                              <circle cx={s.x} cy={s.y} r="2.5" fill="#2563eb" />
+                            </>
+                          ) : (
+                            <circle
+                              cx={s.x}
+                              cy={s.y}
+                              r="4"
+                              fill="#ffffff"
+                              stroke="#94a3b8"
+                              strokeWidth="2"
+                              style={{ transition: "all 0.15s ease" }}
+                            />
+                          )}
+
+                          {/* Semester Labels aligned underneath */}
+                          <text
+                            x={s.x}
+                            y="91"
+                            textAnchor="middle"
+                            fill={isSelected ? "#2563eb" : "#64748b"}
+                            fontSize="10"
+                            fontWeight={isSelected ? "800" : "600"}
+                            fontFamily="'Space Mono', monospace"
+                          >
+                            S{s.sem}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
+              </div>
+
+              {/* Target GPA Simulator (Google Material 3 slider, integrated, not bulky) */}
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #f1f5f9",
+                  borderRadius: 12,
+                  padding: "12px 14px",
+                  marginBottom: 14,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 8,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 750, color: "#0f172a" }}>
+                    <Zap size={14} color="#2563eb" strokeWidth={2.5} />
                     <span>Simulate Sem 7 Target</span>
                   </div>
                   <span
                     style={{
                       fontSize: 11,
-                      fontWeight: 850,
+                      fontWeight: 800,
                       color: "#2563eb",
                       background: "#eff6ff",
                       border: "1px solid #bfdbfe",
-                      padding: "1px 6px",
-                      borderRadius: 5,
+                      padding: "2px 8px",
+                      borderRadius: 6,
                       fontFamily: "'Space Mono', monospace",
                     }}
                   >
-                    {targetSimGpa.toFixed(2)} SGPA
+                    {targetSimGpa.toFixed(2)} SGPA &bull; {projectedCgpa} Projected
                   </span>
                 </div>
 
@@ -682,22 +688,22 @@ export default function HeroSection({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    marginTop: 7,
-                    fontSize: 10,
+                    marginTop: 8,
+                    fontSize: 10.5,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#065f46", fontWeight: 700 }}>
-                    <CheckCircle2 size={12} color="#059669" strokeWidth={2.5} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#065f46", fontWeight: 700 }}>
+                    <CheckCircle2 size={13} color="#059669" strokeWidth={2.5} />
                     <span>{targetSimGpa >= 9.0 ? "50/50 Placement Cutoffs Unlocked" : "44/50 Placement Cutoffs Unlocked"}</span>
                   </div>
                   <span
                     style={{
-                      fontSize: 9.5,
+                      fontSize: 10,
                       fontWeight: 800,
                       color: targetSimGpa >= 9.0 ? "#059669" : "#2563eb",
                       background: targetSimGpa >= 9.0 ? "#ecfdf5" : "#eff6ff",
                       border: `1px solid ${targetSimGpa >= 9.0 ? "#a7f3d0" : "#bfdbfe"}`,
-                      padding: "1px 6px",
+                      padding: "1px 7px",
                       borderRadius: 4,
                     }}
                   >
@@ -706,27 +712,30 @@ export default function HeroSection({
                 </div>
               </div>
 
-              {/* Bottom Compact Trust Row: SVGs Only, No Emojis */}
+              {/* Bottom Trust Line (SVGs Only, No Emojis) */}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
                   borderTop: "1px solid #f1f5f9",
-                  paddingTop: 8,
+                  paddingTop: 10,
+                  fontSize: 11,
+                  color: "#64748b",
+                  fontWeight: 650,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10.5, color: "#64748b", fontWeight: 650 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                   <FileCheck size={13} color="#2563eb" strokeWidth={2.4} />
                   <span>160 Cr Degree</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10.5, color: "#64748b", fontWeight: 650 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                   <Award size={13} color="#059669" strokeWidth={2.4} />
                   <span>Top 5% Rank</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10.5, color: "#64748b", fontWeight: 650 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                   <Sparkles size={13} color="#2563eb" strokeWidth={2.4} />
-                  <span>0s Downtime</span>
+                  <span>Zero Downtime</span>
                 </div>
               </div>
             </div>
