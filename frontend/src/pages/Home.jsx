@@ -178,10 +178,10 @@ export default function Home() {
 
         {/* 12. Interactive Product Tour */}
         <ProductTourSection />
-
-        {/* 13. Security / Trust */}
-        <SecuritySection />
       </div>
+
+      {/* 13. Security & Trust Architecture (Visible & Responsive on All Devices) */}
+      <SecuritySection />
 
       {/* 14. FAQ (Optimized & Visible on All Devices) */}
       <FaqSection />

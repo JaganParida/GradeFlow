@@ -329,6 +329,20 @@ export default function LandingFooter({ onNavigateSection }) {
                   Cookie Policy
                 </Link>
               </li>
+              <li>
+                <a
+                  href="#security"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigateSection("security");
+                  }}
+                  style={{ color: "#64748b", textDecoration: "none", transition: "color 0.15s" }}
+                  onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
+                  onMouseLeave={(e) => (e.target.style.color = "#64748b")}
+                >
+                  Security Architecture
+                </a>
+              </li>
               {canSeeAdmin && (
                 <li>
                   <Link

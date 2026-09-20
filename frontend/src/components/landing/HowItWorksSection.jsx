@@ -6,7 +6,7 @@ const STEPS = [
     step: "01",
     title: "ACCESS",
     headline: "Keep your academic information organized",
-    desc: "Sign in with your university registration number. Verify your identity with a secure, passwordless OTP sent to your registered email.",
+    desc: "Sign in with your university registration number and account password, protected by attempt-limited brute force defense and encrypted email recovery.",
     icon: <Lock size={20} color="#2563eb" />,
     color: "#2563eb",
     bg: "#eff6ff",

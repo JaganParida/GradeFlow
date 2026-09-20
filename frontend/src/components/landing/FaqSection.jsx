@@ -31,7 +31,7 @@ const FAQ_ITEMS = [
   {
     question: "How is my academic information protected?",
     answer:
-      "GradeFlow uses passwordless, time-limited OTP verification sent directly to your registered university email. Active student sessions are monitored with device-aware controls, and academic records are strictly scoped to authenticated student identities on protected server infrastructure.",
+      "GradeFlow secures student accounts with encrypted bcrypt passwords, attempt-limited brute-force defense, and 5-minute single-use email recovery tokens. Active sessions enforce single-device access with real-time in-app transfer approvals, keeping academic records private, encrypted, and strictly scoped to authenticated student sessions.",
   },
 ];
 
