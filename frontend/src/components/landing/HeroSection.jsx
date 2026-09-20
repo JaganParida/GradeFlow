@@ -672,8 +672,8 @@ export default function HeroSection({
                   onChange={(e) => setTargetSimGpa(parseFloat(e.target.value))}
                   style={{
                     width: "100%",
-                    height: 7,
-                    background: `linear-gradient(to right, #2563eb 0%, #2563eb ${Math.max(0, Math.min(100, ((targetSimGpa - 8.5) / (10.0 - 8.5)) * 100))}%, #e2e8f0 ${Math.max(0, Math.min(100, ((targetSimGpa - 8.5) / (10.0 - 8.5)) * 100))}%, #e2e8f0 100%)`,
+                    height: 4,
+                    background: `linear-gradient(to right, #2563eb 0%, #2563eb ${Math.max(0, Math.min(100, ((targetSimGpa - 8.5) / (10.0 - 8.5)) * 100))}%, #dadce0 ${Math.max(0, Math.min(100, ((targetSimGpa - 8.5) / (10.0 - 8.5)) * 100))}%, #dadce0 100%)`,
                   }}
                 />
 

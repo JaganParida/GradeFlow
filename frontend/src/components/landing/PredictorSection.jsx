@@ -171,8 +171,8 @@ export default function PredictorSection({ onOpenPredictorTool }) {
                   onChange={(e) => setCurrentCgpa(parseFloat(e.target.value))}
                   style={{
                     width: "100%",
-                    height: 7,
-                    background: `linear-gradient(to right, #2563eb 0%, #2563eb ${Math.max(0, Math.min(100, ((currentCgpa - 6.0) / (10.0 - 6.0)) * 100))}%, #e2e8f0 ${Math.max(0, Math.min(100, ((currentCgpa - 6.0) / (10.0 - 6.0)) * 100))}%, #e2e8f0 100%)`,
+                    height: 4,
+                    background: `linear-gradient(to right, #2563eb 0%, #2563eb ${Math.max(0, Math.min(100, ((currentCgpa - 6.0) / (10.0 - 6.0)) * 100))}%, #dadce0 ${Math.max(0, Math.min(100, ((currentCgpa - 6.0) / (10.0 - 6.0)) * 100))}%, #dadce0 100%)`,
                   }}
                 />
               </div>
@@ -191,8 +191,8 @@ export default function PredictorSection({ onOpenPredictorTool }) {
                   onChange={(e) => setTargetCgpa(parseFloat(e.target.value))}
                   style={{
                     width: "100%",
-                    height: 7,
-                    background: `linear-gradient(to right, #2563eb 0%, #2563eb ${Math.max(0, Math.min(100, ((targetCgpa - 6.5) / (10.0 - 6.5)) * 100))}%, #e2e8f0 ${Math.max(0, Math.min(100, ((targetCgpa - 6.5) / (10.0 - 6.5)) * 100))}%, #e2e8f0 100%)`,
+                    height: 4,
+                    background: `linear-gradient(to right, #2563eb 0%, #2563eb ${Math.max(0, Math.min(100, ((targetCgpa - 6.5) / (10.0 - 6.5)) * 100))}%, #dadce0 ${Math.max(0, Math.min(100, ((targetCgpa - 6.5) / (10.0 - 6.5)) * 100))}%, #dadce0 100%)`,
                   }}
                 />
               </div>
@@ -245,8 +245,8 @@ export default function PredictorSection({ onOpenPredictorTool }) {
                   onChange={(e) => setInternalMarks(parseInt(e.target.value))}
                   style={{
                     width: "100%",
-                    height: 7,
-                    background: `linear-gradient(to right, #2563eb 0%, #2563eb ${maxInternal > 0 ? Math.max(0, Math.min(100, (internalMarks / maxInternal) * 100)) : 0}%, #e2e8f0 ${maxInternal > 0 ? Math.max(0, Math.min(100, (internalMarks / maxInternal) * 100)) : 0}%, #e2e8f0 100%)`,
+                    height: 4,
+                    background: `linear-gradient(to right, #2563eb 0%, #2563eb ${maxInternal > 0 ? Math.max(0, Math.min(100, (internalMarks / maxInternal) * 100)) : 0}%, #dadce0 ${maxInternal > 0 ? Math.max(0, Math.min(100, (internalMarks / maxInternal) * 100)) : 0}%, #dadce0 100%)`,
                   }}
                 />
               </div>

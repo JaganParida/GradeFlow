@@ -195,8 +195,8 @@ export default function PlacementSection({ onOpenPlacement }) {
             onChange={(e) => setDemoCgpa(parseFloat(e.target.value))}
             style={{
               width: 140,
-              height: 7,
-              background: `linear-gradient(to right, #2563eb 0%, #2563eb ${Math.max(0, Math.min(100, ((demoCgpa - 6.0) / (9.5 - 6.0)) * 100))}%, #e2e8f0 ${Math.max(0, Math.min(100, ((demoCgpa - 6.0) / (9.5 - 6.0)) * 100))}%, #e2e8f0 100%)`,
+              height: 4,
+              background: `linear-gradient(to right, #2563eb 0%, #2563eb ${Math.max(0, Math.min(100, ((demoCgpa - 6.0) / (9.5 - 6.0)) * 100))}%, #dadce0 ${Math.max(0, Math.min(100, ((demoCgpa - 6.0) / (9.5 - 6.0)) * 100))}%, #dadce0 100%)`,
             }}
           />
           <span style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8", background: "#eff6ff", border: "1px solid #bfdbfe", padding: "4px 10px", borderRadius: 6 }}>

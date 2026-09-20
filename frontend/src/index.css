@@ -3103,18 +3103,20 @@ input[type="number"] {
   appearance: textfield;
 }
 
-/* ── GradeFlow Ultra-Clean Blue Range Slider UI/UX ─────────── */
+/* ── GradeFlow Ultra-Clean Big Tech / Google Material 3 Range Slider ── */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 7px;
-  background: #e2e8f0;
+  height: 4px;
+  background: #dadce0;
   border-radius: 999px;
   outline: none;
   cursor: pointer;
   touch-action: pan-x;
-  accent-color: #2563eb;
+  border: none;
+  padding: 0;
+  margin: 8px 0;
   vertical-align: middle;
   transition: background 0.15s ease;
 }
@@ -3123,72 +3125,72 @@ input[type="range"]:focus-visible {
   outline: none;
 }
 
-/* WebKit / Blink Thumb */
+/* WebKit / Blink Thumb - Solid Google Blue with Material Ripple */
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 19px;
-  height: 19px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: #2563eb;
   cursor: pointer;
   cursor: grab;
-  border: 2.5px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.38), 0 0 0 1px rgba(37, 99, 235, 0.15);
-  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease, background-color 0.15s ease;
+  border: none;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.3), 0 2px 6px rgba(37, 99, 235, 0.35);
+  transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s ease, background-color 0.15s ease;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
   transform: scale(1.18);
   background: #1d4ed8;
-  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.45), 0 0 0 2.5px #ffffff, 0 0 0 5.5px rgba(37, 99, 235, 0.16);
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.3), 0 2px 6px rgba(37, 99, 235, 0.35), 0 0 0 8px rgba(37, 99, 235, 0.15);
 }
 
 input[type="range"]::-webkit-slider-thumb:active {
-  transform: scale(1.08);
+  transform: scale(1.25);
   cursor: grabbing;
   background: #1e40af;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.5), 0 0 0 2.5px #ffffff, 0 0 0 7px rgba(37, 99, 235, 0.22);
+  box-shadow: 0 2px 5px rgba(60, 64, 67, 0.3), 0 3px 8px rgba(37, 99, 235, 0.45), 0 0 0 12px rgba(37, 99, 235, 0.22);
 }
 
 /* Firefox Track, Progress & Thumb */
 input[type="range"]::-moz-range-track {
-  height: 7px;
-  background: #e2e8f0;
+  height: 4px;
+  background: #dadce0;
   border-radius: 999px;
   border: none;
 }
 
 input[type="range"]::-moz-range-progress {
-  height: 7px;
-  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  height: 4px;
+  background: #2563eb;
   border-radius: 999px;
   border: none;
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 19px;
-  height: 19px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: #2563eb;
   cursor: pointer;
   cursor: grab;
-  border: 2.5px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.38), 0 0 0 1px rgba(37, 99, 235, 0.15);
-  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease, background-color 0.15s ease;
+  border: none;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.3), 0 2px 6px rgba(37, 99, 235, 0.35);
+  transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s ease, background-color 0.15s ease;
 }
 
 input[type="range"]::-moz-range-thumb:hover {
   transform: scale(1.18);
   background: #1d4ed8;
-  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.45), 0 0 0 2.5px #ffffff, 0 0 0 5.5px rgba(37, 99, 235, 0.16);
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.3), 0 2px 6px rgba(37, 99, 235, 0.35), 0 0 0 8px rgba(37, 99, 235, 0.15);
 }
 
 input[type="range"]::-moz-range-thumb:active {
-  transform: scale(1.08);
+  transform: scale(1.25);
   cursor: grabbing;
   background: #1e40af;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.5), 0 0 0 2.5px #ffffff, 0 0 0 7px rgba(37, 99, 235, 0.22);
+  box-shadow: 0 2px 5px rgba(60, 64, 67, 0.3), 0 3px 8px rgba(37, 99, 235, 0.45), 0 0 0 12px rgba(37, 99, 235, 0.22);
 }
 
 /* ── GradeFlow Landing Page Specific Styles ─────────── */
