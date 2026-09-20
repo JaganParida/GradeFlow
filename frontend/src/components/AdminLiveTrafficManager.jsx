@@ -107,11 +107,13 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
 
     try {
       const actualHeaders = authHeaders?.headers || authHeaders || {};
+      const token = typeof window !== "undefined" ? (localStorage.getItem("adminToken") || localStorage.getItem("token")) : null;
       const res = await axios.get(`${API}/admin/traffic/live-overview`, {
         withCredentials: true,
         headers: {
           ...actualHeaders,
           "X-Requested-With": "XMLHttpRequest",
+          ...(token ? { "x-admin-token": token } : {}),
         },
       });
 
