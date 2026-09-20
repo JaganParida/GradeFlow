@@ -307,51 +307,79 @@ export default function HeroSection({
           </motion.div>
         </div>
 
-        {/* Right Column: High-Performance GPU Tilted Official Report Card */}
-        <div style={{ position: "relative", width: "100%", maxWidth: 490, margin: "0 auto" }}>
-          {/* Ambient Glow */}
+        {/* Right Column: Ultra-Modern Academic Intelligence Hub Card */}
+        <div style={{ position: "relative", width: "100%", maxWidth: 500, margin: "0 auto" }}>
+          {/* Ambient Multi-Layer Glow */}
           <div
             aria-hidden="true"
             style={{
               position: "absolute",
-              top: "10%",
-              left: "15%",
-              width: "380px",
-              height: "380px",
-              background: "radial-gradient(circle, rgba(37, 99, 235, 0.12) 0%, rgba(255, 255, 255, 0) 70%)",
-              filter: "blur(50px)",
+              top: "8%",
+              left: "10%",
+              width: "400px",
+              height: "400px",
+              background: "radial-gradient(circle, rgba(37, 99, 235, 0.12) 0%, rgba(99, 102, 241, 0.05) 50%, rgba(255, 255, 255, 0) 70%)",
+              filter: "blur(60px)",
               zIndex: 0,
               pointerEvents: "none",
             }}
           />
 
-          {/* Floating Subtle Top Stamp Badge */}
+          {/* Floating Top-Right Verified Record Pill */}
           <div
+            className="gf-floating-badge-top"
             style={{
               position: "absolute",
               top: -14,
-              right: 16,
+              right: 18,
               zIndex: 25,
               background: "#ffffff",
               border: "1px solid #bfdbfe",
-              padding: "5px 12px",
+              padding: "6px 14px",
               borderRadius: 999,
-              boxShadow: "0 6px 16px rgba(37, 99, 235, 0.12)",
+              boxShadow: "0 8px 20px rgba(37, 99, 235, 0.14), 0 2px 6px rgba(15, 23, 42, 0.04)",
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              fontSize: 11.5,
+              fontWeight: 750,
+              color: "#1d4ed8",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 8px #10b981" }} />
+            <ShieldCheck size={14} color="#2563eb" strokeWidth={2.4} />
+            <span>Verified Institutional Record</span>
+          </div>
+
+          {/* Floating Bottom-Left Velocity Pill */}
+          <div
+            className="gf-floating-badge-bottom"
+            style={{
+              position: "absolute",
+              bottom: -12,
+              left: -10,
+              zIndex: 25,
+              background: "#ffffff",
+              border: "1px solid #bbf7d0",
+              padding: "6px 14px",
+              borderRadius: 999,
+              boxShadow: "0 8px 22px rgba(16, 185, 129, 0.14), 0 2px 6px rgba(15, 23, 42, 0.04)",
               display: "flex",
               alignItems: "center",
               gap: 6,
               fontSize: 11.5,
               fontWeight: 750,
-              color: "#1d4ed8",
+              color: "#065f46",
+              whiteSpace: "nowrap",
             }}
           >
-            <ShieldCheck size={14} color="#2563eb" />
-            <span>Verified Institutional Record</span>
+            <TrendingUp size={14} color="#059669" strokeWidth={2.5} />
+            <span>+0.36 SGPA Velocity &bull; Top 5% in CSE</span>
           </div>
 
           {/* Float Wrapper Separates Continuous Animation from Hover State */}
           <div className="gf-hero-float-wrapper">
-            {/* Inner Report Card with Instant CSS Hover Transition */}
             <div
               className="gf-hero-report-card"
               style={{
@@ -359,158 +387,330 @@ export default function HeroSection({
                 zIndex: 10,
                 width: "100%",
                 background: "#ffffff",
-                borderRadius: 14,
-                border: "1px solid #cbd5e1",
-                boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.14), 0 10px 20px -5px rgba(15, 23, 42, 0.08), 0 0 1px rgba(15, 23, 42, 0.18)",
-                padding: "24px 26px",
+                borderRadius: 18,
+                border: "1px solid rgba(226, 232, 240, 0.9)",
+                boxShadow: "0 24px 54px -14px rgba(15, 23, 42, 0.13), 0 10px 24px -8px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(15, 23, 42, 0.03)",
+                padding: "22px 24px",
                 fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
                 cursor: "default",
                 overflow: "hidden",
               }}
             >
-              {/* Full Content-Cover Light Green Glass Overlay Banner */}
-              <div
-                className="gf-hero-overlay-banner"
-                style={{
-                  position: "absolute",
-                  top: "43%",
-                  left: "-10px",
-                  width: "calc(100% + 20px)",
-                  transform: "translateY(-50%) rotate(-7deg)",
-                  zIndex: 20,
-                  background: "rgba(236, 253, 245, 0.97)",
-                  borderTop: "2px solid #34d399",
-                  borderBottom: "2px solid #34d399",
-                  padding: "8px 14px",
-                  boxShadow: "0 8px 20px rgba(5, 150, 105, 0.16)",
-                  pointerEvents: "none",
-                  textAlign: "center",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 11.5, fontWeight: 900, color: "#065f46", letterSpacing: "0.06em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                  <CheckCircle2 size={14} color="#059669" style={{ flexShrink: 0 }} />
-                  <span>ALL COURSES CLEARED &bull; 100% CREDITS</span>
-                </div>
-                <div style={{ fontSize: 9.5, fontWeight: 750, color: "#047857", marginTop: 2, letterSpacing: "0.04em", whiteSpace: "nowrap" }}>
-                  DISTINCTION ACADEMIC STANDING &bull; 9.10 SGPA
-                </div>
-              </div>
-
-              {/* University Document Header */}
-              <div style={{ borderBottom: "2px solid #0f172a", paddingBottom: 8, marginBottom: 10, textAlign: "center" }}>
-                <div style={{ fontSize: 9.5, fontWeight: 800, color: "#2563eb", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 2 }}>
-                  Centurion University of Technology and Management
-                </div>
-                <div style={{ fontSize: 13.5, fontWeight: 850, color: "#0f172a", letterSpacing: "-0.01em" }}>
-                  STATEMENT OF SEMESTER GRADES
-                </div>
-                <div style={{ fontSize: 10, color: "#64748b" }}>
-                  Batch 2023–2027 &bull; Semester 6 Regular Examination
-                </div>
-              </div>
-
-              {/* Student Details Grid with Masked XXX Registration Format */}
+              {/* Card Header: Institution & Semester */}
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 5,
-                  padding: "8px 12px",
-                  background: "#f8fafc",
-                  borderRadius: 8,
-                  border: "1px solid #f1f5f9",
-                  fontSize: 11.5,
-                  color: "#475569",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingBottom: 12,
+                  borderBottom: "1px solid #f1f5f9",
                   marginBottom: 12,
                 }}
               >
-                <div>Reg No: <strong style={{ color: "#0f172a", fontFamily: "'Space Mono', monospace" }}>23030112XXXX</strong></div>
-                <div>Branch: <strong style={{ color: "#0f172a" }}>CSE</strong></div>
-                <div>Student: <strong style={{ color: "#0f172a" }}>Demo Student</strong></div>
-                <div>Credits: <strong style={{ color: "#059669" }}>18 / 18 Cr Cleared</strong></div>
-              </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 10,
+                      background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+                      border: "1px solid #bfdbfe",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#2563eb",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <GraduationCap size={18} strokeWidth={2.4} />
+                  </div>
+                  <div style={{ textAlign: "left" }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", lineHeight: 1.2 }}>
+                      Centurion University
+                    </div>
+                    <div style={{ fontSize: 10.5, color: "#64748b", fontWeight: 500, marginTop: 1 }}>
+                      Batch 2023–27 &bull; Semester 6 Regular
+                    </div>
+                  </div>
+                </div>
 
-            {/* Course Ledger Table */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, fontWeight: 800, color: "#64748b", borderBottom: "1px solid #e2e8f0", paddingBottom: 4, letterSpacing: "0.04em" }}>
-                <span>COURSE CODE &bull; TITLE</span>
-                <span>GRADE / POINTS</span>
-              </div>
-
-              {COURSES.map((c, i) => (
                 <div
-                  key={i}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    color: "#059669",
+                    background: "#ecfdf5",
+                    border: "1px solid #a7f3d0",
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  <Award size={13} />
+                  <span>STATEMENT OF GRADES</span>
+                </div>
+              </div>
+
+              {/* Student Identity Bar */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  background: "#f8fafc",
+                  borderRadius: 11,
+                  padding: "9px 12px",
+                  border: "1px solid #e2e8f0",
+                  marginBottom: 12,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                  <div
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: "50%",
+                      background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                      color: "#ffffff",
+                      fontSize: 11,
+                      fontWeight: 800,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    DS
+                  </div>
+                  <div style={{ textAlign: "left" }}>
+                    <div style={{ fontSize: 12, fontWeight: 750, color: "#0f172a", lineHeight: 1.2 }}>
+                      Demo Student
+                    </div>
+                    <div style={{ fontSize: 10.5, color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
+                      23030112XXXX &bull; CSE
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>Degree Credits</div>
+                  <div style={{ fontSize: 11.5, fontWeight: 800, color: "#059669" }}>
+                    18 / 18 Cr Cleared
+                  </div>
+                </div>
+              </div>
+
+              {/* Distinction Standing Banner (Clean, Integrated & 100% Readable) */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  background: "linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: 11,
+                  padding: "8px 12px",
+                  marginBottom: 14,
+                  boxShadow: "0 2px 8px rgba(16, 185, 129, 0.06)",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <CheckCircle2 size={16} color="#059669" strokeWidth={2.4} style={{ flexShrink: 0 }} />
+                  <div style={{ textAlign: "left" }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 850, color: "#065f46", letterSpacing: "0.01em" }}>
+                      All Courses Cleared &bull; 100% Credits
+                    </div>
+                    <div style={{ fontSize: 10, color: "#047857", fontWeight: 600 }}>
+                      Distinction Standing &bull; Top 5% Department Rank
+                    </div>
+                  </div>
+                </div>
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 850,
+                    color: "#ffffff",
+                    background: "#059669",
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  PASSED
+                </span>
+              </div>
+
+              {/* Course Ledger (Crystal Clear Typography, Zero Text Obscurity) */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+                <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    padding: "4px 0",
-                    fontSize: 11.5,
-                    borderBottom: i < COURSES.length - 1 ? "1px solid #f8fafc" : "none",
+                    fontSize: 10,
+                    fontWeight: 800,
+                    color: "#64748b",
+                    padding: "0 4px 4px 4px",
+                    borderBottom: "1px solid #f1f5f9",
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
                   }}
                 >
-                  <div>
-                    <div style={{ fontWeight: 650, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 250 }}>
-                      {c.name}
-                    </div>
-                    <div style={{ fontSize: 10, color: "#64748b" }}>{c.code} &bull; {c.credits} Credits</div>
-                  </div>
-                  <span
+                  <span>Course Code &bull; Title</span>
+                  <span>Grade / Points</span>
+                </div>
+
+                {COURSES.map((c, i) => (
+                  <div
+                    key={i}
                     style={{
-                      padding: "2px 7px",
-                      borderRadius: 4,
-                      background: c.bg,
-                      color: c.color,
-                      fontWeight: 800,
-                      fontSize: 11,
-                      fontFamily: "'Space Mono', monospace",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "7px 10px",
+                      borderRadius: 8,
+                      background: "#fcfdfe",
+                      border: "1px solid #f1f5f9",
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#f8fafc";
+                      e.currentTarget.style.borderColor = "#e2e8f0";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "#fcfdfe";
+                      e.currentTarget.style.borderColor = "#f1f5f9";
                     }}
                   >
-                    {c.grade} ({c.pts})
-                  </span>
-                </div>
-              ))}
-            </div>
+                    <div style={{ textAlign: "left", minWidth: 0, flex: 1, paddingRight: 8 }}>
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          fontSize: 12,
+                          color: "#0f172a",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {c.name}
+                      </div>
+                      <div style={{ fontSize: 10, color: "#64748b", marginTop: 1 }}>
+                        <span style={{ fontFamily: "'Space Mono', monospace" }}>{c.code}</span> &bull; {c.credits} Credits
+                      </div>
+                    </div>
 
-            {/* Key Scores & Formal Verification Footer */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1.2fr 1.2fr 1fr",
-                gap: 8,
-                background: "#f8fafc",
-                padding: "8px 12px",
-                borderRadius: 8,
-                border: "1px solid #e2e8f0",
-                marginBottom: 10,
-                alignItems: "center",
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>Sem 6 SGPA</div>
-                <div style={{ fontSize: 16, fontWeight: 850, color: "#2563eb", fontFamily: "'Space Mono', monospace" }}>
-                  9.10
-                </div>
+                    <span
+                      style={{
+                        padding: "3px 8px",
+                        borderRadius: 6,
+                        background: c.bg,
+                        color: c.color,
+                        fontWeight: 800,
+                        fontSize: 11,
+                        fontFamily: "'Space Mono', monospace",
+                        flexShrink: 0,
+                        border: `1px solid ${c.color}25`,
+                      }}
+                    >
+                      {c.grade} ({c.pts})
+                    </span>
+                  </div>
+                ))}
               </div>
-              <div>
-                <div style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>Cumulative CGPA</div>
-                <div style={{ fontSize: 16, fontWeight: 850, color: "#0f172a", fontFamily: "'Space Mono', monospace" }}>
-                  8.74
-                </div>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: "#059669", background: "#ecfdf5", padding: "3px 6px", borderRadius: 4 }}>
-                  PASSED
-                </span>
-              </div>
-            </div>
 
-            {/* Document Bottom Seal */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #f1f5f9", paddingTop: 8, fontSize: 10.5, color: "#64748b" }}>
-              <span>Official CUTM Grade Record</span>
-              <span style={{ color: "#2563eb", fontWeight: 700 }}>Streamlined by GradeFlow</span>
+              {/* Dual Stat Metrics Cards: SGPA & Cumulative CGPA with Trend Indicator */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 10,
+                  marginBottom: 10,
+                }}
+              >
+                {/* SGPA Tile */}
+                <div
+                  style={{
+                    background: "linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)",
+                    border: "1px solid #dbeafe",
+                    borderRadius: 12,
+                    padding: "9px 12px",
+                    textAlign: "left",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 10, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                      Sem 6 SGPA
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 9.5,
+                        fontWeight: 800,
+                        color: "#15803d",
+                        background: "#dcfce7",
+                        padding: "1px 5px",
+                        borderRadius: 4,
+                      }}
+                    >
+                      +0.36 ▲
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: "#2563eb", fontFamily: "'Space Mono', monospace", lineHeight: 1.2, marginTop: 3 }}>
+                    9.10
+                  </div>
+                </div>
+
+                {/* CGPA Tile */}
+                <div
+                  style={{
+                    background: "linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 12,
+                    padding: "9px 12px",
+                    textAlign: "left",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 10, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                      Overall CGPA
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 9.5,
+                        fontWeight: 800,
+                        color: "#2563eb",
+                        background: "#eff6ff",
+                        padding: "1px 5px",
+                        borderRadius: 4,
+                      }}
+                    >
+                      87.4%
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", fontFamily: "'Space Mono', monospace", lineHeight: 1.2, marginTop: 3 }}>
+                    8.74
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Footer Seal */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  borderTop: "1px solid #f1f5f9",
+                  paddingTop: 8,
+                  fontSize: 10.5,
+                  color: "#64748b",
+                }}
+              >
+                <span>Official CUTM Grade Record</span>
+                <span style={{ color: "#2563eb", fontWeight: 750 }}>Streamlined by GradeFlow</span>
+              </div>
             </div>
-          </div>
           </div>
         </div>
       </div>

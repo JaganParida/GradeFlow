@@ -3183,15 +3183,15 @@ html {
 
 @keyframes gfFloatWrapper {
   0%, 100% {
-    transform: translate3d(0, 0px, 0) rotate(-2deg);
+    transform: translate3d(0, 0px, 0);
   }
   50% {
-    transform: translate3d(0, -6px, 0) rotate(-1.5deg);
+    transform: translate3d(0, -8px, 0);
   }
 }
 
 .gf-hero-float-wrapper {
-  animation: gfFloatWrapper 7s ease-in-out infinite;
+  animation: gfFloatWrapper 6s ease-in-out infinite;
   will-change: transform;
   transform-origin: center center;
 }
@@ -3201,14 +3201,14 @@ html {
 }
 
 .gf-hero-report-card {
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
 
 .gf-hero-float-wrapper:hover .gf-hero-report-card {
-  transform: translate3d(0, -3px, 0) rotate(1.8deg) scale(1.015);
-  box-shadow: 0 12px 32px -4px rgba(15, 23, 42, 0.08), 0 0 1px rgba(15, 23, 42, 0.1);
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 32px 64px -12px rgba(15, 23, 42, 0.16), 0 12px 28px -6px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(37, 99, 235, 0.1) !important;
 }
 
 /* ── Mobile & Small Device Optimization (max-width: 768px) ── */
@@ -3260,18 +3260,22 @@ html {
   }
 
   .gf-hero-report-card {
-    max-width: 390px !important;
+    max-width: 440px !important;
     margin: 0 auto !important;
-    padding: 16px 14px !important;
-    border-radius: 10px !important;
-    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08), 0 0 1px rgba(15, 23, 42, 0.15) !important;
+    padding: 18px 16px !important;
+    border-radius: 14px !important;
+    box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.1), 0 0 1px rgba(15, 23, 42, 0.15) !important;
   }
 
-  .gf-hero-overlay-banner {
-    transform: translateY(-50%) rotate(-5deg) !important;
-    padding: 6px 10px !important;
-    width: 108% !important;
-    left: -4% !important;
+  .gf-floating-badge-top {
+    top: -12px !important;
+    right: 8px !important;
+    font-size: 10.5px !important;
+    padding: 4px 10px !important;
+  }
+
+  .gf-floating-badge-bottom {
+    display: none !important;
   }
 
   .gf-capability-strip {
