@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -11,14 +11,17 @@ import {
   Award,
   FileCheck,
   Zap,
+  Sparkles,
   Loader2,
 } from "lucide-react";
 
-const COURSES = [
-  { code: "CUTM1029", name: "Distributed Systems & Cloud", credits: 4, grade: "O", points: 10, pts: "10 Pts", color: "#b45309", bg: "#fef3c7" },
-  { code: "CUTM1030", name: "Information Security & Cryptography", credits: 4, grade: "O", points: 10, pts: "10 Pts", color: "#b45309", bg: "#fef3c7" },
-  { code: "CUTM1031", name: "Deep Learning & AI Foundations", credits: 4, grade: "E", points: 9, pts: "9 Pts", color: "#15803d", bg: "#dcfce7" },
-  { code: "CUTM1032", name: "Full Stack Capstone Industrial Project", credits: 6, grade: "O", points: 10, pts: "10 Pts", color: "#b45309", bg: "#fef3c7" },
+const SEMESTERS = [
+  { sem: 1, sgpa: 8.20, cgpa: 8.20, credits: 22, height: 50, label: "Sem 1" },
+  { sem: 2, sgpa: 8.45, cgpa: 8.32, credits: 24, height: 60, label: "Sem 2" },
+  { sem: 3, sgpa: 8.50, cgpa: 8.38, credits: 26, height: 65, label: "Sem 3" },
+  { sem: 4, sgpa: 8.65, cgpa: 8.45, credits: 24, height: 75, label: "Sem 4" },
+  { sem: 5, sgpa: 8.74, cgpa: 8.52, credits: 22, height: 82, label: "Sem 5" },
+  { sem: 6, sgpa: 9.10, cgpa: 8.74, credits: 18, height: 100, label: "Sem 6" },
 ];
 
 export default function HeroSection({
@@ -29,6 +32,9 @@ export default function HeroSection({
   onLogin,
   onDashboard,
 }) {
+  const [activeSemIndex, setActiveSemIndex] = useState(5);
+  const [targetSimGpa, setTargetSimGpa] = useState(9.30);
+  const activeSem = SEMESTERS[activeSemIndex];
   return (
     <section
       className="gf-landing-hero"
@@ -307,78 +313,78 @@ export default function HeroSection({
           </motion.div>
         </div>
 
-        {/* Right Column: Ultra-Modern Academic Intelligence Hub Card */}
-        <div style={{ position: "relative", width: "100%", maxWidth: 500, margin: "0 auto" }}>
-          {/* Ambient Multi-Layer Glow */}
+        {/* Right Column: Sleek Compact Animated Academic Intelligence Cockpit */}
+        <div style={{ position: "relative", width: "100%", maxWidth: 440, margin: "0 auto" }}>
+          {/* Ambient Multi-Layer Radial Glow */}
           <div
             aria-hidden="true"
             style={{
               position: "absolute",
-              top: "8%",
+              top: "5%",
               left: "10%",
-              width: "400px",
-              height: "400px",
+              width: "360px",
+              height: "360px",
               background: "radial-gradient(circle, rgba(37, 99, 235, 0.12) 0%, rgba(99, 102, 241, 0.05) 50%, rgba(255, 255, 255, 0) 70%)",
-              filter: "blur(60px)",
+              filter: "blur(50px)",
               zIndex: 0,
               pointerEvents: "none",
             }}
           />
 
-          {/* Floating Top-Right Verified Record Pill */}
+          {/* Floating Top-Right Verified Record Pill (SVG Only, No Emojis) */}
           <div
             className="gf-floating-badge-top"
             style={{
               position: "absolute",
-              top: -14,
-              right: 18,
+              top: -12,
+              right: 14,
               zIndex: 25,
               background: "#ffffff",
               border: "1px solid #bfdbfe",
-              padding: "6px 14px",
+              padding: "5px 12px",
               borderRadius: 999,
-              boxShadow: "0 8px 20px rgba(37, 99, 235, 0.14), 0 2px 6px rgba(15, 23, 42, 0.04)",
+              boxShadow: "0 6px 18px rgba(37, 99, 235, 0.12), 0 2px 6px rgba(15, 23, 42, 0.04)",
               display: "flex",
               alignItems: "center",
-              gap: 7,
-              fontSize: 11.5,
+              gap: 6,
+              fontSize: 11,
               fontWeight: 750,
               color: "#1d4ed8",
               whiteSpace: "nowrap",
             }}
           >
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 8px #10b981" }} />
-            <ShieldCheck size={14} color="#2563eb" strokeWidth={2.4} />
-            <span>Verified Institutional Record</span>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 6px #10b981" }} />
+            <ShieldCheck size={13} color="#2563eb" strokeWidth={2.4} />
+            <span>Verified Record</span>
           </div>
 
-          {/* Floating Bottom-Left Velocity Pill */}
+          {/* Floating Bottom-Left Velocity Pill (SVG Only, No Emojis) */}
           <div
             className="gf-floating-badge-bottom"
             style={{
               position: "absolute",
-              bottom: -12,
-              left: -10,
+              bottom: -10,
+              left: -8,
               zIndex: 25,
               background: "#ffffff",
               border: "1px solid #bbf7d0",
-              padding: "6px 14px",
+              padding: "5px 12px",
               borderRadius: 999,
-              boxShadow: "0 8px 22px rgba(16, 185, 129, 0.14), 0 2px 6px rgba(15, 23, 42, 0.04)",
+              boxShadow: "0 6px 18px rgba(16, 185, 129, 0.12), 0 2px 6px rgba(15, 23, 42, 0.04)",
               display: "flex",
               alignItems: "center",
               gap: 6,
-              fontSize: 11.5,
+              fontSize: 11,
               fontWeight: 750,
               color: "#065f46",
               whiteSpace: "nowrap",
             }}
           >
-            <TrendingUp size={14} color="#059669" strokeWidth={2.5} />
-            <span>+0.36 SGPA Velocity &bull; Top 5% in CSE</span>
+            <TrendingUp size={13} color="#059669" strokeWidth={2.5} />
+            <span>+0.36 SGPA Velocity &bull; Top 5%</span>
           </div>
 
-          {/* Float Wrapper Separates Continuous Animation from Hover State */}
+          {/* Float Wrapper */}
           <div className="gf-hero-float-wrapper">
             <div
               className="gf-hero-report-card"
@@ -388,31 +394,30 @@ export default function HeroSection({
                 width: "100%",
                 background: "#ffffff",
                 borderRadius: 18,
-                border: "1px solid rgba(226, 232, 240, 0.9)",
-                boxShadow: "0 24px 54px -14px rgba(15, 23, 42, 0.13), 0 10px 24px -8px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(15, 23, 42, 0.03)",
-                padding: "22px 24px",
+                border: "1px solid rgba(226, 232, 240, 0.95)",
+                boxShadow: "0 20px 48px -12px rgba(15, 23, 42, 0.11), 0 8px 20px -6px rgba(15, 23, 42, 0.05), 0 0 0 1px rgba(15, 23, 42, 0.02)",
+                padding: "20px 22px",
                 fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
                 cursor: "default",
-                overflow: "hidden",
               }}
             >
-              {/* Card Header: Institution & Semester */}
+              {/* Card Header: Institutional Branding & Live Sync Beacon */}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  paddingBottom: 12,
+                  paddingBottom: 14,
                   borderBottom: "1px solid #f1f5f9",
-                  marginBottom: 12,
+                  marginBottom: 14,
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div
                     style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 10,
+                      width: 32,
+                      height: 32,
+                      borderRadius: 9,
                       background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
                       border: "1px solid #bfdbfe",
                       display: "flex",
@@ -422,293 +427,307 @@ export default function HeroSection({
                       flexShrink: 0,
                     }}
                   >
-                    <GraduationCap size={18} strokeWidth={2.4} />
+                    <GraduationCap size={17} strokeWidth={2.4} />
                   </div>
                   <div style={{ textAlign: "left" }}>
                     <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", lineHeight: 1.2 }}>
                       Centurion University
                     </div>
                     <div style={{ fontSize: 10.5, color: "#64748b", fontWeight: 500, marginTop: 1 }}>
-                      Batch 2023–27 &bull; Semester 6 Regular
+                      B.Tech CSE &bull; Batch 2023–27
                     </div>
                   </div>
                 </div>
 
+                {/* Animated Live Sync Indicator */}
                 <div
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 5,
+                    gap: 6,
                     fontSize: 10.5,
                     fontWeight: 700,
-                    color: "#059669",
+                    color: "#065f46",
                     background: "#ecfdf5",
                     border: "1px solid #a7f3d0",
                     padding: "3px 8px",
                     borderRadius: 6,
-                    letterSpacing: "0.02em",
                   }}
                 >
-                  <Award size={13} />
-                  <span>STATEMENT OF GRADES</span>
+                  <motion.span
+                    animate={{ scale: [1, 1.35, 1], opacity: [1, 0.6, 1] }}
+                    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: "#10b981",
+                      display: "inline-block",
+                      boxShadow: "0 0 6px #10b981",
+                    }}
+                  />
+                  <span>Live Engine</span>
                 </div>
               </div>
 
-              {/* Student Identity Bar */}
+              {/* Active Semester Metric Display & Trend Pill */}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  background: "#f8fafc",
-                  borderRadius: 11,
-                  padding: "9px 12px",
-                  border: "1px solid #e2e8f0",
-                  marginBottom: 12,
+                  background: "linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)",
+                  border: "1px solid #dbeafe",
+                  borderRadius: 14,
+                  padding: "12px 14px",
+                  marginBottom: 14,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                  <div
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: "50%",
-                      background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-                      color: "#ffffff",
-                      fontSize: 11,
-                      fontWeight: 800,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    DS
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: 10, fontWeight: 750, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    {activeSem.label} SGPA
                   </div>
-                  <div style={{ textAlign: "left" }}>
-                    <div style={{ fontSize: 12, fontWeight: 750, color: "#0f172a", lineHeight: 1.2 }}>
-                      Demo Student
-                    </div>
-                    <div style={{ fontSize: 10.5, color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
-                      23030112XXXX &bull; CSE
-                    </div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 2 }}>
+                    <span
+                      style={{
+                        fontSize: 26,
+                        fontWeight: 900,
+                        color: "#0f172a",
+                        fontFamily: "'Space Mono', monospace",
+                        lineHeight: 1,
+                      }}
+                    >
+                      {activeSem.sgpa.toFixed(2)}
+                    </span>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 3,
+                        fontSize: 10,
+                        fontWeight: 800,
+                        color: "#15803d",
+                        background: "#dcfce7",
+                        padding: "2px 6px",
+                        borderRadius: 5,
+                      }}
+                    >
+                      <TrendingUp size={11} strokeWidth={2.8} />
+                      <span>{activeSem.sem === 6 ? "+0.36" : "+0.12"}</span>
+                    </span>
                   </div>
                 </div>
 
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>Degree Credits</div>
-                  <div style={{ fontSize: 11.5, fontWeight: 800, color: "#059669" }}>
-                    18 / 18 Cr Cleared
+                  <div style={{ fontSize: 10, fontWeight: 750, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    Cumulative CGPA
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 18,
+                      fontWeight: 900,
+                      color: "#2563eb",
+                      fontFamily: "'Space Mono', monospace",
+                      marginTop: 2,
+                    }}
+                  >
+                    {activeSem.cgpa.toFixed(2)}
+                  </div>
+                  <div style={{ fontSize: 10, color: "#059669", fontWeight: 700, marginTop: 1 }}>
+                    {activeSem.credits} Cr Cleared
                   </div>
                 </div>
               </div>
 
-              {/* Distinction Standing Banner (Clean, Integrated & 100% Readable) */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  background: "linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)",
-                  border: "1px solid #bbf7d0",
-                  borderRadius: 11,
-                  padding: "8px 12px",
-                  marginBottom: 14,
-                  boxShadow: "0 2px 8px rgba(16, 185, 129, 0.06)",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                  <CheckCircle2 size={16} color="#059669" strokeWidth={2.4} style={{ flexShrink: 0 }} />
-                  <div style={{ textAlign: "left" }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 850, color: "#065f46", letterSpacing: "0.01em" }}>
-                      All Courses Cleared &bull; 100% Credits
-                    </div>
-                    <div style={{ fontSize: 10, color: "#047857", fontWeight: 600 }}>
-                      Distinction Standing &bull; Top 5% Department Rank
-                    </div>
-                  </div>
-                </div>
-                <span
-                  style={{
-                    fontSize: 10.5,
-                    fontWeight: 850,
-                    color: "#ffffff",
-                    background: "#059669",
-                    padding: "3px 8px",
-                    borderRadius: 6,
-                    letterSpacing: "0.04em",
-                  }}
-                >
-                  PASSED
-                </span>
-              </div>
-
-              {/* Course Ledger (Crystal Clear Typography, Zero Text Obscurity) */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+              {/* Interactive 6-Semester Progression Sparkline / Bar Graph */}
+              <div style={{ marginBottom: 14 }}>
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    fontSize: 10,
-                    fontWeight: 800,
+                    fontSize: 10.5,
+                    fontWeight: 750,
                     color: "#64748b",
-                    padding: "0 4px 4px 4px",
-                    borderBottom: "1px solid #f1f5f9",
-                    letterSpacing: "0.05em",
+                    marginBottom: 8,
                     textTransform: "uppercase",
+                    letterSpacing: "0.04em",
                   }}
                 >
-                  <span>Course Code &bull; Title</span>
-                  <span>Grade / Points</span>
+                  <span>Progression (Sem 1 – 6)</span>
+                  <span style={{ color: "#2563eb", fontWeight: 800, textTransform: "none" }}>
+                    Tap bar to switch
+                  </span>
                 </div>
 
-                {COURSES.map((c, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "7px 10px",
-                      borderRadius: 8,
-                      background: "#fcfdfe",
-                      border: "1px solid #f1f5f9",
-                      transition: "all 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#f8fafc";
-                      e.currentTarget.style.borderColor = "#e2e8f0";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "#fcfdfe";
-                      e.currentTarget.style.borderColor = "#f1f5f9";
-                    }}
-                  >
-                    <div style={{ textAlign: "left", minWidth: 0, flex: 1, paddingRight: 8 }}>
-                      <div
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(6, 1fr)",
+                    gap: 6,
+                    height: 62,
+                    alignItems: "end",
+                    background: "#f8fafc",
+                    padding: "8px 10px 4px 10px",
+                    borderRadius: 12,
+                    border: "1px solid #f1f5f9",
+                  }}
+                >
+                  {SEMESTERS.map((s, idx) => {
+                    const isSelected = activeSemIndex === idx;
+                    return (
+                      <button
+                        key={s.sem}
+                        type="button"
+                        onClick={() => setActiveSemIndex(idx)}
+                        onMouseEnter={() => setActiveSemIndex(idx)}
                         style={{
-                          fontWeight: 700,
-                          fontSize: 12,
-                          color: "#0f172a",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
+                          height: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "flex-end",
+                          alignItems: "center",
+                          background: "transparent",
+                          border: "none",
+                          padding: 0,
+                          cursor: "pointer",
+                          outline: "none",
                         }}
                       >
-                        {c.name}
-                      </div>
-                      <div style={{ fontSize: 10, color: "#64748b", marginTop: 1 }}>
-                        <span style={{ fontFamily: "'Space Mono', monospace" }}>{c.code}</span> &bull; {c.credits} Credits
-                      </div>
-                    </div>
-
-                    <span
-                      style={{
-                        padding: "3px 8px",
-                        borderRadius: 6,
-                        background: c.bg,
-                        color: c.color,
-                        fontWeight: 800,
-                        fontSize: 11,
-                        fontFamily: "'Space Mono', monospace",
-                        flexShrink: 0,
-                        border: `1px solid ${c.color}25`,
-                      }}
-                    >
-                      {c.grade} ({c.pts})
-                    </span>
-                  </div>
-                ))}
+                        <motion.div
+                          initial={{ height: 0 }}
+                          animate={{ height: `${s.height}%` }}
+                          transition={{ duration: 0.5, delay: idx * 0.06, ease: "easeOut" }}
+                          style={{
+                            width: "100%",
+                            borderRadius: 4,
+                            background: isSelected
+                              ? "linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%)"
+                              : "linear-gradient(180deg, #cbd5e1 0%, #94a3b8 100%)",
+                            boxShadow: isSelected ? "0 2px 8px rgba(37, 99, 235, 0.4)" : "none",
+                            transition: "background 0.15s ease, box-shadow 0.15s ease",
+                          }}
+                        />
+                        <span
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: isSelected ? 800 : 600,
+                            color: isSelected ? "#2563eb" : "#94a3b8",
+                            marginTop: 3,
+                            fontFamily: "'Space Mono', monospace",
+                          }}
+                        >
+                          S{s.sem}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Dual Stat Metrics Cards: SGPA & Cumulative CGPA with Trend Indicator */}
+              {/* Interactive Target GPA Simulator Slider (Clean 2 Lines) */}
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 10,
-                  marginBottom: 10,
+                  background: "#fcfdfe",
+                  border: "1px solid #f1f5f9",
+                  borderRadius: 12,
+                  padding: "10px 12px",
+                  marginBottom: 12,
                 }}
               >
-                {/* SGPA Tile */}
                 <div
                   style={{
-                    background: "linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)",
-                    border: "1px solid #dbeafe",
-                    borderRadius: 12,
-                    padding: "9px 12px",
-                    textAlign: "left",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 6,
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 10, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                      Sem 6 SGPA
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 9.5,
-                        fontWeight: 800,
-                        color: "#15803d",
-                        background: "#dcfce7",
-                        padding: "1px 5px",
-                        borderRadius: 4,
-                      }}
-                    >
-                      +0.36 ▲
-                    </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 800, color: "#0f172a" }}>
+                    <Zap size={13} color="#2563eb" strokeWidth={2.6} />
+                    <span>Simulate Sem 7 Target</span>
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: "#2563eb", fontFamily: "'Space Mono', monospace", lineHeight: 1.2, marginTop: 3 }}>
-                    9.10
-                  </div>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 850,
+                      color: "#2563eb",
+                      background: "#eff6ff",
+                      border: "1px solid #bfdbfe",
+                      padding: "1px 6px",
+                      borderRadius: 5,
+                      fontFamily: "'Space Mono', monospace",
+                    }}
+                  >
+                    {targetSimGpa.toFixed(2)} SGPA
+                  </span>
                 </div>
 
-                {/* CGPA Tile */}
+                <input
+                  type="range"
+                  min="8.5"
+                  max="10.0"
+                  step="0.05"
+                  value={targetSimGpa}
+                  onChange={(e) => setTargetSimGpa(parseFloat(e.target.value))}
+                  style={{
+                    width: "100%",
+                    height: 7,
+                    background: `linear-gradient(to right, #2563eb 0%, #2563eb ${Math.max(0, Math.min(100, ((targetSimGpa - 8.5) / (10.0 - 8.5)) * 100))}%, #e2e8f0 ${Math.max(0, Math.min(100, ((targetSimGpa - 8.5) / (10.0 - 8.5)) * 100))}%, #e2e8f0 100%)`,
+                  }}
+                />
+
                 <div
                   style={{
-                    background: "linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 12,
-                    padding: "9px 12px",
-                    textAlign: "left",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginTop: 7,
+                    fontSize: 10,
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 10, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                      Overall CGPA
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 9.5,
-                        fontWeight: 800,
-                        color: "#2563eb",
-                        background: "#eff6ff",
-                        padding: "1px 5px",
-                        borderRadius: 4,
-                      }}
-                    >
-                      87.4%
-                    </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#065f46", fontWeight: 700 }}>
+                    <CheckCircle2 size={12} color="#059669" strokeWidth={2.5} />
+                    <span>{targetSimGpa >= 9.0 ? "50/50 Placement Cutoffs Unlocked" : "44/50 Placement Cutoffs Unlocked"}</span>
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", fontFamily: "'Space Mono', monospace", lineHeight: 1.2, marginTop: 3 }}>
-                    8.74
-                  </div>
+                  <span
+                    style={{
+                      fontSize: 9.5,
+                      fontWeight: 800,
+                      color: targetSimGpa >= 9.0 ? "#059669" : "#2563eb",
+                      background: targetSimGpa >= 9.0 ? "#ecfdf5" : "#eff6ff",
+                      border: `1px solid ${targetSimGpa >= 9.0 ? "#a7f3d0" : "#bfdbfe"}`,
+                      padding: "1px 6px",
+                      borderRadius: 4,
+                    }}
+                  >
+                    {targetSimGpa >= 9.0 ? "Tier 1 Elite" : "Core Tech"}
+                  </span>
                 </div>
               </div>
 
-              {/* Bottom Footer Seal */}
+              {/* Bottom Compact Trust Row: SVGs Only, No Emojis */}
               <div
                 style={{
                   display: "flex",
-                  justifyContent: "space-between",
                   alignItems: "center",
+                  justifyContent: "space-between",
                   borderTop: "1px solid #f1f5f9",
                   paddingTop: 8,
-                  fontSize: 10.5,
-                  color: "#64748b",
                 }}
               >
-                <span>Official CUTM Grade Record</span>
-                <span style={{ color: "#2563eb", fontWeight: 750 }}>Streamlined by GradeFlow</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10.5, color: "#64748b", fontWeight: 650 }}>
+                  <FileCheck size={13} color="#2563eb" strokeWidth={2.4} />
+                  <span>160 Cr Degree</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10.5, color: "#64748b", fontWeight: 650 }}>
+                  <Award size={13} color="#059669" strokeWidth={2.4} />
+                  <span>Top 5% Rank</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10.5, color: "#64748b", fontWeight: 650 }}>
+                  <Sparkles size={13} color="#2563eb" strokeWidth={2.4} />
+                  <span>0s Downtime</span>
+                </div>
               </div>
             </div>
           </div>
