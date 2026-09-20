@@ -1862,8 +1862,8 @@ export default function Resources() {
                           onChange={(e) => setHealthCgpa(Number(e.target.value))}
                           style={{
                             width: "100%",
-                            accentColor: "#8b5cf6",
-                            height: 6,
+                            height: 7,
+                            background: `linear-gradient(to right, #2563eb 0%, #2563eb ${Math.max(0, Math.min(100, (Number(healthCgpa) / 10) * 100))}%, #e2e8f0 ${Math.max(0, Math.min(100, (Number(healthCgpa) / 10) * 100))}%, #e2e8f0 100%)`,
                             cursor: "pointer",
                             touchAction: "pan-x",
                           }}
@@ -1919,8 +1919,8 @@ export default function Resources() {
                           onChange={(e) => setHealthSgpa(Number(e.target.value))}
                           style={{
                             width: "100%",
-                            accentColor: "#2563eb",
-                            height: 6,
+                            height: 7,
+                            background: `linear-gradient(to right, #2563eb 0%, #2563eb ${Math.max(0, Math.min(100, (Number(healthSgpa) / 10) * 100))}%, #e2e8f0 ${Math.max(0, Math.min(100, (Number(healthSgpa) / 10) * 100))}%, #e2e8f0 100%)`,
                             cursor: "pointer",
                             touchAction: "pan-x",
                           }}
@@ -1976,8 +1976,8 @@ export default function Resources() {
                           onChange={(e) => setHealthBacklogs(Number(e.target.value))}
                           style={{
                             width: "100%",
-                            accentColor: "#ef4444",
-                            height: 6,
+                            height: 7,
+                            background: `linear-gradient(to right, #2563eb 0%, #2563eb ${Math.max(0, Math.min(100, (Number(healthBacklogs) / 4) * 100))}%, #e2e8f0 ${Math.max(0, Math.min(100, (Number(healthBacklogs) / 4) * 100))}%, #e2e8f0 100%)`,
                             cursor: "pointer",
                             touchAction: "pan-x",
                           }}

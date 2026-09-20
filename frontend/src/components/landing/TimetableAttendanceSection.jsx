@@ -385,7 +385,12 @@ export default function TimetableAttendanceSection({ onOpenTimetable, onOpenAtte
                   max={calcConducted}
                   value={calcAttended}
                   onChange={(e) => setCalcAttended(parseInt(e.target.value))}
-                  style={{ width: "100%", accentColor: currentPct >= 75 ? "#059669" : "#dc2626", height: 6, marginBottom: 10 }}
+                  style={{
+                    width: "100%",
+                    height: 7,
+                    marginBottom: 12,
+                    background: `linear-gradient(to right, #2563eb 0%, #2563eb ${Math.max(0, Math.min(100, ((calcAttended - 10) / Math.max(1, calcConducted - 10)) * 100))}%, #e2e8f0 ${Math.max(0, Math.min(100, ((calcAttended - 10) / Math.max(1, calcConducted - 10)) * 100))}%, #e2e8f0 100%)`,
+                  }}
                 />
 
                 <div

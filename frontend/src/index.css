@@ -3103,41 +3103,92 @@ input[type="number"] {
   appearance: textfield;
 }
 
+/* ── GradeFlow Ultra-Clean Blue Range Slider UI/UX ─────────── */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
-  background: #fed7aa;
+  width: 100%;
+  height: 7px;
+  background: #e2e8f0;
   border-radius: 999px;
-  height: 6px;
+  outline: none;
+  cursor: pointer;
+  touch-action: pan-x;
+  accent-color: #2563eb;
+  vertical-align: middle;
+  transition: background 0.15s ease;
+}
+
+input[type="range"]:focus-visible {
   outline: none;
 }
 
+/* WebKit / Blink Thumb */
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 19px;
+  height: 19px;
   border-radius: 50%;
-  background: #ea580c;
+  background: #2563eb;
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(234, 88, 12, 0.4);
-  border: 2px solid #ffffff;
-  transition: transform 0.1s ease;
+  cursor: grab;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.38), 0 0 0 1px rgba(37, 99, 235, 0.15);
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
+  transform: scale(1.18);
+  background: #1d4ed8;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.45), 0 0 0 2.5px #ffffff, 0 0 0 5.5px rgba(37, 99, 235, 0.16);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  transform: scale(1.08);
+  cursor: grabbing;
+  background: #1e40af;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.5), 0 0 0 2.5px #ffffff, 0 0 0 7px rgba(37, 99, 235, 0.22);
+}
+
+/* Firefox Track, Progress & Thumb */
+input[type="range"]::-moz-range-track {
+  height: 7px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  border: none;
+}
+
+input[type="range"]::-moz-range-progress {
+  height: 7px;
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  border-radius: 999px;
+  border: none;
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
+  width: 19px;
+  height: 19px;
   border-radius: 50%;
-  background: #ea580c;
+  background: #2563eb;
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(234, 88, 12, 0.4);
-  border: 2px solid #ffffff;
-  transition: transform 0.1s ease;
+  cursor: grab;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.38), 0 0 0 1px rgba(37, 99, 235, 0.15);
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.18);
+  background: #1d4ed8;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.45), 0 0 0 2.5px #ffffff, 0 0 0 5.5px rgba(37, 99, 235, 0.16);
+}
+
+input[type="range"]::-moz-range-thumb:active {
+  transform: scale(1.08);
+  cursor: grabbing;
+  background: #1e40af;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.5), 0 0 0 2.5px #ffffff, 0 0 0 7px rgba(37, 99, 235, 0.22);
 }
 
 /* ── GradeFlow Landing Page Specific Styles ─────────── */

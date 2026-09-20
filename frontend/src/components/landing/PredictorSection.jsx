@@ -169,14 +169,18 @@ export default function PredictorSection({ onOpenPredictorTool }) {
                   step="0.05"
                   value={currentCgpa}
                   onChange={(e) => setCurrentCgpa(parseFloat(e.target.value))}
-                  style={{ width: "100%", accentColor: "#2563eb", height: 6 }}
+                  style={{
+                    width: "100%",
+                    height: 7,
+                    background: `linear-gradient(to right, #2563eb 0%, #2563eb ${Math.max(0, Math.min(100, ((currentCgpa - 6.0) / (10.0 - 6.0)) * 100))}%, #e2e8f0 ${Math.max(0, Math.min(100, ((currentCgpa - 6.0) / (10.0 - 6.0)) * 100))}%, #e2e8f0 100%)`,
+                  }}
                 />
               </div>
 
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 650, color: "#334155", marginBottom: 8 }}>
                   <span>Target Graduation CGPA Goal</span>
-                  <span style={{ color: "#d97706", fontFamily: "'Space Mono', monospace" }}>{targetCgpa.toFixed(2)}</span>
+                  <span style={{ color: "#2563eb", fontFamily: "'Space Mono', monospace" }}>{targetCgpa.toFixed(2)}</span>
                 </div>
                 <input
                   type="range"
@@ -185,7 +189,11 @@ export default function PredictorSection({ onOpenPredictorTool }) {
                   step="0.05"
                   value={targetCgpa}
                   onChange={(e) => setTargetCgpa(parseFloat(e.target.value))}
-                  style={{ width: "100%", accentColor: "#d97706", height: 6 }}
+                  style={{
+                    width: "100%",
+                    height: 7,
+                    background: `linear-gradient(to right, #2563eb 0%, #2563eb ${Math.max(0, Math.min(100, ((targetCgpa - 6.5) / (10.0 - 6.5)) * 100))}%, #e2e8f0 ${Math.max(0, Math.min(100, ((targetCgpa - 6.5) / (10.0 - 6.5)) * 100))}%, #e2e8f0 100%)`,
+                  }}
                 />
               </div>
 
@@ -224,7 +232,7 @@ export default function PredictorSection({ onOpenPredictorTool }) {
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 650, color: "#334155", marginBottom: 8 }}>
                   <span>Your Internal Assessment Marks</span>
-                  <span style={{ color: "#059669", fontFamily: "'Space Mono', monospace" }}>
+                  <span style={{ color: "#2563eb", fontFamily: "'Space Mono', monospace" }}>
                     {internalMarks} / {maxInternal}
                   </span>
                 </div>
@@ -235,7 +243,11 @@ export default function PredictorSection({ onOpenPredictorTool }) {
                   step="1"
                   value={internalMarks}
                   onChange={(e) => setInternalMarks(parseInt(e.target.value))}
-                  style={{ width: "100%", accentColor: "#059669", height: 6 }}
+                  style={{
+                    width: "100%",
+                    height: 7,
+                    background: `linear-gradient(to right, #2563eb 0%, #2563eb ${maxInternal > 0 ? Math.max(0, Math.min(100, (internalMarks / maxInternal) * 100)) : 0}%, #e2e8f0 ${maxInternal > 0 ? Math.max(0, Math.min(100, (internalMarks / maxInternal) * 100)) : 0}%, #e2e8f0 100%)`,
+                  }}
                 />
               </div>
 

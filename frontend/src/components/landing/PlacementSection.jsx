@@ -184,7 +184,7 @@ export default function PlacementSection({ onOpenPlacement }) {
         {/* Benchmark Slider */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <span style={{ fontSize: 13, fontWeight: 650, color: "#334155" }}>
-            Benchmark CGPA: <strong style={{ color: "#059669", fontFamily: "'Space Mono', monospace" }}>{demoCgpa.toFixed(2)}</strong>
+            Benchmark CGPA: <strong style={{ color: "#2563eb", fontFamily: "'Space Mono', monospace" }}>{demoCgpa.toFixed(2)}</strong>
           </span>
           <input
             type="range"
@@ -193,9 +193,13 @@ export default function PlacementSection({ onOpenPlacement }) {
             step="0.1"
             value={demoCgpa}
             onChange={(e) => setDemoCgpa(parseFloat(e.target.value))}
-            style={{ width: 130, accentColor: "#059669", height: 6 }}
+            style={{
+              width: 140,
+              height: 7,
+              background: `linear-gradient(to right, #2563eb 0%, #2563eb ${Math.max(0, Math.min(100, ((demoCgpa - 6.0) / (9.5 - 6.0)) * 100))}%, #e2e8f0 ${Math.max(0, Math.min(100, ((demoCgpa - 6.0) / (9.5 - 6.0)) * 100))}%, #e2e8f0 100%)`,
+            }}
           />
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#065f46", background: "#ecfdf5", padding: "4px 10px", borderRadius: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8", background: "#eff6ff", border: "1px solid #bfdbfe", padding: "4px 10px", borderRadius: 6 }}>
             {eligibleCount} / {filteredCompanies.length} Eligible
           </span>
         </div>
