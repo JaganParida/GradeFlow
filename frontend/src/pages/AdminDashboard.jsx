@@ -4106,6 +4106,24 @@ function FeedbackManager({ authHeaders, API }) {
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <strong style={{ fontSize: 14, color: "#0f172a" }}>{fb.name}</strong>
                     {fb.regNo && <span style={{ color: "#64748b", fontSize: 12 }}>({fb.regNo})</span>}
+                    {(fb.status === "needs_review" || fb.rating <= 2) && (
+                      <span
+                        style={{
+                          background: "#fef2f2",
+                          color: "#dc2626",
+                          border: "1px solid #fecaca",
+                          padding: "2px 7px",
+                          borderRadius: 6,
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        ⚠️ Grievance (Hidden from Public)
+                      </span>
+                    )}
                   </div>
                   {fb.createdAt && (
                     <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#94a3b8", fontSize: 11, marginTop: 2 }}>

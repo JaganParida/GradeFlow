@@ -76,7 +76,7 @@ module.exports = async function handler(req, res) {
         if (feedbacksMemoCache.data && now - feedbacksMemoCache.ts < FEEDBACKS_MEMO_TTL_MS) {
           return res.json(feedbacksMemoCache.data);
         }
-        const feedbacks = await Feedback.find()
+        const feedbacks = await Feedback.find({ status: { $ne: "needs_review" }, rating: { $gte: 3 } })
           .select("name rating comment category likes createdAt")
           .sort({ createdAt: -1 })
           .limit(200)
@@ -101,12 +101,14 @@ module.exports = async function handler(req, res) {
         if (!commentValidation.isValid) {
           return res.status(400).json({ message: commentValidation.error });
         }
+        const feedbackStatus = numRating <= 2 ? "needs_review" : "approved";
         const newFeedback = new Feedback({
           name: name.trim(),
           regNo: String(regNo).trim(),
           rating: numRating,
           comment: comment.trim(),
           category: typeof category === "string" && category.trim() ? category.trim() : "Overall Experience",
+          status: feedbackStatus,
         });
         const savedFeedback = await newFeedback.save();
         feedbacksMemoCache = { data: null, ts: 0 };

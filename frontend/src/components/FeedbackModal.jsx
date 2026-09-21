@@ -178,7 +178,7 @@ export default function FeedbackModal() {
         setShow(false);
         setIsSuccess(false);
         setComment("");
-        if (openSource !== "gradesheet" && res.data?._id) {
+        if (openSource !== "gradesheet" && res.data?._id && res.data?.status !== "needs_review" && rating >= 3) {
           navigate(`/testimonials?highlight=${res.data._id}`);
         }
       }, 1200);
@@ -392,6 +392,8 @@ export default function FeedbackModal() {
                   <p style={{ fontSize: 13, color: "#64748b", margin: 0, maxWidth: 320 }}>
                     {openSource === "gradesheet"
                       ? "Thank you for your genuine feedback! Your report card and all download options are now permanently unlocked."
+                      : rating <= 2
+                      ? "Thank you for your feedback! It has been submitted to the admin team for priority review."
                       : "Your feedback has been successfully published to the community wall."}
                   </p>
                 </div>

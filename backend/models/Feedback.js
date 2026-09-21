@@ -31,6 +31,11 @@ const feedbackSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  status: {
+    type: String,
+    enum: ["approved", "needs_review"],
+    default: "approved",
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -39,5 +44,6 @@ const feedbackSchema = new mongoose.Schema({
 
 feedbackSchema.index({ createdAt: -1 });
 feedbackSchema.index({ regNo: 1 });
+feedbackSchema.index({ status: 1 });
 
 module.exports = mongoose.model("Feedback", feedbackSchema);

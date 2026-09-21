@@ -3933,18 +3933,28 @@ To prevent low-effort spam, nonsense letter-smashing (e.g., `jkdbkb`, `asdfgh`),
    - Rejects 4 or more identical consecutive alphanumeric characters (`/([a-zA-Z0-9])\1{3,}/i`, e.g., `"aaaaa"`, `"ddddd"`).
 6. **Character Diversity (Entropy) Analysis**:
    - For reviews exceeding 10 letters, at least 3 distinct characters are strictly required, blocking cyclical patterns like `"ababababab"` or `"asdasdasd"`.
-7. **Bilingual Profanity Blacklist**:
-   - Rejects disrespectful or abusive inputs across common English and Hindi slang terms.
+7. **Advanced Toxicity, Defamation & Bad Wording Guard**:
+   - Rejects abusive language, slurs, toxic insults, and defamatory accusations (`bakwas`, `ghatiya`, `faltu`, `bekar`, `scam`, `fraud`, `chor`, `thirdclass`, `pathetic`, `worst`, `rubbish`, etc.).
+   - Multi-word phrase checks (`"third class"`, `"waste of time"`, `"developer chor"`, `"scam site"`, `"fake website"`, etc.).
+   - **Obfuscation / Leetspeak Evasion Normalization**: Normalizes character substitutions (`@` -> `a`, `$` -> `s`, `0` -> `o`, `1/!` -> `i`, `3` -> `e`), strips punctuation masks (`b.a.k.w.a.s`, `b_a_k_w_a_s`, `f*ck`), and collapses runs of spaced single letters (`b a k w a s`), defeating evasion attempts.
 8. **Length Boundaries**:
    - Minimum 4 characters, maximum 1000 characters.
 
+### Public Reputation & Low-Rating Quarantine Protocol:
+- **Low-Rating Automatic Quarantine (`status: "needs_review"`)**:
+  - Reviews submitted with $\le 2$ stars are saved with `status: "needs_review"`.
+  - **Public Live Feed Guarantee**: Public queries (`GET /api/feedback` without admin token) enforce `{ status: { $ne: "needs_review" }, rating: { $gte: 3 } }`. Low ratings and quarantined reviews never leak to the public testimonials wall.
+  - **Admin Grievance Triage**: In `AdminDashboard.jsx`, the administrator views all feedbacks with a dedicated `⚠️ Grievance (Hidden from Public)` badge, allowing administrators to inspect student issues and take action privately.
+  - **Student Feedback Affirmation**: Students submitting low-rating reviews receive a polite reassurance: *"Thank you for reaching out. Your feedback has been forwarded directly to the administrator for review and assistance."*
+
 ### Multi-Surface Protection Matrix:
-| Surface | File | Hook / Handler | Rejection Behavior |
+| Surface | File | Hook / Handler | Rejection / Routing Behavior |
 | :--- | :--- | :--- | :--- |
-| **Student Dashboard Report Card** | `FeedbackModal.jsx` | `handleSubmit(e)` | In-modal red error alert banner; stops network request |
-| **Testimonials Page** | `Testimonials.jsx` | `handleSubmit(e)` | Card error badge below textarea; stops network request |
+| **Student Dashboard Report Card** | `FeedbackModal.jsx` | `handleSubmit(e)` | In-modal red error alert banner; non-public redirection if $\le 2$ stars |
+| **Testimonials Page** | `Testimonials.jsx` | `handleSubmit(e)` | Textarea error badge; $\le 2$ star feedback routed to support notice |
 | **Express Backend** | `backend/middleware/validation.js` | `validateFeedbackInput` | HTTP 400 Bad Request with descriptive JSON error |
 | **Vercel Serverless Function** | `frontend/api/student.js` | `Unified Feedback Handler` | HTTP 400 Bad Request with descriptive JSON error |
+| **Admin Operations** | `AdminDashboard.jsx` | Feedback Tab | Displays `⚠️ Grievance (Hidden from Public)` status badge |
 
 ---
 

@@ -30,11 +30,15 @@ router.get("/", async (req, res) => {
       } catch {}
     }
 
+    const filter = isAdmin
+      ? {}
+      : { status: { $ne: "needs_review" }, rating: { $gte: 3 } };
+
     const selectFields = isAdmin
-      ? "name regNo rating comment category likes createdAt"
+      ? "name regNo rating comment category likes status createdAt"
       : "name rating comment category likes createdAt";
 
-    const feedbacks = await Feedback.find()
+    const feedbacks = await Feedback.find(filter)
       .select(selectFields)
       .sort({ createdAt: -1 })
       .limit(200)
@@ -55,12 +59,16 @@ router.post("/", publicLimiter, validateFeedbackInput, async (req, res) => {
       return res.status(400).json({ message: "Name, rating, and comment are required." });
     }
 
+    const numRating = Number(rating);
+    const feedbackStatus = numRating <= 2 ? "needs_review" : "approved";
+
     const newFeedback = new Feedback({
       name,
       regNo,
-      rating,
+      rating: numRating,
       comment,
       category: category || "Overall Experience",
+      status: feedbackStatus,
     });
 
     const savedFeedback = await newFeedback.save();

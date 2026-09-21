@@ -87,6 +87,7 @@ export default function Testimonials() {
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
+  const [successNotice, setSuccessNotice] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   // Auth / Privacy Lock state
@@ -273,22 +274,30 @@ export default function Testimonials() {
       const res = await axios.post(`${API}/feedback`, payload);
 
       if (res.data) {
-        // Prepend new feedback from server and keep cache fresh
-        setFeedbacks((prev) => {
-          const next = [res.data, ...prev];
-          try {
-            sessionStorage.setItem(
-              "gf_feedbacks_cache",
-              JSON.stringify({ feedbacks: next, ts: Date.now() }),
-            );
-          } catch (_) {}
-          return next;
-        });
+        const isNeedsReview = res.data.status === "needs_review" || rating <= 2;
+        if (!isNeedsReview) {
+          // Prepend new feedback from server and keep cache fresh for public reviews
+          setFeedbacks((prev) => {
+            const next = [res.data, ...prev];
+            try {
+              sessionStorage.setItem(
+                "gf_feedbacks_cache",
+                JSON.stringify({ feedbacks: next, ts: Date.now() }),
+              );
+            } catch (_) {}
+            return next;
+          });
+          setSuccessNotice("Thank you! Your review has been published.");
+        } else {
+          setSuccessNotice(
+            "Thank you for reaching out. Your feedback has been forwarded directly to the administrator for review and assistance.",
+          );
+        }
         setSubmittedSuccess(true);
         setComment("");
         setRating(5);
         setCurrentPage(1);
-        setTimeout(() => setSubmittedSuccess(false), 4500);
+        setTimeout(() => setSubmittedSuccess(false), 5500);
       }
     } catch (err) {
       console.error("Error submitting feedback:", err);
@@ -2014,7 +2023,7 @@ export default function Testimonials() {
                   }}
                 >
                   <CheckCircle2 size={15} color="#15803d" />
-                  <span>Thank you! Your review has been published.</span>
+                  <span>{successNotice || "Thank you! Your review has been published."}</span>
                 </div>
               )}
 

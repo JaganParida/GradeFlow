@@ -1,9 +1,122 @@
 /**
- * GradeFlow Feedback Quality & Anti-Gibberish Validator
+ * GradeFlow Advanced Quality, Anti-Gibberish, Anti-Toxicity & Defamation Validator
  * Strictly blocks spam, random letter smashing (e.g. "jkdbkb"), repeated characters,
- * profanity, and nonsensical input while permitting legitimate English and Hinglish reviews.
+ * profanity, abusive terms, toxic insults, defamation, and leetspeak evasions.
  * Enforces a minimum of 3 meaningful words per submission.
  */
+
+// Profanity, vulgarities, slurs (English + Hindi/Hinglish)
+const PROFANITY_TERMS = [
+  "fuck", "fucker", "fucking", "bitch", "asshole", "bastard",
+  "cunt", "dick", "pussy", "shit", "bullshit", "crap",
+  "chutiya", "chutiye", "madarchod", "bhenchod", "behenchod",
+  "gandu", "harami", "lauda", "lund", "kutta", "kamina",
+  "bhosdi", "bhosdike", "gaand", "saala", "randi", "mc", "bc"
+];
+
+// Toxic, disparaging, defamatory & hostile accusations
+const TOXIC_DEFAMATORY_TERMS = [
+  "bakwas", "ghatiya", "faltu", "bekar", "thirdclass", "pathetic",
+  "scam", "scammer", "fraud", "chor", "thief", "cheat", "cheater",
+  "fake", "loot", "looting", "trash", "garbage", "rubbish", "loser",
+  "worst", "disgusting", "horrible", "terrible", "sucks"
+];
+
+const ALL_BLOCKED_TERMS = [...PROFANITY_TERMS, ...TOXIC_DEFAMATORY_TERMS];
+
+// Common keyboard row smashing sequences
+const KEYBOARD_PATTERNS = [
+  "qwerty", "asdfgh", "zxcvbn", "qazwsx", "12345",
+  "poiuyt", "lkjhgf", "mnbvcx", "asdfghjkl", "qwertz", "azerty"
+];
+
+function normalizeTextForEvasion(text) {
+  return text
+    .toLowerCase()
+    .replace(/[@]/g, "a")
+    .replace(/[$]/g, "s")
+    .replace(/[0]/g, "o")
+    .replace(/[1!]/g, "i")
+    .replace(/[3]/g, "e")
+    .replace(/[5]/g, "s")
+    .replace(/[*_#+]/g, "") // remove mask chars like f*ck -> fck
+    .replace(/[\.\-]/g, ""); // remove dots/dashes like b.a.k.w.a.s -> bakwas
+}
+
+function checkBadWording(text) {
+  // 1. Direct word check on split words
+  const words = text
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length > 0);
+
+  for (const word of words) {
+    if (ALL_BLOCKED_TERMS.includes(word)) {
+      return {
+        found: true,
+        word,
+        error: "Please keep your review respectful and constructive. Offensive, defamatory, or disparaging language is not permitted.",
+      };
+    }
+  }
+
+  // 2. Multi-word phrase check
+  const lowerText = text.toLowerCase();
+  const blockedPhrases = [
+    "third class", "waste of time", "hate this", "developer chor",
+    "scam site", "scam website", "fake site", "fake website",
+    "full of bugs and useless", "useless app", "useless website",
+  ];
+  for (const phrase of blockedPhrases) {
+    if (lowerText.includes(phrase)) {
+      return {
+        found: true,
+        word: phrase,
+        error: "Please keep your review respectful and constructive. Defamatory or disparaging remarks are not permitted.",
+      };
+    }
+  }
+
+  // 3. Evasion / obfuscation check (e.g. "b.a.k.w.a.s", "b a k w a s", "b@kwas", "f*ck")
+  const normalized = normalizeTextForEvasion(text);
+
+  // Check collapsed single letters: e.g. "b a k w a s" -> "bakwas"
+  const collapsedSpacedLetters = text
+    .toLowerCase()
+    .replace(/([a-z])\s+(?=[a-z](\s+|$))/g, "$1")
+    .replace(/[^a-z0-9]/g, "");
+
+  for (const term of ALL_BLOCKED_TERMS) {
+    if (term.length >= 4) {
+      const termRegex = new RegExp(`\\b${term}\\b`, "i");
+      if (termRegex.test(normalized) || normalized.includes(term)) {
+        return {
+          found: true,
+          word: term,
+          error: "Please keep your review respectful and constructive. Inappropriate or abusive language is not permitted.",
+        };
+      }
+      if (collapsedSpacedLetters.includes(term)) {
+        return {
+          found: true,
+          word: term,
+          error: "Please keep your review respectful and constructive. Inappropriate or abusive language is not permitted.",
+        };
+      }
+    }
+  }
+
+  // Check regex for obfuscated f*ck or sh!t
+  if (/\bf[a-z*@!$0-9]{1,2}ck\b/i.test(text) || /\bsh[i!*1]t\b/i.test(text)) {
+    return {
+      found: true,
+      word: "profanity",
+      error: "Please keep your review respectful. Inappropriate language is not permitted.",
+    };
+  }
+
+  return { found: false };
+}
 
 export function validateFeedbackComment(comment) {
   if (!comment || typeof comment !== "string") {
@@ -28,7 +141,7 @@ export function validateFeedbackComment(comment) {
     };
   }
 
-  // 3. Must contain at least 3 alphabetic letters (not just numbers, symbols, or emojis)
+  // 3. Must contain at least 3 alphabetic letters
   const lettersOnly = trimmed.replace(/[^a-zA-Z]/g, "");
   if (lettersOnly.length < 3) {
     return {
@@ -50,7 +163,16 @@ export function validateFeedbackComment(comment) {
     };
   }
 
-  // 5. Repeated alphanumeric character spam (e.g. "aaaaa", "ddddd", "jjjjjj" - 4+ identical consecutive chars)
+  // 5. Check bad wording, profanity, toxicity & evasion
+  const badWordResult = checkBadWording(trimmed);
+  if (badWordResult.found) {
+    return {
+      isValid: false,
+      error: badWordResult.error,
+    };
+  }
+
+  // 6. Repeated alphanumeric character spam (e.g. "aaaaa", "ddddd", "jjjjjj")
   if (/([a-zA-Z0-9])\1{3,}/i.test(trimmed)) {
     return {
       isValid: false,
@@ -58,58 +180,13 @@ export function validateFeedbackComment(comment) {
     };
   }
 
-  // 6. Check individual words for keyboard smashing, missing vowels, and gibberish
+  // 7. Check individual words for keyboard smashing, missing vowels, and gibberish
   const words = trimmed
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter((w) => w.length > 0);
 
-  // Common keyboard row smashing sequences
-  const KEYBOARD_PATTERNS = [
-    "qwerty",
-    "asdfgh",
-    "zxcvbn",
-    "qazwsx",
-    "12345",
-    "poiuyt",
-    "lkjhgf",
-    "mnbvcx",
-    "asdfghjkl",
-    "qwertz",
-    "azerty",
-  ];
-
-  // Profanity & offensive slang blacklist (Hindi + English)
-  const PROFANITY_LIST = [
-    "fuck",
-    "bitch",
-    "asshole",
-    "bastard",
-    "chutiya",
-    "madarchod",
-    "bhenchod",
-    "behenchod",
-    "gandu",
-    "harami",
-    "lauda",
-    "lund",
-    "kutta",
-    "kamina",
-    "bhosdi",
-    "chutiye",
-    "gaand",
-  ];
-
   for (const word of words) {
-    // Check profanity
-    if (PROFANITY_LIST.includes(word)) {
-      return {
-        isValid: false,
-        error: "Please keep your review respectful. Inappropriate language is not permitted.",
-      };
-    }
-
-    // Check keyboard smash patterns
     for (const pattern of KEYBOARD_PATTERNS) {
       if (word.includes(pattern)) {
         return {
@@ -119,8 +196,6 @@ export function validateFeedbackComment(comment) {
       }
     }
 
-    // Words with 4 or more alphabetic characters MUST contain at least one vowel (a, e, i, o, u, y)
-    // Examples caught: "jkdbkb", "sdfghj", "bcdfgh", "zxcv", "qwrty"
     const alphaWord = word.replace(/[^a-z]/g, "");
     if (alphaWord.length >= 4 && !/[aeiouy]/.test(alphaWord)) {
       return {
@@ -129,7 +204,6 @@ export function validateFeedbackComment(comment) {
       };
     }
 
-    // Check for unnatural consonant clusters (5 or more consonants in a row, exempting legitimate English words like 'strengths', 'lengths')
     if (/[bcdfghjklmnpqrstvwxz]{5,}/i.test(word)) {
       const isExempt = /lengths|strengths/i.test(word);
       if (!isExempt) {
@@ -141,8 +215,7 @@ export function validateFeedbackComment(comment) {
     }
   }
 
-  // 7. Character diversity (entropy) check for longer texts
-  // If text has 10+ letters, it must use at least 3 distinct letters (blocks "ababababab", "asdasdasd")
+  // 8. Character diversity (entropy) check for longer texts
   if (lettersOnly.length >= 10) {
     const uniqueChars = new Set(lettersOnly.toLowerCase()).size;
     if (uniqueChars < 3) {
