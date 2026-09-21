@@ -352,7 +352,7 @@ export default function Dashboard() {
   const normalizeTabParam = (raw) => {
     if (!raw) return "result";
     const p = String(raw).toLowerCase();
-    if (["baskets", "basket", "degree-progress", "degree", "credits"].includes(p)) return "baskets";
+    if (["baskets", "basket", "degree-progress", "degree", "credits", "credit-tracker", "basket-wise-credit-tracker"].includes(p)) return "baskets";
     if (["result", "timetable", "internal", "history", "predictor"].includes(p)) return p;
     return "result";
   };
@@ -1093,7 +1093,7 @@ export default function Dashboard() {
     { id: "result", label: "Semester Result", icon: <FileText size={17} />, desc: "SGPA, Grades & Official Ledger" },
     { id: "internal", label: "Internal Marks", icon: <FileEdit size={17} />, desc: "Continuous Evaluation & Lab Marks" },
     { id: "history", label: "Semester History", icon: <Calendar size={17} />, desc: "All Past Semesters Record" },
-    { id: "baskets", label: "Degree Progress", icon: <Layout size={17} />, desc: "Credits & Basket Completion" },
+    { id: "baskets", label: "Basket Wise Credit Tracker", icon: <Layout size={17} />, desc: "Credits & Basket Completion" },
     { id: "predictor", label: "Target Predictor", icon: <Calculator size={17} />, desc: "CGPA & Target Grade Forecast" },
   ];
 
@@ -3740,7 +3740,7 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {/* Tab 4: Degree Progress (Baskets) */}
+                {/* Tab 4: Basket Wise Credit Tracker (Baskets) */}
                 {tab === "baskets" && (
                   <BasketDashboard results={studentData.results} studentData={studentData} />
                 )}
