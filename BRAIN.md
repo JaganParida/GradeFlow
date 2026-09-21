@@ -3937,8 +3937,15 @@ To prevent low-effort spam, nonsense letter-smashing (e.g., `jkdbkb`, `asdfgh`),
    - Rejects abusive language, slurs, toxic insults, and defamatory accusations (`bakwas`, `ghatiya`, `faltu`, `bekar`, `scam`, `fraud`, `chor`, `thirdclass`, `pathetic`, `worst`, `rubbish`, etc.).
    - Multi-word phrase checks (`"third class"`, `"waste of time"`, `"developer chor"`, `"scam site"`, `"fake website"`, etc.).
    - **Obfuscation / Leetspeak Evasion Normalization**: Normalizes character substitutions (`@` -> `a`, `$` -> `s`, `0` -> `o`, `1/!` -> `i`, `3` -> `e`), strips punctuation masks (`b.a.k.w.a.s`, `b_a_k_w_a_s`, `f*ck`), and collapses runs of spaced single letters (`b a k w a s`), defeating evasion attempts.
-8. **Length Boundaries**:
-   - Minimum 4 characters, maximum 1000 characters.
+8. **Complaint & Process-Disparaging Vocabulary Guard**:
+   - Rejects negative annoyance and process-complaint vocabulary (`irritating`, `irritated`, `irritation`, `annoying`, `annoyed`, `annoyance`, `frustrating`, `frustrated`, `frustration`, `painful`, `headache`, `disaster`, `ridiculous`, `nonsense`, `useless`, `glitchy`, `buggy`, `broken`, `hanging`, `laggy`, `unbearable`).
+   - Specifically rejects phrases targeting operational friction (e.g., `"very irritating process"`, `"annoying process"`, `"bad process"`, `"slow process"`), directing students experiencing technical issues to Student Support rather than public reviews.
+9. **Authoritative University Student Name Enforcement**:
+   - **Zero Fake Names**: Prohibits generic placeholder names (`anonymous`, `any name`, `unknown`, `test`, `fake`, `user`, `student`, `nobody`, `none`, `xyz`).
+   - **Authoritative Database Resolution**: When feedback is submitted with `regNo`, backend and serverless handlers look up `SemesterResult.findOne({ regNo }).select("studentName")`. If an official university record exists, the system automatically binds their **verified official student name** (e.g., `AMARENDRA KUNDA`, `TUSHAR PATEL`), preventing students from adopting fake or arbitrary display names.
+   - **Fake Registration Number Rejection**: Registration numbers like `000000000000` or those lacking enrolled university records are rejected immediately.
+10. **Length Boundaries**:
+    - Minimum 4 characters, maximum 1000 characters.
 
 ### Public Reputation & Low-Rating Quarantine Protocol:
 - **Low-Rating Automatic Quarantine (`status: "needs_review"`)**:
@@ -3953,7 +3960,8 @@ To prevent low-effort spam, nonsense letter-smashing (e.g., `jkdbkb`, `asdfgh`),
 | **Student Dashboard Report Card** | `FeedbackModal.jsx` | `handleSubmit(e)` | In-modal red error alert banner; non-public redirection if $\le 2$ stars |
 | **Testimonials Page** | `Testimonials.jsx` | `handleSubmit(e)` | Textarea error badge; $\le 2$ star feedback routed to support notice |
 | **Express Backend** | `backend/middleware/validation.js` | `validateFeedbackInput` | HTTP 400 Bad Request with descriptive JSON error |
-| **Vercel Serverless Function** | `frontend/api/student.js` | `Unified Feedback Handler` | HTTP 400 Bad Request with descriptive JSON error |
+| **Backend Feedback Route** | `backend/routes/feedback.js` | `POST /` | Enforces official `studentName` lookup from `SemesterResult` |
+| **Vercel Serverless Function** | `frontend/api/student.js` | `Unified Feedback Handler` | HTTP 400 Bad Request; enforces official `studentName` resolution |
 | **Admin Operations** | `AdminDashboard.jsx` | Feedback Tab | Displays `⚠️ Grievance (Hidden from Public)` status badge |
 
 ---

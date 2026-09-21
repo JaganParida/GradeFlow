@@ -59,12 +59,23 @@ router.post("/", publicLimiter, validateFeedbackInput, async (req, res) => {
       return res.status(400).json({ message: "Name, rating, and comment are required." });
     }
 
+    const cleanRegNo = String(regNo).trim().toUpperCase();
+    const SemesterResult = require("../models/SemesterResult");
+    const officialRecord = await SemesterResult.findOne({ regNo: cleanRegNo }).select("studentName").lean();
+
+    let verifiedName = name;
+    if (officialRecord && officialRecord.studentName && officialRecord.studentName.trim().length >= 2) {
+      verifiedName = officialRecord.studentName.trim();
+    } else if (cleanRegNo === "000000000000" || cleanRegNo.startsWith("0000")) {
+      return res.status(400).json({ message: "Registration number not found in university records. Only enrolled students can submit feedback." });
+    }
+
     const numRating = Number(rating);
     const feedbackStatus = numRating <= 2 ? "needs_review" : "approved";
 
     const newFeedback = new Feedback({
-      name,
-      regNo,
+      name: verifiedName,
+      regNo: cleanRegNo,
       rating: numRating,
       comment,
       category: category || "Overall Experience",

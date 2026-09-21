@@ -48,8 +48,18 @@ function validateRegNoParam(req, res, next) {
 function validateFeedbackInput(req, res, next) {
   const { name, rating, comment, regNo } = req.body || {};
 
-  if (!name || typeof name !== "string" || name.trim().length < 1 || name.trim().length > 100) {
-    return res.status(400).json({ message: "Name is required and must be between 1 and 100 characters." });
+  const trimmedName = typeof name === "string" ? name.trim() : "";
+  if (!trimmedName || trimmedName.length < 2 || trimmedName.length > 100) {
+    return res.status(400).json({ message: "Student name is required and must be between 2 and 100 characters." });
+  }
+
+  const FAKE_NAMES_REGEX = /^(anonymous|any\s*name|unknown|test|fake|user|student|nobody|none|null|undefined|demo|xyz|abc)$/i;
+  if (FAKE_NAMES_REGEX.test(trimmedName)) {
+    return res.status(400).json({ message: "Please use your genuine university student name instead of placeholder names." });
+  }
+
+  if (trimmedName.replace(/[^a-zA-Z]/g, "").length < 2) {
+    return res.status(400).json({ message: "Please provide a valid student name containing alphabetic characters." });
   }
 
   const numRating = Number(rating);

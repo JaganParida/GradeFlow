@@ -87,9 +87,18 @@ module.exports = async function handler(req, res) {
 
       if (req.method === "POST" && !feedbackId && req.query.action !== "feedback-like") {
         const { name, regNo, rating, comment, category } = req.body || {};
-        if (!name || typeof name !== "string" || name.trim().length < 1 || name.trim().length > 100) {
-          return res.status(400).json({ message: "Name is required and must be between 1 and 100 characters." });
+        const trimmedName = typeof name === "string" ? name.trim() : "";
+        if (!trimmedName || trimmedName.length < 2 || trimmedName.length > 100) {
+          return res.status(400).json({ message: "Student name is required and must be between 2 and 100 characters." });
         }
+        const FAKE_NAMES_REGEX = /^(anonymous|any\s*name|unknown|test|fake|user|student|nobody|none|null|undefined|demo|xyz|abc)$/i;
+        if (FAKE_NAMES_REGEX.test(trimmedName)) {
+          return res.status(400).json({ message: "Please use your genuine university student name instead of placeholder names." });
+        }
+        if (trimmedName.replace(/[^a-zA-Z]/g, "").length < 2) {
+          return res.status(400).json({ message: "Please provide a valid student name containing alphabetic characters." });
+        }
+
         const numRating = Number(rating);
         if (isNaN(numRating) || numRating < 1 || numRating > 5) {
           return res.status(400).json({ message: "Rating must be a number between 1 and 5." });
@@ -97,14 +106,26 @@ module.exports = async function handler(req, res) {
         if (!regNo || typeof regNo !== "string" || !/^[a-zA-Z0-9]{5,20}$/.test(regNo.trim())) {
           return res.status(400).json({ message: "A valid student Registration Number is required to submit a review." });
         }
+        const cleanRegNo = String(regNo).trim().toUpperCase();
+        if (cleanRegNo === "000000000000" || cleanRegNo.startsWith("0000")) {
+          return res.status(400).json({ message: "Registration number not found in university records. Only enrolled students can submit feedback." });
+        }
+
         const commentValidation = validateFeedbackComment(comment);
         if (!commentValidation.isValid) {
           return res.status(400).json({ message: commentValidation.error });
         }
+
+        const officialRecord = await SemesterResult.findOne({ regNo: cleanRegNo }).select("studentName").lean();
+        let verifiedName = trimmedName;
+        if (officialRecord && officialRecord.studentName && officialRecord.studentName.trim().length >= 2) {
+          verifiedName = officialRecord.studentName.trim();
+        }
+
         const feedbackStatus = numRating <= 2 ? "needs_review" : "approved";
         const newFeedback = new Feedback({
-          name: name.trim(),
-          regNo: String(regNo).trim(),
+          name: verifiedName,
+          regNo: cleanRegNo,
           rating: numRating,
           comment: comment.trim(),
           category: typeof category === "string" && category.trim() ? category.trim() : "Overall Experience",

@@ -1,7 +1,8 @@
 /**
- * GradeFlow Advanced Quality, Anti-Gibberish, Anti-Toxicity & Defamation Validator
+ * GradeFlow Advanced Quality, Anti-Gibberish, Anti-Toxicity, Annoyance/Complaint & Defamation Validator
  * Strictly blocks spam, random letter smashing (e.g. "jkdbkb"), repeated characters,
- * profanity, abusive terms, toxic insults, defamation, and leetspeak evasions.
+ * profanity, abusive terms, toxic insults, defamation, complaint/irritation words,
+ * placeholder names, and leetspeak evasions.
  * Enforces a minimum of 3 meaningful words per submission.
  */
 
@@ -22,7 +23,28 @@ const TOXIC_DEFAMATORY_TERMS = [
   "worst", "disgusting", "horrible", "terrible", "sucks"
 ];
 
-const ALL_BLOCKED_TERMS = [...PROFANITY_TERMS, ...TOXIC_DEFAMATORY_TERMS];
+// Negative annoyance, complaint & process-disparaging terms (e.g. "Very irritating process")
+const COMPLAINT_ANNOYANCE_TERMS = [
+  "irritating", "irritated", "irritate", "irritation",
+  "annoying", "annoyed", "annoy", "annoyance",
+  "frustrating", "frustrated", "frustration",
+  "painful", "headache", "disaster", "ridiculous", "nonsense",
+  "useless", "hopeless", "boring", "tiring", "exhausting",
+  "stupid", "dumb", "idiot", "glitchy", "buggy", "broken",
+  "hanging", "laggy", "unbearable", "torture"
+];
+
+// Generic / fake name placeholders that should not be used in feedback
+const FAKE_NAME_TERMS = [
+  "anonymous", "anyname", "unknown", "nobody", "someone"
+];
+
+const ALL_BLOCKED_TERMS = [
+  ...PROFANITY_TERMS,
+  ...TOXIC_DEFAMATORY_TERMS,
+  ...COMPLAINT_ANNOYANCE_TERMS,
+  ...FAKE_NAME_TERMS
+];
 
 // Common keyboard row smashing sequences
 const KEYBOARD_PATTERNS = [
@@ -52,6 +74,20 @@ function checkBadWording(text) {
 
   for (const word of words) {
     if (ALL_BLOCKED_TERMS.includes(word)) {
+      if (COMPLAINT_ANNOYANCE_TERMS.includes(word)) {
+        return {
+          found: true,
+          word,
+          error: `The word "${word}" expresses negative complaints. For technical assistance or grievances, please use Student Support rather than public reviews.`,
+        };
+      }
+      if (FAKE_NAME_TERMS.includes(word)) {
+        return {
+          found: true,
+          word,
+          error: "Please write genuine feedback instead of using placeholder names.",
+        };
+      }
       return {
         found: true,
         word,
@@ -63,12 +99,24 @@ function checkBadWording(text) {
   // 2. Multi-word phrase check
   const lowerText = text.toLowerCase();
   const blockedPhrases = [
-    "third class", "waste of time", "hate this", "developer chor",
+    "irritating process", "annoying process", "frustrating process",
+    "bad process", "slow process", "waste process", "useless process",
+    "very irritating", "very annoying", "very bad", "very slow",
+    "waste of time", "hate this", "third class", "developer chor",
     "scam site", "scam website", "fake site", "fake website",
     "full of bugs and useless", "useless app", "useless website",
+    "not working", "worst app", "worst website", "worst experience",
+    "any name", "fake name", "anonymous name"
   ];
   for (const phrase of blockedPhrases) {
     if (lowerText.includes(phrase)) {
+      if (phrase.includes("irritating") || phrase.includes("annoying") || phrase.includes("frustrating") || phrase.includes("process")) {
+        return {
+          found: true,
+          word: phrase,
+          error: "Reviews expressing negative process complaints (e.g., 'irritating process') are not permitted. For technical issues, please contact Student Support.",
+        };
+      }
       return {
         found: true,
         word: phrase,
@@ -93,14 +141,14 @@ function checkBadWording(text) {
         return {
           found: true,
           word: term,
-          error: "Please keep your review respectful and constructive. Inappropriate or abusive language is not permitted.",
+          error: "Please keep your review respectful and constructive. Inappropriate or negative complaint language is not permitted.",
         };
       }
       if (collapsedSpacedLetters.includes(term)) {
         return {
           found: true,
           word: term,
-          error: "Please keep your review respectful and constructive. Inappropriate or abusive language is not permitted.",
+          error: "Please keep your review respectful and constructive. Inappropriate or negative complaint language is not permitted.",
         };
       }
     }
@@ -163,7 +211,7 @@ function validateFeedbackComment(comment) {
     };
   }
 
-  // 5. Check bad wording, profanity, toxicity & evasion
+  // 5. Check bad wording, profanity, annoyance/complaint terms & evasion
   const badWordResult = checkBadWording(trimmed);
   if (badWordResult.found) {
     return {
