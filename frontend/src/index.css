@@ -3232,6 +3232,9 @@ html {
     grid-template-columns: 1fr !important;
     gap: 20px !important;
   }
+  .gf-hero-right-col {
+    display: none !important;
+  }
 }
 
 @keyframes gfFloatWrapper {
@@ -3373,7 +3376,8 @@ html {
     margin-bottom: 4px !important;
   }
 
-  .gf-desktop-only {
+  .gf-desktop-only,
+  .gf-hero-right-col {
     display: none !important;
   }
 }
