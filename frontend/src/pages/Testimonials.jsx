@@ -28,6 +28,7 @@ import {
   Info,
   ShieldCheck,
 } from "lucide-react";
+import { validateFeedbackComment } from "../utils/feedbackValidator";
 
 /* ─── Category List ────────────────────────────────────────────── */
 const CATEGORIES = [
@@ -244,7 +245,18 @@ export default function Testimonials() {
     const finalRegNo = (regNo || currentRegNo).trim();
     const finalComment = comment.trim();
 
-    if (!finalName || !finalRegNo || !finalComment || rating === 0) return;
+    if (!finalName || !finalRegNo) return;
+
+    if (rating < 1 || rating > 5) {
+      setErrorMessage("Please select a star rating from 1 to 5.");
+      return;
+    }
+
+    const commentValidation = validateFeedbackComment(finalComment);
+    if (!commentValidation.isValid) {
+      setErrorMessage(commentValidation.error);
+      return;
+    }
 
     setIsSubmitting(true);
     setErrorMessage("");

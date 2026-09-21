@@ -2,6 +2,8 @@
  * Centralized Strict Input Validation Middleware
  */
 
+const { validateFeedbackComment } = require("../utils/feedbackValidator");
+
 const VALID_BRANCHES = new Set(["CSE", "ECE", "ME", "CIVIL", "EEE", "BIO", "MI", "AERO"]);
 const VALID_GRADES = new Set(["O", "E", "A", "B", "C", "D", "F", "R", "S", "M", "I"]);
 
@@ -55,8 +57,9 @@ function validateFeedbackInput(req, res, next) {
     return res.status(400).json({ message: "Rating must be a number between 1 and 5." });
   }
 
-  if (!comment || typeof comment !== "string" || comment.trim().length < 1 || comment.trim().length > 1000) {
-    return res.status(400).json({ message: "Comment is required and must be between 1 and 1000 characters." });
+  const commentValidation = validateFeedbackComment(comment);
+  if (!commentValidation.isValid) {
+    return res.status(400).json({ message: commentValidation.error });
   }
 
   if (!regNo || typeof regNo !== "string" || !validateRegNo(regNo)) {

@@ -9,6 +9,7 @@ const StudentSession = require("./_lib/models/StudentSession");
 const AdminSession = require("./_lib/models/AdminSession");
 const SubAdminSession = require("./_lib/models/SubAdminSession");
 const Feedback = require("./_lib/models/Feedback");
+const { validateFeedbackComment } = require("./_lib/feedbackValidator");
 const { isSessionValid, touchSession, isAdminSessionValid } = require("./_lib/sessionManager");
 const { globalDbQueue } = require("./_lib/dbProtection");
 const { publishAdminRealtimeEvent, publishStudentRealtimeEvent } = require("./_lib/ablyService");
@@ -95,6 +96,10 @@ module.exports = async function handler(req, res) {
         }
         if (!regNo || typeof regNo !== "string" || !/^[a-zA-Z0-9]{5,20}$/.test(regNo.trim())) {
           return res.status(400).json({ message: "A valid student Registration Number is required to submit a review." });
+        }
+        const commentValidation = validateFeedbackComment(comment);
+        if (!commentValidation.isValid) {
+          return res.status(400).json({ message: commentValidation.error });
         }
         const newFeedback = new Feedback({
           name: name.trim(),

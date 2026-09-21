@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
 import { isOldDomainEnvironment } from "../utils/domainHelper";
+import { validateFeedbackComment } from "../utils/feedbackValidator";
 
 export default function FeedbackModal() {
   const [show, setShow] = useState(false);
@@ -137,8 +138,9 @@ export default function FeedbackModal() {
       return;
     }
 
-    if (!trimmedComment || trimmedComment.length < 5) {
-      setErrorMessage("Please share a brief comment or review (min 5 characters).");
+    const commentValidation = validateFeedbackComment(trimmedComment);
+    if (!commentValidation.isValid) {
+      setErrorMessage(commentValidation.error);
       return;
     }
 

@@ -3905,7 +3905,46 @@ Any developer, auditor, or AI assistant modifying the Testimonials subsystem MUS
    - Any modification to Mongoose schemas in `backend/models/Feedback.js` or `frontend/api/_lib/models/Feedback.js` must preserve `feedbackSchema.index({ createdAt: -1 })`.
 6. **Ensure Unicode Safety for Comment Slicing**:
    - Always slice comments using `Array.from(str).slice(...)` rather than primitive `str.slice(...)` to protect multi-byte unicode emojis from surrogate pair splitting.
+7. **Always Enforce the Feedback Quality & Anti-Gibberish Engine**:
+   - All feedback comment inputs across both client modals (`FeedbackModal.jsx`, `Testimonials.jsx`) and backend/serverless runtimes (`backend/middleware/validation.js`, `frontend/api/student.js`) must strictly pass `validateFeedbackComment()`.
 
+---
+
+## 98. Feedback Quality, Anti-Gibberish & Word-Length Validation Engine
+
+To prevent low-effort spam, nonsense letter-smashing (e.g., `jkdbkb`, `asdfgh`), repetitive character sequences, and inappropriate language, GradeFlow implements a unified multi-layer validation engine across both frontend and backend runtimes:
+- Frontend Client Utility: `frontend/src/utils/feedbackValidator.js`
+- Express Backend Middleware: `backend/utils/feedbackValidator.js`
+- Vercel Serverless Function: `frontend/api/_lib/feedbackValidator.js`
+
+### Strict Validation Invariants:
+1. **Minimum 3 Meaningful Words Enforcement**:
+   - The review comment must contain at least 3 distinct alphabetic words (e.g., `"Very helpful website"`, `"Fast and accurate"`).
+   - Prevents unhelpful single-word or two-word submissions like `"Good"`, `"Nice"`, `"ok"`, or single keyboard smash bursts.
+2. **Anti-Gibberish Missing-Vowel Heuristic**:
+   - Any word with $\ge 4$ alphabetic letters must contain at least one vowel (`a, e, i, o, u, y`).
+   - Instantly blocks consonant smashes like `"jkdbkb"`, `"sdfghj"`, `"bcdfgh"`, `"zxcv"`.
+3. **Consonant Cluster Guard with Common English Exemption**:
+   - Blocks words with $\ge 5$ consecutive consonants (`/[bcdfghjklmnpqrstvwxz]{5,}/i`).
+   - Features an intelligent lexical whitelist exempting legitimate English academic vocabulary such as `"strengths"` and `"lengths"`.
+4. **Keyboard-Row Smashing Sequence Detection**:
+   - Matches spatial row patterns across QWERTY keyboard layouts: `qwerty`, `asdfgh`, `zxcvbn`, `qazwsx`, `12345`, `poiuyt`, `lkjhgf`, `mnbvcx`, `asdfghjkl`, `qwertz`, `azerty`.
+5. **Repeated Character Spam Detection**:
+   - Rejects 4 or more identical consecutive alphanumeric characters (`/([a-zA-Z0-9])\1{3,}/i`, e.g., `"aaaaa"`, `"ddddd"`).
+6. **Character Diversity (Entropy) Analysis**:
+   - For reviews exceeding 10 letters, at least 3 distinct characters are strictly required, blocking cyclical patterns like `"ababababab"` or `"asdasdasd"`.
+7. **Bilingual Profanity Blacklist**:
+   - Rejects disrespectful or abusive inputs across common English and Hindi slang terms.
+8. **Length Boundaries**:
+   - Minimum 4 characters, maximum 1000 characters.
+
+### Multi-Surface Protection Matrix:
+| Surface | File | Hook / Handler | Rejection Behavior |
+| :--- | :--- | :--- | :--- |
+| **Student Dashboard Report Card** | `FeedbackModal.jsx` | `handleSubmit(e)` | In-modal red error alert banner; stops network request |
+| **Testimonials Page** | `Testimonials.jsx` | `handleSubmit(e)` | Card error badge below textarea; stops network request |
+| **Express Backend** | `backend/middleware/validation.js` | `validateFeedbackInput` | HTTP 400 Bad Request with descriptive JSON error |
+| **Vercel Serverless Function** | `frontend/api/student.js` | `Unified Feedback Handler` | HTTP 400 Bad Request with descriptive JSON error |
 
 ---
 
