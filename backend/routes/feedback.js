@@ -5,6 +5,7 @@ const { protect } = require("../middleware/auth");
 const { requirePermission } = require("../middleware/rbac");
 const { publicLimiter } = require("../middleware/rateLimiters");
 const { validateFeedbackInput } = require("../middleware/validation");
+const { validateFeedbackComment } = require("../utils/feedbackValidator");
 
 const jwt = require("jsonwebtoken");
 
@@ -68,6 +69,11 @@ router.post("/", publicLimiter, validateFeedbackInput, async (req, res) => {
       verifiedName = officialRecord.studentName.trim();
     } else if (cleanRegNo === "000000000000" || cleanRegNo.startsWith("0000")) {
       return res.status(400).json({ message: "Registration number not found in university records. Only enrolled students can submit feedback." });
+    }
+
+    const verifiedCommentCheck = validateFeedbackComment(comment, verifiedName);
+    if (!verifiedCommentCheck.isValid) {
+      return res.status(400).json({ message: verifiedCommentCheck.error });
     }
 
     const numRating = Number(rating);

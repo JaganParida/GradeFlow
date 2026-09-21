@@ -253,7 +253,7 @@ export default function Testimonials() {
       return;
     }
 
-    const commentValidation = validateFeedbackComment(finalComment);
+    const commentValidation = validateFeedbackComment(finalComment, finalName);
     if (!commentValidation.isValid) {
       setErrorMessage(commentValidation.error);
       return;

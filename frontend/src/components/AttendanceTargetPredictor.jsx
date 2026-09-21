@@ -195,6 +195,11 @@ export default function AttendanceTargetPredictor({
         gap: mobileMode ? 14 : 20,
         boxShadow: "0 4px 20px -2px rgba(15, 23, 42, 0.04)",
         marginTop: mobileMode ? 6 : 10,
+        width: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box",
+        minWidth: 0,
+        overflow: "hidden",
       }}
     >
       {/* ── CLEAN HEADER: TITLE & MASTER TARGET ───────────────────────────── */}
@@ -491,8 +496,12 @@ export default function AttendanceTargetPredictor({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: mobileMode ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(220px, 1fr))",
+          gridTemplateColumns: mobileMode ? "repeat(2, minmax(0, 1fr))" : "repeat(auto-fit, minmax(220px, 1fr))",
           gap: mobileMode ? 8 : 12,
+          width: "100%",
+          maxWidth: "100%",
+          boxSizing: "border-box",
+          minWidth: 0,
         }}
       >
         {isMultiPhaseView ? (
@@ -509,6 +518,10 @@ export default function AttendanceTargetPredictor({
                 justifyContent: "space-between",
                 gap: 6,
                 boxSizing: "border-box",
+                minWidth: 0,
+                width: "100%",
+                maxWidth: "100%",
+                overflow: "hidden",
                 boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
               }}
             >
@@ -547,6 +560,10 @@ export default function AttendanceTargetPredictor({
                 justifyContent: "space-between",
                 gap: 6,
                 boxSizing: "border-box",
+                minWidth: 0,
+                width: "100%",
+                maxWidth: "100%",
+                overflow: "hidden",
                 boxShadow: "0 1px 3px rgba(37, 99, 235, 0.04)",
               }}
             >
@@ -580,6 +597,10 @@ export default function AttendanceTargetPredictor({
                 justifyContent: "space-between",
                 gap: 6,
                 boxSizing: "border-box",
+                minWidth: 0,
+                width: "100%",
+                maxWidth: "100%",
+                overflow: "hidden",
                 boxShadow: "0 1px 3px rgba(217, 119, 6, 0.04)",
               }}
             >
@@ -608,6 +629,10 @@ export default function AttendanceTargetPredictor({
                 justifyContent: "space-between",
                 gap: 6,
                 boxSizing: "border-box",
+                minWidth: 0,
+                width: "100%",
+                maxWidth: "100%",
+                overflow: "hidden",
                 boxShadow: "0 1px 3px rgba(16, 185, 129, 0.04)",
               }}
             >
@@ -642,6 +667,10 @@ export default function AttendanceTargetPredictor({
                 justifyContent: "space-between",
                 gap: 4,
                 boxSizing: "border-box",
+                minWidth: 0,
+                width: "100%",
+                maxWidth: "100%",
+                overflow: "hidden",
                 boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
               }}
             >
@@ -691,6 +720,10 @@ export default function AttendanceTargetPredictor({
                 justifyContent: "space-between",
                 gap: 4,
                 boxSizing: "border-box",
+                minWidth: 0,
+                width: "100%",
+                maxWidth: "100%",
+                overflow: "hidden",
                 boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
               }}
             >
@@ -725,6 +758,10 @@ export default function AttendanceTargetPredictor({
                 justifyContent: "space-between",
                 gap: 4,
                 boxSizing: "border-box",
+                minWidth: 0,
+                width: "100%",
+                maxWidth: "100%",
+                overflow: "hidden",
                 boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
               }}
             >
@@ -757,6 +794,10 @@ export default function AttendanceTargetPredictor({
                 justifyContent: "space-between",
                 gap: 4,
                 boxSizing: "border-box",
+                minWidth: 0,
+                width: "100%",
+                maxWidth: "100%",
+                overflow: "hidden",
                 boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
               }}
             >
@@ -886,8 +927,12 @@ export default function AttendanceTargetPredictor({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
+                  gridTemplateColumns: mobileMode ? "minmax(0, 1fr)" : "repeat(auto-fill, minmax(280px, 1fr))",
                   gap: 10,
+                  width: "100%",
+                  maxWidth: "100%",
+                  boxSizing: "border-box",
+                  minWidth: 0,
                 }}
               >
                 {visibleSessions.map((ses, sIdx) => {
@@ -904,11 +949,16 @@ export default function AttendanceTargetPredictor({
                         flexDirection: "column",
                         gap: 6,
                         boxShadow: isMilestone ? "0 2px 8px rgba(34, 197, 94, 0.15)" : "0 1px 3px rgba(0,0,0,0.02)",
+                        minWidth: 0,
+                        width: "100%",
+                        maxWidth: "100%",
+                        boxSizing: "border-box",
+                        overflow: "hidden",
                       }}
                     >
                       {/* Header: Class # + Date + Milestone */}
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, width: "100%", minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flexShrink: 1, overflow: "hidden" }}>
                           <span
                             style={{
                               fontSize: 10.5,
@@ -917,11 +967,12 @@ export default function AttendanceTargetPredictor({
                               color: "#ffffff",
                               padding: "1px 6px",
                               borderRadius: 5,
+                              flexShrink: 0,
                             }}
                           >
                             Class #{ses.sessionNumber}
                           </span>
-                          <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a" }}>
+                          <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                             {ses.dateStr}
                           </span>
                         </div>
@@ -939,6 +990,8 @@ export default function AttendanceTargetPredictor({
                               display: "flex",
                               alignItems: "center",
                               gap: 3,
+                              flexShrink: 0,
+                              whiteSpace: "nowrap",
                             }}
                           >
                             <Target size={11} /> {targetGoal}% REACHED!
@@ -969,6 +1022,8 @@ export default function AttendanceTargetPredictor({
                               }`,
                               padding: "1px 5px",
                               borderRadius: 4,
+                              flexShrink: 0,
+                              whiteSpace: "nowrap",
                             }}
                           >
                             {ses.type}
@@ -977,9 +1032,9 @@ export default function AttendanceTargetPredictor({
                       </div>
 
                       {/* Slot & Room */}
-                      <div style={{ fontSize: 11, color: "#64748b", display: "flex", justifyContent: "space-between" }}>
-                        <span><Clock size={11} style={{ display: "inline", verticalAlign: "middle" }} /> {ses.timeSlot}</span>
-                        <span>Room {ses.room}</span>
+                      <div style={{ fontSize: 11, color: "#64748b", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, width: "100%", minWidth: 0 }}>
+                        <span style={{ flexShrink: 0, whiteSpace: "nowrap" }}><Clock size={11} style={{ display: "inline", verticalAlign: "middle" }} /> {ses.timeSlot}</span>
+                        <span style={{ minWidth: 0, flexShrink: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>Room {ses.room}</span>
                       </div>
 
                       {/* Running Attendance Progress */}
@@ -991,9 +1046,13 @@ export default function AttendanceTargetPredictor({
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "center",
+                          gap: 6,
+                          width: "100%",
+                          minWidth: 0,
+                          flexWrap: "wrap",
                         }}
                       >
-                        <span style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600 }}>
+                        <span style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600, flexShrink: 0 }}>
                           After this class:
                         </span>
                         <span
@@ -1001,6 +1060,7 @@ export default function AttendanceTargetPredictor({
                             fontSize: 11.5,
                             fontWeight: 900,
                             color: ses.runningPercentage >= targetGoal ? "#16a34a" : "#2563eb",
+                            marginLeft: mobileMode ? "auto" : undefined,
                           }}
                         >
                           {ses.runningAttended}/{ses.runningDelivered} ({ses.runningPercentage}%)
@@ -1136,8 +1196,12 @@ export default function AttendanceTargetPredictor({
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
+                    gridTemplateColumns: mobileMode ? "minmax(0, 1fr)" : "repeat(auto-fill, minmax(280px, 1fr))",
                     gap: 10,
+                    width: "100%",
+                    maxWidth: "100%",
+                    boxSizing: "border-box",
+                    minWidth: 0,
                   }}
                 >
                   {(showAllDates ? missPenaltyData.missedSessions : missPenaltyData.missedSessions.slice(0, 15)).map((missSes, mIdx) => {
@@ -1150,15 +1214,20 @@ export default function AttendanceTargetPredictor({
                           background: "#f8fafc",
                           border: `1px solid ${isSafeAfterMiss ? "#e2e8f0" : "#fed7aa"}`,
                           borderRadius: 10,
-                          padding: "11px 13px",
+                          padding: mobileMode ? "9px 10px" : "11px 13px",
                           display: "flex",
                           flexDirection: "column",
                           gap: 6,
+                          minWidth: 0,
+                          width: "100%",
+                          maxWidth: "100%",
+                          boxSizing: "border-box",
+                          overflow: "hidden",
                         }}
                       >
                         {/* Top row: Miss # + Date + Safe/Warning badge */}
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, width: "100%", minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flexShrink: 1, overflow: "hidden" }}>
                             <span
                               style={{
                                 fontSize: 10,
@@ -1167,11 +1236,12 @@ export default function AttendanceTargetPredictor({
                                 color: "#ffffff",
                                 padding: "1.5px 6px",
                                 borderRadius: 4,
+                                flexShrink: 0,
                               }}
                             >
                               Miss #{missSes.missNumber}
                             </span>
-                            <span style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>
+                            <span style={{ fontSize: 12, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                               {missSes.dateStr}
                             </span>
                           </div>
@@ -1186,6 +1256,8 @@ export default function AttendanceTargetPredictor({
                                 border: "1px solid #a7f3d0",
                                 padding: "1px 6px",
                                 borderRadius: 4,
+                                flexShrink: 0,
+                                whiteSpace: "nowrap",
                               }}
                             >
                               Safe &ge; {targetGoal}%
@@ -1200,6 +1272,8 @@ export default function AttendanceTargetPredictor({
                                 border: "1px solid #fecaca",
                                 padding: "1px 6px",
                                 borderRadius: 4,
+                                flexShrink: 0,
+                                whiteSpace: "nowrap",
                               }}
                             >
                               Below {targetGoal}%
@@ -1208,9 +1282,9 @@ export default function AttendanceTargetPredictor({
                         </div>
 
                         {/* Time slot & Room */}
-                        <div style={{ fontSize: 11, color: "#64748b", display: "flex", justifyContent: "space-between" }}>
-                          <span><Clock size={11} style={{ display: "inline", verticalAlign: "middle" }} /> {missSes.timeSlot}</span>
-                          <span>Room {missSes.room} ({missSes.type})</span>
+                        <div style={{ fontSize: 11, color: "#64748b", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, width: "100%", minWidth: 0 }}>
+                          <span style={{ flexShrink: 0, whiteSpace: "nowrap" }}><Clock size={11} style={{ display: "inline", verticalAlign: "middle" }} /> {missSes.timeSlot}</span>
+                          <span style={{ minWidth: 0, flexShrink: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>Room {missSes.room} ({missSes.type})</span>
                         </div>
 
                         {/* Running count & percentage */}
@@ -1222,11 +1296,15 @@ export default function AttendanceTargetPredictor({
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "center",
+                            gap: 6,
+                            width: "100%",
+                            minWidth: 0,
+                            flexWrap: "wrap",
                             fontSize: 11,
                           }}
                         >
-                          <span style={{ color: "#64748b" }}>Resulting Attendance:</span>
-                          <strong style={{ color: isSafeAfterMiss ? "#059669" : "#dc2626" }}>
+                          <span style={{ color: "#64748b", flexShrink: 0 }}>Resulting Attendance:</span>
+                          <strong style={{ color: isSafeAfterMiss ? "#059669" : "#dc2626", marginLeft: mobileMode ? "auto" : undefined }}>
                             {missSes.runningAttended}/{missSes.runningDelivered} ({missSes.runningPercentage}%)
                           </strong>
                         </div>
@@ -1318,8 +1396,12 @@ export default function AttendanceTargetPredictor({
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
+                    gridTemplateColumns: mobileMode ? "minmax(0, 1fr)" : "repeat(auto-fill, minmax(280px, 1fr))",
                     gap: 10,
+                    width: "100%",
+                    maxWidth: "100%",
+                    boxSizing: "border-box",
+                    minWidth: 0,
                   }}
                 >
                   {visibleRecoverySessions.map((recSes, rIdx) => {
@@ -1331,14 +1413,19 @@ export default function AttendanceTargetPredictor({
                           background: isMilestone ? "#f0fdf4" : "#f8fafc",
                           border: `1px solid ${isMilestone ? "#86efac" : "#e2e8f0"}`,
                           borderRadius: 10,
-                          padding: "11px 13px",
+                          padding: mobileMode ? "9px 10px" : "11px 13px",
                           display: "flex",
                           flexDirection: "column",
                           gap: 6,
+                          minWidth: 0,
+                          width: "100%",
+                          maxWidth: "100%",
+                          boxSizing: "border-box",
+                          overflow: "hidden",
                         }}
                       >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, width: "100%", minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flexShrink: 1, overflow: "hidden" }}>
                             <span
                               style={{
                                 fontSize: 10,
@@ -1347,11 +1434,12 @@ export default function AttendanceTargetPredictor({
                                 color: "#ffffff",
                                 padding: "1.5px 6px",
                                 borderRadius: 4,
+                                flexShrink: 0,
                               }}
                             >
                               Recovery #{recSes.sessionNumber}
                             </span>
-                            <span style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>
+                            <span style={{ fontSize: 12, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                               {recSes.dateStr}
                             </span>
                           </div>
@@ -1369,6 +1457,8 @@ export default function AttendanceTargetPredictor({
                                 display: "flex",
                                 alignItems: "center",
                                 gap: 3,
+                                flexShrink: 0,
+                                whiteSpace: "nowrap",
                               }}
                             >
                               <Target size={10} /> {targetGoal}% RESTORED!
@@ -1383,6 +1473,8 @@ export default function AttendanceTargetPredictor({
                                 border: "1px solid #e2e8f0",
                                 padding: "1px 5px",
                                 borderRadius: 4,
+                                flexShrink: 0,
+                                whiteSpace: "nowrap",
                               }}
                             >
                               {recSes.type}
@@ -1390,9 +1482,9 @@ export default function AttendanceTargetPredictor({
                           )}
                         </div>
 
-                        <div style={{ fontSize: 11, color: "#64748b", display: "flex", justifyContent: "space-between" }}>
-                          <span><Clock size={11} style={{ display: "inline", verticalAlign: "middle" }} /> {recSes.timeSlot}</span>
-                          <span>Room {recSes.room}</span>
+                        <div style={{ fontSize: 11, color: "#64748b", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, width: "100%", minWidth: 0 }}>
+                          <span style={{ flexShrink: 0, whiteSpace: "nowrap" }}><Clock size={11} style={{ display: "inline", verticalAlign: "middle" }} /> {recSes.timeSlot}</span>
+                          <span style={{ minWidth: 0, flexShrink: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>Room {recSes.room}</span>
                         </div>
 
                         <div
@@ -1403,13 +1495,18 @@ export default function AttendanceTargetPredictor({
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "center",
+                            gap: 6,
+                            width: "100%",
+                            minWidth: 0,
+                            flexWrap: "wrap",
                             fontSize: 11,
                           }}
                         >
-                          <span style={{ color: "#64748b" }}>Resulting Attendance:</span>
+                          <span style={{ color: "#64748b", flexShrink: 0 }}>Resulting Attendance:</span>
                           <strong
                             style={{
                               color: recSes.runningPercentage >= targetGoal ? "#059669" : "#2563eb",
+                              marginLeft: mobileMode ? "auto" : undefined,
                             }}
                           >
                             {recSes.runningAttended}/{recSes.runningDelivered} ({recSes.runningPercentage}%)
@@ -1504,13 +1601,17 @@ export default function AttendanceTargetPredictor({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: mobileMode ? "1fr" : "repeat(3, 1fr)",
+                  gridTemplateColumns: mobileMode ? "minmax(0, 1fr)" : "repeat(3, 1fr)",
                   gap: mobileMode ? 8 : 12,
                   marginTop: 4,
+                  width: "100%",
+                  maxWidth: "100%",
+                  boxSizing: "border-box",
+                  minWidth: 0,
                 }}
               >
                 {/* Control 1: Primary Target Goal */}
-                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: mobileMode ? "10px 12px" : "12px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6 }}>
+                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: mobileMode ? "10px 12px" : "12px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6, minWidth: 0, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
                   <div>
                     <label style={{ fontSize: mobileMode ? 10.5 : 11, fontWeight: 800, color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.4px", display: "block" }}>
                       1. Primary Target Goal
@@ -1544,7 +1645,7 @@ export default function AttendanceTargetPredictor({
                 </div>
 
                 {/* Control 2: Planned Bunks Count */}
-                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: mobileMode ? "10px 12px" : "12px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6 }}>
+                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: mobileMode ? "10px 12px" : "12px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6, minWidth: 0, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
                   <div>
                     <label style={{ fontSize: mobileMode ? 10.5 : 11, fontWeight: 800, color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.4px", display: "block" }}>
                       2. Planned Absences After Goal
@@ -1647,7 +1748,7 @@ export default function AttendanceTargetPredictor({
                 </div>
 
                 {/* Control 3: Recovery Target Goal */}
-                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: mobileMode ? "10px 12px" : "12px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6 }}>
+                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: mobileMode ? "10px 12px" : "12px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6, minWidth: 0, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
                   <div>
                     <label style={{ fontSize: mobileMode ? 10.5 : 11, fontWeight: 800, color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.4px", display: "block" }}>
                       3. Minimum Recovery Threshold
@@ -1683,7 +1784,7 @@ export default function AttendanceTargetPredictor({
 
             {/* ── 3 Strategy Phase Cards ── */}
             {multiPhaseData && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box" }}>
                 {/* ── SECTION 1: BUILD BUFFER ───────────────────────── */}
                 <div
                   style={{
@@ -1695,6 +1796,11 @@ export default function AttendanceTargetPredictor({
                     flexDirection: "column",
                     gap: 12,
                     boxShadow: "0 1px 4px rgba(15, 23, 42, 0.03)",
+                    width: "100%",
+                    maxWidth: "100%",
+                    boxSizing: "border-box",
+                    minWidth: 0,
+                    overflow: "hidden",
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: mobileMode ? "flex-start" : "center", flexDirection: mobileMode ? "column" : "row", gap: 8 }}>
@@ -1775,9 +1881,13 @@ export default function AttendanceTargetPredictor({
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: mobileMode ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
+                        gridTemplateColumns: mobileMode ? "minmax(0, 1fr)" : "repeat(auto-fill, minmax(280px, 1fr))",
                         gap: mobileMode ? 8 : 10,
                         marginTop: 4,
+                        width: "100%",
+                        maxWidth: "100%",
+                        boxSizing: "border-box",
+                        minWidth: 0,
                       }}
                     >
                       {multiPhaseData.phase1.sessions.map((ses, sIdx) => {
@@ -1789,15 +1899,20 @@ export default function AttendanceTargetPredictor({
                               background: isMilestone ? "#f0fdf4" : "#f8fafc",
                               border: `1px solid ${isMilestone ? "#86efac" : "#e2e8f0"}`,
                               borderRadius: 10,
-                              padding: mobileMode ? "10px 11px" : "11px 13px",
+                              padding: mobileMode ? "9px 10px" : "11px 13px",
                               display: "flex",
                               flexDirection: "column",
                               gap: 6,
                               boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+                              minWidth: 0,
+                              width: "100%",
+                              maxWidth: "100%",
+                              boxSizing: "border-box",
+                              overflow: "hidden",
                             }}
                           >
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, width: "100%", minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flexShrink: 1, overflow: "hidden" }}>
                                 <span
                                   style={{
                                     fontSize: 10,
@@ -1811,7 +1926,7 @@ export default function AttendanceTargetPredictor({
                                 >
                                   Class #{ses.sessionNumber}
                                 </span>
-                                <span style={{ fontSize: mobileMode ? 11.5 : 12, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap" }}>
+                                <span style={{ fontSize: mobileMode ? 11.5 : 12, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                   {ses.dateStr}
                                 </span>
                               </div>
@@ -1830,6 +1945,7 @@ export default function AttendanceTargetPredictor({
                                     alignItems: "center",
                                     gap: 3,
                                     flexShrink: 0,
+                                    whiteSpace: "nowrap",
                                   }}
                                 >
                                   <Target size={10} /> {multiPhaseData.primaryTarget}% REACHED!
@@ -1844,10 +1960,11 @@ export default function AttendanceTargetPredictor({
                                     border: "1px solid #e2e8f0",
                                     padding: "1px 5px",
                                     borderRadius: 4,
-                                    maxWidth: mobileMode ? "48%" : "55%",
+                                    maxWidth: mobileMode ? "42%" : "55%",
                                     overflow: "hidden",
                                     textOverflow: "ellipsis",
                                     whiteSpace: "nowrap",
+                                    flexShrink: 0,
                                   }}
                                   title={ses.faculty ? `${ses.faculty}` : (ses.type || "Lecture")}
                                 >
@@ -1856,9 +1973,9 @@ export default function AttendanceTargetPredictor({
                               )}
                             </div>
 
-                            <div style={{ fontSize: mobileMode ? 10.5 : 11, color: "#64748b", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-                              <span><Clock size={11} style={{ display: "inline", verticalAlign: "middle" }} /> {ses.timeSlot}</span>
-                              <span style={{ maxWidth: "50%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            <div style={{ fontSize: mobileMode ? 10.5 : 11, color: "#64748b", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, width: "100%", minWidth: 0 }}>
+                              <span style={{ flexShrink: 0, whiteSpace: "nowrap" }}><Clock size={11} style={{ display: "inline", verticalAlign: "middle" }} /> {ses.timeSlot}</span>
+                              <span style={{ minWidth: 0, flexShrink: 1, maxWidth: mobileMode ? "55%" : "50%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>
                                 Room {ses.room} {ses.faculty && ses.type ? `(${ses.type})` : ""}
                               </span>
                             </div>
@@ -1872,11 +1989,14 @@ export default function AttendanceTargetPredictor({
                                 justifyContent: "space-between",
                                 alignItems: "center",
                                 gap: 6,
+                                width: "100%",
+                                minWidth: 0,
+                                flexWrap: "wrap",
                                 fontSize: mobileMode ? 10.5 : 11,
                               }}
                             >
-                              <span style={{ color: "#64748b", fontWeight: 600 }}>Resulting Attendance:</span>
-                              <strong style={{ color: isMilestone ? "#059669" : "#2563eb" }}>
+                              <span style={{ color: "#64748b", fontWeight: 600, flexShrink: 0 }}>Resulting Attendance:</span>
+                              <strong style={{ color: isMilestone ? "#059669" : "#2563eb", marginLeft: mobileMode ? "auto" : undefined }}>
                                 {ses.runningAttended}/{ses.runningDelivered} ({ses.runningPercentage}%)
                               </strong>
                             </div>
@@ -1898,6 +2018,11 @@ export default function AttendanceTargetPredictor({
                     flexDirection: "column",
                     gap: 12,
                     boxShadow: "0 1px 4px rgba(15, 23, 42, 0.03)",
+                    width: "100%",
+                    maxWidth: "100%",
+                    boxSizing: "border-box",
+                    minWidth: 0,
+                    overflow: "hidden",
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: mobileMode ? "flex-start" : "center", flexDirection: mobileMode ? "column" : "row", gap: 8 }}>
@@ -1973,9 +2098,13 @@ export default function AttendanceTargetPredictor({
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: mobileMode ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
+                        gridTemplateColumns: mobileMode ? "minmax(0, 1fr)" : "repeat(auto-fill, minmax(280px, 1fr))",
                         gap: mobileMode ? 8 : 10,
                         marginTop: 4,
+                        width: "100%",
+                        maxWidth: "100%",
+                        boxSizing: "border-box",
+                        minWidth: 0,
                       }}
                     >
                       {multiPhaseData.phase2.bunkSessions.map((bunk, bIdx) => {
@@ -1988,15 +2117,20 @@ export default function AttendanceTargetPredictor({
                               background: "#ffffff",
                               border: `1px solid ${isSafeBunk ? "#e2e8f0" : "#fecaca"}`,
                               borderRadius: 10,
-                              padding: mobileMode ? "10px 11px" : "11px 13px",
+                              padding: mobileMode ? "9px 10px" : "11px 13px",
                               display: "flex",
                               flexDirection: "column",
                               gap: 6,
                               boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+                              minWidth: 0,
+                              width: "100%",
+                              maxWidth: "100%",
+                              boxSizing: "border-box",
+                              overflow: "hidden",
                             }}
                           >
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, width: "100%", minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flexShrink: 1, overflow: "hidden" }}>
                                 <span
                                   style={{
                                     fontSize: 10,
@@ -2010,7 +2144,7 @@ export default function AttendanceTargetPredictor({
                                 >
                                   Bunk #{bunk.bunkNumber}
                                 </span>
-                                <span style={{ fontSize: mobileMode ? 11.5 : 12, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap" }}>
+                                <span style={{ fontSize: mobileMode ? 11.5 : 12, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                   {bunk.dateStr}
                                 </span>
                               </div>
@@ -2026,6 +2160,7 @@ export default function AttendanceTargetPredictor({
                                     padding: "1px 6px",
                                     borderRadius: 4,
                                     flexShrink: 0,
+                                    whiteSpace: "nowrap",
                                   }}
                                 >
                                   Safe &ge; {recoveryTarget}%
@@ -2041,6 +2176,7 @@ export default function AttendanceTargetPredictor({
                                     padding: "1px 6px",
                                     borderRadius: 4,
                                     flexShrink: 0,
+                                    whiteSpace: "nowrap",
                                   }}
                                 >
                                   Below {recoveryTarget}%
@@ -2048,9 +2184,9 @@ export default function AttendanceTargetPredictor({
                               )}
                             </div>
 
-                            <div style={{ fontSize: mobileMode ? 10.5 : 11, color: "#64748b", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-                              <span><Clock size={11} style={{ display: "inline", verticalAlign: "middle" }} /> {bunk.timeSlot}</span>
-                              <span style={{ maxWidth: "50%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            <div style={{ fontSize: mobileMode ? 10.5 : 11, color: "#64748b", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, width: "100%", minWidth: 0 }}>
+                              <span style={{ flexShrink: 0, whiteSpace: "nowrap" }}><Clock size={11} style={{ display: "inline", verticalAlign: "middle" }} /> {bunk.timeSlot}</span>
+                              <span style={{ minWidth: 0, flexShrink: 1, maxWidth: mobileMode ? "55%" : "50%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>
                                 Room {bunk.room} {bunk.faculty ? `(${bunk.faculty})` : (bunk.type ? `(${bunk.type})` : "")}
                               </span>
                             </div>
@@ -2065,15 +2201,17 @@ export default function AttendanceTargetPredictor({
                                 alignItems: "center",
                                 gap: 6,
                                 flexWrap: "wrap",
+                                width: "100%",
+                                minWidth: 0,
                                 fontSize: mobileMode ? 10.5 : 11,
                               }}
                             >
-                              <span style={{ color: "#64748b", fontWeight: 600 }}>Resulting Attendance:</span>
-                              <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+                              <span style={{ color: "#64748b", fontWeight: 600, flexShrink: 0 }}>Resulting Attendance:</span>
+                              <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginLeft: mobileMode ? "auto" : undefined }}>
                                 <strong style={{ color: isSafeBunk ? "#059669" : "#dc2626" }}>
                                   {bunk.runningAttended}/{bunk.runningDelivered} ({bunk.runningPercentage}%)
                                 </strong>
-                                <span style={{ color: "#e11d48", fontWeight: 700, fontSize: 10, background: "#fff1f2", border: "1px solid #fecdd3", padding: "1px 5px", borderRadius: 4, display: "inline-flex", alignItems: "center", gap: 2 }}>
+                                <span style={{ color: "#e11d48", fontWeight: 700, fontSize: 10, background: "#fff1f2", border: "1px solid #fecdd3", padding: "1px 5px", borderRadius: 4, display: "inline-flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
                                   <TrendingDown size={10} color="#e11d48" /> -{Math.abs(Number(bunk.percentageDrop || 0)).toFixed(2)}%
                                 </span>
                               </div>
@@ -2096,6 +2234,11 @@ export default function AttendanceTargetPredictor({
                     flexDirection: "column",
                     gap: 12,
                     boxShadow: "0 1px 4px rgba(15, 23, 42, 0.03)",
+                    width: "100%",
+                    maxWidth: "100%",
+                    boxSizing: "border-box",
+                    minWidth: 0,
+                    overflow: "hidden",
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: mobileMode ? "flex-start" : "center", flexDirection: mobileMode ? "column" : "row", gap: 8 }}>
@@ -2193,9 +2336,13 @@ export default function AttendanceTargetPredictor({
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: mobileMode ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
+                        gridTemplateColumns: mobileMode ? "minmax(0, 1fr)" : "repeat(auto-fill, minmax(280px, 1fr))",
                         gap: mobileMode ? 8 : 10,
                         marginTop: 4,
+                        width: "100%",
+                        maxWidth: "100%",
+                        boxSizing: "border-box",
+                        minWidth: 0,
                       }}
                     >
                       {multiPhaseData.phase3.recoverySessions.map((rec, rIdx) => {
@@ -2209,15 +2356,20 @@ export default function AttendanceTargetPredictor({
                               background: isMilestone ? "#f0fdf4" : "#ffffff",
                               border: `1px solid ${isMilestone ? "#86efac" : "#bbf7d0"}`,
                               borderRadius: 10,
-                              padding: mobileMode ? "10px 11px" : "11px 13px",
+                              padding: mobileMode ? "9px 10px" : "11px 13px",
                               display: "flex",
                               flexDirection: "column",
                               gap: 6,
                               boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+                              minWidth: 0,
+                              width: "100%",
+                              maxWidth: "100%",
+                              boxSizing: "border-box",
+                              overflow: "hidden",
                             }}
                           >
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, width: "100%", minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flexShrink: 1, overflow: "hidden" }}>
                                 <span
                                   style={{
                                     fontSize: 10,
@@ -2231,7 +2383,7 @@ export default function AttendanceTargetPredictor({
                                 >
                                   Recovery #{rec.sessionNumber}
                                 </span>
-                                <span style={{ fontSize: mobileMode ? 11.5 : 12, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap" }}>
+                                <span style={{ fontSize: mobileMode ? 11.5 : 12, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                   {rec.dateStr}
                                 </span>
                               </div>
@@ -2250,6 +2402,7 @@ export default function AttendanceTargetPredictor({
                                     alignItems: "center",
                                     gap: 3,
                                     flexShrink: 0,
+                                    whiteSpace: "nowrap",
                                   }}
                                 >
                                   <Target size={10} /> {recoveryTarget}% RESTORED!
@@ -2264,10 +2417,11 @@ export default function AttendanceTargetPredictor({
                                     border: "1px solid #e2e8f0",
                                     padding: "1px 5px",
                                     borderRadius: 4,
-                                    maxWidth: mobileMode ? "48%" : "55%",
+                                    maxWidth: mobileMode ? "42%" : "55%",
                                     overflow: "hidden",
                                     textOverflow: "ellipsis",
                                     whiteSpace: "nowrap",
+                                    flexShrink: 0,
                                   }}
                                   title={rec.faculty ? `${rec.faculty}` : (rec.type || "Lecture")}
                                 >
@@ -2276,9 +2430,9 @@ export default function AttendanceTargetPredictor({
                               )}
                             </div>
 
-                            <div style={{ fontSize: mobileMode ? 10.5 : 11, color: "#64748b", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-                              <span><Clock size={11} style={{ display: "inline", verticalAlign: "middle" }} /> {rec.timeSlot}</span>
-                              <span style={{ maxWidth: "50%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            <div style={{ fontSize: mobileMode ? 10.5 : 11, color: "#64748b", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, width: "100%", minWidth: 0 }}>
+                              <span style={{ flexShrink: 0, whiteSpace: "nowrap" }}><Clock size={11} style={{ display: "inline", verticalAlign: "middle" }} /> {rec.timeSlot}</span>
+                              <span style={{ minWidth: 0, flexShrink: 1, maxWidth: mobileMode ? "55%" : "50%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>
                                 Room {rec.room} {rec.faculty && rec.type ? `(${rec.type})` : ""}
                               </span>
                             </div>
@@ -2292,11 +2446,14 @@ export default function AttendanceTargetPredictor({
                                 justifyContent: "space-between",
                                 alignItems: "center",
                                 gap: 6,
+                                width: "100%",
+                                minWidth: 0,
+                                flexWrap: "wrap",
                                 fontSize: mobileMode ? 10.5 : 11,
                               }}
                             >
-                              <span style={{ color: "#64748b", fontWeight: 600 }}>Resulting Attendance:</span>
-                              <strong style={{ color: isSafe ? "#059669" : "#2563eb" }}>
+                              <span style={{ color: "#64748b", fontWeight: 600, flexShrink: 0 }}>Resulting Attendance:</span>
+                              <strong style={{ color: isSafe ? "#059669" : "#2563eb", marginLeft: mobileMode ? "auto" : undefined }}>
                                 {rec.runningAttended}/{rec.runningDelivered} ({rec.runningPercentage}%)
                               </strong>
                             </div>

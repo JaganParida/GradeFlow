@@ -3946,6 +3946,24 @@ To prevent low-effort spam, nonsense letter-smashing (e.g., `jkdbkb`, `asdfgh`),
    - **Fake Registration Number Rejection**: Registration numbers like `000000000000` or those lacking enrolled university records are rejected immediately.
 10. **Length Boundaries**:
     - Minimum 4 characters, maximum 1000 characters.
+11. **Strict Name & Personal Identity Guard in Review Box (`comment`)**:
+    - Students frequently attempt to type their own name, classmates' names, or faculty names directly into the review comment textarea. GradeFlow enforces comprehensive personal name detection (`checkNameInComment`):
+      a. **Submitter's Own Name Rejection**:
+         - Automatically splits the submitting student's verified name (`currentStudentName`, `verifiedName`, or `trimmedName`) into lexical tokens ($\ge 3$ characters, excluding common English words).
+         - Rejects submissions containing any of the student's name components (e.g. `"Amarendra here"`, `"- by Kunda"`, `"Vikas das loved this"`).
+         - Error message: *"Please do not write your name in the feedback box. Your verified name is already displayed on your review card automatically."*
+      b. **Self-Introduction & Sign-off Rejection**:
+         - Detects phrases like `"my name is..."`, `"mera naam..."`, `"naam hai"`.
+         - Detects first-name self-introductions (`"i am <name>"`, `"this is <name>"`, `"myself <name>"`, `"i'm <name>"`).
+         - Detects end-of-comment signatures and sign-offs (`"- by <name>"`, `"- <name>"`, `"posted by <name>"`, `"written by <name>"`, `"regards <name>"`).
+         - Prevents false-positives on positive platform feedback like `"This is awesome"`, `"This is the best website"`, or `"I am very happy with the results"`.
+      c. **Peer & Classmate Name Detection**:
+         - **Two-Word Indian Name Pairs**: Checks combinations of common Indian first names and surnames (`COMMON_FIRST_NAMES` + `COMMON_SURNAMES` or vice versa, e.g., `"Rahul Sharma"`, `"Priya Behera"`, `"Debasish Nayak"`, `"Bikash Jena"`).
+         - **Targeted Contextual Name Phrases**: Flags names used in targeting grammatical contexts (e.g., `"Rohan is the topper"`, `"Amit bhai ka score"`, `"Rahul ka..."`, `"Priya ko..."`).
+         - **Pure Name Comments**: Flags submissions containing 2 or more names without any platform feedback keywords (e.g., `"Rahul Kumar Nayak"`, `"Soumya Ranjan Parida"`).
+      d. **Faculty & Academic Staff Mention Guard**:
+         - Prohibits referencing teachers, professors, or administrators by title or name (`sir`, `maam`, `faculty`, `prof`, `professor`, `hod`, `dean`, `principal`, `teacher`).
+         - Error message: *"Please do not mention faculty members, teachers, or staff by title or name in public reviews. Reviews must focus on the GradeFlow platform."*
 
 ### Public Reputation & Low-Rating Quarantine Protocol:
 - **Low-Rating Automatic Quarantine (`status: "needs_review"`)**:
@@ -3957,11 +3975,11 @@ To prevent low-effort spam, nonsense letter-smashing (e.g., `jkdbkb`, `asdfgh`),
 ### Multi-Surface Protection Matrix:
 | Surface | File | Hook / Handler | Rejection / Routing Behavior |
 | :--- | :--- | :--- | :--- |
-| **Student Dashboard Report Card** | `FeedbackModal.jsx` | `handleSubmit(e)` | In-modal red error alert banner; non-public redirection if $\le 2$ stars |
-| **Testimonials Page** | `Testimonials.jsx` | `handleSubmit(e)` | Textarea error badge; $\le 2$ star feedback routed to support notice |
-| **Express Backend** | `backend/middleware/validation.js` | `validateFeedbackInput` | HTTP 400 Bad Request with descriptive JSON error |
-| **Backend Feedback Route** | `backend/routes/feedback.js` | `POST /` | Enforces official `studentName` lookup from `SemesterResult` |
-| **Vercel Serverless Function** | `frontend/api/student.js` | `Unified Feedback Handler` | HTTP 400 Bad Request; enforces official `studentName` resolution |
+| **Student Dashboard Report Card** | `FeedbackModal.jsx` | `handleSubmit(e)` | In-modal red error alert banner passing `currentStudentName`; non-public redirection if $\le 2$ stars |
+| **Testimonials Page** | `Testimonials.jsx` | `handleSubmit(e)` | Textarea error badge passing `finalName`; $\le 2$ star feedback routed to support notice |
+| **Express Backend Middleware** | `backend/middleware/validation.js` | `validateFeedbackInput` | HTTP 400 Bad Request passing `trimmedName` to `validateFeedbackComment` |
+| **Backend Feedback Route** | `backend/routes/feedback.js` | `POST /` | Enforces official `studentName` lookup from `SemesterResult` and re-validates comment against `verifiedName` |
+| **Vercel Serverless Function** | `frontend/api/student.js` | `Unified Feedback Handler` | HTTP 400 Bad Request; resolves official `studentName` and passes `verifiedName` to `validateFeedbackComment` |
 | **Admin Operations** | `AdminDashboard.jsx` | Feedback Tab | Displays `⚠️ Grievance (Hidden from Public)` status badge |
 
 ---

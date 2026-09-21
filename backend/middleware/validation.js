@@ -67,7 +67,7 @@ function validateFeedbackInput(req, res, next) {
     return res.status(400).json({ message: "Rating must be a number between 1 and 5." });
   }
 
-  const commentValidation = validateFeedbackComment(comment);
+  const commentValidation = validateFeedbackComment(comment, trimmedName);
   if (!commentValidation.isValid) {
     return res.status(400).json({ message: commentValidation.error });
   }

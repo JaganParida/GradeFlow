@@ -166,7 +166,186 @@ function checkBadWording(text) {
   return { found: false };
 }
 
-function validateFeedbackComment(comment) {
+// Indian first names commonly used by students / peers
+const COMMON_FIRST_NAMES = [
+  "rahul", "rohan", "amit", "ankit", "priya", "pooja", "sneha", "aditya",
+  "aman", "ayush", "soumya", "subham", "shubham", "debasish", "debashish",
+  "satyajit", "pratyush", "vikas", "bikash", "ashish", "asish", "suman",
+  "abhishek", "arpit", "vivek", "manish", "kunal", "sameer", "ritik", "ritu",
+  "khushbu", "riya", "neha", "anjali", "swati", "payal", "gouri", "archana",
+  "deepak", "rakesh", "suresh", "ramesh", "mahesh", "sunil", "anil", "pankaj",
+  "sanjay", "tushar", "shakti", "alok", "barsha", "lipsa", "monalisa",
+  "chinmay", "biswajit", "jagannath", "jagan", "jyoti", "rajesh", "rinku", "papu",
+  "bapi", "vicky", "chandan", "prabhat", "prasant", "prashant", "santosh", "saroj"
+];
+
+// Indian surnames commonly used by students
+const COMMON_SURNAMES = [
+  "sahoo", "sahu", "behera", "nayak", "naik", "jena", "pradhan", "rout", "swain", "das",
+  "patra", "mohanty", "pattnaik", "patnaik", "pattanaik", "mishra", "panda", "tripathy",
+  "tripathi", "parida", "samal", "biswal", "bhoi", "padhi", "sethi", "sethy",
+  "sharma", "verma", "gupta", "singh", "kumar", "patel", "yadav", "roy", "dey",
+  "ghosh", "sen", "banerjee", "chatterjee", "reddy", "nair", "rao", "meher",
+  "khatua", "dhir", "kunda", "binnala", "dalasingharay", "maharana", "barik", "muduli",
+  "lenka", "khandual", "mallick", "malik", "majhi", "basa"
+];
+
+// Academic faculty and staff honorifics / titles
+const FACULTY_TITLES = [
+  "sir", "maam", "ma'am", "madam", "faculty", "prof", "professor",
+  "hod", "dean", "principal", "teacher", "teachers"
+];
+
+// Common English words to ignore when checking submitter's own name components
+const COMMON_ENGLISH_WORDS_EXCLUSIONS = new Set([
+  "the", "and", "for", "all", "new", "one", "out", "you", "app", "site",
+  "web", "best", "good", "great", "fast", "love", "like", "nice", "team"
+]);
+
+function checkNameInComment(comment, studentName = "") {
+  const text = (comment || "").toLowerCase();
+  const words = text.split(/[^a-z0-9]+/).filter((w) => w.length > 0);
+
+  // 1. Check if the submitting student wrote their own name in the comment
+  if (studentName && typeof studentName === "string") {
+    const ownParts = studentName
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((p) => p.length >= 3 && !COMMON_ENGLISH_WORDS_EXCLUSIONS.has(p));
+
+    for (const part of ownParts) {
+      const wordRegex = new RegExp(`\\b${part}\\b`, "i");
+      if (wordRegex.test(text)) {
+        return {
+          found: true,
+          type: "own_name",
+          word: part,
+          error: "Please do not write your name in the feedback box. Your verified name is already displayed on your review card automatically.",
+        };
+      }
+    }
+  }
+
+  // 2. Explicit self-introductions ("my name is...", "mera naam...")
+  if (/\b(my name is|mera naam|naam hai)\b/i.test(text)) {
+    return {
+      found: true,
+      type: "intro",
+      error: "Please do not include personal names or introductions in your review. Reviews must focus directly on your experience with GradeFlow.",
+    };
+  }
+
+  // Self-introduction with first name ("i am rahul", "this is rohan", "myself soumya", "i'm ankit")
+  const firstNameAlternation = COMMON_FIRST_NAMES.join("|");
+  const introNameRegex = new RegExp(
+    `\\b(i am|this is|myself|i'm|im)\\s+(${firstNameAlternation})\\b`,
+    "i"
+  );
+  if (introNameRegex.test(text)) {
+    return {
+      found: true,
+      type: "intro_name",
+      error: "Please do not include personal names or introductions in your review. Reviews must focus directly on your experience with GradeFlow.",
+    };
+  }
+
+  // Sign-offs at the end of reviews (e.g. "- by Rahul", "regards Rakesh", "- Rahul")
+  const signoffNameRegex = new RegExp(
+    `([-~—]\\s*(by\\s+)?|\\b(posted by|written by|regards)\\s*[:\\-]?\\s+)(${firstNameAlternation})\\b`,
+    "i"
+  );
+  if (signoffNameRegex.test(text)) {
+    return {
+      found: true,
+      type: "signoff_name",
+      error: "Please do not include personal sign-offs or names in your review. Your verified student profile is automatically linked.",
+    };
+  }
+
+  // Sign-off structure at end of text: e.g. "- by <word>" or "regards: <word>"
+  if (/[-~—]\s*by\s+[a-z]{3,}\s*$/i.test(text) || /\bregards\s*[:\-]\s*[a-z]{3,}\s*$/i.test(text)) {
+    return {
+      found: true,
+      type: "signoff",
+      error: "Please do not include personal sign-offs in your review. Your verified student profile is automatically linked.",
+    };
+  }
+
+  // 3. Faculty / Staff mentions (e.g., "Sharma sir", "our HOD", "physics faculty sir")
+  for (const word of words) {
+    if (FACULTY_TITLES.includes(word)) {
+      return {
+        found: true,
+        type: "faculty",
+        word,
+        error: "Please do not mention faculty members, teachers, or staff by title or name in public reviews. Reviews must focus on the GradeFlow platform.",
+      };
+    }
+  }
+
+  // 4. Check for combination of First Name + Surname (e.g., "Rahul Sharma", "Priya Behera", "Debasish Nayak")
+  for (let i = 0; i < words.length - 1; i++) {
+    const w1 = words[i];
+    const w2 = words[i + 1];
+    if (
+      (COMMON_FIRST_NAMES.includes(w1) && COMMON_SURNAMES.includes(w2)) ||
+      (COMMON_SURNAMES.includes(w1) && COMMON_FIRST_NAMES.includes(w2)) ||
+      (COMMON_FIRST_NAMES.includes(w1) && COMMON_FIRST_NAMES.includes(w2))
+    ) {
+      return {
+        found: true,
+        type: "full_name",
+        word: `${w1} ${w2}`,
+        error: `Please do not mention personal names ("${w1} ${w2}") in the review box. Reviews must focus solely on your experience with GradeFlow.`,
+      };
+    }
+  }
+
+  // 5. Targeted name check (e.g. "Rohan is...", "Amit bhai...", "Rahul ka score...")
+  for (const word of words) {
+    if (COMMON_FIRST_NAMES.includes(word)) {
+      const targetRegex = new RegExp(
+        `\\b(he|she|him|her|his|is|was|ko|ka|ki|ke|bhai|yaar|ne|se)\\s+${word}\\b|\\b${word}\\s+(is|was|ko|ka|ki|ke|bhai|yaar|hai|tha|thi|ne|se)\\b`,
+        "i"
+      );
+      if (targetRegex.test(text)) {
+        return {
+          found: true,
+          type: "targeted_name",
+          word,
+          error: `Please do not mention personal names ("${word}") in the feedback box. Reviews must focus on the platform.`,
+        };
+      }
+    }
+  }
+
+  // 6. Entire review is just names without platform feedback
+  const feedbackKeywords = [
+    "good", "great", "best", "helpful", "clean", "fast", "speed", "easy",
+    "ui", "ux", "website", "app", "portal", "grade", "grades", "sgpa",
+    "cgpa", "results", "result", "attendance", "calculator", "feature",
+    "platform", "tool", "work", "works", "working", "experience", "love",
+    "awesome", "smooth", "simple", "time", "nice", "excellent", "superb",
+    "useful", "accurate", "satisfying", "impressed", "service", "daily"
+  ];
+  const hasFeedbackKeyword = words.some((w) => feedbackKeywords.includes(w));
+  if (!hasFeedbackKeyword && words.length <= 4) {
+    const nameCount = words.filter(
+      (w) => COMMON_FIRST_NAMES.includes(w) || COMMON_SURNAMES.includes(w)
+    ).length;
+    if (nameCount >= 2) {
+      return {
+        found: true,
+        type: "only_names",
+        error: "Please write genuine feedback about GradeFlow rather than personal names.",
+      };
+    }
+  }
+
+  return { found: false };
+}
+
+function validateFeedbackComment(comment, studentName = "") {
   if (!comment || typeof comment !== "string") {
     return { isValid: false, error: "Please write a comment or review." };
   }
@@ -272,6 +451,15 @@ function validateFeedbackComment(comment) {
         error: "Review contains too many repetitive patterns. Please write genuine feedback.",
       };
     }
+  }
+
+  // 9. Personal names, self-introductions, sign-offs, and faculty mentions check
+  const nameCheckResult = checkNameInComment(trimmed, studentName);
+  if (nameCheckResult.found) {
+    return {
+      isValid: false,
+      error: nameCheckResult.error,
+    };
   }
 
   return { isValid: true, error: null };

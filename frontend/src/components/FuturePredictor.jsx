@@ -2275,7 +2275,7 @@ export default function FuturePredictor({
                         </span>
                       </div>
 
-                      <div style={{ display: "grid", gridTemplateColumns: effectiveIsMobile ? "1fr" : "repeat(auto-fill, minmax(260px, 1fr))", gap: 6, width: "100%", boxSizing: "border-box" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: effectiveIsMobile ? "minmax(0, 1fr)" : "repeat(auto-fill, minmax(260px, 1fr))", gap: 6, width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box" }}>
                         {pDay.classes.map((cls, cIdx) => (
                           <div
                             key={cIdx}
@@ -2288,27 +2288,32 @@ export default function FuturePredictor({
                               flexDirection: "column",
                               gap: 3,
                               opacity: cls.isAlreadyMarkedToday ? 0.85 : 1,
+                              minWidth: 0,
+                              width: "100%",
+                              maxWidth: "100%",
+                              boxSizing: "border-box",
+                              overflow: "hidden",
                             }}
                           >
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <span style={{ fontSize: 11.5, fontWeight: 800, color: "#0f172a" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, width: "100%", minWidth: 0 }}>
+                              <span style={{ fontSize: 11.5, fontWeight: 800, color: "#0f172a", minWidth: 0, flexShrink: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                 {cls.subjectName}
                               </span>
-                              <span style={{ fontSize: 9.5, fontWeight: 800, background: "#eff6ff", color: "#2563eb", padding: "1px 4px", borderRadius: 4 }}>
+                              <span style={{ fontSize: 9.5, fontWeight: 800, background: "#eff6ff", color: "#2563eb", padding: "1px 4px", borderRadius: 4, flexShrink: 0, whiteSpace: "nowrap" }}>
                                 {cls.type}
                               </span>
                             </div>
-                            <div style={{ fontSize: 10, color: "#64748b" }}>
+                            <div style={{ fontSize: 10, color: "#64748b", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                               {cls.timeSlot} &bull; Room {cls.room}
                             </div>
-                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, borderTop: "1px dashed #e2e8f0", paddingTop: 3, marginTop: 2 }}>
-                              <span style={{ color: "#64748b" }}>Course %:</span>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, width: "100%", minWidth: 0, flexWrap: "wrap", fontSize: 10.5, borderTop: "1px dashed #e2e8f0", paddingTop: 3, marginTop: 2 }}>
+                              <span style={{ color: "#64748b", flexShrink: 0 }}>Course %:</span>
                               {cls.isAlreadyMarkedToday ? (
-                                <strong style={{ color: cls.markedStatusToday === "present" ? "#059669" : "#dc2626" }}>
+                                <strong style={{ color: cls.markedStatusToday === "present" ? "#059669" : "#dc2626", marginLeft: effectiveIsMobile ? "auto" : undefined, whiteSpace: "nowrap" }}>
                                   Already marked {cls.markedStatusToday} ({cls.prevSubPct}%)
                                 </strong>
                               ) : (
-                                <strong style={{ color: "#059669" }}>
+                                <strong style={{ color: "#059669", marginLeft: effectiveIsMobile ? "auto" : undefined, whiteSpace: "nowrap" }}>
                                   {cls.prevSubPct}% &rarr; {cls.newSubPct}% (+{cls.subDelta}%)
                                 </strong>
                               )}
@@ -2763,9 +2768,11 @@ export default function FuturePredictor({
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: effectiveIsMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
+                    gridTemplateColumns: effectiveIsMobile ? "minmax(0, 1fr)" : "repeat(auto-fill, minmax(280px, 1fr))",
                     gap: 10,
                     width: "100%",
+                    maxWidth: "100%",
+                    minWidth: 0,
                     boxSizing: "border-box",
                   }}
                 >
@@ -3060,9 +3067,11 @@ export default function FuturePredictor({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: effectiveIsMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
+                  gridTemplateColumns: effectiveIsMobile ? "minmax(0, 1fr)" : "repeat(auto-fill, minmax(280px, 1fr))",
                   gap: 10,
                   width: "100%",
+                  maxWidth: "100%",
+                  minWidth: 0,
                   boxSizing: "border-box",
                 }}
               >
@@ -3566,9 +3575,11 @@ export default function FuturePredictor({
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: effectiveIsMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
+                        gridTemplateColumns: effectiveIsMobile ? "minmax(0, 1fr)" : "repeat(auto-fill, minmax(280px, 1fr))",
                         gap: 10,
                         width: "100%",
+                        maxWidth: "100%",
+                        minWidth: 0,
                         boxSizing: "border-box",
                       }}
                     >

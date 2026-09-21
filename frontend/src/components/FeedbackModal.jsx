@@ -138,7 +138,7 @@ export default function FeedbackModal() {
       return;
     }
 
-    const commentValidation = validateFeedbackComment(trimmedComment);
+    const commentValidation = validateFeedbackComment(trimmedComment, currentStudentName);
     if (!commentValidation.isValid) {
       setErrorMessage(commentValidation.error);
       return;

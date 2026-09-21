@@ -111,15 +111,15 @@ module.exports = async function handler(req, res) {
           return res.status(400).json({ message: "Registration number not found in university records. Only enrolled students can submit feedback." });
         }
 
-        const commentValidation = validateFeedbackComment(comment);
-        if (!commentValidation.isValid) {
-          return res.status(400).json({ message: commentValidation.error });
-        }
-
         const officialRecord = await SemesterResult.findOne({ regNo: cleanRegNo }).select("studentName").lean();
         let verifiedName = trimmedName;
         if (officialRecord && officialRecord.studentName && officialRecord.studentName.trim().length >= 2) {
           verifiedName = officialRecord.studentName.trim();
+        }
+
+        const commentValidation = validateFeedbackComment(comment, verifiedName || trimmedName);
+        if (!commentValidation.isValid) {
+          return res.status(400).json({ message: commentValidation.error });
         }
 
         const feedbackStatus = numRating <= 2 ? "needs_review" : "approved";
