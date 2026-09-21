@@ -3947,23 +3947,34 @@ To prevent low-effort spam, nonsense letter-smashing (e.g., `jkdbkb`, `asdfgh`),
 10. **Length Boundaries**:
     - Minimum 4 characters, maximum 1000 characters.
 11. **Strict Name & Personal Identity Guard in Review Box (`comment`)**:
-    - Students frequently attempt to type their own name, classmates' names, or faculty names directly into the review comment textarea. GradeFlow enforces comprehensive personal name detection (`checkNameInComment`):
-      a. **Submitter's Own Name Rejection**:
-         - Automatically splits the submitting student's verified name (`currentStudentName`, `verifiedName`, or `trimmedName`) into lexical tokens ($\ge 3$ characters, excluding common English words).
-         - Rejects submissions containing any of the student's name components (e.g. `"Amarendra here"`, `"- by Kunda"`, `"Vikas das loved this"`).
+    - Students frequently attempt to type personal messages, shoutouts, their own name, classmates' names, or faculty names directly into the review comment textarea. GradeFlow enforces a comprehensive personal name & relational message detection engine (`checkNameInComment`):
+      a. **University-Wide Enrolled Student Name Dataset**:
+         - Compiled dataset of **1,434 distinct student name tokens** derived authoritatively from the 5,886 enrolled student records in `SemesterResult` (`collegeNames.json`), spanning every student at the institution.
+         - Embedded seamlessly across client (`frontend/src/utils/collegeNames.json`), backend (`backend/utils/collegeNames.json`), and serverless functions (`frontend/api/_lib/collegeNames.json`).
+         - Whitelists common English domain terms (e.g. `wisdom`, `sunny`, `prince`, `student`, `team`, `app`, `results`) to ensure zero false-positives on academic feedback.
+      b. **Relational Shoutouts & Personal Message Blocking (`<name> to <name>`)**:
+         - Intercepts directional, comparative, and relational phrases between individuals (e.g. `"jagan to pranab"`, `"from jagan to pranab"`, `"jagan and pranab"`, `"to pranab"`, `"for jagan"`, `"shoutout to pranab"`, `"debasish vs soumya"`).
+         - Rejects personal greetings addressed to individuals (e.g. `"hello jagan"`, `"hi pranab"`, `"hey rahul"`).
+         - Rejects colloquial honorifics with names (e.g. `"jagan bhai"`, `"pranab sir"`, `"rahul yaar"`).
+         - Error message: *"Please do not use personal names or personal messages in the feedback box. Reviews must focus on the GradeFlow platform."*
+      c. **Submitter's Own Name Rejection**:
+         - Automatically splits the submitting student's verified name (`currentStudentName`, `verifiedName`, or `trimmedName`) into lexical tokens ($\ge 3$ characters).
+         - Rejects submissions containing any of the student's name components (e.g. `"Aryagoutam here"`, `"Jena was here"`, `"Amarendra here"`, `"- by Kunda"`).
          - Error message: *"Please do not write your name in the feedback box. Your verified name is already displayed on your review card automatically."*
-      b. **Self-Introduction & Sign-off Rejection**:
+      d. **Self-Introduction & Sign-off Rejection**:
          - Detects phrases like `"my name is..."`, `"mera naam..."`, `"naam hai"`.
          - Detects first-name self-introductions (`"i am <name>"`, `"this is <name>"`, `"myself <name>"`, `"i'm <name>"`).
          - Detects end-of-comment signatures and sign-offs (`"- by <name>"`, `"- <name>"`, `"posted by <name>"`, `"written by <name>"`, `"regards <name>"`).
-         - Prevents false-positives on positive platform feedback like `"This is awesome"`, `"This is the best website"`, or `"I am very happy with the results"`.
-      c. **Peer & Classmate Name Detection**:
-         - **Two-Word Indian Name Pairs**: Checks combinations of common Indian first names and surnames (`COMMON_FIRST_NAMES` + `COMMON_SURNAMES` or vice versa, e.g., `"Rahul Sharma"`, `"Priya Behera"`, `"Debasish Nayak"`, `"Bikash Jena"`).
-         - **Targeted Contextual Name Phrases**: Flags names used in targeting grammatical contexts (e.g., `"Rohan is the topper"`, `"Amit bhai ka score"`, `"Rahul ka..."`, `"Priya ko..."`).
-         - **Pure Name Comments**: Flags submissions containing 2 or more names without any platform feedback keywords (e.g., `"Rahul Kumar Nayak"`, `"Soumya Ranjan Parida"`).
-      d. **Faculty & Academic Staff Mention Guard**:
+         - Zero false-positives on positive platform feedback like `"This is awesome"`, `"This is the best website"`, or `"I am very happy with the results"`.
+      e. **Peer & Classmate Name Detection**:
+         - **Two-Word Student Name Pairs**: Checks combinations of student names (`w1` and `w2` both in `KNOWN_COLLEGE_NAMES`, e.g., `"Aryagoutam Jena"`, `"Pranab Paul"`, `"Jagan Parida"`, `"Rahul Sharma"`, `"Priya Behera"`).
+         - **Targeted Contextual Name Phrases**: Flags names used in targeting grammatical contexts (e.g., `"Rohan is the topper"`, `"Jagan ka..."`, `"Rahul ko..."`).
+      f. **Faculty & Academic Staff Mention Guard**:
          - Prohibits referencing teachers, professors, or administrators by title or name (`sir`, `maam`, `faculty`, `prof`, `professor`, `hod`, `dean`, `principal`, `teacher`).
          - Error message: *"Please do not mention faculty members, teachers, or staff by title or name in public reviews. Reviews must focus on the GradeFlow platform."*
+      g. **Short Review Meaningful Evaluation Requirement ($\le 5$ words)**:
+         - Short submissions ($\le 5$ words) must not contain any student or person names, and must contain at least one genuine platform evaluation keyword (`good, great, best, helpful, clean, fast, speed, easy, ui, ux, website, app, portal, grade, grades, sgpa, cgpa, results, attendance, calculator, feature, platform, tool, work, experience, love, awesome, smooth, simple, time, nice, excellent, useful, accurate, tracker, bput`).
+         - Prevents casual banter, unrelated chats, or single-name bursts.
 
 ### Public Reputation & Low-Rating Quarantine Protocol:
 - **Low-Rating Automatic Quarantine (`status: "needs_review"`)**:

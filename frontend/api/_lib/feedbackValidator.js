@@ -6,6 +6,8 @@
  * Enforces a minimum of 3 meaningful words per submission.
  */
 
+const collegeNames = require("./collegeNames.json");
+
 // Profanity, vulgarities, slurs (English + Hindi/Hinglish)
 const PROFANITY_TERMS = [
   "fuck", "fucker", "fucking", "bitch", "asshole", "bastard",
@@ -166,29 +168,22 @@ function checkBadWording(text) {
   return { found: false };
 }
 
-// Indian first names commonly used by students / peers
-const COMMON_FIRST_NAMES = [
-  "rahul", "rohan", "amit", "ankit", "priya", "pooja", "sneha", "aditya",
-  "aman", "ayush", "soumya", "subham", "shubham", "debasish", "debashish",
-  "satyajit", "pratyush", "vikas", "bikash", "ashish", "asish", "suman",
-  "abhishek", "arpit", "vivek", "manish", "kunal", "sameer", "ritik", "ritu",
-  "khushbu", "riya", "neha", "anjali", "swati", "payal", "gouri", "archana",
-  "deepak", "rakesh", "suresh", "ramesh", "mahesh", "sunil", "anil", "pankaj",
-  "sanjay", "tushar", "shakti", "alok", "barsha", "lipsa", "monalisa",
-  "chinmay", "biswajit", "jagannath", "jagan", "jyoti", "rajesh", "rinku", "papu",
-  "bapi", "vicky", "chandan", "prabhat", "prasant", "prashant", "santosh", "saroj"
-];
+// Comprehensive set of known college student names from university database
+const KNOWN_COLLEGE_NAMES = new Set(collegeNames);
 
-// Indian surnames commonly used by students
-const COMMON_SURNAMES = [
-  "sahoo", "sahu", "behera", "nayak", "naik", "jena", "pradhan", "rout", "swain", "das",
-  "patra", "mohanty", "pattnaik", "patnaik", "pattanaik", "mishra", "panda", "tripathy",
-  "tripathi", "parida", "samal", "biswal", "bhoi", "padhi", "sethi", "sethy",
-  "sharma", "verma", "gupta", "singh", "kumar", "patel", "yadav", "roy", "dey",
-  "ghosh", "sen", "banerjee", "chatterjee", "reddy", "nair", "rao", "meher",
-  "khatua", "dhir", "kunda", "binnala", "dalasingharay", "maharana", "barik", "muduli",
-  "lenka", "khandual", "mallick", "malik", "majhi", "basa"
-];
+// Common English words that must NEVER be flagged as names even if a student has that token
+const COMMON_ENGLISH_WORDS_EXCLUSIONS = new Set([
+  "the", "and", "for", "all", "new", "one", "out", "you", "app", "site",
+  "web", "best", "good", "great", "fast", "love", "like", "nice", "team",
+  "easy", "clean", "smooth", "time", "work", "mode", "dark", "page", "free",
+  "real", "well", "much", "more", "most", "make", "view", "test", "pass",
+  "rank", "find", "used", "user", "card", "data", "full", "help", "keep",
+  "live", "only", "rate", "show", "step", "very", "grade", "grades", "result",
+  "results", "sgpa", "cgpa", "calculator", "platform", "tool", "portal",
+  "bro", "buddy", "super", "awesome", "amazing", "excellent", "helpful", "useful",
+  "grace", "prince", "student", "sunny", "wisdom", "mark", "marks", "major",
+  "general", "friend", "friends", "simple", "accurate", "satisfying"
+]);
 
 // Academic faculty and staff honorifics / titles
 const FACULTY_TITLES = [
@@ -196,17 +191,31 @@ const FACULTY_TITLES = [
   "hod", "dean", "principal", "teacher", "teachers"
 ];
 
-// Common English words to ignore when checking submitter's own name components
-const COMMON_ENGLISH_WORDS_EXCLUSIONS = new Set([
-  "the", "and", "for", "all", "new", "one", "out", "you", "app", "site",
-  "web", "best", "good", "great", "fast", "love", "like", "nice", "team"
+// Feedback quality keywords: Genuine reviews must discuss platform experience
+const FEEDBACK_KEYWORDS = new Set([
+  "good", "great", "best", "helpful", "clean", "fast", "speed", "easy",
+  "ui", "ux", "website", "app", "portal", "grade", "grades", "sgpa",
+  "cgpa", "results", "result", "attendance", "calculator", "feature",
+  "features", "platform", "tool", "work", "works", "working", "experience",
+  "love", "loved", "awesome", "smooth", "simple", "time", "nice", "excellent",
+  "superb", "useful", "accurate", "satisfying", "impressed", "service", "daily",
+  "tracker", "tracking", "academic", "performance", "saving", "saves", "design",
+  "update", "updated", "bput", "exam", "exams", "subject", "subjects", "topper",
+  "progress", "check", "checking", "helped", "helps", "initiative", "fabulous"
 ]);
+
+function isPersonName(word) {
+  if (!word || typeof word !== "string" || word.length < 3) return false;
+  const lower = word.toLowerCase();
+  if (COMMON_ENGLISH_WORDS_EXCLUSIONS.has(lower)) return false;
+  return KNOWN_COLLEGE_NAMES.has(lower);
+}
 
 function checkNameInComment(comment, studentName = "") {
   const text = (comment || "").toLowerCase();
   const words = text.split(/[^a-z0-9]+/).filter((w) => w.length > 0);
 
-  // 1. Check if the submitting student wrote their own name in the comment
+  // 1. Submitting student's own name check
   if (studentName && typeof studentName === "string") {
     const ownParts = studentName
       .toLowerCase()
@@ -226,7 +235,73 @@ function checkNameInComment(comment, studentName = "") {
     }
   }
 
-  // 2. Explicit self-introductions ("my name is...", "mera naam...")
+  // 2. Relational shoutouts / messaging patterns:
+  // e.g. "jagan to pranab", "from jagan to pranab", "jagan and pranab", "shoutout to jagan", "for pranab", "to pranab"
+  const relationalRegex = /\b([a-z]{3,})\s+(to|from|for|and|&|vs|with)\s+([a-z]{3,})\b/gi;
+  let match;
+  while ((match = relationalRegex.exec(text)) !== null) {
+    const w1 = match[1].toLowerCase();
+    const connector = match[2].toLowerCase();
+    const w2 = match[3].toLowerCase();
+
+    if (isPersonName(w1) || isPersonName(w2)) {
+      const namedWord = isPersonName(w1) ? w1 : w2;
+      return {
+        found: true,
+        type: "relational_name",
+        word: `${w1} ${connector} ${w2}`,
+        error: `Please do not use personal names ("${namedWord}") or personal messages in the feedback box. Reviews must focus on the GradeFlow platform.`,
+      };
+    }
+  }
+
+  // Preposition / shoutout + Name: e.g. "to pranab", "for jagan", "from debasish", "shoutout to jagan"
+  const prepNameRegex = /\b(to|from|for|shoutout\s+to)\s+([a-z]{3,})\b/gi;
+  let pMatch;
+  while ((pMatch = prepNameRegex.exec(text)) !== null) {
+    const target = pMatch[2].toLowerCase();
+    if (isPersonName(target)) {
+      return {
+        found: true,
+        type: "directed_name",
+        word: `${pMatch[1]} ${target}`,
+        error: `Please do not write messages addressed to individuals ("${target}"). Reviews must focus directly on the GradeFlow platform.`,
+      };
+    }
+  }
+
+  // 3. Direct Greetings with names (e.g. "hello jagan", "hi pranab", "hey rahul")
+  const greetingRegex = /\b(hello|hi|hey|dear)\s+([a-z]{3,})\b/gi;
+  let gMatch;
+  while ((gMatch = greetingRegex.exec(text)) !== null) {
+    const target = gMatch[2].toLowerCase();
+    if (isPersonName(target)) {
+      return {
+        found: true,
+        type: "greeting_name",
+        word: `${gMatch[1]} ${target}`,
+        error: `Please do not address individuals by name ("${target}") in the review box. Reviews should evaluate the platform.`,
+      };
+    }
+  }
+
+  // 4. Honorific / Suffix with name (e.g. "jagan bhai", "pranab sir", "rahul yaar")
+  for (let i = 0; i < words.length - 1; i++) {
+    const w1 = words[i];
+    const w2 = words[i + 1];
+    if (isPersonName(w1)) {
+      if (["bhai", "yaar", "bro", "sir", "maam", "madam", "da", "dada"].includes(w2)) {
+        return {
+          found: true,
+          type: "name_honorific",
+          word: `${w1} ${w2}`,
+          error: `Please do not mention personal names ("${w1}") in the review box.`,
+        };
+      }
+    }
+  }
+
+  // 5. Explicit self-introductions ("my name is...", "mera naam...")
   if (/\b(my name is|mera naam|naam hai)\b/i.test(text)) {
     return {
       found: true,
@@ -235,43 +310,37 @@ function checkNameInComment(comment, studentName = "") {
     };
   }
 
-  // Self-introduction with first name ("i am rahul", "this is rohan", "myself soumya", "i'm ankit")
-  const firstNameAlternation = COMMON_FIRST_NAMES.join("|");
-  const introNameRegex = new RegExp(
-    `\\b(i am|this is|myself|i'm|im)\\s+(${firstNameAlternation})\\b`,
-    "i"
-  );
-  if (introNameRegex.test(text)) {
-    return {
-      found: true,
-      type: "intro_name",
-      error: "Please do not include personal names or introductions in your review. Reviews must focus directly on your experience with GradeFlow.",
-    };
+  // Self-introduction with known name ("i am rahul", "this is rohan", "myself jagan", "i'm pranab")
+  for (let i = 0; i < words.length - 1; i++) {
+    const w1 = words[i];
+    const w2 = words[i + 1];
+    if (["i", "this", "myself"].includes(w1) || w1 === "im") {
+      const nextWord = w1 === "myself" ? w2 : (words[i + 2] || "");
+      const checkWord = w1 === "myself" ? w2 : nextWord;
+      if (isPersonName(checkWord)) {
+        return {
+          found: true,
+          type: "intro_name",
+          word: checkWord,
+          error: "Please do not include personal names or introductions in your review. Reviews must focus directly on your experience with GradeFlow.",
+        };
+      }
+    }
   }
 
-  // Sign-offs at the end of reviews (e.g. "- by Rahul", "regards Rakesh", "- Rahul")
-  const signoffNameRegex = new RegExp(
-    `([-~—]\\s*(by\\s+)?|\\b(posted by|written by|regards)\\s*[:\\-]?\\s+)(${firstNameAlternation})\\b`,
-    "i"
-  );
-  if (signoffNameRegex.test(text)) {
-    return {
-      found: true,
-      type: "signoff_name",
-      error: "Please do not include personal sign-offs or names in your review. Your verified student profile is automatically linked.",
-    };
-  }
-
-  // Sign-off structure at end of text: e.g. "- by <word>" or "regards: <word>"
-  if (/[-~—]\s*by\s+[a-z]{3,}\s*$/i.test(text) || /\bregards\s*[:\-]\s*[a-z]{3,}\s*$/i.test(text)) {
+  // Sign-offs at end of reviews (e.g. "- by Rahul", "regards Rakesh", "- Rahul")
+  if (
+    /[-~—]\s*(by\s+)?[a-z]{3,}\s*$/i.test(text) ||
+    /\b(posted by|written by|regards)\s*[:\-]?\s+[a-z]{3,}\s*$/i.test(text)
+  ) {
     return {
       found: true,
       type: "signoff",
-      error: "Please do not include personal sign-offs in your review. Your verified student profile is automatically linked.",
+      error: "Please do not include personal sign-offs or signatures in your review. Your verified student profile is automatically linked.",
     };
   }
 
-  // 3. Faculty / Staff mentions (e.g., "Sharma sir", "our HOD", "physics faculty sir")
+  // 6. Faculty / Staff mentions (e.g., "Sharma sir", "our HOD", "physics faculty sir")
   for (const word of words) {
     if (FACULTY_TITLES.includes(word)) {
       return {
@@ -283,15 +352,11 @@ function checkNameInComment(comment, studentName = "") {
     }
   }
 
-  // 4. Check for combination of First Name + Surname (e.g., "Rahul Sharma", "Priya Behera", "Debasish Nayak")
+  // 7. Combination of two student names / First name + Surname (e.g. "Aryagoutam Jena", "Pranab Paul")
   for (let i = 0; i < words.length - 1; i++) {
     const w1 = words[i];
     const w2 = words[i + 1];
-    if (
-      (COMMON_FIRST_NAMES.includes(w1) && COMMON_SURNAMES.includes(w2)) ||
-      (COMMON_SURNAMES.includes(w1) && COMMON_FIRST_NAMES.includes(w2)) ||
-      (COMMON_FIRST_NAMES.includes(w1) && COMMON_FIRST_NAMES.includes(w2))
-    ) {
+    if (isPersonName(w1) && isPersonName(w2)) {
       return {
         found: true,
         type: "full_name",
@@ -301,11 +366,11 @@ function checkNameInComment(comment, studentName = "") {
     }
   }
 
-  // 5. Targeted name check (e.g. "Rohan is...", "Amit bhai...", "Rahul ka score...")
+  // 8. Targeted name check (e.g. "Rohan is...", "Jagan ka...", "Rahul ko...")
   for (const word of words) {
-    if (COMMON_FIRST_NAMES.includes(word)) {
+    if (isPersonName(word)) {
       const targetRegex = new RegExp(
-        `\\b(he|she|him|her|his|is|was|ko|ka|ki|ke|bhai|yaar|ne|se)\\s+${word}\\b|\\b${word}\\s+(is|was|ko|ka|ki|ke|bhai|yaar|hai|tha|thi|ne|se)\\b`,
+        `\\b(he|she|him|her|his|is|was|ko|ka|ki|ke|ne|se)\\s+${word}\\b|\\b${word}\\s+(is|was|ko|ka|ki|ke|hai|tha|thi|ne|se)\\b`,
         "i"
       );
       if (targetRegex.test(text)) {
@@ -319,25 +384,26 @@ function checkNameInComment(comment, studentName = "") {
     }
   }
 
-  // 6. Entire review is just names without platform feedback
-  const feedbackKeywords = [
-    "good", "great", "best", "helpful", "clean", "fast", "speed", "easy",
-    "ui", "ux", "website", "app", "portal", "grade", "grades", "sgpa",
-    "cgpa", "results", "result", "attendance", "calculator", "feature",
-    "platform", "tool", "work", "works", "working", "experience", "love",
-    "awesome", "smooth", "simple", "time", "nice", "excellent", "superb",
-    "useful", "accurate", "satisfying", "impressed", "service", "daily"
-  ];
-  const hasFeedbackKeyword = words.some((w) => feedbackKeywords.includes(w));
-  if (!hasFeedbackKeyword && words.length <= 4) {
-    const nameCount = words.filter(
-      (w) => COMMON_FIRST_NAMES.includes(w) || COMMON_SURNAMES.includes(w)
-    ).length;
-    if (nameCount >= 2) {
+  // 9. Short reviews (<= 5 words) MUST have at least one genuine feedback keyword, and NO person names!
+  const hasFeedbackKeyword = words.some((w) => FEEDBACK_KEYWORDS.has(w));
+  if (words.length <= 5) {
+    // If it contains ANY college name in short review
+    const hasAnyName = words.some((w) => isPersonName(w));
+    if (hasAnyName) {
+      const nameWord = words.find((w) => isPersonName(w));
       return {
         found: true,
-        type: "only_names",
-        error: "Please write genuine feedback about GradeFlow rather than personal names.",
+        type: "name_in_short_review",
+        word: nameWord,
+        error: `Please do not write personal names ("${nameWord}") in the feedback box. Reviews must evaluate your experience with GradeFlow.`,
+      };
+    }
+
+    if (!hasFeedbackKeyword) {
+      return {
+        found: true,
+        type: "no_feedback_keywords",
+        error: "Please write meaningful feedback about your experience with GradeFlow (e.g., 'Clean UI and fast results').",
       };
     }
   }
