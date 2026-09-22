@@ -8,6 +8,13 @@ const { requirePermission } = require("../middleware/rbac");
 const { publicLimiter } = require("../middleware/rateLimiters");
 const { globalDbQueue } = require("../utils/dbProtection");
 
+function getSectionVariants(sec) {
+  if (!sec) return [];
+  const s = String(sec).trim().toUpperCase();
+  const bare = s.replace(/^CSE-?/i, "").replace(/^SEC\s*/i, "").trim();
+  return Array.from(new Set([s, bare, `CSE-${bare}`, `SEC ${bare}`, `SECTION ${bare}`, "ALL"]));
+}
+
 // ═════════════════════════════════════════════════════════════════
 // PUBLIC ENDPOINTS (For students looking up timetable)
 // ═════════════════════════════════════════════════════════════════
@@ -15,7 +22,11 @@ const { globalDbQueue } = require("../utils/dbProtection");
 // 1. Get Schedule for a specific Batch, Branch, and Section
 router.get("/schedule", publicLimiter, async (req, res) => {
   try {
-    res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+    if (req.query._t || req.headers["cache-control"]?.includes("no-cache")) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    } else {
+      res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+    }
     const { batch, branch, section } = req.query;
 
     if (branch && branch !== "ALL" && branch.toUpperCase() !== "CSE") {
@@ -30,7 +41,9 @@ router.get("/schedule", publicLimiter, async (req, res) => {
     const query = { isActive: true };
     if (batch && batch !== "ALL") query.batch = { $in: [batch, "ALL"] };
     if (branch && branch !== "ALL") query.branch = { $in: [branch.toUpperCase(), "ALL"] };
-    if (section && section !== "ALL") query.section = { $in: [section.toUpperCase(), "ALL"] };
+    if (section && section !== "ALL") {
+      query.section = { $in: getSectionVariants(section) };
+    }
 
     const schedules = await globalDbQueue.run(() =>
       TimetableSchedule.find(query).sort({ updatedAt: -1 })
@@ -39,11 +52,12 @@ router.get("/schedule", publicLimiter, async (req, res) => {
     // Find best match (exact section > section ALL)
     let bestMatch = null;
     if (schedules.length > 0) {
+      const variants = getSectionVariants(section);
       bestMatch =
         schedules.find(
-          (s) => s.section === (section || "").toUpperCase() && s.batch === batch
+          (s) => variants.includes((s.section || "").toUpperCase()) && s.batch === batch
         ) ||
-        schedules.find((s) => s.section === (section || "").toUpperCase()) ||
+        schedules.find((s) => variants.includes((s.section || "").toUpperCase())) ||
         schedules[0];
     }
 
@@ -197,6 +211,16 @@ router.post("/admin/schedule/save", protect, requirePermission("timetable.manage
       existing.uploadedBy = req.admin?.email || "Admin";
       await existing.save();
 
+      try {
+        const { publishAdminRealtimeEvent, broadcastRealtimeEvent } = require("../utils/ablyService");
+        await Promise.allSettled([
+          publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+          broadcastRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+        ]);
+      } catch (e) {
+        console.warn("[Ably] Timetable updated publish warning:", e?.message || e);
+      }
+
       return res.json({
         success: true,
         message: `Updated timetable for ${normalizedSection} (Batch ${normalizedBatch}) successfully.`,
@@ -216,6 +240,16 @@ router.post("/admin/schedule/save", protect, requirePermission("timetable.manage
       uploadedBy: req.admin?.email || "Admin",
     });
 
+    try {
+      const { publishAdminRealtimeEvent, broadcastRealtimeEvent } = require("../utils/ablyService");
+      await Promise.allSettled([
+        publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+        broadcastRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+      ]);
+    } catch (e) {
+      console.warn("[Ably] Timetable updated publish warning:", e?.message || e);
+    }
+
     res.json({
       success: true,
       message: `Published new timetable for ${normalizedSection} (Batch ${normalizedBatch}) successfully.`,
@@ -230,6 +264,7 @@ router.post("/admin/schedule/save", protect, requirePermission("timetable.manage
 // 6. Admin: List All Timetable Schedules
 router.get("/admin/schedule/list", protect, requirePermission("timetable.manage", "timetable"), async (req, res) => {
   try {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     const schedules = await TimetableSchedule.find().sort({ updatedAt: -1 });
     res.json({
       success: true,
@@ -249,6 +284,17 @@ router.delete("/admin/schedule/:id", protect, requirePermission("timetable.manag
     if (!deleted) {
       return res.status(404).json({ success: false, message: "Schedule not found." });
     }
+
+    try {
+      const { publishAdminRealtimeEvent, broadcastRealtimeEvent } = require("../utils/ablyService");
+      await Promise.allSettled([
+        publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+        broadcastRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+      ]);
+    } catch (e) {
+      console.warn("[Ably] Timetable updated publish warning:", e?.message || e);
+    }
+
     res.json({ success: true, message: "Timetable schedule deleted successfully." });
   } catch (err) {
     console.error("Admin delete timetable error:", err);

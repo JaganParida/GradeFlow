@@ -21,6 +21,13 @@ function parseCookies(cookieHeader) {
   return cookies;
 }
 
+function getSectionVariants(sec) {
+  if (!sec) return [];
+  const s = String(sec).trim().toUpperCase();
+  const bare = s.replace(/^CSE-?/i, "").replace(/^SEC\s*/i, "").trim();
+  return Array.from(new Set([s, bare, `CSE-${bare}`, `SEC ${bare}`, `SECTION ${bare}`, "ALL"]));
+}
+
 async function authenticateAdmin(req) {
   const cookies = parseCookies(req.headers.cookie);
   let token = req.headers["x-admin-token"];
@@ -138,18 +145,25 @@ module.exports = async function handler(req, res) {
       const query = { isActive: true };
       if (batch && batch !== "ALL") query.batch = { $in: [batch, "ALL"] };
       if (branch && branch !== "ALL") query.branch = { $in: [branch.toUpperCase(), "ALL"] };
-      if (section && section !== "ALL") query.section = { $in: [section.toUpperCase(), "ALL"] };
+      if (section && section !== "ALL") {
+        query.section = { $in: getSectionVariants(section) };
+      }
 
       const schedules = await TimetableSchedule.find(query).sort({ updatedAt: -1 }).lean();
       let bestMatch = null;
       if (schedules.length > 0) {
+        const variants = getSectionVariants(section);
         bestMatch =
-          schedules.find((s) => s.section === (section || "").toUpperCase() && s.batch === batch) ||
-          schedules.find((s) => s.section === (section || "").toUpperCase()) ||
+          schedules.find((s) => variants.includes((s.section || "").toUpperCase()) && s.batch === batch) ||
+          schedules.find((s) => variants.includes((s.section || "").toUpperCase())) ||
           schedules[0];
       }
 
-      res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
+      if (req.query._t || req.headers["cache-control"]?.includes("no-cache")) {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      } else {
+        res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+      }
       return res.json({ success: true, found: !!bestMatch, schedule: bestMatch });
     }
 
@@ -226,6 +240,7 @@ module.exports = async function handler(req, res) {
     // 5. GET /api/timetable/admin/schedule/list
     if (action === "admin-schedule-list" || cleanUrl.includes("/admin/schedule/list")) {
       const auth = req.adminAuth;
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 
       const schedules = await TimetableSchedule.find().sort({ updatedAt: -1 }).lean();
       return res.json({ success: true, count: schedules.length, schedules });

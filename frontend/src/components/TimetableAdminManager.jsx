@@ -43,6 +43,7 @@ import {
   ALL_SECTIONS,
   normalizeSection,
   setCustomSchedulesStore,
+  clearCachedTimetableBundle,
   cleanSubjectBaseName,
 } from "../utils/timetableHelper";
 import {
@@ -193,12 +194,36 @@ export default function TimetableAdminManager({ authHeaders, API }) {
 
     setIsLoadingList(true);
     try {
-      const { data } = await axios.get(`${API}/timetable/admin/schedule/list`, authHeaders);
+      const { data } = await axios.get(`${API}/timetable/admin/schedule/list?_t=${Date.now()}`, {
+        ...authHeaders,
+        headers: {
+          ...(authHeaders?.headers || {}),
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      });
       if (data.success) {
         const list = data.schedules || [];
         setPublishedList(list);
         setCustomSchedulesStore(list);
         setAdminCache("gf_admin_schedules_list", { schedules: list }, AdminCacheScopes.TIMETABLE);
+
+        // Pre-populate each section in session cache so switching sections is instant & always up to date
+        list.forEach((sch) => {
+          if (sch.batch && sch.branch && sch.section && sch.schedule) {
+            const secKey = `gf_admin_tt_sec_${sch.batch}_${sch.branch}_${sch.section}`;
+            setAdminCache(
+              secKey,
+              {
+                schedule: sch.schedule,
+                title: sch.title || `${sch.branch} Sec ${sch.section} (Batch ${sch.batch})`,
+                isLiveCustomPublished: true,
+              },
+              AdminCacheScopes.TIMETABLE
+            );
+          }
+        });
       }
     } catch (e) {
       console.error("Error fetching published schedules:", e);
@@ -223,37 +248,69 @@ export default function TimetableAdminManager({ authHeaders, API }) {
     const cacheKey = `gf_admin_tt_sec_${bch}_${brn}_${sec}`;
     if (!forceRefresh) {
       const cached = getAdminCache(cacheKey);
-      if (cached) {
+      if (cached && cached.schedule) {
         setCurrentMatrix(normalizeMatrixStructure(cached.schedule));
         setCustomTitle(cached.title || `${brn} Sec ${sec} (Batch ${bch})`);
         setIsLiveCustomPublished(Boolean(cached.isLiveCustomPublished));
         setIsMatrixLoading(false);
         return;
       }
+
+      // If not in cacheKey, check publishedList in memory if already loaded
+      if (publishedList && publishedList.length > 0) {
+        const foundInList = publishedList.find(
+          (s) =>
+            String(s.batch).trim() === String(bch).trim() &&
+            String(s.branch).trim().toUpperCase() === String(brn).trim().toUpperCase() &&
+            (String(s.section).trim().toUpperCase() === String(sec).trim().toUpperCase() ||
+              normalizeSection(s.section) === normalizeSection(sec))
+        );
+        if (foundInList && foundInList.schedule) {
+          const dbSchedule = JSON.parse(JSON.stringify(foundInList.schedule));
+          const normMat = normalizeMatrixStructure(dbSchedule);
+          setCurrentMatrix(normMat);
+          const title = foundInList.title || `${brn} Sec ${sec} (Batch ${bch})`;
+          setCustomTitle(title);
+          setIsLiveCustomPublished(true);
+          setAdminCache(cacheKey, { schedule: normMat, title, isLiveCustomPublished: true }, AdminCacheScopes.TIMETABLE);
+          setIsMatrixLoading(false);
+          return;
+        }
+      }
     }
 
     try {
       const { data } = await axios.get(
-        `${API}/timetable/schedule?batch=${bch}&branch=${brn}&section=${sec}`,
-        authHeaders
+        `${API}/timetable/schedule?batch=${bch}&branch=${brn}&section=${sec}&_t=${Date.now()}`,
+        {
+          ...authHeaders,
+          headers: {
+            ...(authHeaders?.headers || {}),
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+            Expires: "0",
+          },
+        }
       );
 
       if (data.success && data.found && data.schedule && data.schedule.schedule) {
         const dbSchedule = JSON.parse(JSON.stringify(data.schedule.schedule));
-        setCurrentMatrix(normalizeMatrixStructure(dbSchedule));
+        const normMat = normalizeMatrixStructure(dbSchedule);
+        setCurrentMatrix(normMat);
         const title = data.schedule.title || `${brn} Sec ${sec} (Batch ${bch})`;
         setCustomTitle(title);
         setIsLiveCustomPublished(true);
-        setAdminCache(cacheKey, { schedule: dbSchedule, title, isLiveCustomPublished: true }, AdminCacheScopes.TIMETABLE);
+        setAdminCache(cacheKey, { schedule: normMat, title, isLiveCustomPublished: true }, AdminCacheScopes.TIMETABLE);
       } else {
         const norm = normalizeSection(sec);
         const jsonTemplate = timetableData[norm] || timetableData["CSE-F"] || {};
         const parsed = JSON.parse(JSON.stringify(jsonTemplate));
-        setCurrentMatrix(normalizeMatrixStructure(parsed));
+        const normMat = normalizeMatrixStructure(parsed);
+        setCurrentMatrix(normMat);
         const title = `${brn} Sec ${sec} (Batch ${bch})`;
         setCustomTitle(title);
         setIsLiveCustomPublished(false);
-        setAdminCache(cacheKey, { schedule: parsed, title, isLiveCustomPublished: false }, AdminCacheScopes.TIMETABLE);
+        setAdminCache(cacheKey, { schedule: normMat, title, isLiveCustomPublished: false }, AdminCacheScopes.TIMETABLE);
       }
     } catch (err) {
       console.warn("Could not fetch schedule from API, falling back to JSON:", err);
@@ -454,24 +511,42 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       );
 
       if (data.success) {
+        // Authoritative saved schedule from MongoDB response
+        const savedSchedule = data.schedule?.schedule || currentMatrix;
+        const savedTitle = data.schedule?.title || customTitle || `${branch} Sec ${section} (Batch ${batch})`;
+        const normalized = normalizeMatrixStructure(savedSchedule);
+
+        setCurrentMatrix(normalized);
+        setCustomTitle(savedTitle);
         setHasUnsavedChanges(false);
         setIsLiveCustomPublished(true);
+
+        const cacheKey = `gf_admin_tt_sec_${batch}_${branch}_${section}`;
+
+        // Clear student bundle cache so attendance & student views pick up immediately
+        clearCachedTimetableBundle();
+
+        // Invalidate admin cache scope
+        invalidateAdminCache(AdminCacheScopes.TIMETABLE);
+
+        // Explicitly set the authoritative fresh timetable in session cache
+        setAdminCache(
+          cacheKey,
+          {
+            schedule: normalized,
+            title: savedTitle,
+            isLiveCustomPublished: true,
+          },
+          AdminCacheScopes.TIMETABLE
+        );
+
         setStatusMsg({
           text: `Successfully published & synced live timetable for ${branch} Section ${section} (Batch ${batch})! All student pages and Attendance Trackers are now dynamically updated.`,
           type: "success",
         });
 
-        // Update local memory & storage cache
-        setCustomSchedulesStore([
-          {
-            batch,
-            branch,
-            section,
-            schedule: currentMatrix,
-          },
-        ]);
-
-        fetchPublishedSchedules(true);
+        // Re-fetch published schedules list with forceRefresh=true so full published list & stores update
+        await fetchPublishedSchedules(true);
       } else {
         setStatusMsg({ text: data.message || "Failed to save timetable.", type: "error" });
       }
@@ -504,13 +579,14 @@ export default function TimetableAdminManager({ authHeaders, API }) {
     setCloneModal((prev) => ({ ...prev, isCloning: true }));
 
     try {
+      const targetSec = cloneModal.targetSection;
       const payload = {
         batch: String(batch).trim(),
         branch: String(branch).trim().toUpperCase(),
         year: String(year).trim(),
         semester: String(semester).trim(),
-        section: String(cloneModal.targetSection).trim().toUpperCase(),
-        title: `${branch} Sec ${cloneModal.targetSection} (Batch ${batch}) - Cloned from ${section}`,
+        section: String(targetSec).trim().toUpperCase(),
+        title: `${branch} Sec ${targetSec} (Batch ${batch}) - Cloned from ${section}`,
         schedule: currentMatrix,
       };
 
@@ -521,12 +597,29 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       );
 
       if (data.success) {
+        const clonedSchedule = data.schedule?.schedule || currentMatrix;
+        const normalized = normalizeMatrixStructure(clonedSchedule);
+        const targetCacheKey = `gf_admin_tt_sec_${batch}_${branch}_${targetSec}`;
+
+        clearCachedTimetableBundle();
+        invalidateAdminCache(AdminCacheScopes.TIMETABLE);
+
+        setAdminCache(
+          targetCacheKey,
+          {
+            schedule: normalized,
+            title: payload.title,
+            isLiveCustomPublished: true,
+          },
+          AdminCacheScopes.TIMETABLE
+        );
+
         setStatusMsg({
-          text: `Successfully cloned timetable from ${section} to ${cloneModal.targetSection}! Target section is now live.`,
+          text: `Successfully cloned timetable from ${section} to ${targetSec}! Target section is now live.`,
           type: "success",
         });
         setCloneModal({ isOpen: false, targetSection: "CSE-B", isCloning: false });
-        fetchPublishedSchedules(true);
+        await fetchPublishedSchedules(true);
       }
     } catch (e) {
       setStatusMsg({
@@ -844,8 +937,10 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       const { data } = await axios.delete(`${API}/timetable/admin/schedule/${id}`, authHeaders);
       if (data.success) {
         setStatusMsg({ text: "Timetable schedule deleted successfully.", type: "success" });
+        clearCachedTimetableBundle();
         invalidateAdminCache(AdminCacheScopes.TIMETABLE);
-        fetchPublishedSchedules(true);
+        await fetchPublishedSchedules(true);
+        await loadSectionTimetable(section, batch, branch, true);
       }
     } catch (e) {
       setStatusMsg({ text: "Failed to delete schedule.", type: "error" });
