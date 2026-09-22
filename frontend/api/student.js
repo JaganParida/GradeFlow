@@ -220,7 +220,18 @@ module.exports = async function handler(req, res) {
         const savedFeedback = await newFeedback.save();
         feedbacksMemoCache = { data: null, ts: 0 };
         if (cleanRegNo) {
+          const normReg = cleanRegNo.toUpperCase();
           profileMemoCache.delete(cleanRegNo);
+          profileMemoCache.delete(normReg);
+          profileMemoCache.delete(normReg.toLowerCase());
+          try {
+            await publishStudentRealtimeEvent(normReg, "feedback-status-changed", {
+              hasSubmittedFeedback: true,
+              regNo: normReg,
+              status: feedbackStatus,
+              timestamp: Date.now(),
+            });
+          } catch (_) {}
         }
         try {
           await publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() });
@@ -229,6 +240,7 @@ module.exports = async function handler(req, res) {
         }
         return res.status(201).json(savedFeedback);
       }
+
 
       if (req.method === "POST" && feedbackId && (req.query.action === "feedback-like" || req.query.action === "like")) {
         if (!/^[0-9a-fA-F]{24}$/.test(feedbackId)) {
@@ -282,7 +294,19 @@ module.exports = async function handler(req, res) {
           feedback.updatedAt = new Date();
           const updatedFeedback = await feedback.save();
           feedbacksMemoCache = { data: null, ts: 0 };
-          if (feedback?.regNo) profileMemoCache.delete(String(feedback.regNo).trim().toUpperCase());
+          if (feedback?.regNo) {
+            const normReg = String(feedback.regNo).trim().toUpperCase();
+            profileMemoCache.delete(normReg);
+            profileMemoCache.delete(normReg.toLowerCase());
+            try {
+              await publishStudentRealtimeEvent(normReg, "feedback-status-changed", {
+                hasSubmittedFeedback: true,
+                regNo: normReg,
+                status: updatedFeedback.status,
+                timestamp: Date.now(),
+              });
+            } catch (_) {}
+          }
           try {
             await publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() });
           } catch (e) {
@@ -290,6 +314,7 @@ module.exports = async function handler(req, res) {
           }
           return res.json(updatedFeedback);
         }
+
 
         // Student edit: verify ownership
         if (!requesterRegNo || requesterRegNo !== feedback.regNo.toUpperCase()) {
@@ -368,7 +393,19 @@ module.exports = async function handler(req, res) {
         await feedback.deleteOne();
         feedbacksMemoCache = { data: null, ts: 0 };
         if (deletedRegNo) {
-          profileMemoCache.delete(String(deletedRegNo).trim().toUpperCase());
+          const normReg = String(deletedRegNo).trim().toUpperCase();
+          profileMemoCache.delete(normReg);
+          profileMemoCache.delete(normReg.toLowerCase());
+          profileMemoCache.delete(String(deletedRegNo).trim());
+          try {
+            await publishStudentRealtimeEvent(normReg, "feedback-status-changed", {
+              hasSubmittedFeedback: false,
+              regNo: normReg,
+              timestamp: Date.now(),
+            });
+          } catch (e) {
+            console.warn("[Ably] Feedback delete publish warning:", e?.message || e);
+          }
         }
         try {
           await publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() });
@@ -377,6 +414,7 @@ module.exports = async function handler(req, res) {
         }
         return res.json({ message: "Feedback deleted successfully", deletedId: feedbackId, regNo: deletedRegNo });
       }
+
 
       return res.status(404).json({ message: "Feedback route not found" });
     }

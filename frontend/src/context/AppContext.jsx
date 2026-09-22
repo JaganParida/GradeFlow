@@ -982,6 +982,42 @@ export function AppProvider({ children }) {
         resetStudentScanQuotaLocal(reg);
       });
 
+      // C3. Listen for real-time feedback status changes (admin delete / status update) (<0.1s)
+      studentChannel.subscribe("feedback-status-changed", (msg) => {
+        if (!isMounted || !msg?.data) return;
+        const hasSubmitted = Boolean(msg.data.hasSubmittedFeedback);
+        const reg = msg.data.regNo || cleanReg;
+        const normalizedReg = String(reg).trim().toUpperCase();
+        setStudentData((prev) => (prev ? { ...prev, hasSubmittedFeedback: hasSubmitted } : prev));
+        if (!hasSubmitted) {
+          try {
+            localStorage.removeItem(`gf_feedback_unlocked_${normalizedReg}`);
+            sessionStorage.removeItem(`gf_student_profile_${normalizedReg}`);
+            sessionStorage.removeItem(`gf_feedbacks_cache_${normalizedReg}`);
+            sessionStorage.removeItem("gf_feedbacks_cache_public");
+          } catch (_) {}
+          window.dispatchEvent(
+            new CustomEvent("gradeflow:feedback-deleted", { detail: { regNo: normalizedReg } })
+          );
+        } else {
+          try {
+            localStorage.setItem(`gf_feedback_unlocked_${normalizedReg}`, "true");
+            const cachedRaw = sessionStorage.getItem(`gf_student_profile_${normalizedReg}`);
+            if (cachedRaw) {
+              const parsed = JSON.parse(cachedRaw);
+              if (parsed?.data) {
+                parsed.data.hasSubmittedFeedback = true;
+                sessionStorage.setItem(`gf_student_profile_${normalizedReg}`, JSON.stringify(parsed));
+              }
+            }
+          } catch (_) {}
+          window.dispatchEvent(
+            new CustomEvent("gradeflow:feedback-submitted", { detail: { regNo: normalizedReg } })
+          );
+        }
+      });
+
+
       // D. Listen for real-time admin broadcast announcements across all students
       broadcastChannel.subscribe("new-broadcast", (msg) => {
         if (!isMounted || !msg?.data) return;
@@ -1807,7 +1843,25 @@ export function AppProvider({ children }) {
           try {
             sessionStorage.setItem(profileCacheKey, JSON.stringify({ data: res.data, ts: Date.now(), etag: resEtag }));
           } catch (_) {}
+
+          // Ensure local storage lock state perfectly syncs with authoritative database flag
+          if (res.data.hasSubmittedFeedback === false) {
+            try {
+              localStorage.removeItem(`gf_feedback_unlocked_${cleanReg}`);
+            } catch (_) {}
+            window.dispatchEvent(
+              new CustomEvent("gradeflow:feedback-deleted", { detail: { regNo: cleanReg } })
+            );
+          } else if (res.data.hasSubmittedFeedback === true) {
+            try {
+              localStorage.setItem(`gf_feedback_unlocked_${cleanReg}`, "true");
+            } catch (_) {}
+            window.dispatchEvent(
+              new CustomEvent("gradeflow:feedback-submitted", { detail: { regNo: cleanReg } })
+            );
+          }
         }
+
         setLoading(false);
         return res.data;
       } catch (err) {

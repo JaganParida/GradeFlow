@@ -162,6 +162,17 @@ router.post("/", publicLimiter, validateFeedbackInput, async (req, res) => {
       } catch (err) {
         console.warn("Failed to clear student cache on feedback submit:", err.message);
       }
+      try {
+        const { publishStudentRealtimeEvent } = require("../utils/ablyService");
+        if (typeof publishStudentRealtimeEvent === "function") {
+          publishStudentRealtimeEvent(cleanRegNo, "feedback-status-changed", {
+            hasSubmittedFeedback: true,
+            regNo: cleanRegNo,
+            status: feedbackStatus,
+            timestamp: Date.now(),
+          }).catch(() => {});
+        }
+      } catch (_) {}
     }
 
     res.status(201).json(savedFeedback);
@@ -170,6 +181,7 @@ router.post("/", publicLimiter, validateFeedbackInput, async (req, res) => {
     res.status(500).json({ message: "Server Error saving feedback" });
   }
 });
+
 
 // POST /api/feedback/:id/like - Increment likes on a feedback (rate-limited)
 router.post("/:id/like", publicLimiter, async (req, res) => {
@@ -237,8 +249,25 @@ router.put("/:id", async (req, res) => {
         }
       } catch (_) {}
 
+      try {
+        const { publishStudentRealtimeEvent, publishAdminRealtimeEvent } = require("../utils/ablyService");
+        if (typeof publishStudentRealtimeEvent === "function" && feedback.regNo) {
+          const normReg = String(feedback.regNo).trim().toUpperCase();
+          publishStudentRealtimeEvent(normReg, "feedback-status-changed", {
+            hasSubmittedFeedback: true,
+            regNo: normReg,
+            status: updated.status,
+            timestamp: Date.now(),
+          }).catch(() => {});
+        }
+        if (typeof publishAdminRealtimeEvent === "function") {
+          publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() }).catch(() => {});
+        }
+      } catch (_) {}
+
       return res.json(updated);
     }
+
 
     // Student edit: verify ownership
     if (!requesterRegNo || requesterRegNo !== feedback.regNo.toUpperCase()) {
@@ -333,7 +362,23 @@ router.delete("/:id", async (req, res) => {
       }
     } catch (_) {}
 
+    try {
+      const { publishStudentRealtimeEvent, publishAdminRealtimeEvent } = require("../utils/ablyService");
+      if (typeof publishStudentRealtimeEvent === "function" && deletedRegNo) {
+        const normReg = String(deletedRegNo).trim().toUpperCase();
+        publishStudentRealtimeEvent(normReg, "feedback-status-changed", {
+          hasSubmittedFeedback: false,
+          regNo: normReg,
+          timestamp: Date.now(),
+        }).catch(() => {});
+      }
+      if (typeof publishAdminRealtimeEvent === "function") {
+        publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() }).catch(() => {});
+      }
+    } catch (_) {}
+
     return res.json({ message: "Feedback deleted successfully", deletedId: req.params.id, regNo: deletedRegNo });
+
   } catch (error) {
     console.error("Error deleting feedback:", error);
     res.status(500).json({ message: "Server Error deleting feedback" });

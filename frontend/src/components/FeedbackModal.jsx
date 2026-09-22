@@ -56,11 +56,22 @@ export default function FeedbackModal() {
     "Verified Student";
 
   const cleanReg = currentRegNo ? String(currentRegNo).trim().toUpperCase() : "";
+
+  // When studentData has loaded from backend, it is the absolute source of truth
   const isAlreadySubmitted = Boolean(
     isDuplicateBlocked ||
-    studentData?.hasSubmittedFeedback ||
-    (cleanReg && typeof window !== "undefined" && localStorage.getItem(`gf_feedback_unlocked_${cleanReg}`) === "true")
+    (studentData ? Boolean(studentData.hasSubmittedFeedback) : (cleanReg && typeof window !== "undefined" && localStorage.getItem(`gf_feedback_unlocked_${cleanReg}`) === "true"))
   );
+
+  // If student has no feedback in DB, ensure any legacy localStorage key is cleansed
+  useEffect(() => {
+    if (studentData && studentData.hasSubmittedFeedback === false && cleanReg) {
+      try {
+        localStorage.removeItem(`gf_feedback_unlocked_${cleanReg}`);
+      } catch (_) {}
+    }
+  }, [studentData?.hasSubmittedFeedback, cleanReg]);
+
 
   // Bulletproof mobile + desktop background scroll lock
   useEffect(() => {

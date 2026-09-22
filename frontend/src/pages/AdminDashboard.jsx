@@ -4071,7 +4071,18 @@ function FeedbackManager({ authHeaders, API, adminToken }) {
     try {
       await axios.delete(`${API}/feedback/${id}`, reqConfig);
       invalidateAdminCache(AdminCacheScopes.FEEDBACK);
+      if (targetItem?.regNo) {
+        const cleanReg = String(targetItem.regNo).trim().toUpperCase();
+        try {
+          localStorage.removeItem(`gf_feedback_unlocked_${cleanReg}`);
+          sessionStorage.removeItem(`gf_student_profile_${cleanReg}`);
+          sessionStorage.removeItem(`gf_feedbacks_cache_${cleanReg}`);
+          sessionStorage.removeItem("gf_feedbacks_cache_public");
+          window.dispatchEvent(new CustomEvent("gradeflow:feedback-deleted", { detail: { regNo: cleanReg } }));
+        } catch (_) {}
+      }
     } catch (e) {
+
       // Rollback on failure
       setFeedbacks(prevFeedbacks);
       feedbackCacheRef.current = prevFeedbacks;

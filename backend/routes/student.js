@@ -52,11 +52,15 @@ function getCache(regNo) {
 // Exported so admin routes can invalidate cache immediately after upload
 function clearStudentCache(regNo) {
   if (regNo) {
-    studentCache.delete(regNo);
+    const raw = String(regNo).trim();
+    studentCache.delete(raw);
+    studentCache.delete(raw.toUpperCase());
+    studentCache.delete(raw.toLowerCase());
   } else {
     studentCache.clear(); // clear all
   }
 }
+
 
 // GET student full profile (Protected: Student can only view self, Admin can view any)
 router.get("/:regNo", studentSearchLimiter, validateRegNo, requireStudentOrAdmin, async (req, res) => {

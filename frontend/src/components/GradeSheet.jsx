@@ -120,9 +120,25 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
         setHasSubmittedLocally(true);
       }
     };
+    const onDeleted = (e) => {
+      const reg = e?.detail?.regNo;
+      if (!reg || String(reg).trim().toUpperCase() === cleanRegNo) {
+        setHasSubmittedLocally(false);
+      }
+    };
     window.addEventListener("gradeflow:feedback-submitted", onSubmitted);
-    return () => window.removeEventListener("gradeflow:feedback-submitted", onSubmitted);
+    window.addEventListener("gradeflow:feedback-deleted", onDeleted);
+    return () => {
+      window.removeEventListener("gradeflow:feedback-submitted", onSubmitted);
+      window.removeEventListener("gradeflow:feedback-deleted", onDeleted);
+    };
   }, [cleanRegNo]);
+
+  useEffect(() => {
+    if (studentData && studentData.hasSubmittedFeedback === false) {
+      setHasSubmittedLocally(false);
+    }
+  }, [studentData?.hasSubmittedFeedback]);
 
   const isExempt = cleanRegNo === "230301120327";
   const isUnlocked = Boolean(
@@ -130,6 +146,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
     studentData?.hasSubmittedFeedback ||
     hasSubmittedLocally
   );
+
 
   function triggerFeedbackModal() {
     window.dispatchEvent(

@@ -123,13 +123,16 @@ export default function Testimonials() {
 
   // ─── Fetch Real Feedbacks from Backend (with student-scoped caching) ──
   async function loadFeedbacks(force = false) {
+    const isStudent = Boolean(currentRegNo);
     const CACHE_KEY = `gf_feedbacks_cache_${currentRegNo || "public"}`;
+    // Students need short TTL (15s) so admin deletion / hiding is reflected without stale lockouts
+    const cacheTTL = isStudent ? 15000 : 300000;
     if (!force) {
       try {
         const raw = sessionStorage.getItem(CACHE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (parsed && Date.now() - parsed.ts < 300000 && Array.isArray(parsed.feedbacks)) {
+          if (parsed && Date.now() - parsed.ts < cacheTTL && Array.isArray(parsed.feedbacks)) {
             setFeedbacks(parsed.feedbacks);
             setIsLoading(false);
             return;
@@ -148,6 +151,26 @@ export default function Testimonials() {
         try {
           sessionStorage.setItem(CACHE_KEY, JSON.stringify({ feedbacks: res.data, ts: Date.now() }));
         } catch (_) {}
+
+        // Immediate self-healing synchronization for student feedback status
+        if (currentRegNo) {
+          const clean = currentRegNo.trim().toUpperCase();
+          const hasDbReview = res.data.some((f) => f.regNo && f.regNo.trim().toUpperCase() === clean);
+          if (!hasDbReview && studentData?.hasSubmittedFeedback) {
+            setStudentData((prev) => (prev ? { ...prev, hasSubmittedFeedback: false } : prev));
+            try {
+              localStorage.removeItem(`gf_feedback_unlocked_${clean}`);
+              sessionStorage.removeItem(`gf_student_profile_${clean}`);
+            } catch (_) {}
+            window.dispatchEvent(new CustomEvent("gradeflow:feedback-deleted", { detail: { regNo: clean } }));
+          } else if (hasDbReview && !studentData?.hasSubmittedFeedback) {
+            setStudentData((prev) => (prev ? { ...prev, hasSubmittedFeedback: true } : prev));
+            try {
+              localStorage.setItem(`gf_feedback_unlocked_${clean}`, "true");
+            } catch (_) {}
+            window.dispatchEvent(new CustomEvent("gradeflow:feedback-submitted", { detail: { regNo: clean } }));
+          }
+        }
       }
     } catch (err) {
       console.error("Error loading feedbacks from backend:", err);
@@ -162,6 +185,7 @@ export default function Testimonials() {
       loadFeedbacks(true);
     }
   }, [currentRegNo]);
+
 
   // Reset page to 1 when filter or sorting changes
   useEffect(() => {
@@ -250,7 +274,21 @@ export default function Testimonials() {
     return feedbacks.find((f) => f.regNo && f.regNo.trim().toUpperCase() === clean) || null;
   }, [feedbacks, currentRegNo]);
 
-  const hasAlreadySubmitted = Boolean(myReview || studentData?.hasSubmittedFeedback);
+  // Once feedbacks have loaded from server, myReview is the ground truth
+  const hasAlreadySubmitted = Boolean(myReview || (isLoading && studentData?.hasSubmittedFeedback));
+
+  // Listen for feedback deletion event to instantly unlock submission form
+  useEffect(() => {
+    const handleDeleted = (e) => {
+      const reg = e?.detail?.regNo;
+      if (!reg || String(reg).trim().toUpperCase() === currentRegNo?.trim()?.toUpperCase()) {
+        setFeedbacks((prev) => prev.filter((f) => f.regNo?.toUpperCase() !== currentRegNo?.trim()?.toUpperCase()));
+      }
+    };
+    window.addEventListener("gradeflow:feedback-deleted", handleDeleted);
+    return () => window.removeEventListener("gradeflow:feedback-deleted", handleDeleted);
+  }, [currentRegNo]);
+
 
   const isMyReviewEditable = useMemo(() => {
     if (!myReview || !myReview.createdAt) return false;
