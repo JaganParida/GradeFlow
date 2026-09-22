@@ -5585,3 +5585,135 @@ In `backend/routes/student.js` and `frontend/api/student.js`:
    - If `status === "needs_review"`: Badged with "In Review".
 3. **FeedbackModal Interception**:
    - If `hasSubmittedFeedback` is true, displays a friendly "Feedback Already Submitted" screen explaining the 1-review limit and linking directly to `/testimonials`.
+
+---
+
+## 138. Advanced Analytics Engine: Client-Side Caching Architecture, Vercel Serverless Optimization, Zero-Polling Invariant & Multi-Semester What-If Backlog Simulation Studio
+
+### 1. Architectural Overview & Vercel Free Tier Optimization
+
+GradeFlow's Analytics suite (`frontend/src/pages/Analytics.jsx`) provides deep academic insights, grade distribution breakdowns, company placement eligibility, subject mastery radar charts, GPA goals, and a multi-semester What-If simulation studio. Because GradeFlow operates on Vercel's serverless infrastructure with strict monthly invocation limits (100,000 invocations on Hobby tier), the Analytics engine is engineered around a **100% client-side computing paradigm**:
+
+1. **Zero-Polling Invariant**:
+   - **No Background Polling**: There are **zero `setInterval` loops**, zero polling timers, and zero scheduled background API queries anywhere in `Analytics.jsx`.
+   - The only browser timers present are one-off layout debounces (`setTimeout(checkTabsScroll, 250)` and a 120ms mount check) used exclusively to center active tabs on mobile devices.
+2. **Zero Server Requests on UI Navigation & Tab Switching**:
+   - When switching between tabs (`overview`, `grades`, `placement`, `mastery`, `predictor`, `whatif`), **zero network requests are fired**.
+   - Tab state is managed purely in local React state and synchronized to the URL search params (`?tab=whatif`) via `setSearchParams({ tab }, { replace: true })` without triggering router unmounts or serverless function calls.
+3. **Cross-Page Intra-Session Caching (`AppContext`)**:
+   - When a student navigates from Dashboard or Timetable to Analytics, `studentData` is already cached in memory within `AppContext`.
+   - In `Analytics.jsx`:
+     ```javascript
+     useEffect(() => {
+       if (regNo && (!studentData || studentData.regNo !== regNo)) {
+         fetchStudent(regNo);
+       }
+     }, [regNo, studentData?.regNo]);
+     ```
+   - If `studentData` is already loaded in memory for the active registration number, `fetchStudent` is **bypassed completely (0ms load, 0 HTTP requests)**.
+   - On page refreshes (F5), `AppContext` hydrates instantly from `sessionStorage` (`gf_student_profile_${cleanReg}`), enqueues an ETag `If-None-Match` revalidation with a 15-second cooldown shield, and eliminates redundant MongoDB hits.
+4. **Pure Client-Side Simulation**:
+   - All simulations, grade distributions, radar charts, company eligibility checks, and backlog what-if scenarios execute synchronously on the client's device using memoized pure functions (`useMemo`).
+   - The server and database are never queried during What-If simulations.
+
+---
+
+### 2. Multi-Semester What-If Backlog Clearance Studio
+
+Students with backlogs in 1st semester or any intermediate semester can simulate clearing their backlog with different passing grades (`O`, `E`, `A`, `B`, `C`, `D`), viewing both the **exact SGPA jump for that specific semester** and the **cumulative overall CGPA gain** across their degree.
+
+#### A. Multi-Semester Keying & Auto-Selection Engine
+1. **Intelligent Auto-Selection**:
+   - On initial load, `effectiveWhatIfSem` scans all completed semesters and automatically selects the first semester possessing an active backlog (`F`, `R`, `S`, `M`).
+   - If the student has a clean academic record, it defaults to the latest completed semester.
+2. **Scoped Grade Map**:
+   - Simulation state (`whatIfGrades`) stores course grade overrides keyed by `${semNum}_${subCode}` (with backward fallback to `${subCode}`).
+   - This ensures independent simulation state across different semesters without collisions (e.g., repeating a course code or multi-semester projects).
+
+#### B. BPUT Mathematical Recalculation Engine
+The simulator obeys official BPUT academic guidelines:
+1. **Grade Point Mapping**:
+   $$\text{Points} = \{ O: 10, E: 9, A: 8, B: 7, C: 6, D: 5, F: 2, R: 0, S: 0, M: 0 \}$$
+2. **Credit Invariant for Backlog Remediation**:
+   - In BPUT, backlog courses (grades `F`, `R`, `S`, `M`) already contribute their registered credits ($C_i$) to the semester total credit denominator ($TC$).
+   - When simulated with a cleared passing grade, the course credits remain identical in the denominator; the numerator increases by $(P_{\text{sim}} - P_{\text{orig}}) \times C_i$.
+   - Semester 5 project exemptions (`isSem5ProjectException`) are honored to prevent non-credited project components from skewing credit totals.
+3. **Two-Decimal Truncation Invariant (`trunc2`)**:
+   - Semester SGPA is strictly truncated to 2 decimal places:
+     $$\text{SGPA}_i = \text{trunc2}\left( \frac{\sum (C_{ij} \times P_{ij})}{\sum C_{ij}} \right)$$
+   - Unmodified semesters strictly retain their original marksheet SGPA (`origSGPA`), preventing floating-point rounding divergence.
+4. **Cumulative CGPA Recalculation**:
+   - The overall degree CGPA is recalculated across all semesters using each semester's SGPA weighted by semester credits:
+     $$\text{CGPA}_{\text{sim}} = \text{trunc2}\left( \frac{\sum (\text{SGPA}_i \times TC_i)}{\sum TC_i} \right)$$
+   - When zero subjects are modified (`totalModifiedSubjects === 0`), `simulatedCGPA` is guaranteed to match `originalCGPA` identically ($\Delta = 0.00$).
+
+```mermaid
+flowchart TD
+    A[Student Selects Semester] --> B{Active Backlogs Present?}
+    B -->|Yes| C[Display Warning Banner & Highlight Active Backlogs]
+    B -->|No| D[Display Standard Course Grade Modifiers]
+    C --> E[Student Selects Simulated Grade O/E/A/B/C/D]
+    D --> E
+    E --> F[Calculate New Semester Total Points & SGPA trunc2]
+    F --> G[Weight New SGPA across All Semesters for Cumulative CGPA]
+    G --> H[Update Metric Cards: Sem SGPA Delta + Overall CGPA Delta]
+    H --> I{All Backlogs in Sem Cleared?}
+    I -->|Yes| J[Render Green Cleared Success Banner & Pill Badges]
+    I -->|No| K[Render Remaining Backlog Count Pill Badge]
+```
+
+---
+
+### 3. What-If Studio User Interface Components
+
+1. **Interactive Semester Selector Bar**:
+   - Horizontally scrollable pill buttons for all available semesters.
+   - Dynamic semester pills indicating:
+     - `⚠️ X Backlog(s)`: Amber/red warning pill if semester has active backlogs.
+     - `🎉 Cleared`: Green success pill when backlogs in that semester have been cleared in simulation.
+     - `Simulated`: Purple pill if regular passing grades were modified.
+2. **Contextual Backlog Alert & Success Banners**:
+   - **Backlog Alert Banner**: Details active failing courses and suggests one-click clearance.
+   - **Backlog Cleared Celebration Banner**: Highlights the exact SGPA and CGPA gains achieved by clearing backlogs in that semester.
+3. **Metric Cards Grid**:
+   - **Simulated Degree CGPA**: Large animated monospace display showing simulated CGPA, baseline CGPA, and positive/negative delta pill (`+0.42 Gain`).
+   - **Simulated Semester SGPA**: Shows simulated SGPA for the selected semester, baseline SGPA, and semester delta.
+   - **Backlog Status Card**: Shows remaining uncleared backlogs across the degree and clearance progress (`X of Y Cleared`).
+4. **One-Click Clearance Presets**:
+   - `Clear Backlog (with E - 9 Pts)`: Instantly sets all backlog courses in the active semester to grade `E`.
+   - `Clear with Pass (D - 5 Pts)`: Instantly sets all backlog courses to minimum passing grade `D`.
+   - `Max Out (All O)`: Sets all courses in the active semester to grade `O` (10 pts).
+   - `All E (9 Pts)`: Sets all courses in the active semester to grade `E` (9 pts).
+   - `Reset Sem`: Clears modifications for the active semester.
+   - `Reset All`: Global reset reverting all multi-semester modifications back to official marksheet grades.
+5. **Enhanced Course Cards**:
+   - Red border (`#fecaca`) and `⚠️ Active Backlog` badge for original failing courses.
+   - Emerald border (`#bbf7d0`) and `✨ Cleared with [Grade]` badge with grade points delta ($[P_{\text{new}} - P_{\text{orig}}] \times C$) when cleared.
+   - Segmented grade selector pills (`O`, `E`, `A`, `B`, `C`, `D`, `F`) with toggle-off reset capability.
+
+---
+
+### 4. React Rules of Hooks & Memoization Registry
+
+All hooks in `Analytics.jsx` are strictly placed before any conditional early returns (`if (loading || !studentData) return <AnalyticsSkeleton />`), adhering to React Hook execution rules:
+
+| Hook / Memoized Computation | Dependencies | Purpose |
+|:---|:---|:---|
+| `gradeDistributionData` | `[studentData]` | Aggregates counts and percentages of all grades (O through F, R, S, M) across all semesters. |
+| `subjectsByGrade` | `[studentData]` | Groups all completed subjects by grade for detailed card view and filtering. |
+| `totalGradedCount` | `[gradeDistributionData]` | Total number of graded course appearances across student history. |
+| `honorsGradeRatio` | `[gradeDistributionData, totalGradedCount]` | Percentage of courses passed with high distinction (O, E, A grades). |
+| `radarData` | `[studentData]` | Categorizes coursework into Theory, Practicals & Labs, and Projects for Radar Chart visualization. |
+| `allSemesters` | `[results]` | Sorted numeric array of completed semesters. |
+| `effectiveWhatIfSem` | `[selectedWhatIfSem, allSemesters, results, latestSemester]` | Resolves active semester to simulate, auto-prioritizing backlogged semesters. |
+| `selectedSemResult` | `[results, effectiveWhatIfSem]` | Extracts course records for the active simulation semester. |
+| `currentWhatIfSubjects`| `[selectedSemResult]` | Extracts subject list for the active simulation semester. |
+| `whatIfSimulation` | `[studentData, results, whatIfGrades, effectiveWhatIfSem, cgpa]` | Full multi-semester BPUT SGPA and CGPA recalculation engine. |
+| `sgpaChartData` | `[results]` | Historical semester SGPA progression series for Recharts line chart. |
+| `trendData` | `[results]` | Semester-over-semester SGPA changes ($\Delta$) for trend analysis. |
+| `insights` | `[studentData]` | Dynamic rule-based academic achievements, warnings, and honors eligibility cards. |
+| `curriculumDistribution`| `[studentData]` | Credit breakdown across Theory, Practical, and Project course categories. |
+| `filteredSubjects` | `[subjectsByGrade, selectedGradeFilter, gradeSearchQuery]` | Filtered subject list based on selected grade pill and search input. |
+| `predictorAnalysis` | `[results, cgpa, targetCGPA]` | Required future semester SGPA calculator to reach user's desired degree CGPA target. |
+| `rankingInfo` | `[studentData]` | College-level and branch-level percentile and rank standings. |
+| `creditMilestoneProgress`| `[totalCredits, creditsCleared]` | Percentage progress toward the 160 BPUT B.Tech degree credit completion requirement. |

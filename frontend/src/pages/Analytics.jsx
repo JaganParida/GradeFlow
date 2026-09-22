@@ -303,8 +303,7 @@ export default function Analytics() {
 
   const [targetCGPA, setTargetCGPA] = useState("");
   const [whatIfGrades, setWhatIfGrades] = useState({});
-  const [whatIfCGPA, setWhatIfCGPA] = useState(null);
-  const [whatIfSGPA, setWhatIfSGPA] = useState(null);
+  const [selectedWhatIfSem, setSelectedWhatIfSem] = useState(null);
   const [selectedGradeFilter, setSelectedGradeFilter] = useState(null);
   const [gradeSearchQuery, setGradeSearchQuery] = useState("");
   const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 1024 : false));
@@ -398,6 +397,19 @@ export default function Analytics() {
       fetchStudent(regNo);
     }
   }, [regNo, studentData?.regNo]);
+
+  const {
+    results = [],
+    cgpa = 0,
+    latestSgpa = 0,
+    latestSemester = 1,
+    totalCredits = 0,
+    creditsCleared = 0,
+    backlogs = [],
+    studentName,
+    branch,
+    batch,
+  } = studentData || {};
 
   // Grade Distribution Calculation across all semesters
   const gradeDistributionData = useMemo(() => {
@@ -504,64 +516,173 @@ export default function Analytics() {
     ];
   }, [studentData]);
 
-  // What-if simulator calculation
-  useEffect(() => {
-    if (!studentData || !studentData.results) {
-      setWhatIfCGPA(null);
-      setWhatIfSGPA(null);
-      return;
+  const allSemesters = useMemo(() => {
+    if (!results || results.length === 0) return [];
+    return results.map((r) => Number(r.semester)).sort((a, b) => a - b);
+  }, [results]);
+
+  const effectiveWhatIfSem = useMemo(() => {
+    if (selectedWhatIfSem !== null && allSemesters.includes(Number(selectedWhatIfSem))) {
+      return Number(selectedWhatIfSem);
+    }
+    // Prioritize first semester that has an active backlog (F, R, S, M)
+    const semWithBacklog = results.find((r) =>
+      r.subjects?.some((s) => ["F", "R", "S", "M"].includes(String(s.grade || "").trim().toUpperCase()))
+    );
+    if (semWithBacklog) return Number(semWithBacklog.semester);
+    return Number(latestSemester || (results[results.length - 1]?.semester) || 1);
+  }, [selectedWhatIfSem, allSemesters, results, latestSemester]);
+
+  const selectedSemResult = useMemo(() => {
+    return results.find((r) => Number(r.semester) === Number(effectiveWhatIfSem)) || results[results.length - 1] || null;
+  }, [results, effectiveWhatIfSem]);
+
+  const currentWhatIfSubjects = useMemo(() => {
+    return selectedSemResult?.subjects || [];
+  }, [selectedSemResult]);
+
+  const whatIfSimulation = useMemo(() => {
+    if (!studentData || !results || results.length === 0) {
+      return {
+        simulatedCGPA: "0.00",
+        originalCGPA: "0.00",
+        cgpaDelta: 0,
+        simulatedSelectedSemSGPA: "0.00",
+        originalSelectedSemSGPA: "0.00",
+        sgpaDelta: 0,
+        selectedSemData: {
+          origSGPA: 0,
+          simSGPA: 0,
+          sgpaDelta: 0,
+          activeBacklogs: 0,
+          simulatedBacklogs: 0,
+          modifiedCount: 0,
+        },
+        semestersData: {},
+        activeBacklogsCount: 0,
+        simulatedBacklogsCount: 0,
+        clearedBacklogsCount: 0,
+        modifiedSubjectsCount: 0,
+      };
     }
 
-    const results = studentData.results;
-    let cgpaNumerator = 0, cgpaDenominator = 0;
-    let sgpa_tw = 0, sgpa_tc = 0;
+    let cgpaNumerator = 0;
+    let cgpaDenominator = 0;
+    const semestersData = {};
+    let totalActiveBacklogs = 0;
+    let totalSimulatedBacklogs = 0;
+    let totalModifiedSubjects = 0;
 
-    results.forEach((r, ri) => {
-      const isLatest = ri === results.length - 1;
-      let semTW = 0, semTC = 0;
+    results.forEach((r) => {
+      const semNum = Number(r.semester);
+      let semTW = 0;
+      let semTC = 0;
+      let origTW = 0;
+      let origTC = 0;
+      let semActiveBacklogs = 0;
+      let semSimulatedBacklogs = 0;
+      let semModifiedCount = 0;
 
       r.subjects?.forEach((s) => {
-        const grade = isLatest && whatIfGrades[s.subCode] ? whatIfGrades[s.subCode] : s.grade;
+        const subCode = s.subCode || s.subjectCode || "";
+        const subKey = `${semNum}_${subCode}`;
+        const simulatedGrade =
+          whatIfGrades[subKey] !== undefined
+            ? whatIfGrades[subKey]
+            : (whatIfGrades[subCode] !== undefined ? whatIfGrades[subCode] : s.grade);
 
-        if (isSem5ProjectException(s, r.semester)) return;
+        const origGradeNorm = String(s.grade || "").trim().toUpperCase();
+        const simGradeNorm = String(simulatedGrade || "").trim().toUpperCase();
+
+        const isOrigBacklog = ["F", "R", "S", "M"].includes(origGradeNorm);
+        const isSimBacklog = ["F", "R", "S", "M"].includes(simGradeNorm);
+
+        if (isOrigBacklog) semActiveBacklogs += 1;
+        if (isSimBacklog) semSimulatedBacklogs += 1;
+
+        if (simGradeNorm !== origGradeNorm) {
+          semModifiedCount += 1;
+        }
+
+        if (isSem5ProjectException(s, semNum)) return;
 
         const credit = Number(s.credit !== undefined ? s.credit : s.credits) || 0;
-        const normalizedGrade = String(grade || "").trim().toUpperCase();
-        const gradePoint = GRADE_POINTS[normalizedGrade];
+        const origGradePoint = GRADE_POINTS[origGradeNorm];
+        const simGradePoint = GRADE_POINTS[simGradeNorm];
 
-        if (credit > 0 && gradePoint !== undefined) {
-          semTW += credit * gradePoint;
+        if (credit > 0 && origGradePoint !== undefined) {
+          origTW += credit * origGradePoint;
+          origTC += credit;
+        }
+
+        if (credit > 0 && simGradePoint !== undefined) {
+          semTW += credit * simGradePoint;
           semTC += credit;
-          if (isLatest) {
-            sgpa_tw += credit * gradePoint;
-            sgpa_tc += credit;
-          }
         }
       });
 
+      const parsedOrigSGPA =
+        r.sgpa !== undefined && r.sgpa !== null && !isNaN(Number(r.sgpa))
+          ? Number(r.sgpa)
+          : (origTC > 0 ? trunc2(origTW / origTC) : 0);
+      const origSGPA = Number(parsedOrigSGPA.toFixed(2));
+      const simSGPA = semModifiedCount > 0 ? (semTC > 0 ? trunc2(semTW / semTC) : origSGPA) : origSGPA;
+      const diffSGPA = parseFloat((simSGPA - origSGPA).toFixed(2));
+
+      semestersData[semNum] = {
+        semester: semNum,
+        origSGPA,
+        simSGPA,
+        sgpaDelta: diffSGPA,
+        origCredits: origTC,
+        simCredits: semTC,
+        activeBacklogs: semActiveBacklogs,
+        simulatedBacklogs: semSimulatedBacklogs,
+        modifiedCount: semModifiedCount,
+        hasChanges: semModifiedCount > 0,
+      };
+
+      totalActiveBacklogs += semActiveBacklogs;
+      totalSimulatedBacklogs += semSimulatedBacklogs;
+      totalModifiedSubjects += semModifiedCount;
+
       if (semTC > 0) {
-        let semSGPA = trunc2(semTW / semTC);
-        cgpaNumerator += semSGPA * semTC;
+        cgpaNumerator += simSGPA * semTC;
         cgpaDenominator += semTC;
       }
     });
 
-    setWhatIfCGPA(cgpaDenominator > 0 ? trunc2(cgpaNumerator / cgpaDenominator).toFixed(2) : "0.00");
-    setWhatIfSGPA(sgpa_tc > 0 ? trunc2(sgpa_tw / sgpa_tc).toFixed(2) : "0.00");
-  }, [whatIfGrades, studentData]);
+    const originalCGPA = Number(cgpa) || (cgpaDenominator > 0 ? trunc2(Object.values(semestersData).reduce((acc, d) => acc + d.origSGPA * d.origCredits, 0) / cgpaDenominator) : 0);
+    const simulatedCGPA = totalModifiedSubjects === 0 ? originalCGPA : (cgpaDenominator > 0 ? trunc2(cgpaNumerator / cgpaDenominator) : 0);
+    const cgpaDelta = parseFloat((simulatedCGPA - originalCGPA).toFixed(2));
 
-  const {
-    results = [],
-    cgpa = 0,
-    latestSgpa = 0,
-    latestSemester = 1,
-    totalCredits = 0,
-    creditsCleared = 0,
-    backlogs = [],
-    studentName,
-    branch,
-    batch,
-  } = studentData || {};
+    const curSemData = semestersData[effectiveWhatIfSem] || {
+      origSGPA: 0,
+      simSGPA: 0,
+      sgpaDelta: 0,
+      activeBacklogs: 0,
+      simulatedBacklogs: 0,
+      modifiedCount: 0,
+    };
+
+    return {
+      simulatedCGPA: simulatedCGPA.toFixed(2),
+      originalCGPA: originalCGPA.toFixed(2),
+      cgpaDelta,
+      simulatedSelectedSemSGPA: curSemData.simSGPA.toFixed(2),
+      originalSelectedSemSGPA: curSemData.origSGPA.toFixed(2),
+      sgpaDelta: curSemData.sgpaDelta,
+      selectedSemData: curSemData,
+      semestersData,
+      activeBacklogsCount: totalActiveBacklogs,
+      simulatedBacklogsCount: totalSimulatedBacklogs,
+      clearedBacklogsCount: Math.max(0, totalActiveBacklogs - totalSimulatedBacklogs),
+      modifiedSubjectsCount: totalModifiedSubjects,
+    };
+  }, [whatIfGrades, studentData, results, cgpa, effectiveWhatIfSem]);
+
+  const whatIfCGPA = whatIfSimulation.simulatedCGPA;
+  const whatIfSGPA = whatIfSimulation.simulatedSelectedSemSGPA;
 
   const chartData = useMemo(() => {
     if (!studentData || !results.length) return [];
@@ -676,7 +797,7 @@ export default function Analytics() {
     { id: "placement", label: "Placement & Companies", icon: <Briefcase size={16} color="#10b981" />, desc: "Tier-1 eligibility & company criteria" },
     { id: "mastery", label: "Subject Mastery & Insights", icon: <Target size={16} color="#d97706" />, desc: "Strongest vs growth areas & feedback" },
     { id: "predictor", label: "CGPA Goal Predictor", icon: <Award size={16} color="#16a34a" />, desc: "Required grades to reach target CGPA" },
-    { id: "whatif", label: "What-If Simulator", icon: <PieChart size={16} color="#6366f1" />, desc: "Simulate grades for upcoming sems" },
+    { id: "whatif", label: "What-If Simulator", icon: <PieChart size={16} color="#6366f1" />, desc: "Simulate clearing backlogs & grade changes across sems" },
   ], []);
 
   if (loading || !studentData) {
@@ -2030,7 +2151,7 @@ export default function Analytics() {
               transition={{ duration: 0.22, ease: "easeOut" }}
               style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 20 }}
             >
-              {/* Header & Quick Simulator Controls */}
+              {/* Header & Simulator Controls */}
               <div
                 style={{
                   background: "#ffffff",
@@ -2043,23 +2164,97 @@ export default function Analytics() {
                   gap: isMobile ? 12 : 18,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
                   <div>
-                    <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", display: "flex", alignItems: "center", gap: 6 }}>
-                      <PieChart size={18} color="#8b5cf6" /> What-If Semester Grade Simulation Studio
+                    <h3 style={{ fontSize: isMobile ? 15 : 18, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0", display: "flex", alignItems: "center", gap: 8 }}>
+                      <PieChart size={20} color="#8b5cf6" /> What-If Semester Grade & Backlog Simulation Studio
                     </h3>
-                    <p style={{ color: "#64748b", fontSize: isMobile ? 11.5 : 13, margin: 0 }}>
-                      Simulate grade variations in Sem {latestSemester} to see instant real-time SGPA and CGPA changes
+                    <p style={{ color: "#64748b", fontSize: isMobile ? 11.5 : 13, margin: 0, maxWidth: 800, lineHeight: 1.4 }}>
+                      Simulate clearing backlogs or improving grades across <strong>any semester</strong> (Sem 1 through {latestSemester}). See the exact simulated SGPA for that semester and how much your <strong>overall cumulative CGPA increases</strong>.
                     </p>
                   </div>
 
-                  {/* Quick Presets */}
+                  {/* Preset Action Buttons */}
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    {/* If this semester has backlogs (or was cleared in sim), show dedicated Backlog Clearance Presets */}
+                    {whatIfSimulation.selectedSemData?.activeBacklogs > 0 && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setWhatIfGrades((prev) => {
+                              const next = { ...prev };
+                              currentWhatIfSubjects.forEach((s) => {
+                                const origG = String(s.grade || "").trim().toUpperCase();
+                                if (["F", "R", "S", "M"].includes(origG)) {
+                                  const code = s.subCode || s.subjectCode;
+                                  next[`${effectiveWhatIfSem}_${code}`] = "E";
+                                }
+                              });
+                              return next;
+                            });
+                          }}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: isMobile ? "5px 10px" : "6px 12px",
+                            borderRadius: 8,
+                            border: "1px solid #86efac",
+                            background: "#dcfce7",
+                            color: "#15803d",
+                            fontSize: isMobile ? 11 : 12,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          <CheckCircle size={13} /> Clear Backlog (with E)
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setWhatIfGrades((prev) => {
+                              const next = { ...prev };
+                              currentWhatIfSubjects.forEach((s) => {
+                                const origG = String(s.grade || "").trim().toUpperCase();
+                                if (["F", "R", "S", "M"].includes(origG)) {
+                                  const code = s.subCode || s.subjectCode;
+                                  next[`${effectiveWhatIfSem}_${code}`] = "D";
+                                }
+                              });
+                              return next;
+                            });
+                          }}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: isMobile ? "5px 10px" : "6px 12px",
+                            borderRadius: 8,
+                            border: "1px solid #cbd5e1",
+                            background: "#f1f5f9",
+                            color: "#334155",
+                            fontSize: isMobile ? 11 : 12,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          <Check size={13} /> Clear with Pass (D)
+                        </button>
+                      </>
+                    )}
+
                     <button
                       onClick={() => {
-                        const allO = {};
-                        latestSubjects.forEach((s) => (allO[s.subCode] = "O"));
-                        setWhatIfGrades(allO);
+                        setWhatIfGrades((prev) => {
+                          const next = { ...prev };
+                          currentWhatIfSubjects.forEach((s) => {
+                            const code = s.subCode || s.subjectCode;
+                            next[`${effectiveWhatIfSem}_${code}`] = "O";
+                          });
+                          return next;
+                        });
                       }}
                       style={{
                         display: "inline-flex",
@@ -2080,9 +2275,14 @@ export default function Analytics() {
 
                     <button
                       onClick={() => {
-                        const allE = {};
-                        latestSubjects.forEach((s) => (allE[s.subCode] = "E"));
-                        setWhatIfGrades(allE);
+                        setWhatIfGrades((prev) => {
+                          const next = { ...prev };
+                          currentWhatIfSubjects.forEach((s) => {
+                            const code = s.subCode || s.subjectCode;
+                            next[`${effectiveWhatIfSem}_${code}`] = "E";
+                          });
+                          return next;
+                        });
                       }}
                       style={{
                         display: "inline-flex",
@@ -2091,7 +2291,7 @@ export default function Analytics() {
                         padding: isMobile ? "5px 10px" : "6px 12px",
                         borderRadius: 8,
                         border: "1px solid #bbf7d0",
-                        background: "#dcfce7",
+                        background: "#f0fdf4",
                         color: "#15803d",
                         fontSize: isMobile ? 11 : 12,
                         fontWeight: 800,
@@ -2101,9 +2301,20 @@ export default function Analytics() {
                       All E (9 Pts)
                     </button>
 
+                    {/* Reset This Semester */}
                     <button
-                      onClick={() => setWhatIfGrades({})}
-                      disabled={Object.keys(whatIfGrades).length === 0}
+                      onClick={() => {
+                        setWhatIfGrades((prev) => {
+                          const next = { ...prev };
+                          currentWhatIfSubjects.forEach((s) => {
+                            const code = s.subCode || s.subjectCode;
+                            delete next[`${effectiveWhatIfSem}_${code}`];
+                            delete next[code];
+                          });
+                          return next;
+                        });
+                      }}
+                      disabled={!whatIfSimulation.selectedSemData?.hasChanges}
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
@@ -2111,194 +2322,517 @@ export default function Analytics() {
                         padding: isMobile ? "5px 10px" : "6px 12px",
                         borderRadius: 8,
                         border: "1px solid #cbd5e1",
-                        background: Object.keys(whatIfGrades).length === 0 ? "#f1f5f9" : "#ffffff",
-                        color: Object.keys(whatIfGrades).length === 0 ? "#94a3b8" : "#334155",
+                        background: !whatIfSimulation.selectedSemData?.hasChanges ? "#f1f5f9" : "#ffffff",
+                        color: !whatIfSimulation.selectedSemData?.hasChanges ? "#94a3b8" : "#334155",
                         fontSize: isMobile ? 11 : 12,
                         fontWeight: 700,
-                        cursor: Object.keys(whatIfGrades).length === 0 ? "not-allowed" : "pointer",
+                        cursor: !whatIfSimulation.selectedSemData?.hasChanges ? "not-allowed" : "pointer",
                       }}
                     >
-                      <RotateCcw size={12} /> Reset
+                      <RotateCcw size={12} /> Reset Sem
                     </button>
+
+                    {/* Reset All (Global) */}
+                    {whatIfSimulation.modifiedSubjectsCount > 0 && (
+                      <button
+                        onClick={() => setWhatIfGrades({})}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: isMobile ? "5px 10px" : "6px 12px",
+                          borderRadius: 8,
+                          border: "1px solid #fca5a5",
+                          background: "#fee2e2",
+                          color: "#b91c1c",
+                          fontSize: isMobile ? 11 : 12,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <RotateCcw size={12} /> Reset All ({whatIfSimulation.modifiedSubjectsCount})
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {/* Side by Side Simulation Metric Cards */}
-                {whatIfCGPA !== null && (
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(280px, 1fr))", gap: isMobile ? 10 : 16 }}>
-                    <div
-                      style={{
-                        background: "#eff6ff",
-                        border: "1.5px solid #bfdbfe",
-                        borderRadius: 14,
-                        padding: isMobile ? "14px 16px" : "20px 24px",
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontSize: isMobile ? 11 : 12, fontWeight: 800, color: "#2563eb", textTransform: "uppercase" }}>
-                          Simulated CGPA
-                        </span>
-                        <span
-                          style={{
-                            fontSize: isMobile ? 10.5 : 11.5,
-                            fontWeight: 800,
-                            background: parseFloat(whatIfCGPA) >= cgpa ? "#dcfce7" : "#fee2e2",
-                            color: parseFloat(whatIfCGPA) >= cgpa ? "#15803d" : "#b91c1c",
-                            padding: "2px 7px",
-                            borderRadius: 6,
-                          }}
-                        >
-                          {parseFloat(whatIfCGPA) >= cgpa
-                            ? `+${(whatIfCGPA - cgpa).toFixed(2)} Gain`
-                            : `${(whatIfCGPA - cgpa).toFixed(2)} Drop`}
-                        </span>
-                      </div>
-
-                      <div style={{ fontSize: isMobile ? 28 : 40, fontWeight: 900, color: "#1d4ed8", fontFamily: "'Space Mono', monospace", margin: "4px 0" }}>
-                        <AnimatedNumber value={parseFloat(whatIfCGPA)} />
-                      </div>
-                      <div style={{ fontSize: isMobile ? 11 : 12.5, color: "#64748b" }}>
-                        Baseline CGPA: <strong style={{ color: "#0f172a" }}>{cgpa}</strong>
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        background: "#f0fdf4",
-                        border: "1.5px solid #bbf7d0",
-                        borderRadius: 14,
-                        padding: isMobile ? "14px 16px" : "20px 24px",
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontSize: isMobile ? 11 : 12, fontWeight: 800, color: "#15803d", textTransform: "uppercase" }}>
-                          Simulated Sem {latestSemester} SGPA
-                        </span>
-                        <span
-                          style={{
-                            fontSize: isMobile ? 10.5 : 11.5,
-                            fontWeight: 800,
-                            background: parseFloat(whatIfSGPA) >= latestSgpa ? "#dcfce7" : "#fee2e2",
-                            color: parseFloat(whatIfSGPA) >= latestSgpa ? "#15803d" : "#b91c1c",
-                            padding: "2px 7px",
-                            borderRadius: 6,
-                          }}
-                        >
-                          {parseFloat(whatIfSGPA) >= latestSgpa
-                            ? `+${(whatIfSGPA - latestSgpa).toFixed(2)} Gain`
-                            : `${(whatIfSGPA - latestSgpa).toFixed(2)} Drop`}
-                        </span>
-                      </div>
-
-                      <div style={{ fontSize: isMobile ? 28 : 40, fontWeight: 900, color: "#16a34a", fontFamily: "'Space Mono', monospace", margin: "4px 0" }}>
-                        <AnimatedNumber value={parseFloat(whatIfSGPA)} />
-                      </div>
-                      <div style={{ fontSize: isMobile ? 11 : 12.5, color: "#64748b" }}>
-                        Baseline SGPA: <strong style={{ color: "#0f172a" }}>{latestSgpa?.toFixed(2)}</strong>
-                      </div>
-                    </div>
+                {/* Semester Selector Bar */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ fontSize: isMobile ? 11.5 : 12.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.04em", display: "flex", alignItems: "center", gap: 6 }}>
+                    <BookOpen size={14} color="#6366f1" /> Select Semester to Simulate:
                   </div>
-                )}
-              </div>
 
-              {/* Subject Grade Modification Cards Grid */}
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(360px, 1fr))", gap: isMobile ? 10 : 14 }}>
-                {latestSubjects.map((s) => {
-                  const currentSimGrade = whatIfGrades[s.subCode] || s.grade;
-                  const isModified = Boolean(whatIfGrades[s.subCode] && whatIfGrades[s.subCode] !== s.grade);
-                  const originalMeta = GRADE_META[s.grade] || GRADE_META.F;
-                  const simMeta = GRADE_META[currentSimGrade] || GRADE_META.F;
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      overflowX: "auto",
+                      paddingBottom: 4,
+                      WebkitOverflowScrolling: "touch",
+                    }}
+                  >
+                    {allSemesters.map((semNum) => {
+                      const semData = whatIfSimulation.semestersData[semNum] || {};
+                      const isSelected = semNum === effectiveWhatIfSem;
+                      const hasActiveBacklogs = semData.activeBacklogs > 0;
+                      const hasSimBacklogs = semData.simulatedBacklogs > 0;
+                      const wasCleared = hasActiveBacklogs && !hasSimBacklogs;
+                      const isModified = semData.hasChanges;
 
-                  return (
-                    <div
-                      key={s.subCode}
-                      style={{
-                        background: "#ffffff",
-                        border: isModified ? `2px solid #8b5cf6` : "1px solid #cbd5e1",
-                        borderRadius: 14,
-                        padding: isMobile ? "12px 14px" : "16px 18px",
-                        boxShadow: isModified
-                          ? "0 4px 14px rgba(139, 92, 246, 0.08)"
-                          : "0 1px 3px rgba(0,0,0,0.03)",
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "space-between",
-                        gap: 10,
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                          <div style={{ fontWeight: 800, fontSize: isMobile ? 13 : 14, color: "#0f172a", lineHeight: 1.3 }}>
-                            {s.subName}
-                          </div>
-                          {isModified && (
+                      return (
+                        <button
+                          key={semNum}
+                          onClick={() => setSelectedWhatIfSem(semNum)}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            padding: isMobile ? "7px 11px" : "8px 14px",
+                            borderRadius: 10,
+                            border: isSelected ? "2px solid #6366f1" : "1px solid #cbd5e1",
+                            background: isSelected ? "#eef2ff" : "#ffffff",
+                            color: isSelected ? "#4338ca" : "#334155",
+                            fontWeight: isSelected ? 800 : 600,
+                            fontSize: isMobile ? 12 : 13,
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                            whiteSpace: "nowrap",
+                            boxShadow: isSelected ? "0 2px 8px rgba(99,102,241,0.15)" : "none",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <span>Sem {semNum}</span>
+
+                          {/* Backlog Alert Badge */}
+                          {hasActiveBacklogs && hasSimBacklogs && (
                             <span
                               style={{
-                                fontSize: 10,
+                                fontSize: 10.5,
+                                fontWeight: 800,
+                                background: "#fee2e2",
+                                color: "#b91c1c",
+                                border: "1px solid #fecaca",
+                                padding: "1px 6px",
+                                borderRadius: 10,
+                              }}
+                            >
+                              ⚠️ {semData.simulatedBacklogs} Backlog{semData.simulatedBacklogs > 1 ? "s" : ""}
+                            </span>
+                          )}
+
+                          {/* Backlog Cleared Badge */}
+                          {wasCleared && (
+                            <span
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: 800,
+                                background: "#dcfce7",
+                                color: "#15803d",
+                                border: "1px solid #bbf7d0",
+                                padding: "1px 6px",
+                                borderRadius: 10,
+                              }}
+                            >
+                              🎉 Cleared
+                            </span>
+                          )}
+
+                          {/* Grade Modified Badge */}
+                          {isModified && !hasActiveBacklogs && (
+                            <span
+                              style={{
+                                fontSize: 10.5,
                                 fontWeight: 800,
                                 background: "#f3e8ff",
                                 color: "#7e22ce",
                                 border: "1px solid #e9d5ff",
-                                padding: "1px 5px",
-                                borderRadius: 5,
-                                flexShrink: 0,
+                                padding: "1px 6px",
+                                borderRadius: 10,
                               }}
                             >
                               Simulated
                             </span>
                           )}
-                        </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: isMobile ? 11 : 12, color: "#64748b", flexWrap: "wrap" }}>
-                          <span style={{ fontFamily: "'Space Mono', monospace", fontWeight: 700 }}>{s.subCode}</span>
-                          <span>•</span>
-                          <span>{s.credit} Credits</span>
-                          <span>•</span>
-                          <span>
-                            Original: <strong style={{ color: originalMeta.color }}>{s.grade}</strong>
-                          </span>
-                        </div>
+                {/* Backlog Guidance Alert Banner */}
+                {whatIfSimulation.selectedSemData?.activeBacklogs > 0 && whatIfSimulation.selectedSemData?.simulatedBacklogs > 0 && (
+                  <div
+                    style={{
+                      background: "#fef2f2",
+                      border: "1.5px solid #fecaca",
+                      borderRadius: 12,
+                      padding: isMobile ? "10px 12px" : "12px 16px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                    }}
+                  >
+                    <AlertTriangle size={22} color="#dc2626" style={{ flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 800, fontSize: isMobile ? 12.5 : 13.5, color: "#991b1b" }}>
+                        Active Backlog in Semester {effectiveWhatIfSem} ({whatIfSimulation.selectedSemData.simulatedBacklogs} course{whatIfSimulation.selectedSemData.simulatedBacklogs > 1 ? "s" : ""})
                       </div>
-
-                      {/* Segmented Grade Pills */}
-                      <div>
-                        <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", marginBottom: 5 }}>
-                          Select Simulated Grade:
-                        </div>
-                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                          {GRADE_ORDER.map((g) => {
-                            const gMeta = GRADE_META[g];
-                            const isSelected = currentSimGrade === g;
-                            return (
-                              <button
-                                key={g}
-                                onClick={() => setWhatIfGrades({ ...whatIfGrades, [s.subCode]: g })}
-                                style={{
-                                  flex: "1 1 30px",
-                                  minWidth: 28,
-                                  height: isMobile ? 28 : 32,
-                                  borderRadius: 7,
-                                  border: isSelected ? `2px solid ${gMeta.color}` : "1px solid #cbd5e1",
-                                  background: isSelected ? gMeta.bg : "#ffffff",
-                                  color: isSelected ? gMeta.color : "#334155",
-                                  fontSize: isMobile ? 12 : 13,
-                                  fontWeight: 800,
-                                  cursor: "pointer",
-                                  fontFamily: "'Space Mono', monospace",
-                                  transition: "all 0.1s ease",
-                                  padding: 0,
-                                }}
-                              >
-                                {g}
-                              </button>
-                            );
-                          })}
-                        </div>
+                      <div style={{ fontSize: isMobile ? 11 : 12, color: "#b91c1c", marginTop: 2 }}>
+                        Select any passing grade (O, E, A, B, C, D) below or click <strong>"Clear Backlog (with E)"</strong> to see exactly how much this semester's SGPA jumps and how your <strong>overall cumulative CGPA increases</strong>!
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                )}
+
+                {/* Backlog Cleared Success Banner */}
+                {whatIfSimulation.selectedSemData?.activeBacklogs > 0 && whatIfSimulation.selectedSemData?.simulatedBacklogs === 0 && (
+                  <div
+                    style={{
+                      background: "#f0fdf4",
+                      border: "1.5px solid #bbf7d0",
+                      borderRadius: 12,
+                      padding: isMobile ? "10px 12px" : "12px 16px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                    }}
+                  >
+                    <CheckCircle size={22} color="#16a34a" style={{ flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 800, fontSize: isMobile ? 12.5 : 13.5, color: "#166534" }}>
+                        🎉 Backlog(s) Cleared in Simulation for Semester {effectiveWhatIfSem}!
+                      </div>
+                      <div style={{ fontSize: isMobile ? 11 : 12, color: "#15803d", marginTop: 2 }}>
+                        By clearing this semester's backlog(s), Sem {effectiveWhatIfSem} SGPA increases from <strong>{whatIfSimulation.originalSelectedSemSGPA}</strong> to <strong>{whatIfSimulation.simulatedSelectedSemSGPA}</strong> (+{whatIfSimulation.sgpaDelta} Gain), elevating your overall cumulative CGPA from <strong>{whatIfSimulation.originalCGPA}</strong> to <strong>{whatIfSimulation.simulatedCGPA}</strong> (+{whatIfSimulation.cgpaDelta} Gain)!
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Side by Side Simulation Metric Cards */}
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(280px, 1fr))", gap: isMobile ? 10 : 16 }}>
+                  {/* Card 1: Overall Cumulative CGPA */}
+                  <div
+                    style={{
+                      background: "#eff6ff",
+                      border: "1.5px solid #bfdbfe",
+                      borderRadius: 14,
+                      padding: isMobile ? "14px 16px" : "20px 24px",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: isMobile ? 11 : 12, fontWeight: 800, color: "#2563eb", textTransform: "uppercase" }}>
+                        Simulated Degree CGPA
+                      </span>
+                      <span
+                        style={{
+                          fontSize: isMobile ? 10.5 : 11.5,
+                          fontWeight: 800,
+                          background: whatIfSimulation.cgpaDelta >= 0 ? "#dcfce7" : "#fee2e2",
+                          color: whatIfSimulation.cgpaDelta >= 0 ? "#15803d" : "#b91c1c",
+                          padding: "2px 7px",
+                          borderRadius: 6,
+                        }}
+                      >
+                        {whatIfSimulation.cgpaDelta >= 0
+                          ? `+${whatIfSimulation.cgpaDelta.toFixed(2)} Gain`
+                          : `${whatIfSimulation.cgpaDelta.toFixed(2)} Drop`}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: isMobile ? 28 : 40, fontWeight: 900, color: "#1d4ed8", fontFamily: "'Space Mono', monospace", margin: "4px 0" }}>
+                      <AnimatedNumber value={parseFloat(whatIfSimulation.simulatedCGPA)} />
+                    </div>
+                    <div style={{ fontSize: isMobile ? 11 : 12.5, color: "#64748b" }}>
+                      Baseline CGPA: <strong style={{ color: "#0f172a" }}>{whatIfSimulation.originalCGPA}</strong> (All sems cumulative)
+                    </div>
+                  </div>
+
+                  {/* Card 2: Selected Semester SGPA */}
+                  <div
+                    style={{
+                      background: "#f0fdf4",
+                      border: "1.5px solid #bbf7d0",
+                      borderRadius: 14,
+                      padding: isMobile ? "14px 16px" : "20px 24px",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: isMobile ? 11 : 12, fontWeight: 800, color: "#15803d", textTransform: "uppercase" }}>
+                        Simulated Sem {effectiveWhatIfSem} SGPA
+                      </span>
+                      <span
+                        style={{
+                          fontSize: isMobile ? 10.5 : 11.5,
+                          fontWeight: 800,
+                          background: whatIfSimulation.sgpaDelta >= 0 ? "#dcfce7" : "#fee2e2",
+                          color: whatIfSimulation.sgpaDelta >= 0 ? "#15803d" : "#b91c1c",
+                          padding: "2px 7px",
+                          borderRadius: 6,
+                        }}
+                      >
+                        {whatIfSimulation.sgpaDelta >= 0
+                          ? `+${whatIfSimulation.sgpaDelta.toFixed(2)} Gain`
+                          : `${whatIfSimulation.sgpaDelta.toFixed(2)} Drop`}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: isMobile ? 28 : 40, fontWeight: 900, color: "#16a34a", fontFamily: "'Space Mono', monospace", margin: "4px 0" }}>
+                      <AnimatedNumber value={parseFloat(whatIfSimulation.simulatedSelectedSemSGPA)} />
+                    </div>
+                    <div style={{ fontSize: isMobile ? 11 : 12.5, color: "#64748b" }}>
+                      Baseline Sem {effectiveWhatIfSem} SGPA: <strong style={{ color: "#0f172a" }}>{whatIfSimulation.originalSelectedSemSGPA}</strong>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Backlog Status & Degree Clearance */}
+                  <div
+                    style={{
+                      background: "#faf5ff",
+                      border: "1.5px solid #e9d5ff",
+                      borderRadius: 14,
+                      padding: isMobile ? "14px 16px" : "20px 24px",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: isMobile ? 11 : 12, fontWeight: 800, color: "#7e22ce", textTransform: "uppercase" }}>
+                        Backlog Status
+                      </span>
+                      {whatIfSimulation.activeBacklogsCount > 0 ? (
+                        <span
+                          style={{
+                            fontSize: isMobile ? 10.5 : 11.5,
+                            fontWeight: 800,
+                            background: whatIfSimulation.simulatedBacklogsCount === 0 ? "#dcfce7" : "#fef3c7",
+                            color: whatIfSimulation.simulatedBacklogsCount === 0 ? "#15803d" : "#b45309",
+                            padding: "2px 7px",
+                            borderRadius: 6,
+                          }}
+                        >
+                          {whatIfSimulation.simulatedBacklogsCount === 0 ? "🎉 0 Backlogs" : `${whatIfSimulation.simulatedBacklogsCount} Left`}
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 800,
+                            background: "#dcfce7",
+                            color: "#15803d",
+                            padding: "2px 7px",
+                            borderRadius: 6,
+                          }}
+                        >
+                          Clean Standing
+                        </span>
+                      )}
+                    </div>
+
+                    <div style={{ fontSize: isMobile ? 24 : 32, fontWeight: 900, color: "#6b21a8", margin: "4px 0" }}>
+                      {whatIfSimulation.activeBacklogsCount > 0
+                        ? `${whatIfSimulation.simulatedBacklogsCount} Remaining`
+                        : "0 Backlogs"}
+                    </div>
+                    <div style={{ fontSize: isMobile ? 11 : 12.5, color: "#64748b" }}>
+                      {whatIfSimulation.activeBacklogsCount > 0
+                        ? `${whatIfSimulation.clearedBacklogsCount} of ${whatIfSimulation.activeBacklogsCount} Backlog(s) Cleared in Simulation`
+                        : "All degree courses successfully cleared"}
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              {/* Subject Grade Modification Cards Grid for Selected Semester */}
+              {currentWhatIfSubjects.length === 0 ? (
+                <div
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 14,
+                    padding: 30,
+                    textAlign: "center",
+                    color: "#64748b",
+                  }}
+                >
+                  No course records available for Semester {effectiveWhatIfSem}.
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(360px, 1fr))", gap: isMobile ? 10 : 14 }}>
+                  {currentWhatIfSubjects.map((s) => {
+                    const subCode = s.subCode || s.subjectCode || "";
+                    const subKey = `${effectiveWhatIfSem}_${subCode}`;
+                    const currentSimGrade =
+                      whatIfGrades[subKey] !== undefined
+                        ? whatIfGrades[subKey]
+                        : (whatIfGrades[subCode] !== undefined ? whatIfGrades[subCode] : s.grade);
+
+                    const origGradeNorm = String(s.grade || "").trim().toUpperCase();
+                    const simGradeNorm = String(currentSimGrade || "").trim().toUpperCase();
+
+                    const isOrigBacklog = ["F", "R", "S", "M"].includes(origGradeNorm);
+                    const isSimBacklog = ["F", "R", "S", "M"].includes(simGradeNorm);
+                    const isCleared = isOrigBacklog && !isSimBacklog;
+                    const isModified = simGradeNorm !== origGradeNorm;
+
+                    const originalMeta = GRADE_META[origGradeNorm] || GRADE_META.F;
+                    const simMeta = GRADE_META[simGradeNorm] || GRADE_META.F;
+                    const sCredit = Number(s.credit !== undefined ? s.credit : s.credits) || 0;
+                    const pointsDelta = (simMeta.pts - originalMeta.pts) * sCredit;
+
+                    return (
+                      <div
+                        key={subCode}
+                        style={{
+                          background: "#ffffff",
+                          border: isCleared
+                            ? "2px solid #10b981"
+                            : isOrigBacklog
+                            ? "2px solid #ef4444"
+                            : isModified
+                            ? "2px solid #8b5cf6"
+                            : "1px solid #cbd5e1",
+                          borderRadius: 14,
+                          padding: isMobile ? "12px 14px" : "16px 18px",
+                          boxShadow: isCleared
+                            ? "0 4px 14px rgba(16, 185, 129, 0.12)"
+                            : isModified
+                            ? "0 4px 14px rgba(139, 92, 246, 0.08)"
+                            : "0 1px 3px rgba(0,0,0,0.03)",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          gap: 10,
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                            <div style={{ fontWeight: 800, fontSize: isMobile ? 13 : 14, color: "#0f172a", lineHeight: 1.3 }}>
+                              {s.subName || s.subjectName}
+                            </div>
+
+                            {/* Status Pill */}
+                            {isCleared && (
+                              <span
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 800,
+                                  background: "#dcfce7",
+                                  color: "#15803d",
+                                  border: "1px solid #bbf7d0",
+                                  padding: "2px 7px",
+                                  borderRadius: 6,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                ✨ Cleared with {simGradeNorm}
+                              </span>
+                            )}
+
+                            {isOrigBacklog && !isCleared && (
+                              <span
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 800,
+                                  background: "#fee2e2",
+                                  color: "#b91c1c",
+                                  border: "1px solid #fecaca",
+                                  padding: "2px 7px",
+                                  borderRadius: 6,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                ⚠️ Active Backlog ({origGradeNorm})
+                              </span>
+                            )}
+
+                            {isModified && !isOrigBacklog && (
+                              <span
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 800,
+                                  background: "#f3e8ff",
+                                  color: "#7e22ce",
+                                  border: "1px solid #e9d5ff",
+                                  padding: "2px 7px",
+                                  borderRadius: 6,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                Simulated: {simGradeNorm}
+                              </span>
+                            )}
+                          </div>
+
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: isMobile ? 11 : 12, color: "#64748b", flexWrap: "wrap" }}>
+                            <span style={{ fontFamily: "'Space Mono', monospace", fontWeight: 700 }}>{subCode}</span>
+                            <span>•</span>
+                            <span>{sCredit} Credits</span>
+                            <span>•</span>
+                            <span>
+                              Original: <strong style={{ color: originalMeta.color }}>{origGradeNorm}</strong> ({originalMeta.pts} Pts)
+                            </span>
+                            {isModified && (
+                              <>
+                                <span>•</span>
+                                <span style={{ color: pointsDelta >= 0 ? "#15803d" : "#b91c1c", fontWeight: 800 }}>
+                                  {pointsDelta >= 0 ? `+${pointsDelta}` : pointsDelta} Grade Pts
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Segmented Grade Pills */}
+                        <div>
+                          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", marginBottom: 5 }}>
+                            Select Simulated Grade:
+                          </div>
+                          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                            {GRADE_ORDER.map((g) => {
+                              const gMeta = GRADE_META[g] || GRADE_META.F;
+                              const isSelected = simGradeNorm === g;
+                              return (
+                                <button
+                                  key={g}
+                                  onClick={() => {
+                                    setWhatIfGrades((prev) => {
+                                      if (g === origGradeNorm) {
+                                        const next = { ...prev };
+                                        delete next[subKey];
+                                        delete next[subCode];
+                                        return next;
+                                      }
+                                      return { ...prev, [subKey]: g };
+                                    });
+                                  }}
+                                  style={{
+                                    flex: "1 1 30px",
+                                    minWidth: 28,
+                                    height: isMobile ? 28 : 32,
+                                    borderRadius: 7,
+                                    border: isSelected ? `2px solid ${gMeta.color}` : "1px solid #cbd5e1",
+                                    background: isSelected ? gMeta.bg : "#ffffff",
+                                    color: isSelected ? gMeta.color : "#334155",
+                                    fontSize: isMobile ? 12 : 13,
+                                    fontWeight: 800,
+                                    cursor: "pointer",
+                                    fontFamily: "'Space Mono', monospace",
+                                    transition: "all 0.1s ease",
+                                    padding: 0,
+                                  }}
+                                >
+                                  {g}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
