@@ -5530,7 +5530,7 @@ GradeFlow's community review system (`Testimonials.jsx`, `FeedbackModal.jsx`) al
 5. **Student Delete & Re-Submission Lifecycle**: Students can delete their review at any time. Once deleted, the report card / dashboard lock state resets (`hasSubmittedFeedback: false`), and the student is authorized to submit a fresh review.
 6. **Hidden Review Visibility Scoping**: Hidden reviews are strictly partitioned:
    - Public visitors & other students: Hidden reviews are omitted entirely.
-   - Submitting author: Can always view their own review (tagged with amber "Hidden by Admin" badge).
+   - Submitting author: Can always view their own review seamlessly as their submitted review (without any negative or hidden badges).
    - Platform creator (`230301120327`) and Admin: Retain full supervisory visibility over all feedback.
 7. **Instant Optimistic Moderation (0ms UI Latency)**: Admin visibility toggling, updates, and deletions execute optimistically in frontend state before awaiting server confirmation.
 
@@ -5582,7 +5582,6 @@ In `backend/routes/student.js` and `frontend/api/student.js`:
    - Submitted student: Seamlessly switches to "Your Submitted Review" card, presenting rating, category, submission timestamp, 24h countdown indicator, inline edit mode, and delete button.
 2. **Review Wall Badging**:
    - If `regNo === currentRegNo`: Badged with "You" pill and inline Edit / Delete buttons.
-   - If `status === "hidden"`: Badged with "Hidden by Admin" amber badge (author & admin eyes only).
    - If `status === "needs_review"`: Badged with "In Review".
 3. **FeedbackModal Interception**:
    - If `hasSubmittedFeedback` is true, displays a friendly "Feedback Already Submitted" screen explaining the 1-review limit and linking directly to `/testimonials`.

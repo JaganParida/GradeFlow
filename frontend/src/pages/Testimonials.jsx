@@ -1439,24 +1439,6 @@ export default function Testimonials() {
                                       You
                                     </span>
                                   )}
-                                  {item.status === "hidden" && (
-                                    <span
-                                      style={{
-                                        background: "#fef3c7",
-                                        color: "#b45309",
-                                        border: "1px solid #fde68a",
-                                        fontSize: isSmallMobile ? 9 : 9.5,
-                                        fontWeight: 700,
-                                        padding: "1px 5px",
-                                        borderRadius: 4,
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: 3,
-                                      }}
-                                    >
-                                      <EyeOff size={10} /> Hidden by Admin
-                                    </span>
-                                  )}
                                   {item.status === "needs_review" && (
                                     <span
                                       style={{
@@ -1882,24 +1864,7 @@ export default function Testimonials() {
                     </div>
 
                     {/* Status Badge */}
-                    {myReview.status === "hidden" ? (
-                      <span
-                        style={{
-                          background: "#fffbeb",
-                          color: "#d97706",
-                          border: "1px solid #fde68a",
-                          padding: "3px 8px",
-                          borderRadius: 6,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
-                      >
-                        <EyeOff size={11} /> Hidden by Admin
-                      </span>
-                    ) : myReview.status === "needs_review" ? (
+                    {myReview.status === "needs_review" ? (
                       <span
                         style={{
                           background: "#fef2f2",
