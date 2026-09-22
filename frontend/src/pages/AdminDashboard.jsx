@@ -3974,7 +3974,7 @@ function FeedbackManager({ authHeaders, API, adminToken }) {
 
   const reqConfig = useMemo(() => {
     const h = authHeaders?.headers ? { ...authHeaders.headers } : {};
-    if (adminToken) {
+    if (adminToken && typeof adminToken === "string" && adminToken.length > 20) {
       h["Authorization"] = `Bearer ${adminToken}`;
       h["x-admin-token"] = adminToken;
     }

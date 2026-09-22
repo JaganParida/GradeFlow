@@ -9,24 +9,46 @@ const { validateFeedbackComment } = require("../utils/feedbackValidator");
 
 const jwt = require("jsonwebtoken");
 
+function parseCookies(cookieHeader) {
+  const cookies = {};
+  if (!cookieHeader) return cookies;
+  cookieHeader.split(";").forEach((cookie) => {
+    let [name, ...rest] = cookie.trim().split("=");
+    name = name?.trim();
+    if (!name) return;
+    cookies[name] = rest.join("=");
+  });
+  return cookies;
+}
+
 // Helper to check admin status
 function checkIsAdmin(req) {
-  let token = null;
-  if (req.cookies && req.cookies.jwt && req.cookies.jwt !== "none") {
-    token = req.cookies.jwt;
-  } else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-    token = req.headers.authorization.split(" ")[1];
-  } else if (req.headers["x-admin-token"]) {
-    token = req.headers["x-admin-token"];
+  let cookieJwt = req.cookies?.jwt;
+  if (!cookieJwt && req.headers?.cookie) {
+    const parsed = parseCookies(req.headers.cookie);
+    cookieJwt = parsed.jwt;
   }
 
-  if (token && process.env.JWT_SECRET) {
+  const authHeader = req.headers?.authorization || "";
+  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  const customAdminToken = req.headers?.["x-admin-token"];
+
+  const candidates = [
+    cookieJwt,
+    req.cookies?.admin_token,
+    customAdminToken,
+    bearerToken,
+  ].filter((t) => t && typeof t === "string" && t !== "none" && t !== "true" && t !== "false" && t.length > 20);
+
+  if (!process.env.JWT_SECRET || candidates.length === 0) return false;
+
+  for (const token of candidates) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
       if (decoded && (decoded.role === "admin" || decoded.adminType === "subadmin" || decoded.email)) {
         return true;
       }
-    } catch {}
+    } catch (_) {}
   }
   return false;
 }

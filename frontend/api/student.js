@@ -68,23 +68,48 @@ module.exports = async function handler(req, res) {
     const urlObj = new URL(req.url, "http://localhost");
     const isFeedback = req.query.action?.startsWith("feedback") || urlObj.pathname.includes("/api/feedback");
     if (isFeedback) {
-      const feedbackId = req.query.id;
+      let feedbackId = req.query.id;
+      if (!feedbackId || !/^[0-9a-fA-F]{24}$/.test(feedbackId)) {
+        const pathSegments = urlObj.pathname.split("/").filter(Boolean);
+        const lastSegment = pathSegments[pathSegments.length - 1];
+        if (lastSegment && /^[0-9a-fA-F]{24}$/.test(lastSegment)) {
+          feedbackId = lastSegment;
+        }
+      }
 
       // Helper to check admin status
       const cookies = parseCookies(req.headers.cookie);
-      let adminToken = req.headers["x-admin-token"] || cookies.jwt;
-      if (!adminToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-        adminToken = req.headers.authorization.split(" ")[1];
-      }
+      const authHeader = req.headers.authorization || "";
+      const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      const customAdminToken = req.headers["x-admin-token"];
+
+      const tokenCandidates = [
+        cookies.jwt,
+        cookies.admin_token,
+        customAdminToken,
+        bearerToken,
+      ].filter((t) => t && typeof t === "string" && t !== "none" && t !== "true" && t !== "false" && t.length > 20);
+
       let isAdmin = false;
-      if (adminToken && process.env.JWT_SECRET) {
-        try {
-          const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
-          if (decoded && (decoded.role === "admin" || decoded.adminType === "subadmin" || decoded.email)) {
-            isAdmin = true;
-          }
-        } catch {}
+      if (process.env.JWT_SECRET && tokenCandidates.length > 0) {
+        for (const cand of tokenCandidates) {
+          try {
+            const decoded = jwt.verify(cand, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+            if (decoded && (decoded.role === "admin" || decoded.adminType === "subadmin" || decoded.email)) {
+              isAdmin = true;
+              break;
+            }
+          } catch {}
+        }
       }
+
+      let requestBody = req.body;
+      if (typeof requestBody === "string") {
+        try {
+          requestBody = JSON.parse(requestBody);
+        } catch (_) {}
+      }
+      requestBody = requestBody || {};
 
       if (req.method === "GET" && !feedbackId) {
         const studentRegNo = (
@@ -136,7 +161,7 @@ module.exports = async function handler(req, res) {
       }
 
       if (req.method === "POST" && !feedbackId && req.query.action !== "feedback-like" && req.query.action !== "like") {
-        const { name, regNo, rating, comment, category } = req.body || {};
+        const { name, regNo, rating, comment, category } = requestBody;
         const trimmedName = typeof name === "string" ? name.trim() : "";
         if (!trimmedName || trimmedName.length < 2 || trimmedName.length > 100) {
           return res.status(400).json({ message: "Student name is required and must be between 2 and 100 characters." });
@@ -233,14 +258,14 @@ module.exports = async function handler(req, res) {
         if (!feedback) return res.status(404).json({ message: "Feedback not found" });
 
         const requesterRegNo = (
-          req.body?.studentRegNo ||
+          requestBody.studentRegNo ||
           req.query?.studentRegNo ||
           req.headers["x-student-regno"] ||
           ""
         ).toString().trim().toUpperCase();
 
         if (isAdmin) {
-          const { name, regNo, rating, comment, category, status } = req.body || {};
+          const { name, regNo, rating, comment, category, status } = requestBody;
           if (name) feedback.name = name.trim();
           if (regNo) feedback.regNo = String(regNo).trim().toUpperCase();
           if (rating !== undefined) {
@@ -281,7 +306,7 @@ module.exports = async function handler(req, res) {
           });
         }
 
-        const { rating, comment, category } = req.body || {};
+        const { rating, comment, category } = requestBody;
         if (rating !== undefined) {
           const numRating = Number(rating);
           if (isNaN(numRating) || numRating < 1 || numRating > 5) {
@@ -329,7 +354,7 @@ module.exports = async function handler(req, res) {
         if (!feedback) return res.status(404).json({ message: "Feedback not found" });
 
         const requesterRegNo = (
-          req.body?.studentRegNo ||
+          requestBody.studentRegNo ||
           req.query?.studentRegNo ||
           req.headers["x-student-regno"] ||
           ""
