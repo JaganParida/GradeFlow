@@ -5629,6 +5629,10 @@ Students with backlogs in 1st semester or any intermediate semester can simulate
 2. **Scoped Grade Map**:
    - Simulation state (`whatIfGrades`) stores course grade overrides keyed by `${semNum}_${subCode}` (with backward fallback to `${subCode}`).
    - This ensures independent simulation state across different semesters without collisions (e.g., repeating a course code or multi-semester projects).
+3. **Dashboard Backlog Synchronization Invariant**:
+   - Backlog identification in What-If strictly syncs with the student's authoritative active backlogs list (`studentData.backlogs`) as displayed on the Student Dashboard (`Dashboard.jsx`).
+   - A course `s` in semester `semNum` is marked as an active backlog if and only if `isOriginalBacklog(s, semNum)` matches an entry in `studentData.backlogs` by `b.semester` and `b.subCode`.
+   - If a subject has a historical grade of `F` in past marksheet attempts but is not present in `studentData.backlogs` (e.g. cleared in subsequent semesters, rechecking/EOD, or exempted), it is strictly NOT treated as an active backlog. Exactly what displays on the Dashboard displays in What-If, and nothing else.
 
 #### B. BPUT Mathematical Recalculation Engine
 The simulator obeys official BPUT academic guidelines:
@@ -5669,26 +5673,27 @@ flowchart TD
 1. **Interactive Semester Selector Bar**:
    - Horizontally scrollable pill buttons for all available semesters.
    - Dynamic semester pills indicating:
-     - `⚠️ X Backlog(s)`: Amber/red warning pill if semester has active backlogs.
-     - `🎉 Cleared`: Green success pill when backlogs in that semester have been cleared in simulation.
+     - `AlertTriangle` SVG + `X Backlog(s)`: Amber/red warning pill if semester has active backlogs.
+     - `Sparkles` SVG + `Cleared`: Green success pill when backlogs in that semester have been cleared in simulation.
      - `Simulated`: Purple pill if regular passing grades were modified.
 2. **Contextual Backlog Alert & Success Banners**:
-   - **Backlog Alert Banner**: Details active failing courses and suggests one-click clearance.
-   - **Backlog Cleared Celebration Banner**: Highlights the exact SGPA and CGPA gains achieved by clearing backlogs in that semester.
+   - **Backlog Alert Banner**: Details active failing courses with `AlertTriangle` SVG icon and suggests one-click clearance.
+   - **Backlog Cleared Celebration Banner**: Highlights the exact SGPA and CGPA gains achieved by clearing backlogs in that semester with `CheckCircle` SVG icon.
 3. **Metric Cards Grid**:
    - **Simulated Degree CGPA**: Large animated monospace display showing simulated CGPA, baseline CGPA, and positive/negative delta pill (`+0.42 Gain`).
    - **Simulated Semester SGPA**: Shows simulated SGPA for the selected semester, baseline SGPA, and semester delta.
-   - **Backlog Status Card**: Shows remaining uncleared backlogs across the degree and clearance progress (`X of Y Cleared`).
+   - **Backlog Status Card**: Shows remaining uncleared backlogs across the degree and clearance progress (`X of Y Cleared`) with `CheckCircle` or `AlertTriangle` SVG badge.
 4. **One-Click Clearance Presets**:
-   - `Clear Backlog (with E - 9 Pts)`: Instantly sets all backlog courses in the active semester to grade `E`.
-   - `Clear with Pass (D - 5 Pts)`: Instantly sets all backlog courses to minimum passing grade `D`.
-   - `Max Out (All O)`: Sets all courses in the active semester to grade `O` (10 pts).
+   - `Clear Backlog (with E - 9 Pts)`: Instantly sets all backlog courses in the active semester to grade `E` (with `CheckCircle` SVG).
+   - `Clear with Pass (D - 5 Pts)`: Instantly sets all backlog courses to minimum passing grade `D` (with `Check` SVG).
+   - `Max Out (All O)`: Sets all courses in the active semester to grade `O` (10 pts) (with `Zap` SVG).
    - `All E (9 Pts)`: Sets all courses in the active semester to grade `E` (9 pts).
-   - `Reset Sem`: Clears modifications for the active semester.
+   - `Reset Sem`: Clears modifications for the active semester (with `RotateCcw` SVG).
    - `Reset All`: Global reset reverting all multi-semester modifications back to official marksheet grades.
-5. **Enhanced Course Cards**:
-   - Red border (`#fecaca`) and `⚠️ Active Backlog` badge for original failing courses.
-   - Emerald border (`#bbf7d0`) and `✨ Cleared with [Grade]` badge with grade points delta ($[P_{\text{new}} - P_{\text{orig}}] \times C$) when cleared.
+5. **Enhanced Course Cards & Pure SVG Iconography Invariant**:
+   - Red border (`#fecaca`) and `AlertTriangle` SVG + `Active Backlog` badge for original failing courses.
+   - Emerald border (`#bbf7d0`) and `Sparkles` SVG + `Cleared with [Grade]` badge with grade points delta ($[P_{\text{new}} - P_{\text{orig}}] \times C$) when cleared.
+   - 100% SVG iconography from `lucide-react` across all tabs and badges (zero raw emojis).
    - Segmented grade selector pills (`O`, `E`, `A`, `B`, `C`, `D`, `F`) with toggle-off reset capability.
 
 ---

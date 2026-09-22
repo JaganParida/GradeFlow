@@ -54,6 +54,7 @@ import {
   Percent,
   Search,
   Activity,
+  Sparkles,
 } from "lucide-react";
 import {
   GRADE_POINTS,
@@ -411,6 +412,19 @@ export default function Analytics() {
     batch,
   } = studentData || {};
 
+  // Connect backlog tracking directly with Dashboard's authoritative backlogs list
+  const isOriginalBacklog = (subject, semester) => {
+    if (!Array.isArray(backlogs) || backlogs.length === 0 || !subject) return false;
+    const semNum = Number(semester);
+    const code = String(subject.subCode || subject.subjectCode || "").trim().toUpperCase();
+    if (!code) return false;
+    return backlogs.some((b) => {
+      const bSem = Number(b.semester);
+      const bCode = String(b.subCode || b.subjectCode || "").trim().toUpperCase();
+      return (!bSem || bSem === semNum) && bCode === code;
+    });
+  };
+
   // Grade Distribution Calculation across all semesters
   const gradeDistributionData = useMemo(() => {
     if (!studentData || !studentData.results) return [];
@@ -525,13 +539,17 @@ export default function Analytics() {
     if (selectedWhatIfSem !== null && allSemesters.includes(Number(selectedWhatIfSem))) {
       return Number(selectedWhatIfSem);
     }
-    // Prioritize first semester that has an active backlog (F, R, S, M)
-    const semWithBacklog = results.find((r) =>
-      r.subjects?.some((s) => ["F", "R", "S", "M"].includes(String(s.grade || "").trim().toUpperCase()))
-    );
-    if (semWithBacklog) return Number(semWithBacklog.semester);
+    // Prioritize first semester that has an active backlog according to Dashboard's backlogs list
+    if (Array.isArray(backlogs) && backlogs.length > 0) {
+      const semWithBacklog = results.find((r) =>
+        r.subjects?.some((s) => isOriginalBacklog(s, r.semester))
+      );
+      if (semWithBacklog) return Number(semWithBacklog.semester);
+      const firstBacklogSem = Number(backlogs[0]?.semester);
+      if (firstBacklogSem && allSemesters.includes(firstBacklogSem)) return firstBacklogSem;
+    }
     return Number(latestSemester || (results[results.length - 1]?.semester) || 1);
-  }, [selectedWhatIfSem, allSemesters, results, latestSemester]);
+  }, [selectedWhatIfSem, allSemesters, results, latestSemester, backlogs]);
 
   const selectedSemResult = useMemo(() => {
     return results.find((r) => Number(r.semester) === Number(effectiveWhatIfSem)) || results[results.length - 1] || null;
@@ -594,8 +612,10 @@ export default function Analytics() {
         const origGradeNorm = String(s.grade || "").trim().toUpperCase();
         const simGradeNorm = String(simulatedGrade || "").trim().toUpperCase();
 
-        const isOrigBacklog = ["F", "R", "S", "M"].includes(origGradeNorm);
-        const isSimBacklog = ["F", "R", "S", "M"].includes(simGradeNorm);
+        const isOrigBacklog = isOriginalBacklog(s, semNum);
+        const isSimBacklog = isOrigBacklog
+          ? ["F", "R", "S", "M"].includes(simGradeNorm)
+          : ["F", "R", "S", "M"].includes(simGradeNorm);
 
         if (isOrigBacklog) semActiveBacklogs += 1;
         if (isSimBacklog) semSimulatedBacklogs += 1;
@@ -2184,8 +2204,7 @@ export default function Analytics() {
                             setWhatIfGrades((prev) => {
                               const next = { ...prev };
                               currentWhatIfSubjects.forEach((s) => {
-                                const origG = String(s.grade || "").trim().toUpperCase();
-                                if (["F", "R", "S", "M"].includes(origG)) {
+                                if (isOriginalBacklog(s, effectiveWhatIfSem)) {
                                   const code = s.subCode || s.subjectCode;
                                   next[`${effectiveWhatIfSem}_${code}`] = "E";
                                 }
@@ -2216,8 +2235,7 @@ export default function Analytics() {
                             setWhatIfGrades((prev) => {
                               const next = { ...prev };
                               currentWhatIfSubjects.forEach((s) => {
-                                const origG = String(s.grade || "").trim().toUpperCase();
-                                if (["F", "R", "S", "M"].includes(origG)) {
+                                if (isOriginalBacklog(s, effectiveWhatIfSem)) {
                                   const code = s.subCode || s.subjectCode;
                                   next[`${effectiveWhatIfSem}_${code}`] = "D";
                                 }
@@ -2415,9 +2433,13 @@ export default function Analytics() {
                                 border: "1px solid #fecaca",
                                 padding: "1px 6px",
                                 borderRadius: 10,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
                               }}
                             >
-                              ⚠️ {semData.simulatedBacklogs} Backlog{semData.simulatedBacklogs > 1 ? "s" : ""}
+                              <AlertTriangle size={10} color="#b91c1c" />
+                              <span>{semData.simulatedBacklogs} Backlog{semData.simulatedBacklogs > 1 ? "s" : ""}</span>
                             </span>
                           )}
 
@@ -2432,9 +2454,13 @@ export default function Analytics() {
                                 border: "1px solid #bbf7d0",
                                 padding: "1px 6px",
                                 borderRadius: 10,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
                               }}
                             >
-                              🎉 Cleared
+                              <Sparkles size={10} color="#15803d" />
+                              <span>Cleared</span>
                             </span>
                           )}
 
@@ -2501,7 +2527,7 @@ export default function Analytics() {
                     <CheckCircle size={22} color="#16a34a" style={{ flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 800, fontSize: isMobile ? 12.5 : 13.5, color: "#166534" }}>
-                        🎉 Backlog(s) Cleared in Simulation for Semester {effectiveWhatIfSem}!
+                        Backlog(s) Cleared in Simulation for Semester {effectiveWhatIfSem}!
                       </div>
                       <div style={{ fontSize: isMobile ? 11 : 12, color: "#15803d", marginTop: 2 }}>
                         By clearing this semester's backlog(s), Sem {effectiveWhatIfSem} SGPA increases from <strong>{whatIfSimulation.originalSelectedSemSGPA}</strong> to <strong>{whatIfSimulation.simulatedSelectedSemSGPA}</strong> (+{whatIfSimulation.sgpaDelta} Gain), elevating your overall cumulative CGPA from <strong>{whatIfSimulation.originalCGPA}</strong> to <strong>{whatIfSimulation.simulatedCGPA}</strong> (+{whatIfSimulation.cgpaDelta} Gain)!
@@ -2608,9 +2634,22 @@ export default function Analytics() {
                             color: whatIfSimulation.simulatedBacklogsCount === 0 ? "#15803d" : "#b45309",
                             padding: "2px 7px",
                             borderRadius: 6,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
                           }}
                         >
-                          {whatIfSimulation.simulatedBacklogsCount === 0 ? "🎉 0 Backlogs" : `${whatIfSimulation.simulatedBacklogsCount} Left`}
+                          {whatIfSimulation.simulatedBacklogsCount === 0 ? (
+                            <>
+                              <CheckCircle size={11} color="#15803d" />
+                              <span>0 Backlogs</span>
+                            </>
+                          ) : (
+                            <>
+                              <AlertTriangle size={11} color="#b45309" />
+                              <span>{whatIfSimulation.simulatedBacklogsCount} Left</span>
+                            </>
+                          )}
                         </span>
                       ) : (
                         <span
@@ -2669,7 +2708,7 @@ export default function Analytics() {
                     const origGradeNorm = String(s.grade || "").trim().toUpperCase();
                     const simGradeNorm = String(currentSimGrade || "").trim().toUpperCase();
 
-                    const isOrigBacklog = ["F", "R", "S", "M"].includes(origGradeNorm);
+                    const isOrigBacklog = isOriginalBacklog(s, effectiveWhatIfSem);
                     const isSimBacklog = ["F", "R", "S", "M"].includes(simGradeNorm);
                     const isCleared = isOrigBacklog && !isSimBacklog;
                     const isModified = simGradeNorm !== origGradeNorm;
@@ -2723,9 +2762,13 @@ export default function Analytics() {
                                   padding: "2px 7px",
                                   borderRadius: 6,
                                   flexShrink: 0,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 4,
                                 }}
                               >
-                                ✨ Cleared with {simGradeNorm}
+                                <Sparkles size={11} color="#15803d" />
+                                <span>Cleared with {simGradeNorm}</span>
                               </span>
                             )}
 
@@ -2740,9 +2783,13 @@ export default function Analytics() {
                                   padding: "2px 7px",
                                   borderRadius: 6,
                                   flexShrink: 0,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 4,
                                 }}
                               >
-                                ⚠️ Active Backlog ({origGradeNorm})
+                                <AlertTriangle size={11} color="#b91c1c" />
+                                <span>Active Backlog ({origGradeNorm})</span>
                               </span>
                             )}
 
