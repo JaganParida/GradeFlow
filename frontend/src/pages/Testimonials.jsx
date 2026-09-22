@@ -27,6 +27,9 @@ import {
   X,
   Info,
   ShieldCheck,
+  Trash2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { validateFeedbackComment } from "../utils/feedbackValidator";
 
@@ -118,9 +121,9 @@ export default function Testimonials() {
     }
   }, [studentData, currentRegNo, currentStudentName]);
 
-  // ─── Fetch Real Feedbacks from Backend (with sessionStorage caching) ──
+  // ─── Fetch Real Feedbacks from Backend (with student-scoped caching) ──
   async function loadFeedbacks(force = false) {
-    const CACHE_KEY = "gf_feedbacks_cache";
+    const CACHE_KEY = `gf_feedbacks_cache_${currentRegNo || "public"}`;
     if (!force) {
       try {
         const raw = sessionStorage.getItem(CACHE_KEY);
@@ -137,7 +140,9 @@ export default function Testimonials() {
 
     try {
       setIsLoading(true);
-      const res = await axios.get(`${API}/feedback`);
+      const params = currentRegNo ? { studentRegNo: currentRegNo } : {};
+      const headers = currentRegNo ? { "x-student-regno": currentRegNo } : {};
+      const res = await axios.get(`${API}/feedback`, { params, headers });
       if (Array.isArray(res.data)) {
         setFeedbacks(res.data);
         try {
@@ -150,6 +155,13 @@ export default function Testimonials() {
       setIsLoading(false);
     }
   }
+
+  // Refresh feedbacks whenever student session changes
+  useEffect(() => {
+    if (currentRegNo) {
+      loadFeedbacks(true);
+    }
+  }, [currentRegNo]);
 
   // Reset page to 1 when filter or sorting changes
   useEffect(() => {
@@ -231,6 +243,147 @@ export default function Testimonials() {
     }
   };
 
+  // ─── Student's Own Feedback & 24h Window Check ──────────────────
+  const myReview = useMemo(() => {
+    if (!currentRegNo || !Array.isArray(feedbacks)) return null;
+    const clean = currentRegNo.trim().toUpperCase();
+    return feedbacks.find((f) => f.regNo && f.regNo.trim().toUpperCase() === clean) || null;
+  }, [feedbacks, currentRegNo]);
+
+  const hasAlreadySubmitted = Boolean(myReview || studentData?.hasSubmittedFeedback);
+
+  const isMyReviewEditable = useMemo(() => {
+    if (!myReview || !myReview.createdAt) return false;
+    const createdMs = new Date(myReview.createdAt).getTime();
+    return Date.now() - createdMs <= 24 * 60 * 60 * 1000;
+  }, [myReview]);
+
+  const remainingHours = useMemo(() => {
+    if (!myReview || !myReview.createdAt) return 0;
+    const createdMs = new Date(myReview.createdAt).getTime();
+    const diffMs = 24 * 60 * 60 * 1000 - (Date.now() - createdMs);
+    if (diffMs <= 0) return 0;
+    return Math.ceil(diffMs / (60 * 60 * 1000));
+  }, [myReview]);
+
+  // Student Edit / Delete state
+  const [isEditingMyReview, setIsEditingMyReview] = useState(false);
+  const [editRating, setEditRating] = useState(5);
+  const [editComment, setEditComment] = useState("");
+  const [editCategory, setEditCategory] = useState("Overall Experience");
+  const [isUpdatingMyReview, setIsUpdatingMyReview] = useState(false);
+  const [isDeletingMyReview, setIsDeletingMyReview] = useState(false);
+
+  const handleStartEditMyReview = () => {
+    if (!myReview) return;
+    setEditRating(Number(myReview.rating) || 5);
+    setEditComment(myReview.comment || "");
+    setEditCategory(myReview.category || "Overall Experience");
+    setIsEditingMyReview(true);
+    scrollToWriteReview();
+  };
+
+  const handleCancelEditMyReview = () => {
+    setIsEditingMyReview(false);
+    setErrorMessage("");
+  };
+
+  const handleSaveMyReview = async (e) => {
+    if (e) e.preventDefault();
+    if (!myReview || !currentRegNo) return;
+
+    if (!isMyReviewEditable) {
+      setErrorMessage("Editing is locked. Reviews can only be edited within 24 hours of submission.");
+      return;
+    }
+
+    const commentVal = validateFeedbackComment(editComment.trim(), currentStudentName || myReview.name);
+    if (!commentVal.isValid) {
+      setErrorMessage(commentVal.error);
+      return;
+    }
+
+    setIsUpdatingMyReview(true);
+    setErrorMessage("");
+
+    try {
+      const payload = {
+        studentRegNo: currentRegNo,
+        rating: editRating,
+        comment: editComment.trim(),
+        category: editCategory,
+      };
+      const res = await axios.put(`${API}/feedback/${myReview._id}`, payload, {
+        headers: { "x-student-regno": currentRegNo },
+      });
+
+      if (res.data) {
+        setFeedbacks((prev) =>
+          prev.map((f) => (f._id === myReview._id ? { ...f, ...res.data } : f))
+        );
+        try {
+          sessionStorage.removeItem(`gf_feedbacks_cache_${currentRegNo}`);
+        } catch (_) {}
+        setIsEditingMyReview(false);
+        setSuccessNotice("Your review has been successfully updated!");
+        setSubmittedSuccess(true);
+        setTimeout(() => setSubmittedSuccess(false), 4500);
+      }
+    } catch (err) {
+      console.error("Error updating review:", err);
+      setErrorMessage(err.response?.data?.message || "Failed to update review.");
+    } finally {
+      setIsUpdatingMyReview(false);
+    }
+  };
+
+  const handleDeleteMyReview = async () => {
+    if (!myReview || !currentRegNo) return;
+    if (
+      !window.confirm(
+        "Are you sure you want to delete your review? Once deleted, you will be able to submit a new review anytime."
+      )
+    ) {
+      return;
+    }
+
+    setIsDeletingMyReview(true);
+    try {
+      await axios.delete(`${API}/feedback/${myReview._id}`, {
+        data: { studentRegNo: currentRegNo },
+        headers: { "x-student-regno": currentRegNo },
+      });
+
+      // Remove from feedbacks state
+      setFeedbacks((prev) => prev.filter((f) => f._id !== myReview._id));
+      try {
+        sessionStorage.removeItem(`gf_feedbacks_cache_${currentRegNo}`);
+        localStorage.removeItem(`gf_feedback_unlocked_${currentRegNo.trim().toUpperCase()}`);
+      } catch (_) {}
+
+      // Fire global event so AppContext resets hasSubmittedFeedback to false
+      window.dispatchEvent(
+        new CustomEvent("gradeflow:feedback-deleted", {
+          detail: { regNo: currentRegNo },
+        })
+      );
+
+      // Re-fetch student to guarantee state synchronization
+      if (typeof fetchStudent === "function") {
+        fetchStudent(currentRegNo, true).catch(() => {});
+      }
+
+      setSuccessNotice("Your review has been deleted. You can now submit a fresh review.");
+      setSubmittedSuccess(true);
+      setTimeout(() => setSubmittedSuccess(false), 4500);
+    } catch (err) {
+      console.error("Error deleting review:", err);
+      setErrorMessage(err.response?.data?.message || "Failed to delete review.");
+    } finally {
+      setIsDeletingMyReview(false);
+    }
+  };
+
   // ─── Handle Real Feedback Submission ─────────────────────────────
   async function handleSubmit(e) {
     e.preventDefault();
@@ -242,6 +395,12 @@ export default function Testimonials() {
       }
       return;
     }
+
+    if (hasAlreadySubmitted) {
+      setErrorMessage("You have already submitted a review. You can edit your review within 24 hours or delete it to submit a new one.");
+      return;
+    }
+
     const finalName = (name || currentStudentName).trim();
     const finalRegNo = (regNo || currentRegNo).trim();
     const finalComment = comment.trim();
@@ -275,18 +434,20 @@ export default function Testimonials() {
 
       if (res.data) {
         const isNeedsReview = res.data.status === "needs_review" || rating <= 2;
+        // Prepend new feedback from server and keep state fresh
+        setFeedbacks((prev) => [res.data, ...prev]);
+        try {
+          sessionStorage.removeItem(`gf_feedbacks_cache_${finalRegNo}`);
+          localStorage.setItem(`gf_feedback_unlocked_${finalRegNo.toUpperCase()}`, "true");
+        } catch (_) {}
+
+        window.dispatchEvent(
+          new CustomEvent("gradeflow:feedback-submitted", {
+            detail: { regNo: finalRegNo },
+          })
+        );
+
         if (!isNeedsReview) {
-          // Prepend new feedback from server and keep cache fresh for public reviews
-          setFeedbacks((prev) => {
-            const next = [res.data, ...prev];
-            try {
-              sessionStorage.setItem(
-                "gf_feedbacks_cache",
-                JSON.stringify({ feedbacks: next, ts: Date.now() }),
-              );
-            } catch (_) {}
-            return next;
-          });
           setSuccessNotice("Thank you! Your review has been published.");
         } else {
           setSuccessNotice(
@@ -310,20 +471,40 @@ export default function Testimonials() {
     }
   }
 
-  // ─── Computed Statistics from Real Data ───────────────────────────
-  const totalReviewsCount = feedbacks.length;
+  // ─── Computed Statistics from Public Data ─────────────────────────
+  // Strictly EXCLUDES hidden and grievance reviews from public average rating and count!
+  const publicFeedbacks = useMemo(() => {
+    return (feedbacks || []).filter(
+      (f) => f.status !== "hidden" && f.status !== "needs_review" && Number(f.rating) >= 3
+    );
+  }, [feedbacks]);
+
+  const totalReviewsCount = publicFeedbacks.length;
   const avgRating = useMemo(() => {
-    if (feedbacks.length === 0) return "4.9";
-    const sum = feedbacks.reduce(
+    if (publicFeedbacks.length === 0) return "4.9";
+    const sum = publicFeedbacks.reduce(
       (acc, curr) => acc + (Number(curr.rating) || 5),
       0,
     );
-    return (sum / feedbacks.length).toFixed(1);
-  }, [feedbacks]);
+    return (sum / publicFeedbacks.length).toFixed(1);
+  }, [publicFeedbacks]);
 
   // ─── Filter & Sort (Prioritizing 5-Star & Most Detailed Comments) ─
   const displayedReviews = useMemo(() => {
-    let list = [...feedbacks];
+    let list = (feedbacks || []).filter((item) => {
+      // Approved reviews rating >= 3 are always public
+      if (item.status !== "hidden" && item.status !== "needs_review") {
+        return true;
+      }
+      // Hidden or grievance reviews are strictly ONLY visible to their author student or developer 230301120327
+      const isOwner = Boolean(
+        currentRegNo &&
+        item.regNo &&
+        item.regNo.trim().toUpperCase() === currentRegNo.trim().toUpperCase()
+      );
+      const isCreator = currentRegNo === "230301120327";
+      return isOwner || isCreator;
+    });
 
     // Filter by Category
     if (selectedCategory !== "All Reviews") {
@@ -363,7 +544,7 @@ export default function Testimonials() {
     }
 
     return list;
-  }, [feedbacks, selectedCategory, sortBy]);
+  }, [feedbacks, selectedCategory, sortBy, currentRegNo]);
 
   // ─── Pagination Calculations ──────────────────────────────────────
   const totalPages = Math.max(
@@ -1120,6 +1301,17 @@ export default function Testimonials() {
                       ? `${formattedDate}, ${formattedTime}`
                       : (formattedDate || formattedTime);
 
+                    const isMyItem = Boolean(
+                      currentRegNo &&
+                      item.regNo &&
+                      String(item.regNo).trim().toUpperCase() === String(currentRegNo).trim().toUpperCase()
+                    );
+                    const isItemEditable = Boolean(
+                      isMyItem &&
+                      item.createdAt &&
+                      Date.now() - new Date(item.createdAt).getTime() <= 24 * 60 * 60 * 1000
+                    );
+
                     return (
                       <motion.div
                         key={itemId}
@@ -1232,6 +1424,54 @@ export default function Testimonials() {
                                       ? `Student (${item.regNo})`
                                       : "Student"}
                                   </span>
+                                  {isMyItem && (
+                                    <span
+                                      style={{
+                                        background: "#eff6ff",
+                                        color: "#2563eb",
+                                        border: "1px solid #bfdbfe",
+                                        fontSize: isSmallMobile ? 9 : 9.5,
+                                        fontWeight: 800,
+                                        padding: "1px 5px",
+                                        borderRadius: 4,
+                                      }}
+                                    >
+                                      You
+                                    </span>
+                                  )}
+                                  {item.status === "hidden" && (
+                                    <span
+                                      style={{
+                                        background: "#fef3c7",
+                                        color: "#b45309",
+                                        border: "1px solid #fde68a",
+                                        fontSize: isSmallMobile ? 9 : 9.5,
+                                        fontWeight: 700,
+                                        padding: "1px 5px",
+                                        borderRadius: 4,
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 3,
+                                      }}
+                                    >
+                                      <EyeOff size={10} /> Hidden by Admin
+                                    </span>
+                                  )}
+                                  {item.status === "needs_review" && (
+                                    <span
+                                      style={{
+                                        background: "#ffedd5",
+                                        color: "#c2410c",
+                                        border: "1px solid #fed7aa",
+                                        fontSize: isSmallMobile ? 9 : 9.5,
+                                        fontWeight: 700,
+                                        padding: "1px 5px",
+                                        borderRadius: 4,
+                                      }}
+                                    >
+                                      In Review
+                                    </span>
+                                  )}
                                   {fullDateTimeStr && (
                                     <>
                                       <span style={{ color: "#cbd5e1" }}>•</span>
@@ -1343,32 +1583,107 @@ export default function Testimonials() {
                             {item.category || "Overall Experience"}
                           </span>
 
-                          <button
-                            onClick={() => handleLike(itemId)}
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4,
-                              background: isLiked ? "#eff6ff" : "#f8fafc",
-                              border: isLiked
-                                ? "1px solid #bfdbfe"
-                                : "1px solid #e2e8f0",
-                              color: isLiked ? "#1d4ed8" : "#64748b",
-                              borderRadius: 6,
-                              padding: "3px 8px",
-                              fontSize: isSmallMobile ? 10.5 : 11.5,
-                              fontWeight: 700,
-                              cursor: isLiked ? "default" : "pointer",
-                              transition: "all 0.15s ease",
-                              flexShrink: 0,
-                            }}
-                          >
-                            <ThumbsUp
-                              size={isSmallMobile ? 11 : 12}
-                              fill={isLiked ? "#2563eb" : "none"}
-                            />
-                            <span>{item.likes || 0} Helpful</span>
-                          </button>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            {isMyItem && (
+                              <>
+                                {isItemEditable ? (
+                                  <button
+                                    type="button"
+                                    onClick={handleStartEditMyReview}
+                                    title="Edit your review (allowed within 24h of submission)"
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 3,
+                                      background: "#f8fafc",
+                                      border: "1px solid #cbd5e1",
+                                      color: "#2563eb",
+                                      borderRadius: 6,
+                                      padding: isSmallMobile ? "2px 6px" : "3px 8px",
+                                      fontSize: isSmallMobile ? 10 : 11,
+                                      fontWeight: 700,
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    <Edit3 size={11} />
+                                    <span>Edit</span>
+                                  </button>
+                                ) : (
+                                  <span
+                                    title="Editing locked after 24 hours of submission"
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 3,
+                                      color: "#94a3b8",
+                                      fontSize: isSmallMobile ? 9.5 : 10.5,
+                                      fontWeight: 600,
+                                      background: "#f1f5f9",
+                                      padding: isSmallMobile ? "2px 5px" : "3px 7px",
+                                      borderRadius: 6,
+                                    }}
+                                  >
+                                    <Lock size={10} />
+                                    <span>Locked</span>
+                                  </span>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={handleDeleteMyReview}
+                                  title="Delete your review"
+                                  disabled={isDeletingMyReview}
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 3,
+                                    background: "#fef2f2",
+                                    border: "1px solid #fee2e2",
+                                    color: "#dc2626",
+                                    borderRadius: 6,
+                                    padding: isSmallMobile ? "2px 6px" : "3px 8px",
+                                    fontSize: isSmallMobile ? 10 : 11,
+                                    fontWeight: 700,
+                                    cursor: isDeletingMyReview ? "not-allowed" : "pointer",
+                                  }}
+                                >
+                                  {isDeletingMyReview ? (
+                                    <Loader2 size={11} className="animate-spin" />
+                                  ) : (
+                                    <Trash2 size={11} />
+                                  )}
+                                  <span>Delete</span>
+                                </button>
+                              </>
+                            )}
+
+                            <button
+                              onClick={() => handleLike(itemId)}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                background: isLiked ? "#eff6ff" : "#f8fafc",
+                                border: isLiked
+                                  ? "1px solid #bfdbfe"
+                                  : "1px solid #e2e8f0",
+                                color: isLiked ? "#1d4ed8" : "#64748b",
+                                borderRadius: 6,
+                                padding: "3px 8px",
+                                fontSize: isSmallMobile ? 10.5 : 11.5,
+                                fontWeight: 700,
+                                cursor: isLiked ? "default" : "pointer",
+                                transition: "all 0.15s ease",
+                                flexShrink: 0,
+                              }}
+                            >
+                              <ThumbsUp
+                                size={isSmallMobile ? 11 : 12}
+                                fill={isLiked ? "#2563eb" : "none"}
+                              />
+                              <span>{item.likes || 0} Helpful</span>
+                            </button>
+                          </div>
                         </div>
                       </motion.div>
                     );
@@ -1527,481 +1842,916 @@ export default function Testimonials() {
                 boxSizing: "border-box",
               }}
             >
-              {/* Form Header */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  marginBottom: isSmallMobile ? 10 : 14,
-                }}
-              >
-                <div
-                  style={{
-                    width: isSmallMobile ? 30 : 34,
-                    height: isSmallMobile ? 30 : 34,
-                    borderRadius: 9,
-                    background: "#eff6ff",
-                    color: "#2563eb",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  <Edit3 size={isSmallMobile ? 15 : 17} />
-                </div>
+              {myReview ? (
                 <div>
-                  <h3
+                  {/* Card Header */}
+                  <div
                     style={{
-                      fontSize: isSmallMobile ? 14 : 15.5,
-                      fontWeight: 800,
-                      color: "#0f172a",
-                      margin: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 8,
+                      marginBottom: 12,
+                      flexWrap: "wrap",
                     }}
                   >
-                    Write a Review
-                  </h3>
-                  <p
-                    style={{
-                      fontSize: isSmallMobile ? 11 : 12,
-                      color: "#64748b",
-                      margin: 0,
-                    }}
-                  >
-                    Share your experience with GradeFlow
-                  </p>
-                </div>
-              </div>
-
-              {/* Star Rating Picker */}
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 10,
-                  padding: "8px 10px",
-                  marginBottom: 10,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 5,
-                    cursor: "pointer",
-                    marginBottom: 2,
-                  }}
-                >
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setRating(star)}
-                      onMouseEnter={() => setHoverRating(star)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        cursor: "pointer",
-                        padding: 2,
-                      }}
-                    >
-                      <Star
-                        size={isSmallMobile ? 22 : 24}
-                        fill={
-                          (hoverRating || rating) >= star
-                            ? "#f59e0b"
-                            : "#e2e8f0"
-                        }
-                        color={
-                          (hoverRating || rating) >= star
-                            ? "#d97706"
-                            : "#cbd5e1"
-                        }
-                      />
-                    </button>
-                  ))}
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                    minHeight: 16,
-                  }}
-                >
-                  {(hoverRating || rating) > 0 && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      {[1, 2, 3, 4, 5].slice(0, hoverRating || rating).map((s) => (
-                        <Star key={s} size={11} fill="#f59e0b" color="#d97706" />
-                      ))}
-                    </div>
-                  )}
-                  <span
-                    style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}
-                  >
-                    {getRatingLabel(hoverRating || rating)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Review Form */}
-              <form
-                onSubmit={handleSubmit}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: isSmallMobile ? 8 : 10,
-                }}
-              >
-                {/* Name & RegNo - Strict Mode & Auto Filled */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {/* Full Name Field */}
-                  <div style={{ position: "relative" }}>
-                    <input
-                      type="text"
-                      value={name || currentStudentName}
-                      readOnly={true}
-                      onClick={() => {
-                        if (!currentRegNo) {
-                          if (typeof openStudentAuthModal === "function") openStudentAuthModal();
-                          else setShowAuthPromptModal(true);
-                        } else {
-                          setShowPrivacyLockModal(true);
-                        }
-                      }}
-                      placeholder="Your Full Name *"
-                      required
-                      style={{
-                        width: "100%",
-                        padding: currentRegNo
-                          ? isSmallMobile
-                            ? "8px 30px 8px 10px"
-                            : "9px 32px 9px 12px"
-                          : isSmallMobile
-                            ? "8px 10px"
-                            : "9px 12px",
-                        borderRadius: 8,
-                        border: "1px solid #cbd5e1",
-                        fontSize: isSmallMobile ? 12 : 13,
-                        outline: "none",
-                        fontFamily: "'DM Sans', sans-serif",
-                        boxSizing: "border-box",
-                        background: currentRegNo ? "#f8fafc" : "#ffffff",
-                        color: "#0f172a",
-                        cursor: "pointer",
-                      }}
-                      title={currentRegNo ? "Profile locked — click to view info" : "Click to login and review"}
-                    />
-                    {currentRegNo && (
-                      <Lock
-                        size={13}
-                        color="#64748b"
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div
                         style={{
-                          position: "absolute",
-                          right: 10,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          pointerEvents: "none",
+                          width: 32,
+                          height: 32,
+                          borderRadius: 9,
+                          background: "#eff6ff",
+                          color: "#2563eb",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
                         }}
-                      />
-                    )}
-                  </div>
-
-                  {/* Registration Number Field */}
-                  <div style={{ position: "relative" }}>
-                    <input
-                      type="text"
-                      value={regNo || currentRegNo}
-                      readOnly={true}
-                      onClick={() => {
-                        if (!currentRegNo) {
-                          if (typeof openStudentAuthModal === "function") openStudentAuthModal();
-                          else setShowAuthPromptModal(true);
-                        } else {
-                          setShowPrivacyLockModal(true);
-                        }
-                      }}
-                      placeholder="Registration Number *"
-                      required
-                      style={{
-                        width: "100%",
-                        padding: currentRegNo
-                          ? isSmallMobile
-                            ? "8px 30px 8px 10px"
-                            : "9px 32px 9px 12px"
-                          : isSmallMobile
-                            ? "8px 10px"
-                            : "9px 12px",
-                        borderRadius: 8,
-                        border: "1px solid #cbd5e1",
-                        fontSize: isSmallMobile ? 12 : 13,
-                        outline: "none",
-                        fontFamily: "'DM Sans', sans-serif",
-                        boxSizing: "border-box",
-                        background: currentRegNo ? "#f8fafc" : "#ffffff",
-                        color: "#0f172a",
-                        cursor: "pointer",
-                      }}
-                      title={currentRegNo ? "Profile locked — click to view info" : "Click to login and review"}
-                    />
-                    {currentRegNo && (
-                      <Lock
-                        size={13}
-                        color="#64748b"
-                        style={{
-                          position: "absolute",
-                          right: 10,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          pointerEvents: "none",
-                        }}
-                      />
-                    )}
-                  </div>
-
-                  {/* Locked / Verified Badge Indicator */}
-                  {currentRegNo ? (
-                    <div
-                      onClick={() => setShowPrivacyLockModal(true)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "7px 10px",
-                        background: "#eff6ff",
-                        border: "1px solid #dbeafe",
-                        borderRadius: 8,
-                        fontSize: 11.5,
-                        color: "#1e40af",
-                        cursor: "pointer",
-                        transition: "all 0.15s ease",
-                      }}
-                      title="Click to view verification & privacy details"
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <ShieldCheck size={14} color="#2563eb" />
-                        <span>
-                          Verified Profile: <strong>{currentRegNo}</strong>
+                      >
+                        <ShieldCheck size={17} />
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: isSmallMobile ? 14 : 15.5, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                          Your Submitted Review
+                        </h3>
+                        <span style={{ fontSize: 11, color: "#64748b" }}>
+                          Single review per student
                         </span>
                       </div>
-                      <Lock size={12} color="#60a5fa" />
                     </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (typeof openStudentAuthModal === "function") {
-                          openStudentAuthModal();
-                        } else {
-                          setShowAuthPromptModal(true);
-                        }
+
+                    {/* Status Badge */}
+                    {myReview.status === "hidden" ? (
+                      <span
+                        style={{
+                          background: "#fffbeb",
+                          color: "#d97706",
+                          border: "1px solid #fde68a",
+                          padding: "3px 8px",
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <EyeOff size={11} /> Hidden by Admin
+                      </span>
+                    ) : myReview.status === "needs_review" ? (
+                      <span
+                        style={{
+                          background: "#fef2f2",
+                          color: "#dc2626",
+                          border: "1px solid #fecaca",
+                          padding: "3px 8px",
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        ⚠️ Under Review
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          background: "#ecfdf5",
+                          color: "#059669",
+                          border: "1px solid #a7f3d0",
+                          padding: "3px 8px",
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <CheckCircle2 size={11} /> Live on Testimonials
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Explanatory banner for hidden review */}
+                  {myReview.status === "hidden" && (
+                    <div
+                      style={{
+                        background: "#fffbeb",
+                        border: "1px solid #fed7aa",
+                        borderRadius: 8,
+                        padding: "8px 10px",
+                        fontSize: 11.5,
+                        color: "#92400e",
+                        marginBottom: 12,
+                        lineHeight: 1.4,
                       }}
+                    >
+                      <strong>Notice:</strong> Your feedback is preserved, but currently hidden from public display by the university administrator. Your report card access remains unlocked.
+                    </div>
+                  )}
+
+                  {myReview.status === "needs_review" && (
+                    <div
+                      style={{
+                        background: "#eff6ff",
+                        border: "1px solid #bfdbfe",
+                        borderRadius: 8,
+                        padding: "8px 10px",
+                        fontSize: 11.5,
+                        color: "#1e40af",
+                        marginBottom: 12,
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      <strong>Support Notice:</strong> Your feedback has been forwarded to university administration for support and review.
+                    </div>
+                  )}
+
+                  {isEditingMyReview ? (
+                    /* Inline Edit Form */
+                    <form onSubmit={handleSaveMyReview} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {/* Rating Selector */}
+                      <div>
+                        <label style={{ fontSize: 11.5, fontWeight: 700, color: "#475569", display: "block", marginBottom: 3 }}>
+                          Rating
+                        </label>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() => setEditRating(s)}
+                              style={{ background: "transparent", border: "none", cursor: "pointer", padding: 2 }}
+                            >
+                              <Star
+                                size={22}
+                                fill={s <= editRating ? "#f59e0b" : "#e2e8f0"}
+                                color={s <= editRating ? "#d97706" : "#cbd5e1"}
+                              />
+                            </button>
+                          ))}
+                          <span style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b", marginLeft: 4 }}>
+                            {getRatingLabel(editRating)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Category Selector */}
+                      <div>
+                        <label style={{ fontSize: 11.5, fontWeight: 700, color: "#475569", display: "block", marginBottom: 3 }}>
+                          Category
+                        </label>
+                        <select
+                          value={editCategory}
+                          onChange={(e) => setEditCategory(e.target.value)}
+                          style={{
+                            width: "100%",
+                            padding: "8px 10px",
+                            borderRadius: 8,
+                            border: "1px solid #cbd5e1",
+                            fontSize: 12.5,
+                            boxSizing: "border-box",
+                            background: "#ffffff",
+                          }}
+                        >
+                          {CATEGORIES.filter((c) => c !== "All Reviews").map((c) => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Comment Input */}
+                      <div>
+                        <label style={{ fontSize: 11.5, fontWeight: 700, color: "#475569", display: "block", marginBottom: 3 }}>
+                          Comment
+                        </label>
+                        <textarea
+                          value={editComment}
+                          onChange={(e) => setEditComment(e.target.value.slice(0, 500))}
+                          rows={3}
+                          required
+                          style={{
+                            width: "100%",
+                            padding: "8px 10px",
+                            borderRadius: 8,
+                            border: "1px solid #cbd5e1",
+                            fontSize: 12.5,
+                            boxSizing: "border-box",
+                            resize: "vertical",
+                            fontFamily: "'DM Sans', sans-serif",
+                          }}
+                        />
+                        <span style={{ fontSize: 10, color: "#94a3b8" }}>{editComment.length}/500</span>
+                      </div>
+
+                      {/* Save / Cancel Buttons */}
+                      <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                        <button
+                          type="button"
+                          onClick={handleCancelEditMyReview}
+                          style={{
+                            flex: 1,
+                            padding: "8px",
+                            borderRadius: 8,
+                            background: "#f1f5f9",
+                            border: "none",
+                            color: "#475569",
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={isUpdatingMyReview}
+                          style={{
+                            flex: 2,
+                            padding: "8px",
+                            borderRadius: 8,
+                            background: isUpdatingMyReview ? "#93c5fd" : "#2563eb",
+                            border: "none",
+                            color: "#ffffff",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: isUpdatingMyReview ? "not-allowed" : "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 5,
+                          }}
+                        >
+                          {isUpdatingMyReview && <Loader2 size={12} className="animate-spin" />}
+                          Save Changes
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    /* Review Summary Card */
+                    <div
+                      style={{
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 12,
+                        padding: "12px",
+                        marginBottom: 12,
+                      }}
+                    >
+                      {/* Rating & Category */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star
+                              key={i}
+                              size={13}
+                              fill={i < myReview.rating ? "#f59e0b" : "none"}
+                              color={i < myReview.rating ? "#f59e0b" : "#cbd5e1"}
+                            />
+                          ))}
+                          <span style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b", marginLeft: 4 }}>
+                            {myReview.rating} / 5
+                          </span>
+                        </div>
+                        {myReview.category && (
+                          <span
+                            style={{
+                              background: "#eff6ff",
+                              color: "#2563eb",
+                              fontSize: 10.5,
+                              fontWeight: 600,
+                              padding: "2px 6px",
+                              borderRadius: 5,
+                            }}
+                          >
+                            {myReview.category}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Comment */}
+                      <p style={{ fontSize: 12.5, color: "#334155", lineHeight: 1.5, margin: "0 0 8px 0", whiteSpace: "pre-wrap" }}>
+                        "{myReview.comment}"
+                      </p>
+
+                      {/* Timestamp */}
+                      {myReview.createdAt && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#94a3b8", fontSize: 10.5 }}>
+                          <Clock size={10.5} />
+                          <span>
+                            Submitted on {new Date(myReview.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} at {new Date(myReview.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 24-Hour Edit Window & Actions */}
+                  {!isEditingMyReview && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {/* Window countdown */}
+                      <div
+                        style={{
+                          background: isMyReviewEditable ? "#eff6ff" : "#f1f5f9",
+                          border: isMyReviewEditable ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                          borderRadius: 8,
+                          padding: "8px 10px",
+                          fontSize: 11.5,
+                          color: isMyReviewEditable ? "#1e40af" : "#64748b",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        {isMyReviewEditable ? (
+                          <>
+                            <Clock size={13} color="#2563eb" />
+                            <span>
+                              <strong>24-Hour Edit Window:</strong> You can edit this review for the next {remainingHours} hour{remainingHours > 1 ? "s" : ""}.
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <Lock size={13} color="#64748b" />
+                            <span>
+                              <strong>Editing Locked:</strong> Reviews are locked 24 hours after submission.
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Action buttons: Edit & Delete */}
+                      <div style={{ display: "flex", gap: 8 }}>
+                        {isMyReviewEditable && (
+                          <button
+                            onClick={handleStartEditMyReview}
+                            style={{
+                              flex: 1,
+                              padding: "8px",
+                              borderRadius: 8,
+                              background: "#ffffff",
+                              border: "1px solid #2563eb",
+                              color: "#2563eb",
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 5,
+                            }}
+                          >
+                            <Edit3 size={13} /> Edit Review
+                          </button>
+                        )}
+
+                        <button
+                          onClick={handleDeleteMyReview}
+                          disabled={isDeletingMyReview}
+                          style={{
+                            flex: 1,
+                            padding: "8px",
+                            borderRadius: 8,
+                            background: "#ffffff",
+                            border: "1px solid #fecaca",
+                            color: "#dc2626",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: isDeletingMyReview ? "not-allowed" : "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 5,
+                          }}
+                        >
+                          {isDeletingMyReview ? (
+                            <Loader2 size={13} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={13} />
+                          )}
+                          Delete Review
+                        </button>
+                      </div>
+                      <span style={{ fontSize: 10.5, color: "#94a3b8", textAlign: "center" }}>
+                        Deleting your review will unlock your ability to submit a new review anytime.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : hasAlreadySubmitted ? (
+                /* Already submitted in record */
+                <div style={{ textAlign: "center", padding: "16px 8px" }}>
+                  <CheckCircle2 size={32} color="#10b981" style={{ margin: "0 auto 8px" }} />
+                  <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: "0 0 4px" }}>
+                    Review Already Submitted
+                  </h4>
+                  <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 12px" }}>
+                    You have already submitted your review for GradeFlow. Each student is allowed one review.
+                  </p>
+                  <button
+                    onClick={() => loadFeedbacks(true)}
+                    style={{
+                      background: "#f1f5f9",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: 8,
+                      padding: "6px 12px",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <RefreshCw size={12} /> Refresh Review Status
+                  </button>
+                </div>
+              ) : (
+                /* Standard Write Review Form */
+                <>
+                  {/* Form Header */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      marginBottom: isSmallMobile ? 10 : 14,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: isSmallMobile ? 30 : 34,
+                        height: isSmallMobile ? 30 : 34,
+                        borderRadius: 9,
+                        background: "#eff6ff",
+                        color: "#2563eb",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Edit3 size={isSmallMobile ? 15 : 17} />
+                    </div>
+                    <div>
+                      <h3
+                        style={{
+                          fontSize: isSmallMobile ? 14 : 15.5,
+                          fontWeight: 800,
+                          color: "#0f172a",
+                          margin: 0,
+                        }}
+                      >
+                        Write a Review
+                      </h3>
+                      <p
+                        style={{
+                          fontSize: isSmallMobile ? 11 : 12,
+                          color: "#64748b",
+                          margin: 0,
+                        }}
+                      >
+                        Share your experience with GradeFlow
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Star Rating Picker */}
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 10,
+                      padding: "8px 10px",
+                      marginBottom: 10,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 5,
+                        cursor: "pointer",
+                        marginBottom: 2,
+                      }}
+                    >
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setRating(star)}
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: 2,
+                          }}
+                        >
+                          <Star
+                            size={isSmallMobile ? 22 : 24}
+                            fill={
+                              (hoverRating || rating) >= star
+                                ? "#f59e0b"
+                                : "#e2e8f0"
+                            }
+                            color={
+                              (hoverRating || rating) >= star
+                                ? "#d97706"
+                                : "#cbd5e1"
+                            }
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    <div
                       style={{
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         gap: 6,
-                        padding: "8px 10px",
-                        background: "#eff6ff",
-                        border: "1px dashed #bfdbfe",
-                        borderRadius: 8,
-                        fontSize: 11.5,
-                        fontWeight: 700,
-                        color: "#2563eb",
-                        cursor: "pointer",
-                        width: "100%",
+                        minHeight: 16,
                       }}
                     >
-                      <Lock size={12} color="#2563eb" />
-                      <span>Student Portal Login to Review</span>
-                    </button>
-                  )}
-                </div>
+                      {(hoverRating || rating) > 0 && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                          {[1, 2, 3, 4, 5].slice(0, hoverRating || rating).map((s) => (
+                            <Star key={s} size={11} fill="#f59e0b" color="#d97706" />
+                          ))}
+                        </div>
+                      )}
+                      <span
+                        style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}
+                      >
+                        {getRatingLabel(hoverRating || rating)}
+                      </span>
+                    </div>
+                  </div>
 
-                {/* Category Dropdown */}
-                <div style={{ position: "relative", width: "100%" }}>
-                  <button
-                    type="button"
-                    onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                  {/* Review Form */}
+                  <form
+                    onSubmit={handleSubmit}
                     style={{
-                      width: "100%",
                       display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: isSmallMobile ? "8px 10px" : "9px 12px",
-                      borderRadius: 8,
-                      border: "1px solid #cbd5e1",
-                      fontSize: isSmallMobile ? 12 : 13,
-                      background: "#ffffff",
-                      fontFamily: "'DM Sans', sans-serif",
-                      color: "#0f172a",
-                      cursor: "pointer",
-                      boxSizing: "border-box",
+                      flexDirection: "column",
+                      gap: isSmallMobile ? 8 : 10,
                     }}
                   >
-                    <span>{category}</span>
-                    <ChevronDown
-                      size={13}
-                      color="#64748b"
-                      style={{
-                        transition: "transform 0.2s ease",
-                        transform: isCategoryOpen ? "rotate(180deg)" : "none",
-                      }}
-                    />
-                  </button>
-
-                  <AnimatePresence>
-                    {isCategoryOpen && (
-                      <>
-                        <div
-                          onClick={() => setIsCategoryOpen(false)}
-                          style={{ position: "fixed", inset: 0, zIndex: 90 }}
-                        />
-
-                        <motion.div
-                          initial={{ opacity: 0, y: 4, scale: 0.98 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 4, scale: 0.98 }}
-                          transition={{ duration: 0.15 }}
+                    {/* Name & RegNo - Strict Mode & Auto Filled */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {/* Full Name Field */}
+                      <div style={{ position: "relative" }}>
+                        <input
+                          type="text"
+                          value={name || currentStudentName}
+                          readOnly={true}
+                          onClick={() => {
+                            if (!currentRegNo) {
+                              if (typeof openStudentAuthModal === "function") openStudentAuthModal();
+                              else setShowAuthPromptModal(true);
+                            } else {
+                              setShowPrivacyLockModal(true);
+                            }
+                          }}
+                          placeholder="Your Full Name *"
+                          required
                           style={{
-                            position: "absolute",
-                            top: "calc(100% + 4px)",
-                            left: 0,
-                            right: 0,
-                            background: "#ffffff",
-                            border: "1px solid #e2e8f0",
-                            borderRadius: 10,
-                            padding: 4,
-                            boxShadow: "0 10px 25px rgba(15, 23, 42, 0.1)",
-                            zIndex: 100,
+                            width: "100%",
+                            padding: currentRegNo
+                              ? isSmallMobile
+                                ? "8px 30px 8px 10px"
+                                : "9px 32px 9px 12px"
+                              : isSmallMobile
+                                ? "8px 10px"
+                                : "9px 12px",
+                            borderRadius: 8,
+                            border: "1px solid #cbd5e1",
+                            fontSize: isSmallMobile ? 12 : 13,
+                            outline: "none",
+                            fontFamily: "'DM Sans', sans-serif",
+                            boxSizing: "border-box",
+                            background: currentRegNo ? "#f8fafc" : "#ffffff",
+                            color: "#0f172a",
+                            cursor: "pointer",
+                          }}
+                          title={currentRegNo ? "Profile locked — click to view info" : "Click to login and review"}
+                        />
+                        {currentRegNo && (
+                          <Lock
+                            size={13}
+                            color="#64748b"
+                            style={{
+                              position: "absolute",
+                              right: 10,
+                              top: "50%",
+                              transform: "translateY(-50%)",
+                              pointerEvents: "none",
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      {/* Registration Number Field */}
+                      <div style={{ position: "relative" }}>
+                        <input
+                          type="text"
+                          value={regNo || currentRegNo}
+                          readOnly={true}
+                          onClick={() => {
+                            if (!currentRegNo) {
+                              if (typeof openStudentAuthModal === "function") openStudentAuthModal();
+                              else setShowAuthPromptModal(true);
+                            } else {
+                              setShowPrivacyLockModal(true);
+                            }
+                          }}
+                          placeholder="Registration Number *"
+                          required
+                          style={{
+                            width: "100%",
+                            padding: currentRegNo
+                              ? isSmallMobile
+                                ? "8px 30px 8px 10px"
+                                : "9px 32px 9px 12px"
+                              : isSmallMobile
+                                ? "8px 10px"
+                                : "9px 12px",
+                            borderRadius: 8,
+                            border: "1px solid #cbd5e1",
+                            fontSize: isSmallMobile ? 12 : 13,
+                            outline: "none",
+                            fontFamily: "'DM Sans', sans-serif",
+                            boxSizing: "border-box",
+                            background: currentRegNo ? "#f8fafc" : "#ffffff",
+                            color: "#0f172a",
+                            cursor: "pointer",
+                          }}
+                          title={currentRegNo ? "Profile locked — click to view info" : "Click to login and review"}
+                        />
+                        {currentRegNo && (
+                          <Lock
+                            size={13}
+                            color="#64748b"
+                            style={{
+                              position: "absolute",
+                              right: 10,
+                              top: "50%",
+                              transform: "translateY(-50%)",
+                              pointerEvents: "none",
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      {/* Locked / Verified Badge Indicator */}
+                      {currentRegNo ? (
+                        <div
+                          onClick={() => setShowPrivacyLockModal(true)}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "7px 10px",
+                            background: "#eff6ff",
+                            border: "1px solid #dbeafe",
+                            borderRadius: 8,
+                            fontSize: 11.5,
+                            color: "#1e40af",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                          }}
+                          title="Click to view verification & privacy details"
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <ShieldCheck size={14} color="#2563eb" />
+                            <span>
+                              Verified Profile: <strong>{currentRegNo}</strong>
+                            </span>
+                          </div>
+                          <Lock size={12} color="#60a5fa" />
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (typeof openStudentAuthModal === "function") {
+                              openStudentAuthModal();
+                            } else {
+                              setShowAuthPromptModal(true);
+                            }
+                          }}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 6,
+                            padding: "8px 10px",
+                            background: "#eff6ff",
+                            border: "1px dashed #bfdbfe",
+                            borderRadius: 8,
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            color: "#2563eb",
+                            cursor: "pointer",
+                            width: "100%",
                           }}
                         >
-                          {CATEGORIES.filter((c) => c !== "All Reviews").map(
-                            (catOpt) => (
-                              <button
-                                key={catOpt}
-                                type="button"
-                                onClick={() => {
-                                  setCategory(catOpt);
-                                  setIsCategoryOpen(false);
-                                }}
-                                style={{
-                                  width: "100%",
-                                  textAlign: "left",
-                                  padding: "7px 10px",
-                                  borderRadius: 6,
-                                  border: "none",
-                                  background:
-                                    category === catOpt
-                                      ? "#eff6ff"
-                                      : "transparent",
-                                  color:
-                                    category === catOpt ? "#2563eb" : "#1e293b",
-                                  fontSize: 12.5,
-                                  fontWeight: category === catOpt ? 700 : 500,
-                                  cursor: "pointer",
-                                  fontFamily: "'DM Sans', sans-serif",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "space-between",
-                                }}
-                              >
-                                {catOpt}
-                                {category === catOpt && (
-                                  <CheckCircle2 size={13} color="#2563eb" />
-                                )}
-                              </button>
-                            ),
-                          )}
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
-                </div>
+                          <Lock size={12} color="#2563eb" />
+                          <span>Student Portal Login to Review</span>
+                        </button>
+                      )}
+                    </div>
 
-                {/* Comment Textarea */}
-                <div style={{ position: "relative" }}>
-                  <textarea
-                    id="review-comment-textarea"
-                    value={comment}
-                    onClick={() => {
-                      if (!currentRegNo) {
-                        if (typeof openStudentAuthModal === "function") openStudentAuthModal();
-                        else setShowAuthPromptModal(true);
-                      }
-                    }}
-                    onChange={(e) => setComment(e.target.value.slice(0, 500))}
-                    placeholder="Write your review or feedback..."
-                    rows={isSmallMobile ? 3 : 4}
-                    required
-                    style={{
-                      width: "100%",
-                      padding: isSmallMobile ? "8px 10px" : "9px 12px",
-                      borderRadius: 8,
-                      border: "1px solid #cbd5e1",
-                      fontSize: isSmallMobile ? 12 : 13,
-                      outline: "none",
-                      fontFamily: "'DM Sans', sans-serif",
-                      resize: "none",
-                      boxSizing: "border-box",
-                      background: "#ffffff",
-                      color: "#0f172a",
-                    }}
-                  />
-                  <span
-                    style={{
-                      position: "absolute",
-                      bottom: 5,
-                      right: 8,
-                      fontSize: 10,
-                      color: "#94a3b8",
-                    }}
-                  >
-                    {comment.length}/500
-                  </span>
-                </div>
+                    {/* Category Dropdown */}
+                    <div style={{ position: "relative", width: "100%" }}>
+                      <button
+                        type="button"
+                        onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                        style={{
+                          width: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: isSmallMobile ? "8px 10px" : "9px 12px",
+                          borderRadius: 8,
+                          border: "1px solid #cbd5e1",
+                          fontSize: isSmallMobile ? 12 : 13,
+                          background: "#ffffff",
+                          fontFamily: "'DM Sans', sans-serif",
+                          color: "#0f172a",
+                          cursor: "pointer",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        <span>{category}</span>
+                        <ChevronDown
+                          size={13}
+                          color="#64748b"
+                          style={{
+                            transition: "transform 0.2s ease",
+                            transform: isCategoryOpen ? "rotate(180deg)" : "none",
+                          }}
+                        />
+                      </button>
 
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  style={{
-                    width: "100%",
-                    padding: isSmallMobile ? "9px" : "11px",
-                    borderRadius: 9,
-                    background: isSubmitting
-                      ? "#93c5fd"
-                      : "linear-gradient(135deg, #2563eb, #1d4ed8)",
-                    color: "#ffffff",
-                    border: "1px solid #1e40af",
-                    fontSize: isSmallMobile ? 12.5 : 13.5,
-                    fontWeight: 800,
-                    cursor: isSubmitting ? "not-allowed" : "pointer",
-                    fontFamily: "'DM Sans', sans-serif",
-                    boxShadow: "0 3px 10px rgba(37, 99, 235, 0.2)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                  }}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 size={14} className="animate-spin" />{" "}
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      <Send size={13} /> Submit Review
-                    </>
-                  )}
-                </button>
-              </form>
+                      <AnimatePresence>
+                        {isCategoryOpen && (
+                          <>
+                            <div
+                              onClick={() => setIsCategoryOpen(false)}
+                              style={{ position: "fixed", inset: 0, zIndex: 90 }}
+                            />
+
+                            <motion.div
+                              initial={{ opacity: 0, y: 4, scale: 0.98 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                              transition={{ duration: 0.15 }}
+                              style={{
+                                position: "absolute",
+                                top: "calc(100% + 4px)",
+                                left: 0,
+                                right: 0,
+                                background: "#ffffff",
+                                border: "1px solid #e2e8f0",
+                                borderRadius: 10,
+                                padding: 4,
+                                boxShadow: "0 10px 25px rgba(15, 23, 42, 0.1)",
+                                zIndex: 100,
+                              }}
+                            >
+                              {CATEGORIES.filter((c) => c !== "All Reviews").map(
+                                (catOpt) => (
+                                  <button
+                                    key={catOpt}
+                                    type="button"
+                                    onClick={() => {
+                                      setCategory(catOpt);
+                                      setIsCategoryOpen(false);
+                                    }}
+                                    style={{
+                                      width: "100%",
+                                      textAlign: "left",
+                                      padding: "7px 10px",
+                                      borderRadius: 6,
+                                      border: "none",
+                                      background:
+                                        category === catOpt
+                                          ? "#eff6ff"
+                                          : "transparent",
+                                      color:
+                                        category === catOpt ? "#2563eb" : "#1e293b",
+                                      fontSize: 12.5,
+                                      fontWeight: category === catOpt ? 700 : 500,
+                                      cursor: "pointer",
+                                      fontFamily: "'DM Sans', sans-serif",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                    }}
+                                  >
+                                    {catOpt}
+                                    {category === catOpt && (
+                                      <CheckCircle2 size={13} color="#2563eb" />
+                                    )}
+                                  </button>
+                                ),
+                              )}
+                            </motion.div>
+                          </>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    {/* Comment Textarea */}
+                    <div style={{ position: "relative" }}>
+                      <textarea
+                        id="review-comment-textarea"
+                        value={comment}
+                        onClick={() => {
+                          if (!currentRegNo) {
+                            if (typeof openStudentAuthModal === "function") openStudentAuthModal();
+                            else setShowAuthPromptModal(true);
+                          }
+                        }}
+                        onChange={(e) => setComment(e.target.value.slice(0, 500))}
+                        placeholder="Write your review or feedback..."
+                        rows={isSmallMobile ? 3 : 4}
+                        required
+                        style={{
+                          width: "100%",
+                          padding: isSmallMobile ? "8px 10px" : "9px 12px",
+                          borderRadius: 8,
+                          border: "1px solid #cbd5e1",
+                          fontSize: isSmallMobile ? 12 : 13,
+                          outline: "none",
+                          fontFamily: "'DM Sans', sans-serif",
+                          resize: "none",
+                          boxSizing: "border-box",
+                          background: "#ffffff",
+                          color: "#0f172a",
+                        }}
+                      />
+                      <span
+                        style={{
+                          position: "absolute",
+                          bottom: 5,
+                          right: 8,
+                          fontSize: 10,
+                          color: "#94a3b8",
+                        }}
+                      >
+                        {comment.length}/500
+                      </span>
+                    </div>
+
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      style={{
+                        width: "100%",
+                        padding: isSmallMobile ? "9px" : "11px",
+                        borderRadius: 9,
+                        background: isSubmitting
+                          ? "#93c5fd"
+                          : "linear-gradient(135deg, #2563eb, #1d4ed8)",
+                        color: "#ffffff",
+                        border: "1px solid #1e40af",
+                        fontSize: isSmallMobile ? 12.5 : 13.5,
+                        fontWeight: 800,
+                        cursor: isSubmitting ? "not-allowed" : "pointer",
+                        fontFamily: "'DM Sans', sans-serif",
+                        boxShadow: "0 3px 10px rgba(37, 99, 235, 0.2)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                      }}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" />{" "}
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          <Send size={13} /> Submit Review
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </>
+              )}
 
               {/* Success Alert */}
               {submittedSuccess && (

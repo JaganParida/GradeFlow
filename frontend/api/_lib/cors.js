@@ -37,7 +37,7 @@ function applyCors(req, res, allowedMethods = "GET,POST,PUT,DELETE,OPTIONS") {
   res.setHeader("Access-Control-Allow-Methods", allowedMethods);
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Cookie, x-student-token, x-admin-token"
+    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Cookie, x-student-token, x-admin-token, x-student-regno"
   );
   res.setHeader("Vary", "Origin");
 

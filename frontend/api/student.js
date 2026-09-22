@@ -55,7 +55,7 @@ function parseCookies(cookieHeader) {
 }
 
 module.exports = async function handler(req, res) {
-  if (applyCors(req, res, "GET,POST,OPTIONS")) return;
+  if (applyCors(req, res, "GET,POST,PUT,DELETE,OPTIONS")) return;
 
   if (req.query.action === "health" || req.url?.includes("/api/health")) {
     return res.status(200).json({ status: "ok", uptime: process.uptime(), timestamp: new Date().toISOString() });
@@ -70,22 +70,72 @@ module.exports = async function handler(req, res) {
     if (isFeedback) {
       const feedbackId = req.query.id;
 
+      // Helper to check admin status
+      const cookies = parseCookies(req.headers.cookie);
+      let adminToken = req.headers["x-admin-token"] || cookies.jwt;
+      if (!adminToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+        adminToken = req.headers.authorization.split(" ")[1];
+      }
+      let isAdmin = false;
+      if (adminToken && process.env.JWT_SECRET) {
+        try {
+          const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
+          if (decoded && (decoded.role === "admin" || decoded.adminType === "subadmin" || decoded.email)) {
+            isAdmin = true;
+          }
+        } catch {}
+      }
+
       if (req.method === "GET" && !feedbackId) {
-        res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+        const studentRegNo = (
+          req.query.studentRegNo ||
+          req.query.regNo ||
+          req.headers["x-student-regno"] ||
+          ""
+        ).toString().trim().toUpperCase();
+
+        const isCreator = studentRegNo === "230301120327";
+
+        // Serve from memo cache only for general public
         const now = Date.now();
-        if (feedbacksMemoCache.data && now - feedbacksMemoCache.ts < FEEDBACKS_MEMO_TTL_MS) {
+        if (!isAdmin && !isCreator && !studentRegNo && feedbacksMemoCache.data && now - feedbacksMemoCache.ts < FEEDBACKS_MEMO_TTL_MS) {
+          res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
           return res.json(feedbacksMemoCache.data);
         }
-        const feedbacks = await Feedback.find({ status: { $ne: "needs_review" }, rating: { $gte: 3 } })
-          .select("name rating comment category likes createdAt")
+
+        let filter = {};
+        if (isAdmin || isCreator) {
+          filter = {};
+        } else if (studentRegNo) {
+          const regVariants = Array.from(new Set([
+            studentRegNo,
+            studentRegNo.toLowerCase(),
+            studentRegNo.toUpperCase(),
+          ]));
+          filter = {
+            $or: [
+              { status: { $nin: ["hidden", "needs_review"] }, rating: { $gte: 3 } },
+              { regNo: { $in: regVariants } },
+            ],
+          };
+        } else {
+          filter = { status: { $nin: ["hidden", "needs_review"] }, rating: { $gte: 3 } };
+        }
+
+        const feedbacks = await Feedback.find(filter)
+          .select("name regNo rating comment category likes status createdAt updatedAt")
           .sort({ createdAt: -1 })
-          .limit(200)
+          .limit(300)
           .lean();
-        feedbacksMemoCache = { data: feedbacks, ts: now };
+
+        if (!isAdmin && !isCreator && !studentRegNo) {
+          feedbacksMemoCache = { data: feedbacks, ts: now };
+          res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+        }
         return res.json(feedbacks);
       }
 
-      if (req.method === "POST" && !feedbackId && req.query.action !== "feedback-like") {
+      if (req.method === "POST" && !feedbackId && req.query.action !== "feedback-like" && req.query.action !== "like") {
         const { name, regNo, rating, comment, category } = req.body || {};
         const trimmedName = typeof name === "string" ? name.trim() : "";
         if (!trimmedName || trimmedName.length < 2 || trimmedName.length > 100) {
@@ -111,6 +161,17 @@ module.exports = async function handler(req, res) {
           return res.status(400).json({ message: "Registration number not found in university records. Only enrolled students can submit feedback." });
         }
 
+        // Single feedback check per student
+        const regVariants = Array.from(new Set([cleanRegNo, cleanRegNo.toLowerCase(), cleanRegNo.toUpperCase()]));
+        const existingFeedback = await Feedback.findOne({ regNo: { $in: regVariants } });
+        if (existingFeedback) {
+          return res.status(400).json({
+            message: "You have already submitted a review. Multiple submissions are not allowed. You can edit your review within 24 hours.",
+            alreadySubmitted: true,
+            feedbackId: existingFeedback._id,
+          });
+        }
+
         const officialRecord = await SemesterResult.findOne({ regNo: cleanRegNo }).select("studentName").lean();
         let verifiedName = trimmedName;
         if (officialRecord && officialRecord.studentName && officialRecord.studentName.trim().length >= 2) {
@@ -133,8 +194,8 @@ module.exports = async function handler(req, res) {
         });
         const savedFeedback = await newFeedback.save();
         feedbacksMemoCache = { data: null, ts: 0 };
-        if (regNo) {
-          profileMemoCache.delete(String(regNo).trim().toUpperCase());
+        if (cleanRegNo) {
+          profileMemoCache.delete(cleanRegNo);
         }
         try {
           await publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() });
@@ -151,7 +212,7 @@ module.exports = async function handler(req, res) {
         const feedback = await Feedback.findByIdAndUpdate(
           feedbackId,
           { $inc: { likes: 1 } },
-          { new: true, select: "name rating comment category likes createdAt" }
+          { new: true, select: "name regNo rating comment category likes status createdAt updatedAt" }
         ).lean();
         if (!feedback) return res.status(404).json({ message: "Feedback not found" });
         feedbacksMemoCache = { data: null, ts: 0 };
@@ -164,24 +225,93 @@ module.exports = async function handler(req, res) {
       }
 
       if (req.method === "PUT" && feedbackId) {
-        const cookies = parseCookies(req.headers.cookie);
-        let token = req.headers["x-admin-token"] || cookies.jwt;
-        if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-          token = req.headers.authorization.split(" ")[1];
+        if (!/^[0-9a-fA-F]{24}$/.test(feedbackId)) {
+          return res.status(400).json({ message: "Invalid feedback ID format" });
         }
-        try {
-          jwt.verify(token, process.env.JWT_SECRET);
-        } catch {
-          return res.status(401).json({ message: "Not authorized" });
-        }
+
         const feedback = await Feedback.findById(feedbackId);
         if (!feedback) return res.status(404).json({ message: "Feedback not found" });
-        const { name, regNo, rating, comment } = req.body || {};
-        if (name) feedback.name = name;
-        if (regNo) feedback.regNo = regNo;
-        if (rating) feedback.rating = rating;
-        if (comment) feedback.comment = comment;
+
+        const requesterRegNo = (
+          req.body?.studentRegNo ||
+          req.query?.studentRegNo ||
+          req.headers["x-student-regno"] ||
+          ""
+        ).toString().trim().toUpperCase();
+
+        if (isAdmin) {
+          const { name, regNo, rating, comment, category, status } = req.body || {};
+          if (name) feedback.name = name.trim();
+          if (regNo) feedback.regNo = String(regNo).trim().toUpperCase();
+          if (rating !== undefined) {
+            const numRating = Number(rating);
+            if (!isNaN(numRating) && numRating >= 1 && numRating <= 5) {
+              feedback.rating = numRating;
+            }
+          }
+          if (comment) feedback.comment = comment.trim();
+          if (category) feedback.category = category.trim();
+          if (status && ["approved", "hidden", "needs_review"].includes(status)) {
+            feedback.status = status;
+          }
+          feedback.updatedAt = new Date();
+          const updatedFeedback = await feedback.save();
+          feedbacksMemoCache = { data: null, ts: 0 };
+          if (feedback?.regNo) profileMemoCache.delete(String(feedback.regNo).trim().toUpperCase());
+          try {
+            await publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() });
+          } catch (e) {
+            console.warn("[Ably] Feedback updated publish warning:", e?.message || e);
+          }
+          return res.json(updatedFeedback);
+        }
+
+        // Student edit: verify ownership
+        if (!requesterRegNo || requesterRegNo !== feedback.regNo.toUpperCase()) {
+          return res.status(403).json({ message: "You are not authorized to edit this review." });
+        }
+
+        // Check 24-hour window
+        const createdAtMs = new Date(feedback.createdAt).getTime();
+        const isWithin24Hours = (Date.now() - createdAtMs) <= (24 * 60 * 60 * 1000);
+        if (!isWithin24Hours) {
+          return res.status(403).json({
+            message: "Editing is locked. Reviews can only be edited within 24 hours of submission.",
+            expired: true,
+          });
+        }
+
+        const { rating, comment, category } = req.body || {};
+        if (rating !== undefined) {
+          const numRating = Number(rating);
+          if (isNaN(numRating) || numRating < 1 || numRating > 5) {
+            return res.status(400).json({ message: "Rating must be between 1 and 5." });
+          }
+          feedback.rating = numRating;
+          if (numRating <= 2) {
+            feedback.status = "needs_review";
+          } else if (feedback.status === "needs_review") {
+            feedback.status = "approved";
+          }
+        }
+
+        if (comment) {
+          const trimmedComment = comment.trim();
+          const commentCheck = validateFeedbackComment(trimmedComment, feedback.name);
+          if (!commentCheck.isValid) {
+            return res.status(400).json({ message: commentCheck.error });
+          }
+          feedback.comment = trimmedComment;
+        }
+
+        if (category && typeof category === "string") {
+          feedback.category = category.trim();
+        }
+
+        feedback.updatedAt = new Date();
         const updatedFeedback = await feedback.save();
+        feedbacksMemoCache = { data: null, ts: 0 };
+        if (feedback?.regNo) profileMemoCache.delete(String(feedback.regNo).trim().toUpperCase());
         try {
           await publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() });
         } catch (e) {
@@ -191,29 +321,36 @@ module.exports = async function handler(req, res) {
       }
 
       if (req.method === "DELETE" && feedbackId) {
-        const cookies = parseCookies(req.headers.cookie);
-        let token = req.headers["x-admin-token"] || cookies.jwt;
-        if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-          token = req.headers.authorization.split(" ")[1];
+        if (!/^[0-9a-fA-F]{24}$/.test(feedbackId)) {
+          return res.status(400).json({ message: "Invalid feedback ID format" });
         }
-        try {
-          jwt.verify(token, process.env.JWT_SECRET);
-        } catch {
-          return res.status(401).json({ message: "Not authorized" });
-        }
+
         const feedback = await Feedback.findById(feedbackId);
         if (!feedback) return res.status(404).json({ message: "Feedback not found" });
+
+        const requesterRegNo = (
+          req.body?.studentRegNo ||
+          req.query?.studentRegNo ||
+          req.headers["x-student-regno"] ||
+          ""
+        ).toString().trim().toUpperCase();
+
+        if (!isAdmin && (!requesterRegNo || requesterRegNo !== feedback.regNo.toUpperCase())) {
+          return res.status(403).json({ message: "You are not authorized to delete this review." });
+        }
+
+        const deletedRegNo = feedback.regNo;
         await feedback.deleteOne();
         feedbacksMemoCache = { data: null, ts: 0 };
-        if (feedback?.regNo) {
-          profileMemoCache.delete(String(feedback.regNo).trim().toUpperCase());
+        if (deletedRegNo) {
+          profileMemoCache.delete(String(deletedRegNo).trim().toUpperCase());
         }
         try {
           await publishAdminRealtimeEvent("feedback-updated", { timestamp: Date.now() });
         } catch (e) {
           console.warn("[Ably] Feedback updated publish warning:", e?.message || e);
         }
-        return res.json({ message: "Feedback deleted successfully" });
+        return res.json({ message: "Feedback deleted successfully", deletedId: feedbackId, regNo: deletedRegNo });
       }
 
       return res.status(404).json({ message: "Feedback route not found" });

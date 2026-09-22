@@ -9,41 +9,67 @@ const { validateFeedbackComment } = require("../utils/feedbackValidator");
 
 const jwt = require("jsonwebtoken");
 
-// GET /api/feedback - Retrieve all feedbacks (sorted newest first, regNo included for admin moderation)
+// Helper to check admin status
+function checkIsAdmin(req) {
+  let token = null;
+  if (req.cookies && req.cookies.jwt && req.cookies.jwt !== "none") {
+    token = req.cookies.jwt;
+  } else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+    token = req.headers.authorization.split(" ")[1];
+  } else if (req.headers["x-admin-token"]) {
+    token = req.headers["x-admin-token"];
+  }
+
+  if (token && process.env.JWT_SECRET) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+      if (decoded && (decoded.role === "admin" || decoded.adminType === "subadmin" || decoded.email)) {
+        return true;
+      }
+    } catch {}
+  }
+  return false;
+}
+
+// GET /api/feedback - Retrieve feedbacks
+// Admin & creator 230301120327 see all; students see public + their own review; public sees approved rating >= 3
 router.get("/", async (req, res) => {
   try {
-    let token = null;
-    if (req.cookies && req.cookies.jwt && req.cookies.jwt !== "none") {
-      token = req.cookies.jwt;
-    } else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-      token = req.headers.authorization.split(" ")[1];
-    } else if (req.headers["x-admin-token"]) {
-      token = req.headers["x-admin-token"];
+    const isAdmin = checkIsAdmin(req);
+    const studentRegNo = (
+      req.query.studentRegNo ||
+      req.query.regNo ||
+      req.headers["x-student-regno"] ||
+      ""
+    ).toString().trim().toUpperCase();
+
+    const isCreator = studentRegNo === "230301120327";
+
+    let filter = {};
+    if (isAdmin || isCreator) {
+      filter = {};
+    } else if (studentRegNo) {
+      const regVariants = Array.from(new Set([
+        studentRegNo,
+        studentRegNo.toLowerCase(),
+        studentRegNo.toUpperCase(),
+      ]));
+      filter = {
+        $or: [
+          { status: { $nin: ["hidden", "needs_review"] }, rating: { $gte: 3 } },
+          { regNo: { $in: regVariants } },
+        ],
+      };
+    } else {
+      filter = { status: { $nin: ["hidden", "needs_review"] }, rating: { $gte: 3 } };
     }
-
-    let isAdmin = false;
-    if (token && process.env.JWT_SECRET) {
-      try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
-        if (decoded && (decoded.role === "admin" || decoded.adminType === "subadmin" || decoded.email)) {
-          isAdmin = true;
-        }
-      } catch {}
-    }
-
-    const filter = isAdmin
-      ? {}
-      : { status: { $ne: "needs_review" }, rating: { $gte: 3 } };
-
-    const selectFields = isAdmin
-      ? "name regNo rating comment category likes status createdAt"
-      : "name rating comment category likes createdAt";
 
     const feedbacks = await Feedback.find(filter)
-      .select(selectFields)
+      .select("name regNo rating comment category likes status createdAt updatedAt")
       .sort({ createdAt: -1 })
-      .limit(200)
+      .limit(300)
       .lean();
+
     res.json(feedbacks);
   } catch (error) {
     console.error("Error fetching feedbacks:", error);
@@ -51,7 +77,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// POST /api/feedback - Submit new feedback with strict schema validation
+// POST /api/feedback - Submit new feedback (strictly 1 feedback per student regNo)
 router.post("/", publicLimiter, validateFeedbackInput, async (req, res) => {
   try {
     const { name, regNo, rating, comment, category } = req.body;
@@ -60,7 +86,22 @@ router.post("/", publicLimiter, validateFeedbackInput, async (req, res) => {
       return res.status(400).json({ message: "Name, rating, and comment are required." });
     }
 
-    const cleanRegNo = String(regNo).trim().toUpperCase();
+    const cleanRegNo = String(regNo || "").trim().toUpperCase();
+    if (!cleanRegNo || !/^[a-zA-Z0-9]{5,20}$/.test(cleanRegNo)) {
+      return res.status(400).json({ message: "A valid student Registration Number is required to submit a review." });
+    }
+
+    // Single feedback check per student
+    const regVariants = Array.from(new Set([cleanRegNo, cleanRegNo.toLowerCase(), String(regNo).trim()]));
+    const existingFeedback = await Feedback.findOne({ regNo: { $in: regVariants } });
+    if (existingFeedback) {
+      return res.status(400).json({
+        message: "You have already submitted a review. Multiple submissions are not allowed. You can edit your review within 24 hours.",
+        alreadySubmitted: true,
+        feedbackId: existingFeedback._id,
+      });
+    }
+
     const SemesterResult = require("../models/SemesterResult");
     const officialRecord = await SemesterResult.findOne({ regNo: cleanRegNo }).select("studentName").lean();
 
@@ -83,18 +124,18 @@ router.post("/", publicLimiter, validateFeedbackInput, async (req, res) => {
       name: verifiedName,
       regNo: cleanRegNo,
       rating: numRating,
-      comment,
+      comment: comment.trim(),
       category: category || "Overall Experience",
       status: feedbackStatus,
     });
 
     const savedFeedback = await newFeedback.save();
 
-    if (regNo) {
+    if (cleanRegNo) {
       try {
         const studentRoute = require("./student");
         if (typeof studentRoute.clearStudentCache === "function") {
-          studentRoute.clearStudentCache(String(regNo).trim().toUpperCase());
+          studentRoute.clearStudentCache(cleanRegNo);
         }
       } catch (err) {
         console.warn("Failed to clear student cache on feedback submit:", err.message);
@@ -117,7 +158,7 @@ router.post("/:id/like", publicLimiter, async (req, res) => {
     const feedback = await Feedback.findByIdAndUpdate(
       req.params.id,
       { $inc: { likes: 1 } },
-      { new: true, select: "name rating comment category likes createdAt" }
+      { new: true, select: "name regNo rating comment category likes status createdAt updatedAt" }
     ).lean();
     if (!feedback) {
       return res.status(404).json({ message: "Feedback not found" });
@@ -129,38 +170,148 @@ router.post("/:id/like", publicLimiter, async (req, res) => {
   }
 });
 
-// PUT /api/feedback/:id - Update a feedback (admin only)
-router.put("/:id", protect, requirePermission("feedback.view", "feedback"), async (req, res) => {
+// PUT /api/feedback/:id - Update feedback (Admin anytime, or Student within 24 hours)
+router.put("/:id", async (req, res) => {
   try {
-    const { name, regNo, rating, comment } = req.body;
+    if (!/^[0-9a-fA-F]{24}$/.test(req.params.id)) {
+      return res.status(400).json({ message: "Invalid feedback ID format" });
+    }
+
     const feedback = await Feedback.findById(req.params.id);
     if (!feedback) {
       return res.status(404).json({ message: "Feedback not found" });
     }
-    
-    if (name) feedback.name = name;
-    if (regNo) feedback.regNo = regNo;
-    if (rating) feedback.rating = rating;
-    if (comment) feedback.comment = comment;
-    
-    const updatedFeedback = await feedback.save();
-    res.json(updatedFeedback);
+
+    const isAdmin = checkIsAdmin(req);
+    const requesterRegNo = (
+      req.body.studentRegNo ||
+      req.query.studentRegNo ||
+      req.headers["x-student-regno"] ||
+      ""
+    ).toString().trim().toUpperCase();
+
+    if (isAdmin) {
+      const { name, regNo, rating, comment, category, status } = req.body;
+      if (name) feedback.name = name.trim();
+      if (regNo) feedback.regNo = String(regNo).trim().toUpperCase();
+      if (rating !== undefined) {
+        const numRating = Number(rating);
+        if (!isNaN(numRating) && numRating >= 1 && numRating <= 5) {
+          feedback.rating = numRating;
+        }
+      }
+      if (comment) feedback.comment = comment.trim();
+      if (category) feedback.category = category.trim();
+      if (status && ["approved", "hidden", "needs_review"].includes(status)) {
+        feedback.status = status;
+      }
+      feedback.updatedAt = new Date();
+      const updated = await feedback.save();
+
+      try {
+        const studentRoute = require("./student");
+        if (typeof studentRoute.clearStudentCache === "function") {
+          studentRoute.clearStudentCache(feedback.regNo);
+        }
+      } catch (_) {}
+
+      return res.json(updated);
+    }
+
+    // Student edit: verify ownership
+    if (!requesterRegNo || requesterRegNo !== feedback.regNo.toUpperCase()) {
+      return res.status(403).json({ message: "You are not authorized to edit this review." });
+    }
+
+    // Check 24-hour window
+    const createdAtMs = new Date(feedback.createdAt).getTime();
+    const isWithin24Hours = (Date.now() - createdAtMs) <= (24 * 60 * 60 * 1000);
+    if (!isWithin24Hours) {
+      return res.status(403).json({
+        message: "Editing is locked. Reviews can only be edited within 24 hours of submission.",
+        expired: true,
+      });
+    }
+
+    const { rating, comment, category } = req.body;
+    if (rating !== undefined) {
+      const numRating = Number(rating);
+      if (isNaN(numRating) || numRating < 1 || numRating > 5) {
+        return res.status(400).json({ message: "Rating must be between 1 and 5." });
+      }
+      feedback.rating = numRating;
+      if (numRating <= 2) {
+        feedback.status = "needs_review";
+      } else if (feedback.status === "needs_review") {
+        feedback.status = "approved";
+      }
+    }
+
+    if (comment) {
+      const trimmedComment = comment.trim();
+      const commentCheck = validateFeedbackComment(trimmedComment, feedback.name);
+      if (!commentCheck.isValid) {
+        return res.status(400).json({ message: commentCheck.error });
+      }
+      feedback.comment = trimmedComment;
+    }
+
+    if (category && typeof category === "string") {
+      feedback.category = category.trim();
+    }
+
+    feedback.updatedAt = new Date();
+    const updated = await feedback.save();
+
+    try {
+      const studentRoute = require("./student");
+      if (typeof studentRoute.clearStudentCache === "function") {
+        studentRoute.clearStudentCache(feedback.regNo);
+      }
+    } catch (_) {}
+
+    return res.json(updated);
   } catch (error) {
     console.error("Error updating feedback:", error);
     res.status(500).json({ message: "Server Error updating feedback" });
   }
 });
 
-// DELETE /api/feedback/:id - Delete a feedback (admin only)
-router.delete("/:id", protect, requirePermission("feedback.view", "feedback"), async (req, res) => {
+// DELETE /api/feedback/:id - Delete feedback (Admin anytime, or Student owner)
+router.delete("/:id", async (req, res) => {
   try {
+    if (!/^[0-9a-fA-F]{24}$/.test(req.params.id)) {
+      return res.status(400).json({ message: "Invalid feedback ID format" });
+    }
+
     const feedback = await Feedback.findById(req.params.id);
     if (!feedback) {
       return res.status(404).json({ message: "Feedback not found" });
     }
-    
+
+    const isAdmin = checkIsAdmin(req);
+    const requesterRegNo = (
+      req.body?.studentRegNo ||
+      req.query?.studentRegNo ||
+      req.headers["x-student-regno"] ||
+      ""
+    ).toString().trim().toUpperCase();
+
+    if (!isAdmin && (!requesterRegNo || requesterRegNo !== feedback.regNo.toUpperCase())) {
+      return res.status(403).json({ message: "You are not authorized to delete this review." });
+    }
+
+    const deletedRegNo = feedback.regNo;
     await feedback.deleteOne();
-    res.json({ message: "Feedback deleted successfully" });
+
+    try {
+      const studentRoute = require("./student");
+      if (typeof studentRoute.clearStudentCache === "function") {
+        studentRoute.clearStudentCache(deletedRegNo);
+      }
+    } catch (_) {}
+
+    return res.json({ message: "Feedback deleted successfully", deletedId: req.params.id, regNo: deletedRegNo });
   } catch (error) {
     console.error("Error deleting feedback:", error);
     res.status(500).json({ message: "Server Error deleting feedback" });

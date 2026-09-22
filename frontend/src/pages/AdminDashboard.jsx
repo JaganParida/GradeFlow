@@ -39,6 +39,9 @@ import {
   CloudUpload,
   MessageSquare,
   Edit2,
+  Edit3,
+  Eye,
+  EyeOff,
   X,
   ChevronDown,
   ChevronUp,
@@ -3950,14 +3953,33 @@ function BacklogTrackerCard({ authHeaders, API }) {
 /* ════════════════════════════════════════════════════════════════
    6. FEEDBACK MANAGER
    ════════════════════════════════════════════════════════════════ */
-function FeedbackManager({ authHeaders, API }) {
+function FeedbackManager({ authHeaders, API, adminToken }) {
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({});
+  const [editingFeedback, setEditingFeedback] = useState(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    regNo: "",
+    rating: 5,
+    category: "Overall Experience",
+    comment: "",
+    status: "approved",
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [filterTab, setFilterTab] = useState("all"); // 'all' | 'approved' | 'hidden' | 'needs_review'
+  const [searchQuery, setSearchQuery] = useState("");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const feedbackCacheRef = useRef(null);
+
+  const reqConfig = useMemo(() => {
+    const h = authHeaders?.headers ? { ...authHeaders.headers } : {};
+    if (adminToken) {
+      h["Authorization"] = `Bearer ${adminToken}`;
+      h["x-admin-token"] = adminToken;
+    }
+    return { headers: h, withCredentials: true };
+  }, [authHeaders, adminToken]);
 
   useEffect(() => {
     fetchFeedbacks();
@@ -3988,7 +4010,7 @@ function FeedbackManager({ authHeaders, API }) {
     }
     setLoading(true);
     try {
-      const { data } = await axios.get(`${API}/feedback`, authHeaders);
+      const { data } = await axios.get(`${API}/feedback`, reqConfig);
       feedbackCacheRef.current = data;
       setAdminCache("gf_admin_feedback_cache", data, AdminCacheScopes.FEEDBACK);
       setFeedbacks(data);
@@ -3999,18 +4021,138 @@ function FeedbackManager({ authHeaders, API }) {
     }
   }
 
-  async function handleDelete(id) {
-    if (!window.confirm("Are you sure you want to delete this feedback?")) return;
+  // 1-Click Instant Visibility Toggle (Show / Hide on Testimonials)
+  async function handleToggleVisibility(fb) {
+    const newStatus = fb.status === "approved" ? "hidden" : "approved";
+    const prevFeedbacks = [...feedbacks];
+
+    // Optimistic UI update (0ms latency!)
+    const updated = feedbacks.map((item) =>
+      item._id === fb._id ? { ...item, status: newStatus } : item
+    );
+    setFeedbacks(updated);
+    feedbackCacheRef.current = updated;
+    setAdminCache("gf_admin_feedback_cache", updated, AdminCacheScopes.FEEDBACK);
+
     try {
-      await axios.delete(`${API}/feedback/${id}`, authHeaders);
-      setMsg("Feedback deleted successfully");
-      fetchFeedbacks(true);
-      setTimeout(() => setMsg(""), 3000);
+      await axios.put(`${API}/feedback/${fb._id}`, { status: newStatus }, reqConfig);
+      invalidateAdminCache(AdminCacheScopes.FEEDBACK);
+      setMsg(
+        newStatus === "approved"
+          ? `Review by ${fb.name} is now LIVE on public Testimonials`
+          : `Review by ${fb.name} is now HIDDEN from public Testimonials`
+      );
+      setTimeout(() => setMsg(""), 3500);
     } catch (e) {
-      setErr(e.response?.data?.message || "Failed to delete");
+      // Rollback on failure
+      setFeedbacks(prevFeedbacks);
+      feedbackCacheRef.current = prevFeedbacks;
+      setAdminCache("gf_admin_feedback_cache", prevFeedbacks, AdminCacheScopes.FEEDBACK);
+      setErr(e.response?.data?.message || "Failed to update review visibility");
       setTimeout(() => setErr(""), 4000);
     }
   }
+
+  // Instant Optimistic Delete
+  async function handleDelete(id) {
+    if (!window.confirm("Are you sure you want to delete this feedback? This will allow the student to submit again.")) return;
+
+    const prevFeedbacks = [...feedbacks];
+    const targetItem = feedbacks.find((f) => f._id === id);
+
+    // Optimistic UI update: remove instantly from list
+    const updated = feedbacks.filter((f) => f._id !== id);
+    setFeedbacks(updated);
+    feedbackCacheRef.current = updated;
+    setAdminCache("gf_admin_feedback_cache", updated, AdminCacheScopes.FEEDBACK);
+    setMsg("Feedback deleted successfully");
+    setTimeout(() => setMsg(""), 3000);
+
+    try {
+      await axios.delete(`${API}/feedback/${id}`, reqConfig);
+      invalidateAdminCache(AdminCacheScopes.FEEDBACK);
+    } catch (e) {
+      // Rollback on failure
+      setFeedbacks(prevFeedbacks);
+      feedbackCacheRef.current = prevFeedbacks;
+      setAdminCache("gf_admin_feedback_cache", prevFeedbacks, AdminCacheScopes.FEEDBACK);
+      setErr(e.response?.data?.message || "Failed to delete feedback");
+      setTimeout(() => setErr(""), 4000);
+    }
+  }
+
+  // Open Edit Modal
+  function handleOpenEdit(fb) {
+    setEditingFeedback(fb);
+    setEditForm({
+      name: fb.name || "",
+      regNo: fb.regNo || "",
+      rating: Number(fb.rating) || 5,
+      category: fb.category || "Overall Experience",
+      comment: fb.comment || "",
+      status: fb.status || "approved",
+    });
+  }
+
+  // Save Edit Form
+  async function handleSaveEdit(e) {
+    e.preventDefault();
+    if (!editingFeedback) return;
+
+    setIsSavingEdit(true);
+    const prevFeedbacks = [...feedbacks];
+
+    // Optimistic update
+    const updated = feedbacks.map((item) =>
+      item._id === editingFeedback._id ? { ...item, ...editForm } : item
+    );
+    setFeedbacks(updated);
+    feedbackCacheRef.current = updated;
+    setAdminCache("gf_admin_feedback_cache", updated, AdminCacheScopes.FEEDBACK);
+
+    try {
+      await axios.put(`${API}/feedback/${editingFeedback._id}`, editForm, reqConfig);
+      invalidateAdminCache(AdminCacheScopes.FEEDBACK);
+      setMsg("Feedback updated successfully!");
+      setEditingFeedback(null);
+      setTimeout(() => setMsg(""), 3500);
+    } catch (e) {
+      setFeedbacks(prevFeedbacks);
+      feedbackCacheRef.current = prevFeedbacks;
+      setAdminCache("gf_admin_feedback_cache", prevFeedbacks, AdminCacheScopes.FEEDBACK);
+      setErr(e.response?.data?.message || "Failed to save feedback changes");
+      setTimeout(() => setErr(""), 4000);
+    } finally {
+      setIsSavingEdit(false);
+    }
+  }
+
+  // Computed counts
+  const totalCount = feedbacks.length;
+  const liveCount = feedbacks.filter((f) => f.status === "approved").length;
+  const hiddenCount = feedbacks.filter((f) => f.status === "hidden").length;
+  const grievanceCount = feedbacks.filter((f) => f.status === "needs_review" || Number(f.rating) <= 2).length;
+
+  // Filtered & Searched Feedbacks
+  const filteredFeedbacks = useMemo(() => {
+    return feedbacks.filter((fb) => {
+      // Tab filter
+      if (filterTab === "approved" && fb.status !== "approved") return false;
+      if (filterTab === "hidden" && fb.status !== "hidden") return false;
+      if (filterTab === "needs_review" && fb.status !== "needs_review" && Number(fb.rating) > 2) return false;
+
+      // Search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesName = (fb.name || "").toLowerCase().includes(q);
+        const matchesReg = (fb.regNo || "").toLowerCase().includes(q);
+        const matchesComment = (fb.comment || "").toLowerCase().includes(q);
+        const matchesCategory = (fb.category || "").toLowerCase().includes(q);
+        if (!matchesName && !matchesReg && !matchesComment && !matchesCategory) return false;
+      }
+      return true;
+    });
+  }, [feedbacks, filterTab, searchQuery]);
 
   return (
     <div
@@ -4022,20 +4164,133 @@ function FeedbackManager({ authHeaders, API }) {
         boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 10, background: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <MessageSquare size={18} />
+      {/* Top Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 38, height: 38, borderRadius: 10, background: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <MessageSquare size={19} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+              Student Feedback & Reviews Moderation
+            </h3>
+            <span style={{ fontSize: 12, color: "#64748b" }}>
+              Control public visibility, edit reviews, and address student grievances
+            </span>
+          </div>
         </div>
-        <div>
-          <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-            Student Feedback & Reviews
-          </h3>
-          <span style={{ fontSize: 12, color: "#64748b" }}>
-            Total {(feedbacks || []).length} submissions received
-          </span>
+
+        {/* Refresh Button */}
+        <button
+          onClick={() => fetchFeedbacks(true)}
+          disabled={loading}
+          style={{
+            background: "#f8fafc",
+            border: "1px solid #cbd5e1",
+            borderRadius: 8,
+            padding: "6px 12px",
+            fontSize: 12,
+            fontWeight: 600,
+            color: "#475569",
+            cursor: loading ? "not-allowed" : "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
+        </button>
+      </div>
+
+      {/* Stats Summary Chips */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "6px 12px", fontSize: 12 }}>
+          <span style={{ color: "#64748b" }}>Total Submissions: </span>
+          <strong style={{ color: "#0f172a" }}>{totalCount}</strong>
+        </div>
+        <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 8, padding: "6px 12px", fontSize: 12 }}>
+          <span style={{ color: "#065f46" }}>Live on Testimonials: </span>
+          <strong style={{ color: "#059669" }}>{liveCount}</strong>
+        </div>
+        <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "6px 12px", fontSize: 12 }}>
+          <span style={{ color: "#92400e" }}>Hidden by Admin: </span>
+          <strong style={{ color: "#d97706" }}>{hiddenCount}</strong>
+        </div>
+        <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 12px", fontSize: 12 }}>
+          <span style={{ color: "#991b1b" }}>Grievances (1-2★): </span>
+          <strong style={{ color: "#dc2626" }}>{grievanceCount}</strong>
         </div>
       </div>
 
+      {/* Filter Tabs & Search Bar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {[
+            { id: "all", label: `All (${totalCount})` },
+            { id: "approved", label: `Live (${liveCount})` },
+            { id: "hidden", label: `Hidden (${hiddenCount})` },
+            { id: "needs_review", label: `Grievances (${grievanceCount})` },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setFilterTab(tab.id)}
+              style={{
+                background: filterTab === tab.id ? "#2563eb" : "#f1f5f9",
+                color: filterTab === tab.id ? "#ffffff" : "#475569",
+                border: "none",
+                borderRadius: 8,
+                padding: "6px 12px",
+                fontSize: 12,
+                fontWeight: filterTab === tab.id ? 700 : 500,
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search Bar */}
+        <div style={{ position: "relative", minWidth: 220, flex: "1 1 220px", maxWidth: 360 }}>
+          <Search size={14} color="#94a3b8" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name, regNo, text..."
+            style={{
+              width: "100%",
+              padding: "7px 10px 7px 32px",
+              borderRadius: 8,
+              border: "1px solid #cbd5e1",
+              fontSize: 12.5,
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              style={{
+                position: "absolute",
+                right: 8,
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                color: "#94a3b8",
+                padding: 0,
+              }}
+            >
+              <X size={13} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Alert Notices */}
       <AnimatePresence>
         {err && (
           <motion.div
@@ -4085,89 +4340,463 @@ function FeedbackManager({ authHeaders, API }) {
         )}
       </AnimatePresence>
 
+      {/* Reviews List */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {loading ? (
           <AdminFeedbackSkeleton />
-        ) : !feedbacks || feedbacks.length === 0 ? (
-          <p style={{ color: "#94a3b8", fontSize: 13 }}>No student feedback submitted yet.</p>
+        ) : filteredFeedbacks.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "32px 16px", color: "#94a3b8" }}>
+            <MessageSquare size={32} style={{ margin: "0 auto 8px auto", opacity: 0.4 }} />
+            <p style={{ margin: 0, fontSize: 13.5, fontWeight: 600 }}>
+              {searchQuery ? "No reviews match your search query." : "No student feedback found in this tab."}
+            </p>
+          </div>
         ) : (
-          (feedbacks || []).map((fb) => (
-            <div
-              key={fb._id}
-              style={{
-                border: "1px solid #f1f5f9",
-                borderRadius: 12,
-                padding: "16px",
-                background: "#f8fafc",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <strong style={{ fontSize: 14, color: "#0f172a" }}>{fb.name}</strong>
-                    {fb.regNo && <span style={{ color: "#64748b", fontSize: 12 }}>({fb.regNo})</span>}
-                    {(fb.status === "needs_review" || fb.rating <= 2) && (
-                      <span
-                        style={{
-                          background: "#fef2f2",
-                          color: "#dc2626",
-                          border: "1px solid #fecaca",
-                          padding: "2px 7px",
-                          borderRadius: 6,
-                          fontSize: 10.5,
-                          fontWeight: 700,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
-                      >
-                        ⚠️ Grievance (Hidden from Public)
-                      </span>
+          filteredFeedbacks.map((fb) => {
+            const isApproved = fb.status === "approved";
+            const isHidden = fb.status === "hidden";
+            const isGrievance = fb.status === "needs_review" || Number(fb.rating) <= 2;
+
+            return (
+              <div
+                key={fb._id}
+                style={{
+                  border: isHidden ? "1px solid #fed7aa" : isGrievance ? "1px solid #fecaca" : "1px solid #e2e8f0",
+                  borderRadius: 12,
+                  padding: "16px",
+                  background: isHidden ? "#fffdfa" : isGrievance ? "#fefafa" : "#f8fafc",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {/* Header row: Author + Badges + Controls */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <strong style={{ fontSize: 14.5, color: "#0f172a" }}>{fb.name}</strong>
+                      {fb.regNo && <span style={{ color: "#64748b", fontSize: 12, fontWeight: 600 }}>({fb.regNo})</span>}
+
+                      {/* Status Badges */}
+                      {isApproved && (
+                        <span
+                          style={{
+                            background: "#ecfdf5",
+                            color: "#059669",
+                            border: "1px solid #a7f3d0",
+                            padding: "2px 7px",
+                            borderRadius: 6,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <Eye size={11} /> Live on Public
+                        </span>
+                      )}
+
+                      {isHidden && (
+                        <span
+                          style={{
+                            background: "#fffbeb",
+                            color: "#d97706",
+                            border: "1px solid #fde68a",
+                            padding: "2px 7px",
+                            borderRadius: 6,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <EyeOff size={11} /> Hidden from Public
+                        </span>
+                      )}
+
+                      {isGrievance && (
+                        <span
+                          style={{
+                            background: "#fef2f2",
+                            color: "#dc2626",
+                            border: "1px solid #fecaca",
+                            padding: "2px 7px",
+                            borderRadius: 6,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          ⚠️ Grievance / Needs Support
+                        </span>
+                      )}
+
+                      {/* Category Badge */}
+                      {fb.category && (
+                        <span
+                          style={{
+                            background: "#eff6ff",
+                            color: "#2563eb",
+                            border: "1px solid #bfdbfe",
+                            padding: "2px 7px",
+                            borderRadius: 6,
+                            fontSize: 10.5,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {fb.category}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Timestamp */}
+                    {fb.createdAt && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#94a3b8", fontSize: 11, marginTop: 4 }}>
+                        <Calendar size={11} color="#94a3b8" />
+                        <span>{new Date(fb.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+                        <span>•</span>
+                        <Clock size={11} color="#94a3b8" />
+                        <span>{new Date(fb.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}</span>
+                      </div>
                     )}
                   </div>
-                  {fb.createdAt && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#94a3b8", fontSize: 11, marginTop: 2 }}>
-                      <Calendar size={11} color="#94a3b8" />
-                      <span>{new Date(fb.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
-                      <span>•</span>
-                      <Clock size={11} color="#94a3b8" />
-                      <span>{new Date(fb.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}</span>
-                    </div>
-                  )}
+
+                  {/* Admin Actions Bar */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {/* Toggle Visibility Button */}
+                    <button
+                      onClick={() => handleToggleVisibility(fb)}
+                      title={isApproved ? "Hide this review from public testimonials" : "Make this review visible on public testimonials"}
+                      style={{
+                        background: isApproved ? "#fef3c7" : "#dcfce7",
+                        border: isApproved ? "1px solid #fde68a" : "1px solid #bbf7d0",
+                        color: isApproved ? "#b45309" : "#15803d",
+                        cursor: "pointer",
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        padding: "5px 10px",
+                        borderRadius: 7,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {isApproved ? (
+                        <>
+                          <EyeOff size={12} /> Hide Review
+                        </>
+                      ) : (
+                        <>
+                          <Eye size={12} /> Show on Public
+                        </>
+                      )}
+                    </button>
+
+                    {/* Edit Button */}
+                    <button
+                      onClick={() => handleOpenEdit(fb)}
+                      style={{
+                        background: "#eff6ff",
+                        border: "1px solid #bfdbfe",
+                        color: "#2563eb",
+                        cursor: "pointer",
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        padding: "5px 10px",
+                        borderRadius: 7,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                      }}
+                    >
+                      <Edit3 size={12} /> Edit
+                    </button>
+
+                    {/* Delete Button */}
+                    <button
+                      onClick={() => handleDelete(fb._id)}
+                      style={{
+                        background: "#fef2f2",
+                        border: "1px solid #fecaca",
+                        color: "#dc2626",
+                        cursor: "pointer",
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        padding: "5px 10px",
+                        borderRadius: 7,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                      }}
+                    >
+                      <Trash2 size={12} /> Delete
+                    </button>
+                  </div>
                 </div>
+
+                {/* Rating Stars */}
+                <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 8 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      size={13}
+                      fill={i < fb.rating ? "#f59e0b" : "none"}
+                      color={i < fb.rating ? "#f59e0b" : "#cbd5e1"}
+                    />
+                  ))}
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b", marginLeft: 4 }}>
+                    {fb.rating} / 5
+                  </span>
+                </div>
+
+                {/* Comment Text */}
+                <p style={{ fontSize: 13, color: "#334155", lineHeight: 1.55, margin: 0, whiteSpace: "pre-wrap" }}>
+                  {fb.comment}
+                </p>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* ─── Edit Feedback Modal Dialog ─── */}
+      <AnimatePresence>
+        {editingFeedback && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setEditingFeedback(null)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15, 23, 42, 0.5)",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+              zIndex: 99999,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: "#ffffff",
+                borderRadius: 16,
+                padding: "24px 20px",
+                maxWidth: 480,
+                width: "100%",
+                boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.15)",
+                border: "1px solid #e2e8f0",
+                maxHeight: "90vh",
+                overflowY: "auto",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <h4 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                  Edit Student Review
+                </h4>
                 <button
-                  onClick={() => handleDelete(fb._id)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "#ef4444",
-                    cursor: "pointer",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
+                  onClick={() => setEditingFeedback(null)}
+                  style={{ background: "transparent", border: "none", cursor: "pointer", color: "#64748b" }}
                 >
-                  <Trash2 size={13} /> Delete
+                  <X size={18} />
                 </button>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 8 }}>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star
-                    key={i}
-                    size={13}
-                    fill={i < fb.rating ? "#f59e0b" : "none"}
-                    color={i < fb.rating ? "#f59e0b" : "#cbd5e1"}
+              <form onSubmit={handleSaveEdit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {/* Student Name */}
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "block", marginBottom: 4 }}>
+                    Student Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))}
+                    required
+                    style={{
+                      width: "100%",
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      fontSize: 13,
+                      boxSizing: "border-box",
+                    }}
                   />
-                ))}
-              </div>
-              <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.5, margin: 0 }}>{fb.comment}</p>
-            </div>
-          ))
+                </div>
+
+                {/* Reg. No */}
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "block", marginBottom: 4 }}>
+                    Registration Number
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.regNo}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, regNo: e.target.value }))}
+                    required
+                    style={{
+                      width: "100%",
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      fontSize: 13,
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                {/* Rating */}
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "block", marginBottom: 4 }}>
+                    Rating (1 to 5 Stars)
+                  </label>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setEditForm((prev) => ({ ...prev, rating: star }))}
+                        style={{ background: "transparent", border: "none", cursor: "pointer", padding: 2 }}
+                      >
+                        <Star
+                          size={20}
+                          fill={star <= editForm.rating ? "#f59e0b" : "none"}
+                          color={star <= editForm.rating ? "#f59e0b" : "#cbd5e1"}
+                        />
+                      </button>
+                    ))}
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a", marginLeft: 4 }}>
+                      {editForm.rating} / 5 Stars
+                    </span>
+                  </div>
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "block", marginBottom: 4 }}>
+                    Category
+                  </label>
+                  <select
+                    value={editForm.category}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, category: e.target.value }))}
+                    style={{
+                      width: "100%",
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      fontSize: 13,
+                      boxSizing: "border-box",
+                      background: "#ffffff",
+                    }}
+                  >
+                    <option value="Overall Experience">Overall Experience</option>
+                    <option value="Easy to Use">Easy to Use</option>
+                    <option value="Accurate Results">Accurate Results</option>
+                    <option value="Time Saver">Time Saver</option>
+                    <option value="Student Support">Student Support</option>
+                  </select>
+                </div>
+
+                {/* Status */}
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "block", marginBottom: 4 }}>
+                    Visibility / Review Status
+                  </label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, status: e.target.value }))}
+                    style={{
+                      width: "100%",
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      fontSize: 13,
+                      boxSizing: "border-box",
+                      background: "#ffffff",
+                    }}
+                  >
+                    <option value="approved">🟢 Live on Public Testimonials (Approved)</option>
+                    <option value="hidden">🔒 Hidden from Public (Hidden)</option>
+                    <option value="needs_review">⚠️ Grievance / Needs Support (Under Review)</option>
+                  </select>
+                </div>
+
+                {/* Comment */}
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "block", marginBottom: 4 }}>
+                    Review Comment
+                  </label>
+                  <textarea
+                    value={editForm.comment}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, comment: e.target.value }))}
+                    required
+                    rows={4}
+                    style={{
+                      width: "100%",
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      fontSize: 13,
+                      boxSizing: "border-box",
+                      resize: "vertical",
+                    }}
+                  />
+                </div>
+
+                {/* Actions */}
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => setEditingFeedback(null)}
+                    style={{
+                      background: "#f1f5f9",
+                      border: "none",
+                      borderRadius: 8,
+                      padding: "8px 16px",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: "#475569",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingEdit}
+                    style={{
+                      background: isSavingEdit ? "#93c5fd" : "#2563eb",
+                      border: "none",
+                      borderRadius: 8,
+                      padding: "8px 18px",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#ffffff",
+                      cursor: isSavingEdit ? "not-allowed" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    {isSavingEdit && <Loader2 size={13} className="animate-spin" />}
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
     </div>
   );
 }
@@ -5843,7 +6472,7 @@ export default function AdminDashboard({ defaultTab = null }) {
         {tab === "timetable" && <TimetableAdminManager authHeaders={authHeaders} API={API} />}
 
         {/* ── TAB 5: STUDENT FEEDBACK ── */}
-        {tab === "feedback" && <FeedbackManager authHeaders={authHeaders} API={API} />}
+        {tab === "feedback" && <FeedbackManager authHeaders={authHeaders} API={API} adminToken={adminToken} />}
 
         {/* ── TAB: ATTENDANCE TRACKER USAGE MONITOR ── */}
         {tab === "attendance-monitor" && (

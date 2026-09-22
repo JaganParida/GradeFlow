@@ -28,6 +28,7 @@ export default function FeedbackModal() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isDuplicateBlocked, setIsDuplicateBlocked] = useState(false);
 
   const navigate = useNavigate();
   const {
@@ -53,6 +54,13 @@ export default function FeedbackModal() {
     studentSession?.studentName ||
     studentSession?.name ||
     "Verified Student";
+
+  const cleanReg = currentRegNo ? String(currentRegNo).trim().toUpperCase() : "";
+  const isAlreadySubmitted = Boolean(
+    isDuplicateBlocked ||
+    studentData?.hasSubmittedFeedback ||
+    (cleanReg && typeof window !== "undefined" && localStorage.getItem(`gf_feedback_unlocked_${cleanReg}`) === "true")
+  );
 
   // Bulletproof mobile + desktop background scroll lock
   useEffect(() => {
@@ -125,6 +133,7 @@ export default function FeedbackModal() {
     setIsSuccess(false);
     setErrorMessage("");
     setOpenSource("");
+    setIsDuplicateBlocked(false);
   };
 
   const handleSubmit = async (e) => {
@@ -184,6 +193,9 @@ export default function FeedbackModal() {
       }, 1200);
     } catch (err) {
       console.error("Failed to submit feedback", err);
+      if (err.response?.data?.alreadySubmitted) {
+        setIsDuplicateBlocked(true);
+      }
       const serverMsg =
         err.response?.data?.message ||
         "Failed to submit review. Please try again.";
@@ -396,6 +408,82 @@ export default function FeedbackModal() {
                       ? "Thank you for your feedback! It has been submitted to the admin team for priority review."
                       : "Your feedback has been successfully published to the community wall."}
                   </p>
+                </div>
+              ) : isAlreadySubmitted ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "32px 16px",
+                    textAlign: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 54,
+                      height: 54,
+                      borderRadius: "50%",
+                      background: "#eff6ff",
+                      color: "#2563eb",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: 14,
+                    }}
+                  >
+                    <CheckCircle2 size={30} />
+                  </div>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
+                    Feedback Already Submitted
+                  </h3>
+                  <p style={{ fontSize: 13, color: "#64748b", margin: "0 0 20px 0", maxWidth: 340, lineHeight: 1.5 }}>
+                    You have already submitted your review for GradeFlow. Each student can submit one review. You can view, edit (within 24 hours of submission), or delete your review directly on the Testimonials page.
+                  </p>
+                  <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: 320 }}>
+                    <button
+                      type="button"
+                      onClick={handleClose}
+                      style={{
+                        flex: 1,
+                        padding: "10px 14px",
+                        borderRadius: 10,
+                        background: "#ffffff",
+                        border: "1px solid #cbd5e1",
+                        color: "#334155",
+                        fontSize: 13,
+                        fontWeight: 650,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Close
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleClose();
+                        navigate("/testimonials");
+                      }}
+                      style={{
+                        flex: 1.4,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        padding: "10px 16px",
+                        borderRadius: 10,
+                        background: "#2563eb",
+                        border: "1px solid #2563eb",
+                        color: "#ffffff",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <span>View My Review</span>
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>

@@ -7,7 +7,8 @@ const feedbackSchema = new mongoose.Schema({
   comment: { type: String, required: true, trim: true },
   category: { type: String, trim: true, default: "Overall Experience" },
   likes: { type: Number, default: 0 },
-  status: { type: String, enum: ["approved", "needs_review"], default: "approved" },
+  status: { type: String, enum: ["approved", "hidden", "needs_review"], default: "approved" },
+  updatedAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
 });
 

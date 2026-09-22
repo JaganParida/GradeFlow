@@ -161,8 +161,26 @@ export function AppProvider({ children }) {
         } catch (_) {}
       }
     };
+
+    const handleFeedbackDeleted = (e) => {
+      const reg = e?.detail?.regNo || studentSession?.regNo;
+      setStudentData((prev) => (prev ? { ...prev, hasSubmittedFeedback: false } : prev));
+      if (reg) {
+        try {
+          const cleanReg = String(reg).trim().toUpperCase();
+          localStorage.removeItem(`gf_feedback_unlocked_${cleanReg}`);
+          const cacheKey = `gf_student_profile_${cleanReg}`;
+          sessionStorage.removeItem(cacheKey);
+        } catch (_) {}
+      }
+    };
+
     window.addEventListener("gradeflow:feedback-submitted", handleFeedbackSubmitted);
-    return () => window.removeEventListener("gradeflow:feedback-submitted", handleFeedbackSubmitted);
+    window.addEventListener("gradeflow:feedback-deleted", handleFeedbackDeleted);
+    return () => {
+      window.removeEventListener("gradeflow:feedback-submitted", handleFeedbackSubmitted);
+      window.removeEventListener("gradeflow:feedback-deleted", handleFeedbackDeleted);
+    };
   }, [studentSession?.regNo]);
 
   // In-flight bootstrap promise ref for 100% request deduplication

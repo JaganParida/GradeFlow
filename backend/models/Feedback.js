@@ -33,8 +33,11 @@ const feedbackSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["approved", "needs_review"],
+    enum: ["approved", "hidden", "needs_review"],
     default: "approved",
+  },
+  updatedAt: {
+    type: Date,
   },
   createdAt: {
     type: Date,

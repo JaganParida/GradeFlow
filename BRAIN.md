@@ -5516,3 +5516,73 @@ This prevents premature or delayed midnight quota resets caused by serverless in
    - **Dedicated Reset Button**: Instant async trigger with loading spinner and toast notification confirmation.
    - **Recent Scan History Timeline**: Detailed chronological list of recent scans showing exact Indian Standard Time timestamp, engine utilized (`Gemini 3.6 Flash`, `Tesseract WebAssembly`), detected course count, and past administrative reset tags.
 
+---
+
+## 137. Feedback Visibility Governance, 24-Hour Student Modification Window, Instant Optimistic Moderation & Rating Integrity Architecture
+
+### 1. Problem Statement & Functional Requirements
+
+GradeFlow's community review system (`Testimonials.jsx`, `FeedbackModal.jsx`) allows students to publish feedback and rate the platform. To maintain data integrity, eliminate abusive or misleading comments, and prevent reputation distortion:
+1. **Administrative Visibility Control**: Administrators must be able to toggle feedback visibility between `"approved"` (publicly live) and `"hidden"` without deleting records permanently.
+2. **Rating Calculation Invariant**: Any hidden feedback (`status: "hidden"` or `"needs_review"`) must **strictly NOT** contribute to the public overall average rating (`avgRating`) or total review count.
+3. **Single Feedback per Student (`regNo`)**: Each student is strictly limited to 1 review. Duplicate submissions are intercepted at both client and server layers.
+4. **Student 24-Hour Edit Window**: Students who submit feedback can edit their review within 24 hours of submission (`Date.now() - createdAt <= 24 * 60 * 60 * 1000`). After 24 hours, editing is permanently locked.
+5. **Student Delete & Re-Submission Lifecycle**: Students can delete their review at any time. Once deleted, the report card / dashboard lock state resets (`hasSubmittedFeedback: false`), and the student is authorized to submit a fresh review.
+6. **Hidden Review Visibility Scoping**: Hidden reviews are strictly partitioned:
+   - Public visitors & other students: Hidden reviews are omitted entirely.
+   - Submitting author: Can always view their own review (tagged with amber "Hidden by Admin" badge).
+   - Platform creator (`230301120327`) and Admin: Retain full supervisory visibility over all feedback.
+7. **Instant Optimistic Moderation (0ms UI Latency)**: Admin visibility toggling, updates, and deletions execute optimistically in frontend state before awaiting server confirmation.
+
+### 2. State & Architectural Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> Unsubmitted: New Student
+    Unsubmitted --> Submitted: POST /api/feedback (1-5 Stars)
+    Submitted --> LivePublic: Rating >= 3 (status: approved)
+    Submitted --> NeedsReview: Rating < 3 (status: needs_review)
+    LivePublic --> Hidden: Admin Toggles Visibility (status: hidden)
+    Hidden --> LivePublic: Admin Unhides Review
+    LivePublic --> Edited: Student edits within 24h
+    Hidden --> Edited: Student edits within 24h
+    LivePublic --> LockExpired: > 24 Hours Elapsed (Editing Locked)
+    Hidden --> LockExpired: > 24 Hours Elapsed (Editing Locked)
+    LivePublic --> Unsubmitted: Deleted by Student or Admin
+    Hidden --> Unsubmitted: Deleted by Student or Admin
+```
+
+### 3. Rating & Aggregation Invariant
+
+In `frontend/src/pages/Testimonials.jsx`:
+```javascript
+const publicFeedbacks = useMemo(() => {
+  return feedbacks.filter((f) => f.status !== "hidden" && f.status !== "needs_review");
+}, [feedbacks]);
+
+const totalReviewsCount = publicFeedbacks.length;
+const avgRating = useMemo(() => {
+  if (!publicFeedbacks.length) return "0.0";
+  const sum = publicFeedbacks.reduce((acc, curr) => acc + (Number(curr.rating) || 0), 0);
+  return (sum / publicFeedbacks.length).toFixed(1);
+}, [publicFeedbacks]);
+```
+
+### 4. Report Card Lock Synchronization
+
+In `backend/routes/student.js` and `frontend/api/student.js`:
+- `hasSubmittedFeedback: Boolean(feedbackDoc)` is computed dynamically via `Feedback.exists({ regNo: { $in: regVariants } })`.
+- When an admin hides a review (`status: "hidden"`), `feedbackDoc` still exists $\rightarrow$ `hasSubmittedFeedback = true` $\rightarrow$ student's report card stays unlocked.
+- When a review is deleted (`DELETE /api/feedback/:id`), `feedbackDoc` is null $\rightarrow$ `hasSubmittedFeedback = false` $\rightarrow$ student's report card locks again and the student can submit a fresh review.
+
+### 5. Student Author Experience
+
+1. **Write Review Card Transition**:
+   - Unsubmitted student: Renders full interactive review submission form.
+   - Submitted student: Seamlessly switches to "Your Submitted Review" card, presenting rating, category, submission timestamp, 24h countdown indicator, inline edit mode, and delete button.
+2. **Review Wall Badging**:
+   - If `regNo === currentRegNo`: Badged with "You" pill and inline Edit / Delete buttons.
+   - If `status === "hidden"`: Badged with "Hidden by Admin" amber badge (author & admin eyes only).
+   - If `status === "needs_review"`: Badged with "In Review".
+3. **FeedbackModal Interception**:
+   - If `hasSubmittedFeedback` is true, displays a friendly "Feedback Already Submitted" screen explaining the 1-review limit and linking directly to `/testimonials`.
