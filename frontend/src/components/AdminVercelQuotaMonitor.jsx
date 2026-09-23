@@ -17,7 +17,10 @@ import {
   ChevronRight,
   Users,
   Globe,
-  Sparkles,
+  Flame,
+  Check,
+  Star,
+  Circle,
   Search,
   Activity,
   BarChart3,
@@ -512,7 +515,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                 flexShrink: 0,
               }}
             >
-              ✕
+              <X size={13} />
             </button>
           </motion.div>
         )}
@@ -1131,7 +1134,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                   fontWeight: 500,
                 }}
               >
-                Hourly serverless request distribution across today's traffic cycles
+                Strict 24-hour serverless telemetry recorded for today ({peakTiming?.todayDateText || "Today"})
               </p>
             </div>
           </div>
@@ -1161,7 +1164,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                 justifyContent: isMobile ? "center" : "flex-start",
               }}
             >
-              <Sparkles size={12} color="#7c3aed" style={{ flexShrink: 0 }} />
+              <Zap size={12} color="#7c3aed" style={{ flexShrink: 0 }} />
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {peakTiming?.peakHourText ? `Peak: ${peakTiming.peakHourText}` : "Awaiting Peak"}
               </span>
@@ -1199,7 +1202,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
             >
               <Calendar size={12} color="#4f46e5" style={{ flexShrink: 0 }} />
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {peakTiming?.peakDayText ? `Peak Day: ${peakTiming.peakDayText}` : "Peak Day: Active"}
+                {peakTiming?.todayDateText ? `Date: ${peakTiming.todayDateText}` : (peakTiming?.peakDayText ? `Date: ${peakTiming.peakDayText}` : "Today: Active")}
               </span>
             </div>
 
@@ -1227,9 +1230,12 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
           </div>
         </div>
 
-        {/* Interactive Telemetry Inspector Strip */}
+        {/* Interactive Telemetry Inspector Strip (LOCKED 40px HEIGHT: ZERO LAYOUT SHIFT) */}
         <div
           style={{
+            height: isMobile ? 42 : 38,
+            minHeight: isMobile ? 42 : 38,
+            maxHeight: isMobile ? 42 : 38,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -1250,34 +1256,38 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                 : "#e2e8f0"
             }`,
             borderRadius: 10,
-            padding: isMobile ? "8px 10px" : "10px 14px",
+            padding: "0 12px",
             marginBottom: 12,
-            transition: "all 0.15s ease",
+            transition: "background 0.15s ease, border-color 0.15s ease",
             gap: 8,
-            flexWrap: "wrap",
-            boxShadow: activeHistogramHour ? "0 2px 8px rgba(0,0,0,0.03)" : "none",
+            boxSizing: "border-box",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
           }}
         >
           {activeHistogramHour ? (
             <>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span style={{ fontWeight: 800, color: "#0f172a", fontSize: isMobile ? 12 : 13.5 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, overflow: "hidden" }}>
+                <Clock size={13} color="#7c3aed" style={{ flexShrink: 0 }} />
+                <span style={{ fontWeight: 800, color: "#0f172a", fontSize: isMobile ? 11.5 : 12.5, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
                   {activeHistogramHour.label} ({activeHistogramHour.hour === 0 ? "12:00 AM – 01:00 AM" : `${activeHistogramHour.hour % 12 || 12}:00 ${activeHistogramHour.hour >= 12 ? "PM" : "AM"} – ${(activeHistogramHour.hour + 1) % 12 || 12}:00 ${(activeHistogramHour.hour + 1) >= 12 ? "PM" : "AM"}`})
                 </span>
                 {activeHistogramHour.hour === peakTiming.peakHourIndex && activeHistogramHour.requests > 0 && (
                   <span
                     style={{
-                      background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
+                      background: "#7c3aed",
                       color: "#ffffff",
-                      padding: "2px 7px",
-                      borderRadius: 6,
-                      fontSize: 10,
+                      padding: "1px 6px",
+                      borderRadius: 4,
+                      fontSize: 9.5,
                       fontWeight: 800,
-                      letterSpacing: "0.02em",
-                      boxShadow: "0 1px 2px rgba(109, 40, 217, 0.3)",
+                      flexShrink: 0,
                     }}
                   >
-                    ⚡ PEAK SURGE HOUR
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                      <Zap size={10} color="#ffffff" />
+                      <span>PEAK</span>
+                    </span>
                   </span>
                 )}
                 {activeHistogramHour.hour === currentIstHour && (
@@ -1285,13 +1295,14 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                     style={{
                       background: "#0284c7",
                       color: "#ffffff",
-                      padding: "2px 7px",
-                      borderRadius: 6,
-                      fontSize: 10,
+                      padding: "1px 6px",
+                      borderRadius: 4,
+                      fontSize: 9.5,
                       fontWeight: 800,
+                      flexShrink: 0,
                     }}
                   >
-                    📍 CURRENT TIME (NOW)
+                    NOW
                   </span>
                 )}
                 {activeHistogramHour.requests === 0 && (
@@ -1300,17 +1311,18 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                       background: "#f1f5f9",
                       color: "#64748b",
                       border: "1px solid #cbd5e1",
-                      padding: "2px 7px",
-                      borderRadius: 6,
-                      fontSize: 10,
+                      padding: "1px 6px",
+                      borderRadius: 4,
+                      fontSize: 9.5,
                       fontWeight: 700,
+                      flexShrink: 0,
                     }}
                   >
-                    ⚪ DORMANT
+                    0 REQS
                   </span>
                 )}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: isMobile ? 11.5 : 12.5 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, fontSize: isMobile ? 11 : 12.5 }}>
                 <span style={{ color: "#334155", fontWeight: 700 }}>
                   <strong
                     style={{
@@ -1320,17 +1332,17 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                             ? "#7c3aed"
                             : "#0284c7"
                           : "#94a3b8",
-                      fontSize: 14.5,
+                      fontSize: 13.5,
                       fontWeight: 800,
                     }}
                   >
                     {activeHistogramHour.requests}
                   </strong>{" "}
-                  {activeHistogramHour.requests === 1 ? "request" : "requests"}
+                  {activeHistogramHour.requests === 1 ? "req" : "reqs"}
                 </span>
                 {activeHistogramHour.percentage > 0 && (
-                  <span style={{ color: "#475569", fontWeight: 600 }}>
-                    ({activeHistogramHour.percentage}% of today's total)
+                  <span style={{ color: "#64748b", fontWeight: 600, fontSize: 11 }}>
+                    ({activeHistogramHour.percentage}%)
                   </span>
                 )}
                 <button
@@ -1338,47 +1350,47 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                   style={{
                     background: "none",
                     border: "none",
-                    padding: "2px 4px",
+                    padding: "2px",
                     cursor: "pointer",
                     color: "#94a3b8",
                     display: "flex",
                     alignItems: "center",
-                    borderRadius: 4,
                   }}
                   title="Deselect hour"
                 >
-                  <X size={14} />
+                  <X size={13} />
                 </button>
               </div>
             </>
           ) : (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                width: "100%",
-                color: "#64748b",
-                fontSize: isMobile ? 11 : 12,
-                flexWrap: "wrap",
-                gap: 6,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <Sparkles size={13} color="#7c3aed" style={{ flexShrink: 0 }} />
-                <span>
+            <>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  color: "#64748b",
+                  fontSize: isMobile ? 11 : 12,
+                }}
+              >
+                <Clock size={13} color="#7c3aed" style={{ flexShrink: 0 }} />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {peakTiming?.peakHourIndex >= 0 && (peakTiming?.peakHourCount > 0 || (today?.used || 0) > 0)
-                    ? `Highest traffic surge at ${peakTiming.peakHourText} with ${peakTiming.peakHourCount || 0} serverless requests`
-                    : "Hover or tap on any hour bar to inspect serverless request telemetry"}
+                    ? `Today's Peak Surge: ${peakTiming.peakHourText} (${peakTiming.peakHourCount || 0} reqs)`
+                    : "Hover on any hour bar to inspect serverless request telemetry"}
                 </span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: isMobile ? 10.5 : 11.5 }}>
-                <span style={{ color: "#94a3b8" }}>Tap/hover bar to inspect</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, fontSize: isMobile ? 10.5 : 11.5 }}>
+                <span style={{ color: "#94a3b8" }}>Hover to inspect</span>
                 <span style={{ fontWeight: 700, color: "#1e293b", background: "#e2e8f0", padding: "1px 6px", borderRadius: 4 }}>
-                  24h: {today?.used || 0} reqs
+                  Today: {today?.used || 0} reqs
                 </span>
               </div>
-            </div>
+            </>
           )}
         </div>
 
@@ -1504,14 +1516,46 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                     alignItems: "center",
                     cursor: "pointer",
                     minWidth: 0,
-                    transition: "transform 0.15s ease",
-                    transform: isHovered ? "scaleY(1.04)" : "none",
+                    position: "relative",
                     touchAction: "manipulation",
                   }}
-                  title={`${h.label}: ${h.requests} requests (${h.percentage}% of today)`}
                 >
+                  {/* Floating Smooth Tooltip (Zero DOM Layout Shift, pointerEvents none) */}
+                  {isHovered && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: "calc(100% + 6px)",
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        background: "#0f172a",
+                        color: "#ffffff",
+                        padding: "3px 7px",
+                        borderRadius: 6,
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        whiteSpace: "nowrap",
+                        boxShadow: "0 4px 14px rgba(15, 23, 42, 0.35)",
+                        pointerEvents: "none",
+                        zIndex: 40,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 5,
+                      }}
+                    >
+                      <span>{h.label}:</span>
+                      <span style={{ color: isPeak ? "#c084fc" : "#38bdf8", fontWeight: 800 }}>
+                        {h.requests} reqs
+                      </span>
+                      {h.percentage > 0 && (
+                        <span style={{ color: "#94a3b8", fontSize: 9.5 }}>({h.percentage}%)</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Peak Indicator Icon (Static flex-shrink 0, never causes layout jump) */}
                   {isPeak && (
-                    <div style={{ marginBottom: 2, display: "flex", justifyContent: "center" }}>
+                    <div style={{ marginBottom: 2, display: "flex", justifyContent: "center", flexShrink: 0 }}>
                       <Sparkles
                         size={isMobile ? 10 : 12}
                         color="#f59e0b"
@@ -1520,6 +1564,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                     </div>
                   )}
 
+                  {/* The Stationary Bar Div */}
                   <div
                     style={{
                       width: "100%",
@@ -1532,7 +1577,8 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                         : isCurrentHour
                         ? "1.5px solid #0284c7"
                         : "none",
-                      transition: "all 0.15s ease",
+                      filter: isHovered ? "brightness(1.15)" : "none",
+                      transition: "background 0.15s ease, filter 0.15s ease",
                     }}
                   />
                 </div>

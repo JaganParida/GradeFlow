@@ -139,31 +139,11 @@ async function getVercelQuotaData(forceRefresh = false) {
     0
   );
 
-  // Extract today's hourly requests using robust helper (supports Object and Array)
+  // Extract strictly today's hourly requests (purely what occurred inside today)
   const finalHourlyRequests = extractHourlyRequests(todayMetric?.hourlyRequests);
+  const todayUsed = storedTodayRequests;
 
-  // Synthesize student activity baseline if needed
-  const aggregateHourly = new Array(24).fill(0);
-  const aggregateDays = new Array(7).fill(0);
-  safeStudents.forEach((st) => {
-    if (Array.isArray(st.hourlyActivity)) {
-      st.hourlyActivity.forEach((cnt, h) => {
-        aggregateHourly[h] = (aggregateHourly[h] || 0) + (cnt || 0);
-      });
-    }
-    if (Array.isArray(st.dayOfWeekActivity)) {
-      st.dayOfWeekActivity.forEach((cnt, d) => {
-        aggregateDays[d] = (aggregateDays[d] || 0) + (cnt || 0);
-      });
-    }
-  });
-
-  // Blend with student telemetry if needed
-  for (let h = 0; h < 24; h++) {
-    finalHourlyRequests[h] = Math.max(finalHourlyRequests[h] || 0, aggregateHourly[h] || 0);
-  }
-
-  // Determine Peak Hour
+  // Determine Today's Peak Hour strictly from today's real telemetry
   let maxHourCount = 0;
   let peakHourIndex = -1;
   finalHourlyRequests.forEach((count, h) => {
@@ -173,50 +153,19 @@ async function getVercelQuotaData(forceRefresh = false) {
     }
   });
 
-  // If today's telemetry has 0 requests in hourly data, inspect monthly metrics to identify historical peak pattern
-  if (maxHourCount === 0 && safeMonthlyMetrics.length > 0) {
-    const historicalHourly = new Array(24).fill(0);
-    safeMonthlyMetrics.forEach((m) => {
-      const mHourly = extractHourlyRequests(m.hourlyRequests);
-      mHourly.forEach((cnt, h) => {
-        historicalHourly[h] += cnt;
-      });
-    });
-    historicalHourly.forEach((cnt, h) => {
-      if (cnt > maxHourCount) {
-        maxHourCount = cnt;
-        peakHourIndex = h;
-      }
-    });
+  const peakHourText = peakHourIndex >= 0 ? formatHourSlot(peakHourIndex) : "Awaiting Today's Traffic";
 
-    if (effectiveTodayRequests === 0 && maxHourCount > 0) {
-      for (let h = 0; h < 24; h++) {
-        finalHourlyRequests[h] = historicalHourly[h];
-      }
-    }
-  }
-
-  const peakHourText = peakHourIndex >= 0 ? formatHourSlot(peakHourIndex) : "Awaiting Traffic";
-
-  // Aggregate day-of-week telemetry
-  safeMonthlyMetrics.forEach((m) => {
-    if (typeof m.dayOfWeek === "number" && m.dayOfWeek >= 0 && m.dayOfWeek < 7) {
-      aggregateDays[m.dayOfWeek] = (aggregateDays[m.dayOfWeek] || 0) + (m.totalRequests || 0);
-    }
+  const todayDateText = istDate.toLocaleDateString("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
   });
 
-  let maxDayCount = 0;
-  let peakDayIndex = -1;
-  aggregateDays.forEach((count, d) => {
-    if (count > maxDayCount) {
-      maxDayCount = count;
-      peakDayIndex = d;
-    }
-  });
-  const peakDayText = peakDayIndex >= 0 ? (DAYS_NAMES[peakDayIndex] || "Today") : "Today";
+  const peakDayText = todayDateText;
 
   const todayBudget = HOBBY_LIMITS.DAILY_REQUESTS_BUDGET;
-  const todayUsed = effectiveTodayRequests;
   const todayRemaining = Math.max(0, todayBudget - todayUsed);
   const todayPercent = parseFloat(((todayUsed / todayBudget) * 100).toFixed(1));
 
@@ -374,13 +323,15 @@ async function getVercelQuotaData(forceRefresh = false) {
       peakHourText,
       peakHourCount: maxHourCount,
       peakDayText,
-      peakDayIndex,
+      todayDateText,
+      peakDayIndex: istDay,
       totalActiveStudents,
+      totalTodayRequests: todayUsed,
       hourlyDistribution: finalHourlyRequests.map((count, h) => ({
         hour: h,
         label: `${h % 12 === 0 ? 12 : h % 12} ${h >= 12 ? "PM" : "AM"}`,
         requests: count,
-        percentage: effectiveTodayRequests > 0 ? parseFloat(((count / effectiveTodayRequests) * 100).toFixed(1)) : 0,
+        percentage: todayUsed > 0 ? parseFloat(((count / todayUsed) * 100).toFixed(1)) : 0,
       })),
     },
     routeBreakdown,
