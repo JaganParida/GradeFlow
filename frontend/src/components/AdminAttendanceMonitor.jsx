@@ -25,6 +25,7 @@ import {
   ArrowUpRight,
   TrendingUp,
   Target,
+  Infinity,
 } from "lucide-react";
 
 export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {}, isMobile = false }) {
@@ -1197,7 +1198,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
                               border: "1px solid #ddd6fe",
                             }}
                           >
-                            <span>♾️</span>
+                            <Infinity size={13} color="#6d28d9" strokeWidth={2.5} style={{ flexShrink: 0 }} />
                             <span>Unlimited</span>
                           </span>
                         ) : (

@@ -1556,7 +1556,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                   {/* Peak Indicator Icon (Static flex-shrink 0, never causes layout jump) */}
                   {isPeak && (
                     <div style={{ marginBottom: 2, display: "flex", justifyContent: "center", flexShrink: 0 }}>
-                      <Sparkles
+                      <Flame
                         size={isMobile ? 10 : 12}
                         color="#f59e0b"
                         style={{ flexShrink: 0, filter: "drop-shadow(0 1px 2px rgba(245, 158, 11, 0.6))" }}
@@ -1645,7 +1645,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                 flexShrink: 0,
               }}
             >
-              <Sparkles size={16} color="#7c3aed" />
+              <Zap size={16} color="#7c3aed" />
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 11, color: "#6b21a8", fontWeight: 700 }}>
@@ -2137,9 +2137,13 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                             background: "#fef3c7",
                             color: "#b45309",
                             border: "1px solid #fde68a",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 3,
                           }}
                         >
-                          ★ RECOMMENDED
+                          <Star size={9} fill="currentColor" />
+                          <span>RECOMMENDED</span>
                         </span>
                       )}
                     </div>
@@ -2152,9 +2156,13 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                           borderRadius: 4,
                           background: "#ef4444",
                           color: "#ffffff",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 3,
                         }}
                       >
-                        ✓ ACTIVE
+                        <Check size={10} strokeWidth={3} />
+                        <span>ACTIVE</span>
                       </span>
                     ) : (
                       <ShieldAlert size={14} color="#ef4444" />
@@ -2202,7 +2210,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                   }}
                 >
                   {isCurrentActive
-                    ? "✓ Currently Active"
+                    ? "Currently Active"
                     : applyingPolicy === "CRITICAL_SHIELD"
                     ? "Applying..."
                     : "Apply Mode"}
@@ -2301,7 +2309,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                   padding: 0,
                 }}
               >
-                ✕
+                <X size={12} />
               </button>
             )}
           </div>

@@ -1917,7 +1917,8 @@ export default function Testimonials() {
                           gap: 4,
                         }}
                       >
-                        ⚠️ Under Review
+                        <AlertCircle size={11} color="#b45309" />
+                        <span>Under Review</span>
                       </span>
                     ) : (
                       <span

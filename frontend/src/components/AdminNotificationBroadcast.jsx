@@ -8,7 +8,7 @@ import {
   Megaphone,
   Trophy,
   Calendar,
-  Sparkles,
+  Compass,
   AlertTriangle,
   ArrowRight,
   Check,
@@ -310,7 +310,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
       case "TIMETABLE_UPDATE":
         return <Calendar size={size} color="#7c3aed" />;
       case "FEATURE_EXPLORE":
-        return <Sparkles size={size} color="#059669" />;
+        return <Compass size={size} color="#059669" />;
       case "URGENT_ALERT":
         return <AlertTriangle size={size} color="#dc2626" />;
       default:

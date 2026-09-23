@@ -4228,7 +4228,7 @@ function FeedbackManager({ authHeaders, API, adminToken }) {
           <strong style={{ color: "#d97706" }}>{hiddenCount}</strong>
         </div>
         <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 12px", fontSize: 12 }}>
-          <span style={{ color: "#991b1b" }}>Grievances (1-2★): </span>
+          <span style={{ color: "#991b1b" }}>Grievances (1-2 Stars): </span>
           <strong style={{ color: "#dc2626" }}>{grievanceCount}</strong>
         </div>
       </div>
@@ -4440,7 +4440,8 @@ function FeedbackManager({ authHeaders, API, adminToken }) {
                             gap: 4,
                           }}
                         >
-                          ⚠️ Grievance / Needs Support
+                          <AlertTriangle size={12} color="#b45309" />
+                          <span>Grievance / Needs Support</span>
                         </span>
                       )}
 
@@ -4736,9 +4737,9 @@ function FeedbackManager({ authHeaders, API, adminToken }) {
                       background: "#ffffff",
                     }}
                   >
-                    <option value="approved">🟢 Live on Public Testimonials (Approved)</option>
-                    <option value="hidden">🔒 Hidden from Public (Hidden)</option>
-                    <option value="needs_review">⚠️ Grievance / Needs Support (Under Review)</option>
+                    <option value="approved">Live on Public Testimonials (Approved)</option>
+                    <option value="hidden">Hidden from Public (Hidden)</option>
+                    <option value="needs_review">Grievance / Needs Support (Under Review)</option>
                   </select>
                 </div>
 

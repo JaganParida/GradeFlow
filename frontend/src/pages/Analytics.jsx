@@ -54,7 +54,7 @@ import {
   Percent,
   Search,
   Activity,
-  Sparkles,
+  CheckCircle2,
 } from "lucide-react";
 import {
   GRADE_POINTS,
@@ -2459,7 +2459,7 @@ export default function Analytics() {
                                 gap: 3,
                               }}
                             >
-                              <Sparkles size={10} color="#15803d" />
+                              <CheckCircle2 size={10} color="#15803d" />
                               <span>Cleared</span>
                             </span>
                           )}
@@ -2767,7 +2767,7 @@ export default function Analytics() {
                                   gap: 4,
                                 }}
                               >
-                                <Sparkles size={11} color="#15803d" />
+                                <CheckCircle2 size={11} color="#15803d" />
                                 <span>Cleared with {simGradeNorm}</span>
                               </span>
                             )}
