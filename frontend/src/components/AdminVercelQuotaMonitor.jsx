@@ -287,24 +287,25 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
     ...(peakTiming?.hourlyDistribution?.map((h) => h.requests) || [1])
   );
 
-  const currentIstHour = useMemo(() => {
-    const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000;
-    const istDate = new Date(now.getTime() + istOffset);
-    return istDate.getUTCHours();
-  }, []);
+  const now = new Date();
+  const currentIstHour = new Date(now.getTime() + 5.5 * 60 * 60 * 1000).getUTCHours();
 
-  const activeHoursCount = useMemo(() => {
-    return (peakTiming?.hourlyDistribution || []).filter((h) => (h.requests || 0) > 0).length;
-  }, [peakTiming]);
+  const activeHoursCount = (peakTiming?.hourlyDistribution || []).filter(
+    (h) => (h.requests || 0) > 0
+  ).length;
 
-  const top3HoursShare = useMemo(() => {
-    const sorted = [...(peakTiming?.hourlyDistribution || [])].sort((a, b) => (b.requests || 0) - (a.requests || 0));
-    const top3Sum = (sorted[0]?.requests || 0) + (sorted[1]?.requests || 0) + (sorted[2]?.requests || 0);
+  const top3HoursShare = (() => {
+    const sorted = [...(peakTiming?.hourlyDistribution || [])].sort(
+      (a, b) => (b.requests || 0) - (a.requests || 0)
+    );
+    const top3Sum =
+      (sorted[0]?.requests || 0) +
+      (sorted[1]?.requests || 0) +
+      (sorted[2]?.requests || 0);
     const totalToday = today?.used || 0;
     if (totalToday <= 0 || top3Sum <= 0) return 0;
     return Math.min(100, Math.round((top3Sum / totalToday) * 100));
-  }, [peakTiming, today]);
+  })();
 
   return (
     <div
