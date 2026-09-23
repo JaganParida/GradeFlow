@@ -40,10 +40,21 @@ function getIstDateDetails() {
   // Total days in current month
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
+  const todayDateText = istDate.toLocaleDateString("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+
   return {
+    istDate,
+    todayDateText,
     dateStr,
     monthStr,
     dayOfWeek: day,
+    istDay: day,
     hour,
     dayOfMonth: date,
     daysInMonth,
@@ -90,7 +101,17 @@ router.use(protect);
 // ZERO POLLING / ZERO QUOTA DRAIN: Only executes when the admin requests it.
 router.get("/", async (req, res) => {
   try {
-    const { dateStr, monthStr, dayOfWeek, hour, dayOfMonth, daysInMonth } = getIstDateDetails();
+    const {
+      istDate,
+      todayDateText,
+      dateStr,
+      monthStr,
+      dayOfWeek,
+      istDay,
+      hour,
+      dayOfMonth,
+      daysInMonth,
+    } = getIstDateDetails();
 
     // 1. Fetch Today's Metric Record
     const todayMetric = await VercelQuotaMetric.findOne({ dateStr }).lean();
@@ -170,14 +191,6 @@ router.get("/", async (req, res) => {
     });
 
     const peakHourText = peakHourIndex >= 0 ? formatHourSlot(peakHourIndex) : "Awaiting Today's Traffic";
-
-    const todayDateText = istDate.toLocaleDateString("en-IN", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      timeZone: "UTC",
-    });
 
     const peakDayText = todayDateText;
 

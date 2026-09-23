@@ -40,10 +40,21 @@ function getIstDateDetails() {
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
+  const todayDateText = istDate.toLocaleDateString("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+
   return {
+    istDate,
+    todayDateText,
     dateStr,
     monthStr,
     dayOfWeek: day,
+    istDay: day,
     hour,
     dayOfMonth: date,
     daysInMonth,
@@ -105,7 +116,17 @@ async function getVercelQuotaData(forceRefresh = false) {
     return cachedQuotaData;
   }
 
-  const { dateStr, monthStr, dayOfWeek, hour, dayOfMonth, daysInMonth } = getIstDateDetails();
+  const {
+    istDate,
+    todayDateText,
+    dateStr,
+    monthStr,
+    dayOfWeek,
+    istDay,
+    hour,
+    dayOfMonth,
+    daysInMonth,
+  } = getIstDateDetails();
 
   const [todayMetric, monthlyMetrics, studentActivities, pages, rawQueueConfig] = await Promise.all([
     VercelQuotaMetric.findOne({ dateStr }).lean().catch(() => null),
@@ -154,14 +175,6 @@ async function getVercelQuotaData(forceRefresh = false) {
   });
 
   const peakHourText = peakHourIndex >= 0 ? formatHourSlot(peakHourIndex) : "Awaiting Today's Traffic";
-
-  const todayDateText = istDate.toLocaleDateString("en-IN", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
 
   const peakDayText = todayDateText;
 
