@@ -84,6 +84,21 @@ function getRouteCategory(r) {
   return "PUBLIC";
 }
 
+function extractHourlyRequests(hourlyData) {
+  const arr = new Array(24).fill(0);
+  if (!hourlyData) return arr;
+  if (Array.isArray(hourlyData)) {
+    for (let h = 0; h < 24; h++) {
+      arr[h] = Number(hourlyData[h]) || 0;
+    }
+  } else if (typeof hourlyData === "object") {
+    for (let h = 0; h < 24; h++) {
+      arr[h] = Number(hourlyData[h] ?? hourlyData[String(h)]) || 0;
+    }
+  }
+  return arr;
+}
+
 async function getVercelQuotaData(forceRefresh = false) {
   const now = Date.now();
   if (!forceRefresh && cachedQuotaData && (now - cachedQuotaTimestamp < QUOTA_CACHE_TTL_MS)) {
@@ -92,16 +107,18 @@ async function getVercelQuotaData(forceRefresh = false) {
 
   const { dateStr, monthStr, dayOfWeek, hour, dayOfMonth, daysInMonth } = getIstDateDetails();
 
-  const [todayMetric, monthlyMetrics, totalActiveStudents, pages, rawQueueConfig] = await Promise.all([
+  const [todayMetric, monthlyMetrics, studentActivities, pages, rawQueueConfig] = await Promise.all([
     VercelQuotaMetric.findOne({ dateStr }).lean().catch(() => null),
     VercelQuotaMetric.find({ monthStr }).lean().catch(() => []),
-    StudentRouteActivity.countDocuments({ regNo: { $ne: EXCLUDED_STUDENT_REG } }).catch(() => 0),
+    StudentRouteActivity.find({ regNo: { $ne: EXCLUDED_STUDENT_REG } }).lean().catch(() => []),
     PageAnalytics.find({}).sort({ totalViews: -1 }).lean().catch(() => []),
     TrafficQueueConfig.findOne({ key: "global_traffic_config" }).lean().catch(() => null),
   ]);
 
   const safeMonthlyMetrics = Array.isArray(monthlyMetrics) ? monthlyMetrics : [];
   const safePages = Array.isArray(pages) ? pages : [];
+  const safeStudents = Array.isArray(studentActivities) ? studentActivities : [];
+  const totalActiveStudents = safeStudents.length;
 
   const queueConfig = rawQueueConfig || {
     queueEnabled: false,
@@ -122,13 +139,31 @@ async function getVercelQuotaData(forceRefresh = false) {
     0
   );
 
-  const finalHourlyRequests = new Array(24).fill(0);
-  if (todayMetric && Array.isArray(todayMetric.hourlyRequests)) {
-    for (let h = 0; h < 24; h++) {
-      finalHourlyRequests[h] = todayMetric.hourlyRequests[h] || 0;
+  // Extract today's hourly requests using robust helper (supports Object and Array)
+  const finalHourlyRequests = extractHourlyRequests(todayMetric?.hourlyRequests);
+
+  // Synthesize student activity baseline if needed
+  const aggregateHourly = new Array(24).fill(0);
+  const aggregateDays = new Array(7).fill(0);
+  safeStudents.forEach((st) => {
+    if (Array.isArray(st.hourlyActivity)) {
+      st.hourlyActivity.forEach((cnt, h) => {
+        aggregateHourly[h] = (aggregateHourly[h] || 0) + (cnt || 0);
+      });
     }
+    if (Array.isArray(st.dayOfWeekActivity)) {
+      st.dayOfWeekActivity.forEach((cnt, d) => {
+        aggregateDays[d] = (aggregateDays[d] || 0) + (cnt || 0);
+      });
+    }
+  });
+
+  // Blend with student telemetry if needed
+  for (let h = 0; h < 24; h++) {
+    finalHourlyRequests[h] = Math.max(finalHourlyRequests[h] || 0, aggregateHourly[h] || 0);
   }
 
+  // Determine Peak Hour
   let maxHourCount = 0;
   let peakHourIndex = -1;
   finalHourlyRequests.forEach((count, h) => {
@@ -138,15 +173,14 @@ async function getVercelQuotaData(forceRefresh = false) {
     }
   });
 
-  // If today's telemetry has 0 requests, aggregate historical monthly hourly telemetry to identify natural peak
+  // If today's telemetry has 0 requests in hourly data, inspect monthly metrics to identify historical peak pattern
   if (maxHourCount === 0 && safeMonthlyMetrics.length > 0) {
     const historicalHourly = new Array(24).fill(0);
     safeMonthlyMetrics.forEach((m) => {
-      if (Array.isArray(m.hourlyRequests)) {
-        m.hourlyRequests.forEach((cnt, h) => {
-          historicalHourly[h] += cnt || 0;
-        });
-      }
+      const mHourly = extractHourlyRequests(m.hourlyRequests);
+      mHourly.forEach((cnt, h) => {
+        historicalHourly[h] += cnt;
+      });
     });
     historicalHourly.forEach((cnt, h) => {
       if (cnt > maxHourCount) {
@@ -154,11 +188,17 @@ async function getVercelQuotaData(forceRefresh = false) {
         peakHourIndex = h;
       }
     });
+
+    if (effectiveTodayRequests === 0 && maxHourCount > 0) {
+      for (let h = 0; h < 24; h++) {
+        finalHourlyRequests[h] = historicalHourly[h];
+      }
+    }
   }
 
   const peakHourText = peakHourIndex >= 0 ? formatHourSlot(peakHourIndex) : "Awaiting Traffic";
 
-  const aggregateDays = new Array(7).fill(0);
+  // Aggregate day-of-week telemetry
   safeMonthlyMetrics.forEach((m) => {
     if (typeof m.dayOfWeek === "number" && m.dayOfWeek >= 0 && m.dayOfWeek < 7) {
       aggregateDays[m.dayOfWeek] = (aggregateDays[m.dayOfWeek] || 0) + (m.totalRequests || 0);

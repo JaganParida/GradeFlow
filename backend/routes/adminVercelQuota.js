@@ -67,6 +67,21 @@ function formatHourSlot(hour) {
   return `${displayH}:00 ${period} – ${nextDisplayH}:00 ${nextPeriod} (${tag})`;
 }
 
+function extractHourlyRequests(hourlyData) {
+  const arr = new Array(24).fill(0);
+  if (!hourlyData) return arr;
+  if (Array.isArray(hourlyData)) {
+    for (let h = 0; h < 24; h++) {
+      arr[h] = Number(hourlyData[h]) || 0;
+    }
+  } else if (typeof hourlyData === "object") {
+    for (let h = 0; h < 24; h++) {
+      arr[h] = Number(hourlyData[h] ?? hourlyData[String(h)]) || 0;
+    }
+  }
+  return arr;
+}
+
 // All endpoints require administrative authentication
 router.use(protect);
 
@@ -140,11 +155,10 @@ router.get("/", async (req, res) => {
       Math.round(effectiveMonthRequests / Math.max(1, dayOfMonth))
     );
 
-    // Merge 24-hour histogram
-    const finalHourlyRequests = new Array(24).fill(0);
+    // Merge 24-hour histogram using robust extraction
+    const finalHourlyRequests = extractHourlyRequests(todayMetric?.hourlyRequests);
     for (let h = 0; h < 24; h++) {
-      const fromMetric = todayMetric?.hourlyRequests?.[h] || 0;
-      finalHourlyRequests[h] = Math.max(fromMetric, aggregateHourly[h] || 0);
+      finalHourlyRequests[h] = Math.max(finalHourlyRequests[h] || 0, aggregateHourly[h] || 0);
     }
 
     // Determine Peak Hour
@@ -161,11 +175,10 @@ router.get("/", async (req, res) => {
     if (maxHourCount === 0 && monthlyMetrics.length > 0) {
       const historicalHourly = new Array(24).fill(0);
       monthlyMetrics.forEach((m) => {
-        if (Array.isArray(m.hourlyRequests)) {
-          m.hourlyRequests.forEach((cnt, h) => {
-            historicalHourly[h] += cnt || 0;
-          });
-        }
+        const mHourly = extractHourlyRequests(m.hourlyRequests);
+        mHourly.forEach((cnt, h) => {
+          historicalHourly[h] += cnt;
+        });
       });
       historicalHourly.forEach((cnt, h) => {
         if (cnt > maxHourCount) {
@@ -173,6 +186,11 @@ router.get("/", async (req, res) => {
           peakHourIndex = h;
         }
       });
+      if (effectiveTodayRequests === 0 && maxHourCount > 0) {
+        for (let h = 0; h < 24; h++) {
+          finalHourlyRequests[h] = historicalHourly[h];
+        }
+      }
     }
 
     const peakHourText = peakHourIndex >= 0 ? formatHourSlot(peakHourIndex) : "Awaiting Traffic";

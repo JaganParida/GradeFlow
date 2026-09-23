@@ -19,6 +19,10 @@ import {
   Globe,
   Sparkles,
   Search,
+  Activity,
+  BarChart3,
+  Info,
+  X,
 } from "lucide-react";
 
 export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: propIsMobile }) {
@@ -282,6 +286,25 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
     1,
     ...(peakTiming?.hourlyDistribution?.map((h) => h.requests) || [1])
   );
+
+  const currentIstHour = useMemo(() => {
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istDate = new Date(now.getTime() + istOffset);
+    return istDate.getUTCHours();
+  }, []);
+
+  const activeHoursCount = useMemo(() => {
+    return (peakTiming?.hourlyDistribution || []).filter((h) => (h.requests || 0) > 0).length;
+  }, [peakTiming]);
+
+  const top3HoursShare = useMemo(() => {
+    const sorted = [...(peakTiming?.hourlyDistribution || [])].sort((a, b) => (b.requests || 0) - (a.requests || 0));
+    const top3Sum = (sorted[0]?.requests || 0) + (sorted[1]?.requests || 0) + (sorted[2]?.requests || 0);
+    const totalToday = today?.used || 0;
+    if (totalToday <= 0 || top3Sum <= 0) return 0;
+    return Math.min(100, Math.round((top3Sum / totalToday) * 100));
+  }, [peakTiming, today]);
 
   return (
     <div
@@ -1037,116 +1060,394 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
         style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
-          borderRadius: isMobile ? 12 : 16,
-          padding: isMobile ? "12px" : "18px 20px",
-          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+          borderRadius: isMobile ? 14 : 18,
+          padding: isMobile ? "14px 12px" : "20px 22px",
+          boxShadow: "0 2px 10px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.02)",
           boxSizing: "border-box",
           width: "100%",
         }}
       >
+        {/* Card Header & Badges */}
         <div
           style={{
             display: "flex",
             flexDirection: isMobile ? "column" : "row",
             justifyContent: "space-between",
-            alignItems: isMobile ? "stretch" : "center",
-            gap: 8,
-            marginBottom: 12,
+            alignItems: isMobile ? "flex-start" : "center",
+            gap: 12,
+            marginBottom: 14,
           }}
         >
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <Clock size={16} color="#7c3aed" />
-              <h3
-                style={{
-                  fontSize: isMobile ? 14 : 15.5,
-                  fontWeight: 800,
-                  color: "#0f172a",
-                  margin: 0,
-                }}
-              >
-                Peak Timing & Surge Intelligence
-              </h3>
-            </div>
-            <p
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
               style={{
-                fontSize: isMobile ? 10.5 : 12,
-                color: "#64748b",
-                margin: "2px 0 0 0",
+                width: isMobile ? 36 : 40,
+                height: isMobile ? 36 : 40,
+                borderRadius: 10,
+                background: "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)",
+                border: "1px solid #ddd6fe",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                boxShadow: "0 2px 6px rgba(124, 58, 237, 0.1)",
               }}
             >
-              Calculated from 24-hour serverless telemetry.
-            </p>
+              <TrendingUp size={isMobile ? 18 : 20} color="#7c3aed" />
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                <h3
+                  style={{
+                    fontSize: isMobile ? 14.5 : 16,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    margin: 0,
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  Peak Timing & Surge Intelligence
+                </h3>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: "2px 7px",
+                    borderRadius: 12,
+                    background: "#f1f5f9",
+                    color: "#475569",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  24-Hour Telemetry
+                </span>
+              </div>
+              <p
+                style={{
+                  fontSize: isMobile ? 11 : 12,
+                  color: "#64748b",
+                  margin: "2px 0 0 0",
+                  fontWeight: 500,
+                }}
+              >
+                Hourly serverless request distribution across today's traffic cycles
+              </p>
+            </div>
           </div>
 
+          {/* Metric Badges */}
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: isMobile ? "1fr 1fr" : "auto auto",
+              display: "flex",
+              flexWrap: "wrap",
               gap: 6,
               width: isMobile ? "100%" : "auto",
             }}
           >
             <div
               style={{
-                padding: "5px 8px",
-                background: "#f5f3ff",
-                border: "1px solid #ddd6fe",
+                padding: "6px 10px",
+                background: "linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)",
+                border: "1px solid #d8b4fe",
                 borderRadius: 8,
-                fontSize: 10.5,
+                fontSize: 11,
                 display: "flex",
                 alignItems: "center",
-                gap: 5,
-                minWidth: 0,
+                gap: 6,
+                color: "#581c87",
+                fontWeight: 700,
+                flex: isMobile ? "1 1 calc(50% - 6px)" : "initial",
+                justifyContent: isMobile ? "center" : "flex-start",
               }}
             >
-              <Clock size={12} color="#7c3aed" style={{ flexShrink: 0 }} />
-              <span style={{ color: "#2e1065", fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {peakTiming?.peakHourText || "8:00 PM – 9:00 PM"}
+              <Sparkles size={12} color="#7c3aed" style={{ flexShrink: 0 }} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {peakTiming?.peakHourText ? `Peak: ${peakTiming.peakHourText}` : "Awaiting Peak"}
+              </span>
+              {peakTiming?.peakHourCount > 0 && (
+                <span
+                  style={{
+                    background: "#7c3aed",
+                    color: "#ffffff",
+                    borderRadius: 4,
+                    padding: "1px 5px",
+                    fontSize: 9.5,
+                    fontWeight: 800,
+                  }}
+                >
+                  {peakTiming.peakHourCount} reqs
+                </span>
+              )}
+            </div>
+
+            <div
+              style={{
+                padding: "6px 10px",
+                background: "#eef2ff",
+                border: "1px solid #c7d2fe",
+                borderRadius: 8,
+                fontSize: 11,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                color: "#312e81",
+                fontWeight: 700,
+                flex: isMobile ? "1 1 calc(50% - 6px)" : "initial",
+                justifyContent: isMobile ? "center" : "flex-start",
+              }}
+            >
+              <Calendar size={12} color="#4f46e5" style={{ flexShrink: 0 }} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {peakTiming?.peakDayText ? `Peak Day: ${peakTiming.peakDayText}` : "Peak Day: Active"}
               </span>
             </div>
 
             <div
               style={{
-                padding: "5px 8px",
-                background: "#eef2ff",
-                border: "1px solid #c7d2fe",
+                padding: "6px 10px",
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
                 borderRadius: 8,
-                fontSize: 10.5,
+                fontSize: 11,
                 display: "flex",
                 alignItems: "center",
-                gap: 5,
-                minWidth: 0,
+                gap: 6,
+                color: "#14532d",
+                fontWeight: 700,
+                flex: isMobile ? "1 1 100%" : "initial",
+                justifyContent: isMobile ? "center" : "flex-start",
               }}
             >
-              <Calendar size={12} color="#4f46e5" style={{ flexShrink: 0 }} />
-              <span style={{ color: "#1e1b4b", fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {peakTiming?.peakDayText || "Tuesday"}
+              <Zap size={12} color="#16a34a" style={{ flexShrink: 0 }} />
+              <span>
+                <strong>{today?.used || 0}</strong> reqs tracked today
               </span>
             </div>
           </div>
         </div>
 
-        {/* 24-Hour Bar Histogram with zero overflow */}
+        {/* Interactive Telemetry Inspector Strip */}
         <div
           style={{
-            background: "#f8fafc",
-            border: "1px solid #e2e8f0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            background: activeHistogramHour
+              ? activeHistogramHour.hour === peakTiming.peakHourIndex
+                ? "linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)"
+                : activeHistogramHour.requests > 0
+                ? "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)"
+                : "#f8fafc"
+              : "#f8fafc",
+            border: `1px solid ${
+              activeHistogramHour
+                ? activeHistogramHour.hour === peakTiming.peakHourIndex
+                  ? "#d8b4fe"
+                  : activeHistogramHour.requests > 0
+                  ? "#bae6fd"
+                  : "#e2e8f0"
+                : "#e2e8f0"
+            }`,
             borderRadius: 10,
-            padding: isMobile ? "10px 6px 6px 6px" : "14px 12px 8px 12px",
-            boxSizing: "border-box",
-            width: "100%",
+            padding: isMobile ? "8px 10px" : "10px 14px",
+            marginBottom: 12,
+            transition: "all 0.15s ease",
+            gap: 8,
+            flexWrap: "wrap",
+            boxShadow: activeHistogramHour ? "0 2px 8px rgba(0,0,0,0.03)" : "none",
           }}
         >
+          {activeHistogramHour ? (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontWeight: 800, color: "#0f172a", fontSize: isMobile ? 12 : 13.5 }}>
+                  {activeHistogramHour.label} ({activeHistogramHour.hour === 0 ? "12:00 AM – 01:00 AM" : `${activeHistogramHour.hour % 12 || 12}:00 ${activeHistogramHour.hour >= 12 ? "PM" : "AM"} – ${(activeHistogramHour.hour + 1) % 12 || 12}:00 ${(activeHistogramHour.hour + 1) >= 12 ? "PM" : "AM"}`})
+                </span>
+                {activeHistogramHour.hour === peakTiming.peakHourIndex && activeHistogramHour.requests > 0 && (
+                  <span
+                    style={{
+                      background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
+                      color: "#ffffff",
+                      padding: "2px 7px",
+                      borderRadius: 6,
+                      fontSize: 10,
+                      fontWeight: 800,
+                      letterSpacing: "0.02em",
+                      boxShadow: "0 1px 2px rgba(109, 40, 217, 0.3)",
+                    }}
+                  >
+                    ⚡ PEAK SURGE HOUR
+                  </span>
+                )}
+                {activeHistogramHour.hour === currentIstHour && (
+                  <span
+                    style={{
+                      background: "#0284c7",
+                      color: "#ffffff",
+                      padding: "2px 7px",
+                      borderRadius: 6,
+                      fontSize: 10,
+                      fontWeight: 800,
+                    }}
+                  >
+                    📍 CURRENT TIME (NOW)
+                  </span>
+                )}
+                {activeHistogramHour.requests === 0 && (
+                  <span
+                    style={{
+                      background: "#f1f5f9",
+                      color: "#64748b",
+                      border: "1px solid #cbd5e1",
+                      padding: "2px 7px",
+                      borderRadius: 6,
+                      fontSize: 10,
+                      fontWeight: 700,
+                    }}
+                  >
+                    ⚪ DORMANT
+                  </span>
+                )}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: isMobile ? 11.5 : 12.5 }}>
+                <span style={{ color: "#334155", fontWeight: 700 }}>
+                  <strong
+                    style={{
+                      color:
+                        activeHistogramHour.requests > 0
+                          ? activeHistogramHour.hour === peakTiming.peakHourIndex
+                            ? "#7c3aed"
+                            : "#0284c7"
+                          : "#94a3b8",
+                      fontSize: 14.5,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {activeHistogramHour.requests}
+                  </strong>{" "}
+                  {activeHistogramHour.requests === 1 ? "request" : "requests"}
+                </span>
+                {activeHistogramHour.percentage > 0 && (
+                  <span style={{ color: "#475569", fontWeight: 600 }}>
+                    ({activeHistogramHour.percentage}% of today's total)
+                  </span>
+                )}
+                <button
+                  onClick={() => setActiveHistogramHour(null)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: "2px 4px",
+                    cursor: "pointer",
+                    color: "#94a3b8",
+                    display: "flex",
+                    alignItems: "center",
+                    borderRadius: 4,
+                  }}
+                  title="Deselect hour"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </>
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                width: "100%",
+                color: "#64748b",
+                fontSize: isMobile ? 11 : 12,
+                flexWrap: "wrap",
+                gap: 6,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <Sparkles size={13} color="#7c3aed" style={{ flexShrink: 0 }} />
+                <span>
+                  {peakTiming?.peakHourIndex >= 0 && (peakTiming?.peakHourCount > 0 || (today?.used || 0) > 0)
+                    ? `Highest traffic surge at ${peakTiming.peakHourText} with ${peakTiming.peakHourCount || 0} serverless requests`
+                    : "Hover or tap on any hour bar to inspect serverless request telemetry"}
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: isMobile ? 10.5 : 11.5 }}>
+                <span style={{ color: "#94a3b8" }}>Tap/hover bar to inspect</span>
+                <span style={{ fontWeight: 700, color: "#1e293b", background: "#e2e8f0", padding: "1px 6px", borderRadius: 4 }}>
+                  24h: {today?.used || 0} reqs
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 24-Hour Bar Histogram with Reference Grid */}
+        <div
+          style={{
+            background: "linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)",
+            border: "1px solid #e2e8f0",
+            borderRadius: 12,
+            padding: isMobile ? "14px 8px 10px 8px" : "20px 18px 12px 18px",
+            boxSizing: "border-box",
+            width: "100%",
+            position: "relative",
+            boxShadow: "inset 0 1px 2px rgba(0,0,0,0.02)",
+          }}
+        >
+          {/* Subtle Grid Lines with Request Scale */}
           <div
             style={{
-              height: isMobile ? 90 : 120,
+              position: "absolute",
+              top: isMobile ? 14 : 20,
+              left: isMobile ? 8 : 18,
+              right: isMobile ? 8 : 18,
+              height: isMobile ? 100 : 135,
+              pointerEvents: "none",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              zIndex: 0,
+            }}
+          >
+            <div
+              style={{
+                borderTop: "1px dashed #cbd5e1",
+                width: "100%",
+                display: "flex",
+                justifyContent: "flex-end",
+              }}
+            >
+              <span style={{ fontSize: 9, color: "#94a3b8", fontWeight: 700, marginTop: -7, background: "#f8fafc", paddingLeft: 4, borderRadius: 2 }}>
+                {maxHistogramRequests} reqs
+              </span>
+            </div>
+            <div
+              style={{
+                borderTop: "1px dashed #e2e8f0",
+                width: "100%",
+                display: "flex",
+                justifyContent: "flex-end",
+              }}
+            >
+              <span style={{ fontSize: 9, color: "#94a3b8", fontWeight: 600, marginTop: -7, background: "#f8fafc", paddingLeft: 4, borderRadius: 2 }}>
+                {Math.max(1, Math.round(maxHistogramRequests / 2))}
+              </span>
+            </div>
+            <div style={{ borderTop: "1px solid #cbd5e1", width: "100%" }} />
+          </div>
+
+          {/* 24 Hourly Interactive Bars */}
+          <div
+            style={{
+              height: isMobile ? 100 : 135,
               display: "flex",
               alignItems: "flex-end",
-              gap: isMobile ? 1.5 : 3,
-              paddingBottom: 4,
+              gap: isMobile ? 2 : 4,
+              paddingBottom: 2,
               width: "100%",
               boxSizing: "border-box",
+              position: "relative",
+              zIndex: 1,
             }}
           >
             {(peakTiming?.hourlyDistribution || []).map((h) => {
@@ -1154,16 +1455,45 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                 peakTiming.peakHourIndex >= 0 &&
                 h.hour === peakTiming.peakHourIndex &&
                 h.requests > 0;
+              const isHovered = activeHistogramHour?.hour === h.hour;
+              const isCurrentHour = h.hour === currentIstHour;
+
+              // Calculate proportional bar height (min 12% if requests > 0, 4% baseline if 0)
               const heightPercent =
                 maxHistogramRequests > 0
-                  ? Math.max(8, Math.round((h.requests / maxHistogramRequests) * 100))
-                  : 8;
+                  ? h.requests > 0
+                    ? Math.max(12, Math.round((h.requests / maxHistogramRequests) * 100))
+                    : 4
+                  : 4;
+
+              // Colors based on state
+              let barBg = "#e2e8f0";
+              let barShadow = "none";
+
+              if (isPeak) {
+                barBg = isHovered
+                  ? "linear-gradient(180deg, #9333ea 0%, #6b21a8 100%)"
+                  : "linear-gradient(180deg, #a855f7 0%, #7c3aed 100%)";
+                barShadow = "0 3px 12px rgba(124, 58, 237, 0.45)";
+              } else if (h.requests > 0) {
+                barBg = isHovered
+                  ? "linear-gradient(180deg, #38bdf8 0%, #1d4ed8 100%)"
+                  : "linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)";
+                barShadow = isHovered ? "0 2px 8px rgba(37, 99, 235, 0.35)" : "none";
+              } else if (isHovered) {
+                barBg = "#cbd5e1";
+              }
 
               return (
                 <div
                   key={h.hour}
                   onMouseEnter={() => setActiveHistogramHour(h)}
                   onMouseLeave={() => setActiveHistogramHour(null)}
+                  onClick={() =>
+                    setActiveHistogramHour(
+                      activeHistogramHour?.hour === h.hour ? null : h
+                    )
+                  }
                   style={{
                     flex: 1,
                     height: "100%",
@@ -1173,25 +1503,35 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                     alignItems: "center",
                     cursor: "pointer",
                     minWidth: 0,
+                    transition: "transform 0.15s ease",
+                    transform: isHovered ? "scaleY(1.04)" : "none",
+                    touchAction: "manipulation",
                   }}
-                  title={`${h.label}: ${h.requests} requests`}
+                  title={`${h.label}: ${h.requests} requests (${h.percentage}% of today)`}
                 >
                   {isPeak && (
-                    <Sparkles
-                      size={9}
-                      color="#d97706"
-                      style={{ marginBottom: 1, flexShrink: 0 }}
-                    />
+                    <div style={{ marginBottom: 2, display: "flex", justifyContent: "center" }}>
+                      <Sparkles
+                        size={isMobile ? 10 : 12}
+                        color="#f59e0b"
+                        style={{ flexShrink: 0, filter: "drop-shadow(0 1px 2px rgba(245, 158, 11, 0.6))" }}
+                      />
+                    </div>
                   )}
 
                   <div
                     style={{
                       width: "100%",
                       height: `${heightPercent}%`,
-                      borderRadius: "3px 3px 0 0",
-                      background: isPeak
-                        ? "linear-gradient(180deg, #8b5cf6 0%, #6366f1 100%)"
-                        : "#cbd5e1",
+                      borderRadius: "4px 4px 1px 1px",
+                      background: barBg,
+                      boxShadow: barShadow,
+                      border: isHovered
+                        ? "1.5px solid #0f172a"
+                        : isCurrentHour
+                        ? "1.5px solid #0284c7"
+                        : "none",
+                      transition: "all 0.15s ease",
                     }}
                   />
                 </div>
@@ -1199,22 +1539,154 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
             })}
           </div>
 
+          {/* Time Labels Along X-Axis (Responsive) */}
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
-              fontSize: 9,
+              fontSize: isMobile ? 8 : 10,
               fontWeight: 700,
               color: "#64748b",
-              paddingTop: 4,
+              paddingTop: 6,
               borderTop: "1px solid #e2e8f0",
+              marginTop: 4,
             }}
           >
             <span>12 AM</span>
-            <span>6 AM</span>
+            {!isMobile && <span>3 AM</span>}
+            {isMobile ? <span>4 AM</span> : <span>6 AM</span>}
+            {!isMobile && <span>9 AM</span>}
+            {isMobile ? <span>8 AM</span> : null}
             <span>12 PM</span>
-            <span>6 PM</span>
+            {!isMobile && <span>3 PM</span>}
+            {isMobile ? <span>4 PM</span> : <span>6 PM</span>}
+            {!isMobile && <span>9 PM</span>}
+            {isMobile ? <span>8 PM</span> : null}
             <span>11 PM</span>
+          </div>
+        </div>
+
+        {/* ── Micro-Intelligence Telemetry Cards ── */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
+            gap: 10,
+            marginTop: 14,
+          }}
+        >
+          <div
+            style={{
+              background: "#faf5ff",
+              border: "1px solid #f3e8ff",
+              borderRadius: 10,
+              padding: "10px 12px",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: "#f3e8ff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Sparkles size={16} color="#7c3aed" />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 11, color: "#6b21a8", fontWeight: 700 }}>
+                Peak Surge Rate
+              </div>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: "#3b0764" }}>
+                {peakTiming?.peakHourCount || 0} req/hr
+              </div>
+              <div style={{ fontSize: 10, color: "#7e22ce", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                Window: {peakTiming?.peakHourText || "Awaiting Traffic"}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: "#f0f9ff",
+              border: "1px solid #e0f2fe",
+              borderRadius: 10,
+              padding: "10px 12px",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: "#e0f2fe",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Activity size={16} color="#0284c7" />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 11, color: "#0369a1", fontWeight: 700 }}>
+                Daily Traffic Cadence
+              </div>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: "#0c4a6e" }}>
+                {activeHoursCount} / 24 hrs active
+              </div>
+              <div style={{ fontSize: 10, color: "#0284c7", fontWeight: 500 }}>
+                Serverless requests distributed
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: "#f0fdf4",
+              border: "1px solid #dcfce7",
+              borderRadius: 10,
+              padding: "10px 12px",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: "#dcfce7",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <BarChart3 size={16} color="#16a34a" />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 11, color: "#15803d", fontWeight: 700 }}>
+                Top 3 Hours Concentration
+              </div>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: "#14532d" }}>
+                {top3HoursShare}% of daily load
+              </div>
+              <div style={{ fontSize: 10, color: "#16a34a", fontWeight: 500 }}>
+                Healthy serverless curve
+              </div>
+            </div>
           </div>
         </div>
       </div>
