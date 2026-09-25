@@ -3,21 +3,39 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { RefreshCw, Home as HomeIcon } from "lucide-react";
 
-export default function ServerErrorPage({ onRetry, onReset }) {
+export default function ServerErrorPage({ onRetry, onReset, isChunkError = false }) {
   const [retrying, setRetrying] = useState(false);
 
   const handleRetry = async () => {
     setRetrying(true);
     try {
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+    } catch (_) {}
+    try {
+      sessionStorage.removeItem("gradeflow_auto_reloaded_chunk");
+      sessionStorage.removeItem("gf_auto_reload_shield");
+    } catch (_) {}
+
+    try {
       if (onRetry) await onRetry();
       else if (onReset) onReset();
-      else window.location.reload();
+      else {
+        const url = new URL(window.location.href);
+        url.searchParams.set("_r", String(Date.now()));
+        window.location.replace(url.toString());
+      }
     } catch {
-      window.location.reload();
+      const url = new URL(window.location.origin + "/");
+      url.searchParams.set("_r", String(Date.now()));
+      window.location.replace(url.toString());
     } finally {
       setTimeout(() => setRetrying(false), 800);
     }
   };
+
 
   React.useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -136,7 +154,7 @@ export default function ServerErrorPage({ onRetry, onReset }) {
           lineHeight: 1.2,
         }}
       >
-        Internal Server Error (500)
+        {isChunkError ? "New Version Available" : "Internal Server Error (500)"}
       </motion.h1>
 
       {/* ── Subtitle ── */}
@@ -152,7 +170,9 @@ export default function ServerErrorPage({ onRetry, onReset }) {
           margin: "0 0 32px 0",
         }}
       >
-        Our backend encountered an unexpected condition while processing this request. Our engineering team has been automatically alerted.
+        {isChunkError
+          ? "GradeFlow was recently updated with the latest improvements. Please tap Refresh to load the fresh version."
+          : "Our backend encountered an unexpected condition while processing this request. Our engineering team has been automatically alerted."}
       </motion.p>
 
       {/* ── Actions ── */}
@@ -182,14 +202,27 @@ export default function ServerErrorPage({ onRetry, onReset }) {
           }}
         >
           <RefreshCw size={16} className={retrying ? "gf-spin" : ""} />
-          <span>{retrying ? "Reloading..." : "Try Again"}</span>
+          <span>{retrying ? "Updating..." : isChunkError ? "Refresh Now" : "Try Again"}</span>
         </button>
 
         <button
           type="button"
           onClick={() => {
+            try {
+              if ("caches" in window) {
+                caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+              }
+            } catch (_) {}
+            try {
+              sessionStorage.removeItem("gradeflow_auto_reloaded_chunk");
+              sessionStorage.removeItem("gf_auto_reload_shield");
+            } catch (_) {}
             if (onReset) onReset();
-            else window.location.href = "/";
+            else {
+              const url = new URL(window.location.origin + "/");
+              url.searchParams.set("_r", String(Date.now()));
+              window.location.replace(url.toString());
+            }
           }}
           style={{
             display: "inline-flex",
@@ -210,6 +243,7 @@ export default function ServerErrorPage({ onRetry, onReset }) {
           <span>Return to Home</span>
         </button>
       </motion.div>
+
     </div>
   );
 }

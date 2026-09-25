@@ -17,8 +17,54 @@
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="GradeFlow | Academic analytics and GPA planning" />
     <meta name="twitter:description" content="GradeFlow helps university students understand academic performance, plan grades, and manage their academic journey." />
+    <!-- Anti-caching directives to ensure index.html always loads latest deployment hashes -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <!-- Add the owner-provided Google Search Console verification meta tag here. -->
     <meta name="theme-color" content="#2563eb" />
+    <script>
+      // Global chunk load error & stale deployment auto-recovery shield
+      (function() {
+        function autoRecover() {
+          try {
+            var key = 'gf_auto_reload_shield';
+            var lastReload = Number(sessionStorage.getItem(key) || 0);
+            if (Date.now() - lastReload > 8000) {
+              sessionStorage.setItem(key, String(Date.now()));
+              if ('caches' in window) {
+                caches.keys().then(function(keys) {
+                  keys.forEach(function(k) { caches.delete(k); });
+                });
+              }
+              var url = new URL(window.location.href);
+              url.searchParams.set('_v', String(Date.now()));
+              window.location.replace(url.toString());
+            }
+          } catch (_) {}
+        }
+
+        window.addEventListener('vite:preloadError', function(e) {
+          if (e && e.preventDefault) e.preventDefault();
+          autoRecover();
+        });
+
+        window.addEventListener('error', function(e) {
+          var msg = (e && e.message) ? String(e.message) : '';
+          var target = e && e.target;
+          var isScript = target && (target.tagName === 'SCRIPT' || target.tagName === 'LINK');
+          if (
+            isScript ||
+            msg.indexOf('dynamically imported module') !== -1 ||
+            msg.indexOf('Expected a JavaScript-or-Wasm module script') !== -1 ||
+            msg.indexOf("Unexpected token '<'") !== -1
+          ) {
+            autoRecover();
+          }
+        }, true);
+      })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />

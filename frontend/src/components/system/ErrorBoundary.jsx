@@ -12,18 +12,27 @@ export class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Auto-recover from stale chunks when a new deployment occurs
+    const errorStr = (error?.message || "") + " " + (error?.name || "") + " " + String(error || "");
     const isChunkLoadError =
       error?.name === "ChunkLoadError" ||
-      error?.message?.includes("Failed to fetch dynamically imported module") ||
-      error?.message?.includes("dynamically imported module") ||
-      error?.message?.includes("Expected a JavaScript-or-Wasm module script");
+      errorStr.includes("Failed to fetch dynamically imported module") ||
+      errorStr.includes("dynamically imported module") ||
+      errorStr.includes("Expected a JavaScript-or-Wasm module script") ||
+      errorStr.includes("Unexpected token '<'") ||
+      errorStr.includes("text/html");
 
     if (isChunkLoadError) {
-      const alreadyReloaded = sessionStorage.getItem("gradeflow_auto_reloaded_chunk");
-      if (!alreadyReloaded) {
-        sessionStorage.setItem("gradeflow_auto_reloaded_chunk", "true");
-        window.location.reload();
+      const lastReload = Number(sessionStorage.getItem("gradeflow_auto_reloaded_chunk") || 0);
+      if (Date.now() - lastReload > 8000) {
+        sessionStorage.setItem("gradeflow_auto_reloaded_chunk", String(Date.now()));
+        try {
+          if ("caches" in window) {
+            caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+          }
+        } catch (_) {}
+        const url = new URL(window.location.href);
+        url.searchParams.set("_v", String(Date.now()));
+        window.location.replace(url.toString());
         return;
       }
     }
@@ -37,11 +46,18 @@ export class ErrorBoundary extends React.Component {
 
   handleReset = () => {
     sessionStorage.removeItem("gradeflow_auto_reloaded_chunk");
+    try {
+      if ("caches" in window) {
+        caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+      }
+    } catch (_) {}
     this.setState({ hasError: false, error: null });
     if (this.props.onReset) {
       this.props.onReset();
     } else {
-      window.location.href = "/";
+      const url = new URL(window.location.origin + "/");
+      url.searchParams.set("_r", String(Date.now()));
+      window.location.replace(url.toString());
     }
   };
 
@@ -50,7 +66,23 @@ export class ErrorBoundary extends React.Component {
       if (this.props.fallback) {
         return this.props.fallback;
       }
-      return <UnexpectedErrorState onReset={this.handleReset} />;
+      const err = this.state.error;
+      const errorStr = (err?.message || "") + " " + (err?.name || "") + " " + String(err || "");
+      const isChunkLoadError =
+        err?.name === "ChunkLoadError" ||
+        errorStr.includes("Failed to fetch dynamically imported module") ||
+        errorStr.includes("dynamically imported module") ||
+        errorStr.includes("Expected a JavaScript-or-Wasm module script") ||
+        errorStr.includes("Unexpected token '<'") ||
+        errorStr.includes("text/html");
+
+      return (
+        <UnexpectedErrorState
+          isChunkError={isChunkLoadError}
+          onReset={this.handleReset}
+          onRetry={this.handleReset}
+        />
+      );
     }
 
     return this.props.children;
@@ -58,3 +90,4 @@ export class ErrorBoundary extends React.Component {
 }
 
 export default ErrorBoundary;
+

@@ -62,10 +62,16 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   </React.StrictMode>,
 );
 
-// Register Service Worker for offline & network unreachable fallback
+// Register Service Worker for offline & network unreachable fallback, and auto-update
 if (typeof window !== "undefined" && "serviceWorker" in navigator && !window.location.hostname.includes("localhost")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((reg) => {
+        reg.update().catch(() => {});
+      })
+      .catch(() => {});
   });
 }
+
 

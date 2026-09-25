@@ -27,24 +27,36 @@ const lazyWithRetry = (componentImport) =>
     try {
       return await componentImport();
     } catch (error) {
+      const errorStr = (error?.message || "") + " " + (error?.name || "") + " " + String(error || "");
       const isChunkError =
         error?.name === "ChunkLoadError" ||
-        error?.message?.includes("Failed to fetch dynamically imported module") ||
-        error?.message?.includes("dynamically imported module") ||
-        error?.message?.includes("Expected a JavaScript-or-Wasm module script");
+        errorStr.includes("Failed to fetch dynamically imported module") ||
+        errorStr.includes("dynamically imported module") ||
+        errorStr.includes("Expected a JavaScript-or-Wasm module script") ||
+        errorStr.includes("Unexpected token '<'") ||
+        errorStr.includes("text/html");
 
       if (isChunkError) {
         const retryKey = "gradeflow_chunk_retry_" + window.location.pathname;
-        const hasRetried = sessionStorage.getItem(retryKey);
-        if (!hasRetried) {
-          sessionStorage.setItem(retryKey, "true");
-          window.location.reload();
+        const lastRetry = Number(sessionStorage.getItem(retryKey) || 0);
+        if (Date.now() - lastRetry > 8000) {
+          sessionStorage.setItem(retryKey, String(Date.now()));
+          try {
+            if ("caches" in window) {
+              const keys = await caches.keys();
+              await Promise.all(keys.map((k) => caches.delete(k)));
+            }
+          } catch (_) {}
+          const url = new URL(window.location.href);
+          url.searchParams.set("_v", String(Date.now()));
+          window.location.replace(url.toString());
           return new Promise(() => {}); // Wait for page refresh
         }
       }
       throw error;
     }
   });
+
 
 // Lazy-loaded route pages with automatic chunk retry protection
 const Home = lazyWithRetry(() => import("./pages/Home"));

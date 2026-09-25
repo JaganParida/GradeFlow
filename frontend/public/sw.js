@@ -11,8 +11,9 @@
  * 4. Immediate activation via skipWaiting() and clients.claim().
  */
 
-const CACHE_NAME = 'gf-offline-v1';
+const CACHE_NAME = 'gf-offline-v2';
 const OFFLINE_URL = '/offline.html';
+
 
 const PRECACHE_ASSETS = [
   OFFLINE_URL,
