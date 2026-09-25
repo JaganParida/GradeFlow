@@ -84,13 +84,23 @@ export default function Testimonials() {
   const highlightedId = searchParams.get("highlight");
   const hasScrolledRef = useRef(false);
 
-  const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
+  const storedStudentReg = typeof window !== "undefined" ? localStorage.getItem("gf_student_reg") || "" : "";
+  const currentRegNo = studentData?.regNo || studentSession?.regNo || storedStudentReg || "";
   const currentStudentName = studentData?.studentName || studentSession?.studentName || "";
+  const hasLocalStudent = typeof window !== "undefined" && Boolean(
+    localStorage.getItem("gf_student_reg") ||
+    localStorage.getItem("gf_student_session_hint")
+  );
+  const hasLocalAdmin = typeof window !== "undefined" && Boolean(
+    localStorage.getItem("gf_admin_session_hint")
+  );
   const isLoggedIn = Boolean(
     hasActiveSession ||
     studentSession?.regNo ||
     studentData?.regNo ||
-    adminToken
+    adminToken ||
+    hasLocalStudent ||
+    hasLocalAdmin
   );
 
   // Form State
