@@ -437,6 +437,7 @@ export default function Leaderboard() {
 
   const totalStudents = processedRankings.length;
   const isSection = Boolean(filters.section);
+  const isSectionView = filters.branch === "CSE" && Boolean(filters.section);
 
   let buttonVisible = false;
   let buttonText = "";
@@ -1445,8 +1446,8 @@ export default function Leaderboard() {
                   <tr style={{ background: "#f8fafc", borderBottom: "1.5px solid #cbd5e1" }}>
                     <th
                       style={{
-                        padding: "12px 16px",
-                        width: "10%",
+                        padding: "12px 14px",
+                        width: isSectionView ? "8%" : "9%",
                         fontSize: 11,
                         fontWeight: 800,
                         color: "#475569",
@@ -1458,8 +1459,8 @@ export default function Leaderboard() {
                     </th>
                     <th
                       style={{
-                        padding: "12px 16px",
-                        width: "36%",
+                        padding: "12px 14px",
+                        width: isSectionView ? "24%" : filters.branch ? "28%" : "35%",
                         fontSize: 11,
                         fontWeight: 800,
                         color: "#475569",
@@ -1471,8 +1472,8 @@ export default function Leaderboard() {
                     </th>
                     <th
                       style={{
-                        padding: "12px 16px",
-                        width: "20%",
+                        padding: "12px 14px",
+                        width: isSectionView ? "16%" : filters.branch ? "18%" : "20%",
                         fontSize: 11,
                         fontWeight: 800,
                         color: "#475569",
@@ -1484,8 +1485,8 @@ export default function Leaderboard() {
                     </th>
                     <th
                       style={{
-                        padding: "12px 16px",
-                        width: "18%",
+                        padding: "12px 14px",
+                        width: isSectionView ? "20%" : filters.branch ? "22%" : "24%",
                         fontSize: 11,
                         fontWeight: 800,
                         color: "#475569",
@@ -1498,8 +1499,8 @@ export default function Leaderboard() {
                     {filters.branch === "CSE" && filters.section && (
                       <th
                         style={{
-                          padding: "12px 14px",
-                          width: "13%",
+                          padding: "12px 10px",
+                          width: "11%",
                           textAlign: "center",
                           fontSize: 11,
                           fontWeight: 800,
@@ -1514,8 +1515,8 @@ export default function Leaderboard() {
                     {filters.branch && (
                       <th
                         style={{
-                          padding: "12px 14px",
-                          width: filters.section ? "13%" : "16%",
+                          padding: "12px 10px",
+                          width: filters.section ? "11%" : "12%",
                           textAlign: "center",
                           fontSize: 11,
                           fontWeight: 800,
@@ -1529,9 +1530,9 @@ export default function Leaderboard() {
                     )}
                     <th
                       style={{
-                        padding: "12px 18px",
+                        padding: "12px 16px",
                         textAlign: "right",
-                        width: "16%",
+                        width: isSectionView ? "10%" : filters.branch ? "11%" : "12%",
                         fontSize: 11,
                         fontWeight: 800,
                         color: "#2563eb",
@@ -1631,22 +1632,25 @@ export default function Leaderboard() {
                         </td>
                         <td
                           style={{
-                            padding: "12px 16px",
+                            padding: "12px 14px",
                             verticalAlign: "middle",
                             fontFamily: "'Space Mono', monospace",
                             color: "#475569",
                             fontSize: 12.5,
                             fontWeight: 600,
+                            whiteSpace: "nowrap",
                           }}
                         >
                           {r.regNo}
                         </td>
-                        <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        <td style={{ padding: "12px 14px", verticalAlign: "middle" }}>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "nowrap", whiteSpace: "nowrap" }}>
                             {badges.map((b, bi) => (
                               <span
                                 key={bi}
                                 style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
                                   fontSize: 11,
                                   fontWeight: 800,
                                   color: b.color,
@@ -1654,6 +1658,8 @@ export default function Leaderboard() {
                                   border: `1px solid ${b.border}`,
                                   padding: "2px 7px",
                                   borderRadius: 6,
+                                  whiteSpace: "nowrap",
+                                  lineHeight: "16px",
                                 }}
                               >
                                 {b.label}
@@ -1662,7 +1668,7 @@ export default function Leaderboard() {
                           </div>
                         </td>
                         {filters.branch === "CSE" && filters.section && (
-                          <td style={{ padding: "12px 14px", textAlign: "center", verticalAlign: "middle" }}>
+                          <td style={{ padding: "12px 10px", textAlign: "center", verticalAlign: "middle" }}>
                             <span
                               style={{
                                 fontSize: 12,
@@ -1682,7 +1688,7 @@ export default function Leaderboard() {
                           </td>
                         )}
                         {filters.branch && (
-                          <td style={{ padding: "12px 14px", textAlign: "center", verticalAlign: "middle" }}>
+                          <td style={{ padding: "12px 10px", textAlign: "center", verticalAlign: "middle" }}>
                             <span
                               style={{
                                 fontSize: 12,
@@ -1701,7 +1707,7 @@ export default function Leaderboard() {
                             </span>
                           </td>
                         )}
-                        <td style={{ padding: "12px 18px", textAlign: "right", verticalAlign: "middle" }}>
+                        <td style={{ padding: "12px 16px", textAlign: "right", verticalAlign: "middle" }}>
                           <span
                             style={{
                               display: "inline-block",
