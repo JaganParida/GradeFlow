@@ -1327,7 +1327,7 @@ export default function Leaderboard() {
                     </span>
                   </div>
 
-                  {/* Bottom Row: Reg No + Badges + Global Rank */}
+                  {/* Bottom Row: Reg No + Badges + University & Branch Rank */}
                   <div
                     style={{
                       display: "flex",
@@ -1343,18 +1343,40 @@ export default function Leaderboard() {
                       <span style={{ fontFamily: "'Space Mono', monospace", fontWeight: 700, color: "#475569" }}>
                         {r.regNo}
                       </span>
-                      {filters.branch && (
+                      {filters.branch === "CSE" && filters.section && (
                         <span
                           style={{
                             background: "#f1f5f9",
+                            color: "#334155",
                             padding: "1px 6px",
                             borderRadius: 4,
                             fontSize: 11,
                             fontFamily: "'Space Mono', monospace",
                             fontWeight: 700,
+                            border: "1px solid #e2e8f0",
                           }}
                         >
-                          Global #{isSGPA ? r.sgpaRank : r.cgpaRank}
+                          Branch #{isSGPA
+                            ? (r.deptRank || r.dynamicRank || "-")
+                            : (r.deptCgpaRank || r.deptRank || r.dynamicRank || "-")}
+                        </span>
+                      )}
+                      {filters.branch && (
+                        <span
+                          style={{
+                            background: "#f1f5f9",
+                            color: "#475569",
+                            padding: "1px 6px",
+                            borderRadius: 4,
+                            fontSize: 11,
+                            fontFamily: "'Space Mono', monospace",
+                            fontWeight: 700,
+                            border: "1px solid #e2e8f0",
+                          }}
+                        >
+                          Univ #{isSGPA
+                            ? (r.sgpaRank || r.universityRank || "-")
+                            : (r.cgpaRank || r.universityRank || "-")}
                         </span>
                       )}
                     </div>
@@ -1473,11 +1495,11 @@ export default function Leaderboard() {
                     >
                       Badges
                     </th>
-                    {filters.branch && (
+                    {filters.branch === "CSE" && filters.section && (
                       <th
                         style={{
-                          padding: "12px 16px",
-                          width: "16%",
+                          padding: "12px 14px",
+                          width: "13%",
                           textAlign: "center",
                           fontSize: 11,
                           fontWeight: 800,
@@ -1486,7 +1508,23 @@ export default function Leaderboard() {
                           letterSpacing: "0.5px",
                         }}
                       >
-                        Global Rank
+                        Branch Rank
+                      </th>
+                    )}
+                    {filters.branch && (
+                      <th
+                        style={{
+                          padding: "12px 14px",
+                          width: filters.section ? "13%" : "16%",
+                          textAlign: "center",
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: "#475569",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                        }}
+                      >
+                        University Rank
                       </th>
                     )}
                     <th
@@ -1623,8 +1661,28 @@ export default function Leaderboard() {
                             ))}
                           </div>
                         </td>
+                        {filters.branch === "CSE" && filters.section && (
+                          <td style={{ padding: "12px 14px", textAlign: "center", verticalAlign: "middle" }}>
+                            <span
+                              style={{
+                                fontSize: 12,
+                                fontWeight: 700,
+                                color: "#334155",
+                                fontFamily: "'Space Mono', monospace",
+                                background: "#f1f5f9",
+                                padding: "2px 8px",
+                                borderRadius: 6,
+                                border: "1px solid #e2e8f0",
+                              }}
+                            >
+                              #{isSGPA
+                                ? (r.deptRank || r.dynamicRank || "-")
+                                : (r.deptCgpaRank || r.deptRank || r.dynamicRank || "-")}
+                            </span>
+                          </td>
+                        )}
                         {filters.branch && (
-                          <td style={{ padding: "12px 16px", textAlign: "center", verticalAlign: "middle" }}>
+                          <td style={{ padding: "12px 14px", textAlign: "center", verticalAlign: "middle" }}>
                             <span
                               style={{
                                 fontSize: 12,
@@ -1637,7 +1695,9 @@ export default function Leaderboard() {
                                 border: "1px solid #e2e8f0",
                               }}
                             >
-                              #{isSGPA ? r.sgpaRank : r.cgpaRank}
+                              #{isSGPA
+                                ? (r.sgpaRank || r.universityRank || "-")
+                                : (r.cgpaRank || r.universityRank || "-")}
                             </span>
                           </td>
                         )}
