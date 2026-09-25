@@ -70,14 +70,28 @@ export default function Testimonials() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const { API, studentData, fetchStudent, openStudentAuthModal } = useApp();
+  const {
+    API,
+    studentData,
+    studentSession,
+    hasActiveSession,
+    adminToken,
+    fetchStudent,
+    openStudentAuthModal,
+  } = useApp();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const highlightedId = searchParams.get("highlight");
   const hasScrolledRef = useRef(false);
 
-  const currentRegNo = studentData?.regNo || "";
-  const currentStudentName = studentData?.studentName || "";
+  const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
+  const currentStudentName = studentData?.studentName || studentSession?.studentName || "";
+  const isLoggedIn = Boolean(
+    hasActiveSession ||
+    studentSession?.regNo ||
+    studentData?.regNo ||
+    adminToken
+  );
 
   // Form State
   const [rating, setRating] = useState(5);
@@ -1349,6 +1363,8 @@ export default function Testimonials() {
                       item.createdAt &&
                       Date.now() - new Date(item.createdAt).getTime() <= 24 * 60 * 60 * 1000
                     );
+                    const showRegNo = Boolean(isLoggedIn && item.regNo);
+                    const hasSubtitlePrefix = Boolean(showRegNo || isMyItem || item.status === "needs_review");
 
                     return (
                       <motion.div
@@ -1457,11 +1473,11 @@ export default function Testimonials() {
                                     marginTop: 1,
                                   }}
                                 >
-                                  <span>
-                                    {item.regNo
-                                      ? `Student (${item.regNo})`
-                                      : "Student"}
-                                  </span>
+                                  {showRegNo && (
+                                    <span style={{ fontWeight: 500, letterSpacing: "0.01em" }}>
+                                      {item.regNo}
+                                    </span>
+                                  )}
                                   {isMyItem && (
                                     <span
                                       style={{
@@ -1494,7 +1510,9 @@ export default function Testimonials() {
                                   )}
                                   {fullDateTimeStr && (
                                     <>
-                                      <span style={{ color: "#cbd5e1" }}>•</span>
+                                      {hasSubtitlePrefix && (
+                                        <span style={{ color: "#cbd5e1" }}>•</span>
+                                      )}
                                       <span
                                         style={{
                                           color: "#64748b",
