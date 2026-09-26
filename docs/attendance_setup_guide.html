@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GradeFlow Attendance Intelligence - Complete Setup & Feature Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #e0e7ff;
+      --primary-dark: #3730a3;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-400: #94a3b8;
+      --slate-300: #cbd5e1;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --emerald-700: #047857;
+      --emerald-600: #059669;
+      --emerald-50: #ecfdf5;
+      --amber-600: #d97706;
+      --amber-50: #fffbeb;
+      --rose-600: #e11d48;
+      --rose-50: #fff1f2;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: var(--slate-800);
+      background: #f1f5f9;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding: 20px 16px;
+    }
+
+    /* Print Controls Bar */
+    .toolbar {
+      max-width: 1020px;
+      margin: 0 auto 14px auto;
+      background: #09090b;
+      color: #ffffff;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: 10px;
+      border: 1px solid #27272a;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .toolbar h3 {
+      font-size: 13.5px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .btn-print {
+      background: #ffffff;
+      color: #09090b;
+      border: 1px solid #e4e4e7;
+      padding: 7px 16px;
+      font-size: 12.5px;
+      font-weight: 700;
+      border-radius: 7px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-print:hover {
+      background: #f4f4f5;
+      color: #000000;
+    }
+
+    .guide-container {
+      max-width: 1020px;
+      margin: 0 auto;
+    }
+
+    /* Dedicated Modular Page Presentation */
+    .guide-page {
+      background: #ffffff;
+      width: 100%;
+      border-radius: 14px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+      border: 1px solid var(--slate-200);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      padding: 22px 26px;
+      page-break-after: always;
+      break-after: page;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .page-cover {
+      padding: 0 !important;
+    }
+
+    .page-cover-body {
+      padding: 18px 26px 22px 26px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    /* ─── SLEEK, EXECUTIVE BLACK & WHITE PDF-GRADE HEADER ─── */
+    .hero-header {
+      background: #09090b;
+      color: #ffffff;
+      padding: 15px 22px;
+      border-bottom: 1.5px solid #27272a;
+    }
+
+    .header-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-logo-mark {
+      width: 22px;
+      height: 22px;
+      background: #18181b;
+      border: 1px solid #3f3f46;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-name {
+      font-size: 13.5px;
+      font-weight: 800;
+      letter-spacing: -0.2px;
+      color: #ffffff;
+    }
+
+    .brand-pill {
+      background: #18181b;
+      border: 1px solid #3f3f46;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: #e4e4e7;
+    }
+
+    .header-meta-pills {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .meta-tag {
+      background: #18181b;
+      border: 1px solid #27272a;
+      padding: 3px 9px;
+      border-radius: 4px;
+      font-size: 10.5px;
+      color: #a1a1aa;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .meta-tag strong {
+      color: #ffffff;
+    }
+
+    .header-main-content h1 {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      line-height: 1.25;
+      margin-bottom: 3px;
+      color: #ffffff;
+    }
+
+    .header-main-content p {
+      font-size: 11px;
+      color: #a1a1aa;
+      line-height: 1.35;
+      max-width: 820px;
+    }
+
+    .trust-strip {
+      margin-top: 8px;
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 6px;
+      padding: 5px 11px;
+      font-size: 10.5px;
+      color: #d4d4d8;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      line-height: 1.35;
+    }
+
+    .trust-strip strong {
+      color: #ffffff;
+    }
+
+    /* Section Headings */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--slate-100);
+    }
+
+    .step-number {
+      background: var(--slate-900);
+      color: #ffffff;
+      font-size: 11.5px;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 7px;
+      letter-spacing: 0.5px;
+    }
+
+    .section-title {
+      font-size: 15.5px;
+      font-weight: 800;
+      color: var(--slate-900);
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .section-desc {
+      font-size: 11.5px;
+      color: var(--slate-600);
+      line-height: 1.45;
+      margin-bottom: 11px;
+    }
+
+    /* Two-Column Comparison Grid */
+    .two-column-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      align-items: start;
+    }
+
+    .device-card {
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      border-radius: 11px;
+      padding: 13px 15px;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      height: auto;
+    }
+
+    .device-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: 10px;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 7px;
+      align-self: flex-start;
+    }
+
+    .badge-mobile {
+      background: #fdf2f8;
+      color: #db2777;
+      border: 1px solid #fbcfe8;
+    }
+
+    .badge-laptop {
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+    }
+
+    .badge-success {
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #a7f3d0;
+    }
+
+    .device-card h4 {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: var(--slate-900);
+      margin-bottom: 7px;
+    }
+
+    .steps-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 7px 0;
+    }
+
+    .steps-list li {
+      position: relative;
+      padding-left: 15px;
+      font-size: 11px;
+      color: var(--slate-700);
+      margin-bottom: 5px;
+      line-height: 1.4;
+    }
+
+    .steps-list li::before {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 6px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+
+    .steps-list li strong {
+      color: var(--slate-900);
+    }
+
+    /* Clean Screenshot Containers (Zero Inside Gap) */
+    .screenshot-container {
+      background: #ffffff;
+      border: 1.5px solid var(--slate-200);
+      border-radius: 9px;
+      padding: 6px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 12px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+      height: 380px;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    .page-cover .screenshot-container {
+      height: 340px;
+    }
+
+    .screenshot-container img {
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 6px;
+      display: block;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: high-quality;
+    }
+
+    /* Callouts */
+    .callout {
+      border-radius: 9px;
+      padding: 9px 12px;
+      margin: 5px 0 10px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      font-size: 11px;
+      line-height: 1.42;
+    }
+
+    .callout-icon {
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .callout-purple {
+      background: #f5f3ff;
+      border: 1px solid #ddd6fe;
+      color: #5b21b6;
+    }
+
+    .callout-info {
+      background: #f0fdfa;
+      border: 1px solid #ccfbf1;
+      color: #0f766e;
+    }
+
+    .callout-warning {
+      background: #fffbeb;
+      border: 1px solid #fef3c7;
+      color: #b45309;
+    }
+
+    /* Module Breakdown Presentation */
+    .module-card {
+      background: #ffffff;
+      border: 1px solid var(--slate-200);
+      border-radius: 11px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+    }
+
+    .module-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .module-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+
+    .module-badge-tag {
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--slate-100);
+      color: var(--slate-700);
+      border: 1px solid var(--slate-200);
+    }
+
+    .module-card h3 {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--slate-900);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .module-card p {
+      font-size: 11px;
+      color: var(--slate-600);
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+
+    .feature-highlights {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+      margin-bottom: 7px;
+    }
+
+    .feature-pill {
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 10.5px;
+      color: var(--slate-700);
+      line-height: 1.35;
+    }
+
+    .feature-pill strong {
+      color: var(--slate-900);
+      display: block;
+      margin-bottom: 1px;
+      font-size: 10.5px;
+    }
+
+    .module-screenshot-container {
+      background: #f8fafc;
+      border: 1.5px solid var(--slate-200);
+      border-radius: 9px;
+      padding: 6px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 9px;
+      height: 520px;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    .module-screenshot-container img {
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 6px;
+      display: block;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: high-quality;
+    }
+
+    /* Print Rules: Exact Match to HTML Screen Layout (Zero Gaps, Perfect Page-by-Page) */
+    @page {
+      size: A4 landscape;
+      margin: 8mm 10mm;
+    }
+
+    @media print {
+      body {
+        background: #ffffff !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .toolbar {
+        display: none !important;
+      }
+      .guide-container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .guide-page {
+        margin: 0 !important;
+        border-radius: 12px !important;
+        border: 1px solid var(--slate-200) !important;
+        box-shadow: none !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        padding: 16px 20px !important;
+        background: #ffffff !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+      }
+      .guide-page.page-cover {
+        padding: 0 !important;
+      }
+      .page-cover-body {
+        padding: 14px 20px 16px 20px !important;
+      }
+      .guide-page:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+      }
+
+      /* STRICT 2-COLUMN COMPARISON IN PRINT (NEVER WRAP, PERFECT ALIGNMENT) */
+      .two-column-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 14px !important;
+        align-items: stretch !important;
+        width: 100% !important;
+        margin-top: 6px !important;
+      }
+      .device-card {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+        padding: 12px 14px !important;
+        background: var(--slate-50) !important;
+        border: 1px solid var(--slate-200) !important;
+        border-radius: 11px !important;
+      }
+
+      .device-badge {
+        flex-shrink: 0 !important;
+        margin-bottom: 6px !important;
+      }
+      .device-card h4 {
+        flex-shrink: 0 !important;
+        margin-bottom: 6px !important;
+        font-size: 12.5px !important;
+      }
+      .steps-list {
+        flex-shrink: 0 !important;
+        margin-bottom: 8px !important;
+      }
+      .steps-list li {
+        margin-bottom: 4px !important;
+        font-size: 11px !important;
+        line-height: 1.4 !important;
+      }
+
+      /* CLEAN SCREENSHOT CONTAINERS (EXACT PROPORTIONS AS HTML) */
+      .screenshot-container {
+        height: 345px !important;
+        margin-top: auto !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: #ffffff !important;
+        border: 1.5px solid var(--slate-200) !important;
+        border-radius: 9px !important;
+        padding: 6px !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+      }
+
+      .page-cover .screenshot-container {
+        height: 310px !important;
+      }
+
+      .page-step4 .screenshot-container {
+        height: 310px !important;
+      }
+
+      .screenshot-container img {
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+        object-fit: contain !important;
+        display: block !important;
+        border-radius: 6px !important;
+        image-rendering: -webkit-optimize-contrast !important;
+        image-rendering: high-quality !important;
+      }
+
+      /* FULL-PAGE IMMERSIVE MODULE SCREENSHOTS (LARGE & CLEAR) */
+      .module-card {
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        box-sizing: border-box !important;
+      }
+      .module-header {
+        margin-bottom: 4px !important;
+      }
+      .module-card p {
+        margin-bottom: 6px !important;
+        font-size: 11.5px !important;
+        line-height: 1.4 !important;
+      }
+      .feature-highlights {
+        margin-bottom: 8px !important;
+        gap: 8px !important;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+      }
+      .feature-pill {
+        padding: 5px 8px !important;
+        font-size: 10.5px !important;
+        background: var(--slate-50) !important;
+        border: 1px solid var(--slate-200) !important;
+        border-radius: 6px !important;
+      }
+      .callout {
+        padding: 8px 12px !important;
+        margin: 0 0 8px 0 !important;
+        font-size: 11px !important;
+      }
+      .section-header {
+        margin-bottom: 4px !important;
+        padding-bottom: 4px !important;
+      }
+      .section-desc {
+        margin-bottom: 8px !important;
+        font-size: 11.5px !important;
+      }
+
+      .module-screenshot-container {
+        height: 485px !important;
+        width: 100% !important;
+        margin-top: 8px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: #f8fafc !important;
+        border: 1.5px solid var(--slate-200) !important;
+        border-radius: 9px !important;
+        padding: 6px !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+      }
+
+      .module-screenshot-container img {
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+        object-fit: contain !important;
+        display: block !important;
+        border-radius: 6px !important;
+        image-rendering: -webkit-optimize-contrast !important;
+        image-rendering: high-quality !important;
+      }
+
+      /* PAGE 13 BALANCED TIPS & FAQ */
+      .page-tips {
+        padding: 20px 24px !important;
+      }
+      .page-tips .two-column-grid {
+        margin-top: 12px !important;
+        gap: 16px !important;
+      }
+      .page-tips .device-card {
+        padding: 18px 20px !important;
+      }
+    }
+
+    /* SCREEN ONLY RESPONSIVE (NEVER AFFECTS PRINT) */
+    @media only screen and (max-width: 768px) {
+      .two-column-grid {
+        grid-template-columns: 1fr;
+      }
+      .screenshot-container {
+        height: 260px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Print & Download Trigger Bar -->
+  <div class="toolbar">
+    <h3>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+      GradeFlow Official Guide
+    </h3>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <a href="GradeFlow_Attendance_Setup_Guide.pdf" download="GradeFlow_Attendance_Setup_Guide.pdf" class="btn-print" style="text-decoration: none;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Download PDF (9 Pages)
+      </a>
+      <button class="btn-print" onclick="window.print()" style="background: transparent; color: #e4e4e7; border: 1px solid #3f3f46;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+        Print / Save as PDF
+      </button>
+    </div>
+  </div>
+
+  <div class="guide-container">
+
+    <!-- ══════════════════════════════════════════════════════
+         PAGE 1: COVER HERO & STEP 01 (ACCESSING GRADEFLOW)
+    ══════════════════════════════════════════════════════ -->
+    <div class="guide-page page-cover">
+      <!-- Sleek, Executive Black & White PDF-Grade Header -->
+      <div class="hero-header">
+        <div class="header-top-row">
+          <div class="brand-group">
+            <div class="brand-logo-mark">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            </div>
+            <span class="brand-name">GradeFlow</span>
+            <span class="brand-pill">Student Handbook</span>
+          </div>
+          <div class="header-meta-pills">
+            <span class="meta-tag">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              Google: <strong>gradeflow vercel</strong>
+            </span>
+            <span class="meta-tag">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+              <strong>grade-flow-six.vercel.app</strong>
+            </span>
+          </div>
+        </div>
+
+        <div class="header-main-content">
+          <h1>Smart Attendance &amp; Timetable Intelligence Guide</h1>
+          <p>
+            Official student onboarding guide for one-time attendance setup, daily routine logging, and predictive recovery roadmaps.
+          </p>
+        </div>
+
+        <!-- 100% Accuracy Trust Strip (Black & White Executive) -->
+        <div class="trust-strip">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+          <span><strong>100% Timetable Precision:</strong> Don't worry about calculation errors! All percentages, safety buffers, and roadmaps sync automatically with your section timetable, academic calendar, and university holidays.</span>
+        </div>
+      </div>
+
+      <div class="page-cover-body">
+        <div class="section-header">
+          <div class="step-number">01</div>
+          <div class="section-title">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            Accessing GradeFlow (Web &amp; Google Search)
+          </div>
+        </div>
+        <p class="section-desc">
+          GradeFlow runs smoothly inside your web browser. No app install or heavy download is needed.
+        </p>
+
+        <div class="two-column-grid">
+          <div class="device-card">
+            <span class="device-badge badge-mobile">Mobile View</span>
+            <h4>Open on Smartphone</h4>
+            <ul class="steps-list">
+              <li>Open Chrome, Safari, or any phone browser.</li>
+              <li>Search <strong>gradeflow vercel</strong> in Google.</li>
+              <li>Tap the top verified result: <strong>GradeFlow | Academic analytics and GPA planning</strong>.</li>
+              <li>Or directly type: <strong>https://grade-flow-six.vercel.app/</strong></li>
+            </ul>
+            <div class="screenshot-container">
+              <img src="guide_images/01_access_mobile.png" alt="Mobile Google Search" />
+            </div>
+          </div>
+
+          <div class="device-card">
+            <span class="device-badge badge-laptop">Laptop / PC View</span>
+            <h4>Open on Desktop</h4>
+            <ul class="steps-list">
+              <li>Open Chrome, Edge, or Brave on your PC or laptop.</li>
+              <li>Search <strong>gradeflow vercel</strong> in Google or paste the direct link.</li>
+              <li>Click on <strong>GradeFlow | Academic analytics and GPA planning</strong>.</li>
+              <li>Bookmark the tab (<strong>Ctrl + D</strong>) for fast daily attendance access.</li>
+            </ul>
+            <div class="screenshot-container">
+              <img src="guide_images/01_access_laptop.png" alt="Desktop Google Search" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         PAGE 2: STEP 02 (LOGIN & SIGN IN)
+    ══════════════════════════════════════════════════════ -->
+    <div class="guide-page">
+      <div class="section-header">
+        <div class="step-number">02</div>
+        <div class="section-title">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          Signing In with Your University Registration Number
+        </div>
+      </div>
+      <p class="section-desc">
+        Your academic branch, section timetable, and saved attendance are securely linked to your official 12-digit university registration number.
+      </p>
+
+      <div class="two-column-grid">
+        <div class="device-card">
+          <span class="device-badge badge-mobile">Mobile View</span>
+          <h4>Mobile Login Steps</h4>
+          <ul class="steps-list">
+            <li>Tap on <strong>Student Login</strong> (or enter your Reg No in the home search bar).</li>
+            <li>Type your 12-digit university registration number (e.g. <strong>230301120327</strong>).</li>
+            <li>Tap <strong>Continue</strong> to open your student dashboard.</li>
+          </ul>
+          <div class="screenshot-container">
+            <img src="guide_images/02_login_mobile.png" alt="Mobile Login Dialog" />
+          </div>
+        </div>
+
+        <div class="device-card">
+          <span class="device-badge badge-laptop">Laptop / PC View</span>
+          <h4>Laptop / Desktop Login Steps</h4>
+          <ul class="steps-list">
+            <li>Click <strong>Student Login</strong> on the top bar or home hero section.</li>
+            <li>Type your 12-digit registration number into the Student Portal Login dialog.</li>
+            <li>Click <strong>Continue</strong>. Your branch and section routine load automatically.</li>
+          </ul>
+          <div class="screenshot-container">
+            <img src="guide_images/02_login_laptop.png" alt="Laptop Login Modal" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         PAGE 3: STEP 03 (NAVIGATING TO ATTENDANCE TRACKER)
+    ══════════════════════════════════════════════════════ -->
+    <div class="guide-page">
+      <div class="section-header">
+        <div class="step-number">03</div>
+        <div class="section-title">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          Navigating to Attendance Tracker
+        </div>
+      </div>
+      <p class="section-desc">
+        Open the Attendance Intelligence workspace to view today's timetable, current percentages, and predictive tools.
+      </p>
+
+      <div class="two-column-grid">
+        <div class="device-card">
+          <span class="device-badge badge-mobile">Mobile View</span>
+          <h4>Mobile Navigation</h4>
+          <ul class="steps-list">
+            <li>Tap the <strong>Menu icon (☰)</strong> at the top right of your phone screen.</li>
+            <li>Tap on <strong>% Attendance Tracker</strong> (highlighted with the green dot).</li>
+            <li>Your section routine and today's attendance cards load immediately.</li>
+          </ul>
+          <div class="screenshot-container">
+            <img src="guide_images/03_nav_mobile.png" alt="Mobile Navigation Menu" />
+          </div>
+        </div>
+
+        <div class="device-card">
+          <span class="device-badge badge-laptop">Laptop / PC View</span>
+          <h4>Desktop Navigation</h4>
+          <ul class="steps-list">
+            <li>In the top horizontal navigation bar, click directly on <strong>Attendance</strong>.</li>
+            <li>Your section is highlighted automatically in the left sidebar and header badge.</li>
+            <li>You will see your attendance percentage, timetable, and predictor modules.</li>
+          </ul>
+          <div class="screenshot-container">
+            <img src="guide_images/03_nav_laptop.png" alt="Desktop Navigation Workspace" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         PAGE 4: STEP 04 (ONE-TIME ATTENDANCE SETUP)
+    ══════════════════════════════════════════════════════ -->
+    <div class="guide-page page-step4">
+      <div class="section-header">
+        <div class="step-number">04</div>
+        <div class="section-title">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+          One-Time Attendance Setup (Unlocks Full Suite)
+        </div>
+      </div>
+
+      <!-- Essential One-Time Setup & Mid-Day Class Notice -->
+      <div class="callout callout-purple">
+        <div class="callout-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+        </div>
+        <div>
+          <strong>One-Time Setup (Save to Cloud):</strong> You only need to import your attendance once! After confirming and saving to cloud, you never have to upload screenshots again.
+          <div style="margin-top: 5px; padding-top: 5px; border-top: 1px dashed #c4b5fd; color: #4338ca; font-size: 11px; line-height: 1.45;">
+            <strong>Taking Screenshot Mid-Day?</strong> If your ERP portal attendance was updated up to earlier classes and you still have classes left today, open <strong>Daily Attendance</strong> and mark <strong>Present</strong> or <strong>Absent</strong> for today's remaining classes. If all classes for today are already finished and included in the screenshot, simply start marking from <strong>Tomorrow / Next Day</strong>!
+          </div>
+        </div>
+      </div>
+
+      <div class="two-column-grid">
+        <div class="device-card">
+          <span class="device-badge badge-success">Recommended: AI Auto-Import</span>
+          <h4>Method A: Screenshot Auto-Import</h4>
+          <ul class="steps-list">
+            <li><strong>1. Take Long Screenshot:</strong> Open your college ERP portal and capture a full screenshot of your subject-wise attendance table.</li>
+            <li><strong>2. Upload to GradeFlow:</strong> Click <strong>Auto-Import Screenshot</strong> (camera button) and upload or drop the image.</li>
+            <li><strong>3. Verify All Subjects:</strong> Carefully review each subject row. Verify attended and total classes match your ERP portal (edit any number if needed).</li>
+            <li><strong>4. Confirm &amp; Save:</strong> Click <strong>Confirm &amp; Apply to Tracker</strong>. Your data is saved to the cloud and all 7 modules unlock!</li>
+          </ul>
+          <div class="screenshot-container">
+            <img src="guide_images/04_setup_autoimport.png" alt="AI Screenshot Auto-Import Modal" />
+          </div>
+        </div>
+
+        <div class="device-card">
+          <span class="device-badge badge-laptop" style="background:#f8fafc; color:#475569; border-color:#cbd5e1;">Alternative: Manual Setup</span>
+          <h4>Method B: Manual Entry via Edit &amp; What-If</h4>
+          <ul class="steps-list">
+            <li><strong>1. Open Edit &amp; What-If:</strong> Click the <strong>Edit &amp; What-If</strong> tab in the left sidebar menu.</li>
+            <li><strong>2. Select Subjects:</strong> Choose each subject from your semester routine catalog.</li>
+            <li><strong>3. Enter Numbers:</strong> Type your current <strong>Attended Classes</strong> and <strong>Delivered Classes</strong> for Theory and Lab.</li>
+            <li><strong>4. Save to Cloud:</strong> Click <strong>Save &amp; Sync Attendance</strong>. Your baseline data is securely stored in MongoDB.</li>
+          </ul>
+          <div class="screenshot-container">
+            <img src="guide_images/04_setup_manual.png" alt="Manual Setup in Edit & What-If" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         PAGE 5: STEP 05 (DAILY ATTENDANCE ROUTINE LOGGING)
+    ══════════════════════════════════════════════════════ -->
+    <div class="guide-page">
+      <div class="section-header">
+        <div class="step-number">05</div>
+        <div class="section-title">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          Daily Attendance Routine Logging (Day 2 Onwards)
+        </div>
+      </div>
+      <p class="section-desc">
+        After your initial setup is complete, keep your attendance 100% accurate every day with just 10 seconds of effortless routine logging.
+      </p>
+
+      <div class="two-column-grid">
+        <div class="device-card">
+          <span class="device-badge badge-mobile">Mobile View</span>
+          <h4>How to Give Daily Attendance on Phone</h4>
+          <ul class="steps-list">
+            <li><strong>1. Open Daily Attendance:</strong> Tap the top module pill bar to select <strong>Daily Attendance</strong>.</li>
+            <li><strong>2. View Today's Routine:</strong> Today's classes appear automatically based on your section timetable.</li>
+            <li><strong>3. Mark Present or Absent:</strong> Tap <strong>Present (Green)</strong> or <strong>Absent (Red)</strong> on each period card as your classes finish.</li>
+            <li><strong>4. Instant Live Update:</strong> Your overall percentage and safe bunk margins update immediately!</li>
+          </ul>
+          <div class="screenshot-container">
+            <img src="guide_images/05_daily_mobile.png" alt="Mobile Daily Attendance Flow" />
+          </div>
+        </div>
+
+        <div class="device-card">
+          <span class="device-badge badge-laptop">Laptop View</span>
+          <h4>How to Give Daily Attendance on Laptop</h4>
+          <ul class="steps-list">
+            <li><strong>1. Open Daily Attendance:</strong> Click <strong>Daily Attendance</strong> in the left sidebar menu.</li>
+            <li><strong>2. View Scheduled Routine:</strong> Check period timings, subject codes, faculty names, and room numbers.</li>
+            <li><strong>3. Mark Each Class:</strong> Click <strong>Present</strong> or <strong>Absent</strong> on each period card.</li>
+            <li><strong>4. Real-Time Cloud Sync:</strong> All subject metrics and predictive recovery roadmaps update instantly.</li>
+          </ul>
+          <div class="screenshot-container">
+            <img src="guide_images/05_daily_laptop.png" alt="Desktop Daily Attendance Schedule" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         PAGE 6: MODULE 1 (DAILY ATTENDANCE)
+    ══════════════════════════════════════════════════════ -->
+    <div class="guide-page">
+      <div class="module-card">
+        <div class="module-header">
+          <h3>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            1. Daily Attendance (Today's Live Routine Logger)
+          </h3>
+          <span class="module-badge-tag">Daily Operation</span>
+        </div>
+        <p>
+          Connects directly to your college timetable. Displays today's exact scheduled periods with subject codes, professor names, and classroom venues.
+        </p>
+        <div class="feature-highlights">
+          <div class="feature-pill">
+            <strong>Mark Daily Classes:</strong> Click Present or Absent for each scheduled lecture and lab session.
+          </div>
+          <div class="feature-pill">
+            <strong>Date Switcher:</strong> Use Prev/Next Day to log attendance for past dates or preview upcoming days.
+          </div>
+        </div>
+        <div class="module-screenshot-container">
+          <img src="guide_images/06_module1_daily.png" alt="Module 1: Daily Attendance Schedule" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         PAGE 7: MODULE 2 (SUBJECT-WISE MATRIX)
+    ══════════════════════════════════════════════════════ -->
+    <div class="guide-page">
+      <div class="module-card">
+        <div class="module-header">
+          <h3>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            2. Subject-wise Attendance (Academic Matrix)
+          </h3>
+          <span class="module-badge-tag">Academic Matrix</span>
+        </div>
+        <p>
+          Displays your complete subject breakdown with color-coded safety badges: Safe (Green &ge; 75%), Borderline (Yellow 70-75%), and Critical (Red &lt; 70%).
+        </p>
+        <div class="feature-highlights">
+          <div class="feature-pill">
+            <strong>Theory vs Lab Split:</strong> View separate attended and conducted counts for lectures and practical labs.
+          </div>
+          <div class="feature-pill">
+            <strong>Bunk Margin &amp; Deficit:</strong> Tells you exactly how many classes you can skip, or how many you must attend.
+          </div>
+        </div>
+        <div class="module-screenshot-container">
+          <img src="guide_images/06_module2_subjectwise.png" alt="Module 2: Subject-wise Attendance Matrix" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         PAGE 8: MODULE 3 (EDIT & WHAT-IF SIMULATOR)
+    ══════════════════════════════════════════════════════ -->
+    <div class="guide-page">
+      <div class="module-card">
+        <div class="module-header">
+          <h3>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+            3. Edit &amp; What-If Simulator (Instant Calculation Sandbox)
+          </h3>
+          <span class="module-badge-tag">Interactive Sandbox</span>
+        </div>
+        <p>
+          A risk-free testing playground. Test what happens to your percentage if you attend or skip upcoming classes &mdash; without altering your saved database data.
+        </p>
+        <div class="feature-highlights">
+          <div class="feature-pill">
+            <strong>Test What-If Scenarios:</strong> Tap + or - on attended or conducted numbers to see the live percentage jump or drop.
+          </div>
+          <div class="feature-pill">
+            <strong>Manual Calibration:</strong> Easily correct any discrepancies between GradeFlow and your college ERP.
+          </div>
+        </div>
+        <div class="module-screenshot-container">
+          <img src="guide_images/06_module3_whatif.png" alt="Module 3: Edit & What-If Simulator" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         PAGE 9: MODULE 4 (TARGET WITH SCHEDULE ROADMAP)
+    ══════════════════════════════════════════════════════ -->
+    <div class="guide-page">
+      <div class="module-card">
+        <div class="module-header">
+          <h3>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+            4. Target with Schedule (Sprint Recovery Roadmap)
+          </h3>
+          <span class="module-badge-tag">Goal Achievement</span>
+        </div>
+        <p>
+          The ultimate recovery engine for students below 75%. Pick your target (75%, 80%, etc.) and the system calculates the exact future date when you will achieve it.
+        </p>
+        <div class="feature-highlights">
+          <div class="feature-pill">
+            <strong>Set Your Target:</strong> Select 75%, 80%, or custom target criteria for each subject.
+          </div>
+          <div class="feature-pill">
+            <strong>Follow the Roadmap:</strong> Reads your section timetable to show exact upcoming lectures to attend consecutively.
+          </div>
+        </div>
+        <div class="module-screenshot-container">
+          <img src="guide_images/06_module4_target_schedule.png" alt="Module 4: Target with Schedule Roadmap" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         PAGE 10: MODULE 5 (MISS IMPACT SIMULATOR)
+    ══════════════════════════════════════════════════════ -->
+    <div class="guide-page">
+      <div class="module-card">
+        <div class="module-header">
+          <h3>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            5. Miss Impact between Target (Absence Penalty Simulator)
+          </h3>
+          <span class="module-badge-tag">Risk Assessment</span>
+        </div>
+        <p>
+          What happens if you fall sick or miss a class while working towards your 75% target? This simulator shows the exact percentage drop and extra lectures needed.
+        </p>
+        <div class="feature-highlights">
+          <div class="feature-pill">
+            <strong>Select Planned Misses:</strong> Choose 1, 2, or 3 missed classes to see the exact percentage penalty.
+          </div>
+          <div class="feature-pill">
+            <strong>Revised Recovery Date:</strong> Shows how many extra classes are added to your streak and the new milestone date.
+          </div>
+        </div>
+        <div class="module-screenshot-container">
+          <img src="guide_images/06_module5_miss_impact.png" alt="Module 5: Miss Impact Between Target" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         PAGE 11: MODULE 6 (MISS CLASSES AFTER TARGET)
+    ══════════════════════════════════════════════════════ -->
+    <div class="guide-page">
+      <div class="module-card">
+        <div class="module-header">
+          <h3>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+            6. Miss Classes After Target (Fest, Trip &amp; Hackathon Planner)
+          </h3>
+          <span class="module-badge-tag">Safe Bunk Planning</span>
+        </div>
+        <p>
+          Designed for students who have achieved &ge; 75% and want to plan leaves for college fests, hackathons, or trips without dropping into danger.
+        </p>
+        <div class="feature-highlights">
+          <div class="feature-pill">
+            <strong>Safe Bunk Allowance:</strong> See exactly how many classes you can skip while staying safely above 75%.
+          </div>
+          <div class="feature-pill">
+            <strong>Post-Leave Roadmap:</strong> Step-by-step roadmap showing how your attendance will re-stabilize after returning.
+          </div>
+        </div>
+        <div class="module-screenshot-container">
+          <img src="guide_images/06_module6_after_target.png" alt="Module 6: Miss Classes After Target" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         PAGE 12: MODULE 7 (FUTURE PREDICTOR)
+    ══════════════════════════════════════════════════════ -->
+    <div class="guide-page">
+      <div class="module-card">
+        <div class="module-header">
+          <h3>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+            7. Future Predictor (14-Day Calendar Simulator)
+          </h3>
+          <span class="module-badge-tag">Date Simulation</span>
+        </div>
+        <p>
+          An interactive 14-day upcoming timetable view. Tap on any future day (e.g. Next Friday) to simulate skipping classes and view your projected percentage.
+        </p>
+        <div class="feature-highlights">
+          <div class="feature-pill">
+            <strong>Select Upcoming Dates:</strong> Tap future calendar days or use quick presets (e.g. Long Weekend).
+          </div>
+          <div class="feature-pill">
+            <strong>Projected Impact:</strong> Instantly recalculates your semester percentage if you skip those scheduled periods.
+          </div>
+        </div>
+        <div class="module-screenshot-container">
+          <img src="guide_images/06_module7_future_predictor.png" alt="Module 7: Future Predictor Calendar" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         PAGE 13: IMPORTANT TIPS & STUDENT FAQ
+    ══════════════════════════════════════════════════════ -->
+    <div class="guide-page page-tips">
+      <div class="section-header">
+        <div class="step-number">08</div>
+        <div class="section-title">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          Important Tips &amp; Student FAQ
+        </div>
+      </div>
+      <p class="section-desc">
+        Essential security features, data protection rules, and routine update mechanisms built into GradeFlow.
+      </p>
+
+      <div class="two-column-grid" style="margin-top: 10px;">
+        <div class="device-card" style="padding: 16px 18px;">
+          <h4>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:5px;"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>
+            Timetable Updates by Admin
+          </h4>
+          <p style="font-size: 11.5px; color: var(--slate-600); line-height: 1.5; margin-bottom: 8px;">
+            Whenever admin updates routines or exam schedules, all predictors immediately follow the updated database timetable automatically.
+          </p>
+          <div class="callout callout-info" style="margin: 0; padding: 7px 11px; font-size: 11px;">
+            Tip: Simply refresh browser once to fetch latest timetable sync.
+          </div>
+        </div>
+
+        <div class="device-card" style="padding: 16px 18px;">
+          <h4>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:5px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            Accidental Reset Protection
+          </h4>
+          <p style="font-size: 11.5px; color: var(--slate-600); line-height: 1.5; margin-bottom: 8px;">
+            Reset Attendance button has an active 10-second countdown circular timer modal. Click <strong>Undo Reset</strong> within 10s to restore all data!
+          </p>
+          <div class="callout callout-warning" style="margin: 0; padding: 7px 11px; font-size: 11px;">
+            Safety: Screenshot auto-import is limited to 2 scans per day.
+          </div>
+        </div>
+      </div>
+
+      <!-- Trust Footer Banner -->
+      <div style="margin-top: 24px; padding: 14px 18px; background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: 10px; display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <div style="font-size: 12.5px; font-weight: 700; color: var(--slate-900);">100% Academic Data Accuracy Guaranteed</div>
+          <div style="font-size: 11px; color: var(--slate-500); margin-top: 2px;">Calculations sync in real time with section schedules, room assignments, and official university holidays.</div>
+        </div>
+        <div style="font-size: 11.5px; font-weight: 700; color: #4f46e5; background: #e0e7ff; padding: 4px 10px; border-radius: 6px;">GradeFlow Live</div>
+      </div>
+
+      <!-- Footer -->
+      <div style="text-align: center; border-top: 1px solid var(--slate-200); padding-top: 12px; margin-top: 20px;">
+        <p style="font-size: 11.5px; color: var(--slate-500); font-weight: 600;">
+          GradeFlow Academic Intelligence Suite &bull; Designed for University Students
+        </p>
+        <p style="font-size: 10.5px; color: var(--slate-400); margin-top: 2px;">
+          Website: https://grade-flow-six.vercel.app/ &bull; Google Search: gradeflow vercel
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

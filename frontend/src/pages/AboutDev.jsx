@@ -10,6 +10,7 @@ import {
   Heart,
   Quote,
 } from "lucide-react";
+import { useApp } from "../context/AppContext";
 
 /* ─── Static Contact URLs (Hoisted for zero render overhead) ────── */
 const WHATSAPP_MESSAGE = encodeURIComponent(
@@ -40,6 +41,8 @@ const WhatsAppIcon = ({ size = 20, color = "#ffffff" }) => (
 
 export default function AboutDev() {
   const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 1024 : false));
+  const { studentSession, studentData, adminToken, hasActiveSession } = useApp() || {};
+  const isLoggedIn = Boolean(studentSession || studentData || adminToken || hasActiveSession);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
@@ -366,41 +369,76 @@ export default function AboutDev() {
               I'm always open to new opportunities, collaborations and interesting conversations.
             </p>
 
-            {/* Say Hello on WhatsApp Action Button */}
-            <a
-              href={WHATSAPP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 9,
-                padding: "12px 22px",
-                borderRadius: 12,
-                background: "#25D366",
-                color: "#ffffff",
-                textDecoration: "none",
-                fontSize: 13.5,
-                fontWeight: 700,
-                fontFamily: "'DM Sans', sans-serif",
-                boxShadow: "0 4px 14px rgba(37, 211, 102, 0.35)",
-                width: isMobile ? "100%" : "fit-content",
-                boxSizing: "border-box",
-                transition: "all 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#1ebc59";
-                e.currentTarget.style.boxShadow = "0 6px 18px rgba(37, 211, 102, 0.45)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#25D366";
-                e.currentTarget.style.boxShadow = "0 4px 14px rgba(37, 211, 102, 0.35)";
-              }}
-            >
-              <WhatsAppIcon size={18} color="#ffffff" />
-              <span>Say Hello on WhatsApp</span>
-            </a>
+            {/* Action Button: WhatsApp ONLY when logged in, otherwise Email button */}
+            {isLoggedIn ? (
+              <a
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 9,
+                  padding: "12px 22px",
+                  borderRadius: 12,
+                  background: "#25D366",
+                  color: "#ffffff",
+                  textDecoration: "none",
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  fontFamily: "'DM Sans', sans-serif",
+                  boxShadow: "0 4px 14px rgba(37, 211, 102, 0.35)",
+                  width: isMobile ? "100%" : "fit-content",
+                  boxSizing: "border-box",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#1ebc59";
+                  e.currentTarget.style.boxShadow = "0 6px 18px rgba(37, 211, 102, 0.45)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#25D366";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(37, 211, 102, 0.35)";
+                }}
+              >
+                <WhatsAppIcon size={18} color="#ffffff" />
+                <span>Say Hello on WhatsApp</span>
+              </a>
+            ) : (
+              <a
+                href="mailto:jagan.parida.dev@gmail.com?subject=Hello%20Jagan%20-%20From%20GradeFlow"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 9,
+                  padding: "12px 22px",
+                  borderRadius: 12,
+                  background: "#2563eb",
+                  color: "#ffffff",
+                  textDecoration: "none",
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  fontFamily: "'DM Sans', sans-serif",
+                  boxShadow: "0 4px 14px rgba(37, 99, 235, 0.35)",
+                  width: isMobile ? "100%" : "fit-content",
+                  boxSizing: "border-box",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#1d4ed8";
+                  e.currentTarget.style.boxShadow = "0 6px 18px rgba(37, 99, 235, 0.45)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#2563eb";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(37, 99, 235, 0.35)";
+                }}
+              >
+                <Mail size={18} color="#ffffff" />
+                <span>Send an Email</span>
+              </a>
+            )}
           </div>
 
           {/* Right Block: 4 Social Cards in a 2x2 Grid on Mobile or 4x1 on Desktop */}

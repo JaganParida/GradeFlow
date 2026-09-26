@@ -18,24 +18,24 @@ const publicPages = {
       "Find practical help for using GradeFlow's academic planning and student tools, plus the available support contact.",
   },
   "/contact": {
-    title: "Contact | GradeFlow",
+    title: "Contact Support & Inquiries | GradeFlow",
     description:
-      "Contact the GradeFlow developer through the support channel available in the application.",
+      "Contact GradeFlow support, submit curriculum records, or report issues via email at jagan.parida.dev@gmail.com.",
   },
   "/privacy": {
-    title: "Privacy policy | GradeFlow",
+    title: "Privacy Policy | GradeFlow",
     description:
-      "Read how GradeFlow handles account, academic, session, device, and browser-storage information in the current application.",
+      "Learn how GradeFlow safeguards student data, ensures privacy, and manages academic information responsibly.",
   },
   "/terms": {
-    title: "Terms of use | GradeFlow",
+    title: "Terms of Use | GradeFlow",
     description:
-      "Read the current terms of use for the GradeFlow academic analytics application.",
+      "Read the official Terms of Use, acceptable use guidelines, and advisory notices for the GradeFlow platform.",
   },
   "/cookies": {
-    title: "Cookie policy | GradeFlow",
+    title: "Cookie Policy | GradeFlow",
     description:
-      "Learn about the essential session cookies and browser storage used by the GradeFlow application.",
+      "Understand how GradeFlow uses necessary authentication cookies and client storage for a secure, fast experience.",
   },
   "/about-dev": {
     title: "About the developer | GradeFlow",
