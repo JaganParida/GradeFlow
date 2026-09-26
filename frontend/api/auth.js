@@ -1195,7 +1195,7 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ success: false, message: "Invalid OTP format. Must be a 6-digit numeric code." });
       }
 
-      const studentAccount = await Student.findOne({ regNo: rawReg });
+      let studentAccount = await Student.findOne({ regNo: rawReg });
       if (studentAccount && Student.isStudentBlocked(studentAccount)) {
         return res.status(404).json({
           success: false,
@@ -1215,7 +1215,6 @@ module.exports = async function handler(req, res) {
       if (new Date() > new Date(otpRecord.expiresAt)) {
         const isRecovery = otpRecord.purpose === "FAILED_PASSWORD_RECOVERY";
         await OtpVerification.deleteOne({ _id: otpRecord._id });
-        const studentAccount = await Student.findOne({ regNo: rawReg });
         if (isRecovery && studentAccount?.recoveryRestrictedUntil) {
           return res.status(400).json({
             success: false,
@@ -1234,7 +1233,6 @@ module.exports = async function handler(req, res) {
       if (otpRecord.attempts >= 5) {
         const isRecovery = otpRecord.purpose === "FAILED_PASSWORD_RECOVERY";
         await OtpVerification.deleteOne({ _id: otpRecord._id });
-        const studentAccount = await Student.findOne({ regNo: rawReg });
         if (isRecovery && studentAccount?.recoveryRestrictedUntil) {
           return res.status(400).json({
             success: false,
@@ -1262,7 +1260,9 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      let studentAccount = await Student.findOne({ regNo: rawReg });
+      if (!studentAccount) {
+        studentAccount = await Student.findOne({ regNo: rawReg });
+      }
       if (!studentAccount) {
         studentAccount = await Student.create({ regNo: rawReg });
       }
