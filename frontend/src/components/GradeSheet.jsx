@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { Download, Image as ImageIcon, Printer, GraduationCap, AlertTriangle, ZoomIn, ZoomOut, MessageSquare, Lock, ShieldCheck, FileDown } from "lucide-react";
+import { Printer, GraduationCap, AlertTriangle, ZoomIn, ZoomOut, MessageSquare, Lock, ShieldCheck, FileDown, ImageDown } from "lucide-react";
 import {
   FAIL_GRADES,
   calculateCGPA,
@@ -280,18 +280,26 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
             type="button"
             className="btn btn-primary gradesheet-btn"
             onClick={downloadPDF}
-            title={!isUnlocked ? "Unlock via Feedback to Download" : "Download PDF"}
+            title={!isUnlocked ? "Unlock via Feedback to Download PDF" : "Download PDF"}
           >
-            {!isUnlocked ? <Lock size={14} className="gradesheet-btn-icon" /> : <Download size={15} className="gradesheet-btn-icon" />}
+            {!isUnlocked ? (
+              <Lock size={14} className="gradesheet-btn-icon" strokeWidth={2.2} />
+            ) : (
+              <FileDown size={15} className="gradesheet-btn-icon" strokeWidth={2.2} />
+            )}
             <span>Download</span>
           </button>
           <button
             type="button"
             className="btn btn-ghost gradesheet-btn"
             onClick={saveImage}
-            title={!isUnlocked ? "Unlock via Feedback to Save Image" : "Save Image"}
+            title={!isUnlocked ? "Unlock via Feedback to Save Image" : "Download Image (PNG)"}
           >
-            {!isUnlocked ? <Lock size={14} className="gradesheet-btn-icon" /> : <ImageIcon size={15} className="gradesheet-btn-icon" />}
+            {!isUnlocked ? (
+              <Lock size={14} className="gradesheet-btn-icon" strokeWidth={2.2} />
+            ) : (
+              <ImageDown size={15} className="gradesheet-btn-icon" strokeWidth={2.2} />
+            )}
             <span>Image</span>
           </button>
           <button
@@ -300,7 +308,11 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
             onClick={printSheet}
             title={!isUnlocked ? "Unlock via Feedback to Print" : "Print Sheet"}
           >
-            {!isUnlocked ? <Lock size={14} className="gradesheet-btn-icon" /> : <Printer size={15} className="gradesheet-btn-icon" />}
+            {!isUnlocked ? (
+              <Lock size={14} className="gradesheet-btn-icon" strokeWidth={2.2} />
+            ) : (
+              <Printer size={15} className="gradesheet-btn-icon" strokeWidth={2.2} />
+            )}
             <span>Print</span>
           </button>
         </div>
