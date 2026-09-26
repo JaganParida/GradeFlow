@@ -414,6 +414,8 @@ export default function Resources() {
     setConvertDirection("cgpa-to-pct");
   }, [studentData]);
 
+  const [scaleFilter, setScaleFilter] = useState("all"); // "all" | "distinction" | "first" | "pass"
+
   const studentTotalCredits = useMemo(() => {
     if (!studentData?.results) return 0;
     return studentData.results.reduce((acc, r) => {
@@ -2432,29 +2434,33 @@ export default function Resources() {
                   </div>
 
                   {/* Mode Selector Toggle */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  <div style={{ display: "flex", alignItems: isMobile ? "stretch" : "center", flexDirection: isMobile ? "column" : "row", gap: 8, width: "100%", boxSizing: "border-box" }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                       Conversion Mode:
                     </span>
                     <div
                       style={{
-                        display: "inline-flex",
+                        display: "flex",
                         background: "#f1f5f9",
                         padding: 3,
                         borderRadius: 10,
                         gap: 4,
+                        width: isMobile ? "100%" : "auto",
+                        boxSizing: "border-box",
                       }}
                     >
                       <button
                         type="button"
                         onClick={() => setConvertDirection("cgpa-to-pct")}
                         style={{
+                          flex: isMobile ? 1 : "initial",
                           border: "none",
-                          padding: "6px 14px",
+                          padding: isMobile ? "8px 12px" : "6px 14px",
                           borderRadius: 8,
-                          fontSize: 12.5,
+                          fontSize: isMobile ? 12 : 12.5,
                           fontWeight: 700,
                           cursor: "pointer",
+                          textAlign: "center",
                           transition: "all 0.15s ease",
                           background: convertDirection === "cgpa-to-pct" ? "#ffffff" : "transparent",
                           color: convertDirection === "cgpa-to-pct" ? "#2563eb" : "#64748b",
@@ -2467,12 +2473,14 @@ export default function Resources() {
                         type="button"
                         onClick={() => setConvertDirection("pct-to-cgpa")}
                         style={{
+                          flex: isMobile ? 1 : "initial",
                           border: "none",
-                          padding: "6px 14px",
+                          padding: isMobile ? "8px 12px" : "6px 14px",
                           borderRadius: 8,
-                          fontSize: 12.5,
+                          fontSize: isMobile ? 12 : 12.5,
                           fontWeight: 700,
                           cursor: "pointer",
+                          textAlign: "center",
                           transition: "all 0.15s ease",
                           background: convertDirection === "pct-to-cgpa" ? "#ffffff" : "transparent",
                           color: convertDirection === "pct-to-cgpa" ? "#2563eb" : "#64748b",
@@ -2889,75 +2897,284 @@ export default function Resources() {
                     </div>
                   </div>
 
-                  {/* Comprehensive Conversion Scale Table */}
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
-                      <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                        Centurion University CGPA to Percentage Reference Scale
-                      </h3>
-                      <span style={{ fontSize: 12, color: "#64748b" }}>
-                        Highlighted row indicates active selection bracket
-                      </span>
-                    </div>
+                  {/* Comprehensive Conversion Scale Table & Mobile Cards */}
+                  <div style={{ width: "100%", boxSizing: "border-box" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 12, flexDirection: isMobile ? "column" : "row", gap: 8, width: "100%", boxSizing: "border-box" }}>
+                      <div>
+                        <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: "0 0 3px 0" }}>
+                          Centurion University CGPA to Percentage Reference Scale
+                        </h3>
+                        <p style={{ fontSize: isMobile ? 11.5 : 12.5, color: "#64748b", margin: 0 }}>
+                          Tap any row or card below to simulate that grade point in the converter.
+                        </p>
+                      </div>
 
-                    <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 12 }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
-                        <thead>
-                          <tr style={{ background: "#f8fafc", borderBottom: "1.5px solid #e2e8f0" }}>
-                            <th style={{ padding: "10px 14px", fontWeight: 800, color: "#475569" }}>CGPA</th>
-                            <th style={{ padding: "10px 14px", fontWeight: 800, color: "#475569" }}>Marks in % (CGPA × 10)</th>
-                            <th style={{ padding: "10px 14px", fontWeight: 800, color: "#475569" }}>Official Division</th>
-                            <th style={{ padding: "10px 14px", fontWeight: 800, color: "#475569" }}>Typical Grade Tier</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {CGPA_PERCENTAGE_SCALE.map((row) => {
-                            const isRowActive = Math.abs(effectiveCgpa - row.cgpa) < 0.26;
-                            return (
-                              <tr
-                                key={row.cgpa}
+                      {/* Division Filter Pills */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, overflowX: "auto", maxWidth: "100%", scrollbarWidth: "none", boxSizing: "border-box", paddingBottom: 2 }}>
+                        {[
+                          { id: "all", label: "All", count: 13 },
+                          { id: "distinction", label: "Distinction", count: 5 },
+                          { id: "first", label: "First Class", count: 4 },
+                          { id: "pass", label: "Second/Pass", count: 4 },
+                        ].map((cat) => {
+                          const isSel = scaleFilter === cat.id;
+                          return (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              onClick={() => setScaleFilter(cat.id)}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                padding: isMobile ? "4px 8px" : "5px 10px",
+                                borderRadius: 18,
+                                border: isSel ? "1.5px solid #2563eb" : "1px solid #e2e8f0",
+                                background: isSel ? "#eff6ff" : "#ffffff",
+                                color: isSel ? "#2563eb" : "#475569",
+                                fontSize: isMobile ? 11 : 11.5,
+                                fontWeight: isSel ? 800 : 600,
+                                cursor: "pointer",
+                                whiteSpace: "nowrap",
+                                flexShrink: 0,
+                                transition: "all 0.15s ease",
+                              }}
+                            >
+                              <span>{cat.label}</span>
+                              <span
                                 style={{
-                                  background: isRowActive ? "#eff6ff" : "transparent",
-                                  borderBottom: "1px solid #f1f5f9",
-                                  transition: "background 0.15s ease",
+                                  background: isSel ? "#2563eb" : "#f1f5f9",
+                                  color: isSel ? "#ffffff" : "#64748b",
+                                  padding: "0.5px 5px",
+                                  borderRadius: 8,
+                                  fontSize: 9.5,
+                                  fontWeight: 800,
                                 }}
                               >
-                                <td style={{ padding: "10px 14px", fontWeight: isRowActive ? 800 : 700, color: isRowActive ? "#2563eb" : "#0f172a" }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                    <span>{row.cgpa.toFixed(1)}</span>
-                                    {isRowActive && (
-                                      <span style={{ fontSize: 10, fontWeight: 800, color: "#2563eb", background: "#dbeafe", padding: "1px 6px", borderRadius: 4 }}>
-                                        Current
-                                      </span>
-                                    )}
-                                  </div>
-                                </td>
-                                <td style={{ padding: "10px 14px", fontWeight: isRowActive ? 800 : 600, color: isRowActive ? "#2563eb" : "#334155", fontFamily: "'Space Mono', monospace" }}>
-                                  {row.pct}
-                                </td>
-                                <td style={{ padding: "10px 14px" }}>
+                                {cat.count}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* ── MOBILE: ZERO-SCROLL FLUID CARDS LIST ── */}
+                    {isMobile ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", boxSizing: "border-box" }}>
+                        {(scaleFilter === "distinction"
+                          ? CGPA_PERCENTAGE_SCALE.filter((r) => r.cgpa >= 8.0)
+                          : scaleFilter === "first"
+                          ? CGPA_PERCENTAGE_SCALE.filter((r) => r.cgpa >= 6.0 && r.cgpa < 8.0)
+                          : scaleFilter === "pass"
+                          ? CGPA_PERCENTAGE_SCALE.filter((r) => r.cgpa < 6.0)
+                          : CGPA_PERCENTAGE_SCALE
+                        ).map((row) => {
+                          const isRowActive = Math.abs(effectiveCgpa - row.cgpa) < 0.26;
+                          return (
+                            <div
+                              key={row.cgpa}
+                              onClick={() => handleCgpaConvertChange(row.cgpa)}
+                              style={{
+                                background: isRowActive ? "#eff6ff" : "#fcfdfe",
+                                border: isRowActive ? "1.5px solid #2563eb" : "1px solid #e2e8f0",
+                                borderRadius: 12,
+                                padding: "10px 12px",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 6,
+                                boxShadow: isRowActive ? "0 3px 10px rgba(37,99,235,0.12)" : "0 1px 3px rgba(0,0,0,0.02)",
+                                cursor: "pointer",
+                                transition: "all 0.15s ease",
+                                width: "100%",
+                                boxSizing: "border-box",
+                              }}
+                            >
+                              {/* Row 1: CGPA + Arrow + Percentage | Division Badge */}
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%", boxSizing: "border-box" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
                                   <span
                                     style={{
-                                      fontSize: 11.5,
-                                      fontWeight: 700,
-                                      padding: "3px 8px",
+                                      fontSize: 12.5,
+                                      fontWeight: 900,
+                                      color: isRowActive ? "#ffffff" : "#0f172a",
+                                      background: isRowActive ? "#2563eb" : "#e2e8f0",
+                                      padding: "2px 7px",
                                       borderRadius: 6,
-                                      background: row.bg,
-                                      color: row.color,
+                                      fontFamily: "'Space Mono', monospace",
+                                      flexShrink: 0,
                                     }}
                                   >
-                                    {row.division}
+                                    {row.cgpa.toFixed(1)} CGPA
                                   </span>
-                                </td>
-                                <td style={{ padding: "10px 14px", color: "#64748b", fontSize: 12.5 }}>
-                                  {row.grade}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                                  <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 700, flexShrink: 0 }}>→</span>
+                                  <span
+                                    style={{
+                                      fontSize: 13.5,
+                                      fontWeight: 900,
+                                      color: isRowActive ? "#2563eb" : "#166534",
+                                      fontFamily: "'Space Mono', monospace",
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    {row.pct}
+                                  </span>
+                                </div>
+
+                                <span
+                                  style={{
+                                    fontSize: 10.5,
+                                    fontWeight: 800,
+                                    padding: "2px 6px",
+                                    borderRadius: 6,
+                                    background: row.bg,
+                                    color: row.color,
+                                    whiteSpace: "nowrap",
+                                    textAlign: "right",
+                                    flexShrink: 0,
+                                    maxWidth: "50%",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                  }}
+                                >
+                                  {row.division}
+                                </span>
+                              </div>
+
+                              {/* Row 2: Grade Tier & Selection Indicator */}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  borderTop: "1px solid #f1f5f9",
+                                  paddingTop: 5,
+                                  fontSize: 11,
+                                  color: "#64748b",
+                                  width: "100%",
+                                  boxSizing: "border-box",
+                                }}
+                              >
+                                <div>
+                                  Grade: <strong style={{ color: "#334155" }}>{row.grade}</strong>
+                                </div>
+
+                                <div>
+                                  {isRowActive ? (
+                                    <span
+                                      style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 3,
+                                        fontSize: 9.5,
+                                        fontWeight: 800,
+                                        color: "#2563eb",
+                                        background: "#dbeafe",
+                                        padding: "1px 6px",
+                                        borderRadius: 4,
+                                        textTransform: "uppercase",
+                                      }}
+                                    >
+                                      <CheckCircle2 size={10} /> Selected
+                                    </span>
+                                  ) : row.cgpa === 6.0 ? (
+                                    <span
+                                      style={{
+                                        fontSize: 9.5,
+                                        fontWeight: 800,
+                                        color: "#c2410c",
+                                        background: "#ffedd5",
+                                        padding: "1px 6px",
+                                        borderRadius: 4,
+                                      }}
+                                    >
+                                      First Class Cutoff
+                                    </span>
+                                  ) : row.cgpa >= 8.0 ? (
+                                    <span style={{ fontSize: 10, fontWeight: 700, color: "#15803d" }}>
+                                      Honours Tier
+                                    </span>
+                                  ) : (
+                                    <span style={{ fontSize: 9.5, color: "#94a3b8" }}>
+                                      Tap to pick
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      /* ── DESKTOP: FULL STRUCTURED TABLE ── */
+                      <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 12 }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
+                          <thead>
+                            <tr style={{ background: "#f8fafc", borderBottom: "1.5px solid #e2e8f0" }}>
+                              <th style={{ padding: "10px 14px", fontWeight: 800, color: "#475569" }}>CGPA</th>
+                              <th style={{ padding: "10px 14px", fontWeight: 800, color: "#475569" }}>Marks in % (CGPA × 10)</th>
+                              <th style={{ padding: "10px 14px", fontWeight: 800, color: "#475569" }}>Official Division</th>
+                              <th style={{ padding: "10px 14px", fontWeight: 800, color: "#475569" }}>Typical Grade Tier</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(scaleFilter === "distinction"
+                              ? CGPA_PERCENTAGE_SCALE.filter((r) => r.cgpa >= 8.0)
+                              : scaleFilter === "first"
+                              ? CGPA_PERCENTAGE_SCALE.filter((r) => r.cgpa >= 6.0 && r.cgpa < 8.0)
+                              : scaleFilter === "pass"
+                              ? CGPA_PERCENTAGE_SCALE.filter((r) => r.cgpa < 6.0)
+                              : CGPA_PERCENTAGE_SCALE
+                            ).map((row) => {
+                              const isRowActive = Math.abs(effectiveCgpa - row.cgpa) < 0.26;
+                              return (
+                                <tr
+                                  key={row.cgpa}
+                                  onClick={() => handleCgpaConvertChange(row.cgpa)}
+                                  style={{
+                                    background: isRowActive ? "#eff6ff" : "transparent",
+                                    borderBottom: "1px solid #f1f5f9",
+                                    transition: "background 0.15s ease",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <td style={{ padding: "10px 14px", fontWeight: isRowActive ? 800 : 700, color: isRowActive ? "#2563eb" : "#0f172a" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                      <span>{row.cgpa.toFixed(1)}</span>
+                                      {isRowActive && (
+                                        <span style={{ fontSize: 10, fontWeight: 800, color: "#2563eb", background: "#dbeafe", padding: "1px 6px", borderRadius: 4 }}>
+                                          Current
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td style={{ padding: "10px 14px", fontWeight: isRowActive ? 800 : 600, color: isRowActive ? "#2563eb" : "#334155", fontFamily: "'Space Mono', monospace" }}>
+                                    {row.pct}
+                                  </td>
+                                  <td style={{ padding: "10px 14px" }}>
+                                    <span
+                                      style={{
+                                        fontSize: 11.5,
+                                        fontWeight: 700,
+                                        padding: "3px 8px",
+                                        borderRadius: 6,
+                                        background: row.bg,
+                                        color: row.color,
+                                      }}
+                                    >
+                                      {row.division}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: "10px 14px", color: "#64748b", fontSize: 12.5 }}>
+                                    {row.grade}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               );

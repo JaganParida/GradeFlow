@@ -3446,11 +3446,14 @@ A frequent point of student confusion arises from legacy conversion formulas ado
 
 ### 5. Interactive Conversion Engine Architecture
 The dedicated subtab (`cgpa-to-percentage`) features:
-1. **Bidirectional Mode Toggle:** Instant 1-tap switching between `CGPA → Percentage` and `Percentage → CGPA`.
+1. **Bidirectional Mode Toggle:** Instant 1-tap switching between `CGPA → Percentage` and `Percentage → CGPA` with full-width responsive mobile adaptation.
 2. **Synchronized Dual Controls:** High-precision numeric inputs accompanied by real-time range sliders with smooth live scrubbing.
 3. **Preset Quick Chips:** Rapid 1-click selection of common threshold values ($6.0$ First Class cutoff, $8.0$ Distinction, $8.5$, $9.0$, etc.).
-4. **Dynamic Reference Scale Highlighting:** The 13-tier reference scale table dynamically detects and highlights the user's active grade bracket with a soft blue badge.
-5. **Zero-Network Invariant:** 100% synchronous mathematical execution inside client memory with zero server round-trips.
+4. **Division Filter Pills & Dynamic Highlighting:** Category filter chips (`All`, `Distinction`, `First Class`, `Second/Pass`) with real-time active bracket detection.
+5. **Dual View Presentation (Mobile Cards vs Desktop Table):**
+   - **Mobile View (`< 1100px`):** Replaces horizontal scrolling tables with a 100% fluid, zero-horizontal-scroll interactive card list. Each card displays CGPA $\to$ Marks %, Division badge, and letter grade with 1-tap interactive simulation.
+   - **Desktop View (`>= 1100px`):** Structured 4-column reference table with sticky header and active row highlighting.
+6. **Zero-Network Invariant:** 100% synchronous mathematical execution inside client memory with zero server round-trips.
 
 ---
 
