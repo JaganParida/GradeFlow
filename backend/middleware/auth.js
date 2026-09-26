@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const Student = require("../models/Student");
 const StudentSession = require("../models/StudentSession");
 const AdminSession = require("../models/AdminSession");
 const SubAdminSession = require("../models/SubAdminSession");
@@ -164,6 +165,18 @@ const protectStudent = async (req, res, next) => {
       return res.status(401).json({ success: false, message: "Invalid session token. Please log in again." });
     }
 
+    // Portal Access Control: Verify if student is blocked by Admin
+    const studentAccount = await Student.findOne({ regNo: decoded.regNo }).lean();
+    if (studentAccount && Student.isStudentBlocked(studentAccount)) {
+      await StudentSession.updateMany({ regNo: decoded.regNo }, { $set: { isActive: false } });
+      return res.status(403).json({
+        success: false,
+        message: "Your portal access has been suspended by the administration.",
+        code: "ACCOUNT_SUSPENDED",
+        isBlocked: true,
+      });
+    }
+
     const session = await StudentSession.findOne({
       regNo: decoded.regNo,
       sessionId: decoded.sessionId,
@@ -249,6 +262,18 @@ const requireStudentOrAdmin = async (req, res, next) => {
     const decoded = jwt.verify(studentToken, process.env.JWT_SECRET);
     if (!decoded.regNo || !decoded.sessionId) {
       return res.status(401).json({ message: "Invalid session token." });
+    }
+
+    // Portal Access Control: Verify if student is blocked by Admin
+    const studentAccount = await Student.findOne({ regNo: decoded.regNo }).lean();
+    if (studentAccount && Student.isStudentBlocked(studentAccount)) {
+      await StudentSession.updateMany({ regNo: decoded.regNo }, { $set: { isActive: false } });
+      return res.status(403).json({
+        success: false,
+        message: "Your portal access has been suspended by the administration.",
+        code: "ACCOUNT_SUSPENDED",
+        isBlocked: true,
+      });
     }
 
     const session = await StudentSession.findOne({

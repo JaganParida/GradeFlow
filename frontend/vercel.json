@@ -243,6 +243,14 @@
       "destination": "/api/admin.js?action=student-accounts"
     },
     {
+      "source": "/api/admin/student-access-control/:path*",
+      "destination": "/api/admin.js?action=student-access-control"
+    },
+    {
+      "source": "/api/admin/student-access-control",
+      "destination": "/api/admin.js?action=student-access-control"
+    },
+    {
       "source": "/api/admin/attendance-tracker/monitor",
       "destination": "/api/admin.js?action=attendance-monitor"
     },

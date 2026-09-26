@@ -24,7 +24,14 @@ const studentSchema = new mongoose.Schema(
     lastBacklogEmailError: { type: String },
     lastTopperEmailSentAt: { type: Date },
     lastTopperEmailStatus: { type: String, default: null },
-    lastTopperEmailError: { type: String }
+    lastTopperEmailError: { type: String },
+    // Portal Access Control & Block Fields
+    isBlocked: { type: Boolean, default: false, index: true },
+    blockType: { type: String, enum: ["temporary", "permanent", null], default: null },
+    blockedUntil: { type: Date, default: null, index: true },
+    blockedReason: { type: String, default: "" },
+    blockedAt: { type: Date, default: null },
+    blockedBy: { type: String, default: null }
   },
   { timestamps: true }
 );
@@ -91,5 +98,26 @@ studentSchema.methods.setPassword = async function (plainPassword) {
   this.passwordResetExpiresAt = null;
 };
 
-module.exports = mongoose.models.Student || mongoose.model("Student", studentSchema);
+studentSchema.methods.isCurrentlyBlocked = function () {
+  if (!this.isBlocked) return false;
+  if (this.blockType === "permanent") return true;
+  if (this.blockType === "temporary" && this.blockedUntil) {
+    return new Date() < new Date(this.blockedUntil);
+  }
+  return Boolean(this.isBlocked);
+};
+
+studentSchema.statics.isStudentBlocked = function (studentDoc) {
+  if (!studentDoc || !studentDoc.isBlocked) return false;
+  if (studentDoc.blockType === "permanent") return true;
+  if (studentDoc.blockType === "temporary" && studentDoc.blockedUntil) {
+    return new Date() < new Date(studentDoc.blockedUntil);
+  }
+  return Boolean(studentDoc.isBlocked);
+};
+
+const StudentModel = mongoose.models.Student || mongoose.model("Student", studentSchema);
+StudentModel.isStudentBlocked = studentSchema.statics.isStudentBlocked;
+
+module.exports = StudentModel;
 

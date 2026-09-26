@@ -513,6 +513,9 @@ module.exports = async function handler(req, res) {
       }
 
       const studentAccount = await Student.findOne({ regNo: rawReg });
+      if (studentAccount && Student.isStudentBlocked(studentAccount)) {
+        return res.json({ success: true, exists: false });
+      }
       const hasPassword = Boolean(studentAccount && studentAccount.passwordHash);
       const failedPasswordAttempts = studentAccount ? studentAccount.failedPasswordAttempts || 0 : 0;
       const isLocked = Boolean(studentAccount?.lockedUntil && new Date() < new Date(studentAccount.lockedUntil));
@@ -744,6 +747,14 @@ module.exports = async function handler(req, res) {
       const studentName = studentRecord.studentName || "Student";
       let studentAccount = await Student.findOne({ regNo: rawReg });
 
+      if (studentAccount && Student.isStudentBlocked(studentAccount)) {
+        return res.status(404).json({
+          success: false,
+          message: "No student records found for this registration number.",
+          code: "STUDENT_NOT_FOUND",
+        });
+      }
+
       if (!studentAccount || !studentAccount.passwordHash) {
         return res.status(400).json({
           success: false,
@@ -915,6 +926,12 @@ module.exports = async function handler(req, res) {
       const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
 
       let studentAccount = await Student.findOne({ regNo: rawReg });
+      if (studentAccount && Student.isStudentBlocked(studentAccount)) {
+        return res.status(404).json({
+          message: "No student records found for this registration number. Please check and try again.",
+          code: "STUDENT_NOT_FOUND",
+        });
+      }
       const hasPassword = Boolean(studentAccount && studentAccount.passwordHash);
       const failedPasswordAttempts = studentAccount ? studentAccount.failedPasswordAttempts || 0 : 0;
       const isLocked = Boolean(studentAccount?.lockedUntil && new Date() < new Date(studentAccount.lockedUntil));
@@ -1176,6 +1193,15 @@ module.exports = async function handler(req, res) {
       }
       if (!rawOtp || !/^\d{6}$/.test(rawOtp)) {
         return res.status(400).json({ success: false, message: "Invalid OTP format. Must be a 6-digit numeric code." });
+      }
+
+      const studentAccount = await Student.findOne({ regNo: rawReg });
+      if (studentAccount && Student.isStudentBlocked(studentAccount)) {
+        return res.status(404).json({
+          success: false,
+          message: "No student records found for this registration number.",
+          code: "STUDENT_NOT_FOUND",
+        });
       }
 
       const otpRecord = await OtpVerification.findOne({ regNo: rawReg });
@@ -1493,6 +1519,14 @@ module.exports = async function handler(req, res) {
 
       const studentName = studentRecord.studentName || "Student";
       let studentAccount = await Student.findOne({ regNo: rawReg });
+
+      if (studentAccount && Student.isStudentBlocked(studentAccount)) {
+        return res.status(404).json({
+          success: false,
+          message: "No student records found.",
+          code: "STUDENT_NOT_FOUND",
+        });
+      }
 
       if (!studentAccount || !studentAccount.passwordHash) {
         return res.status(400).json({

@@ -288,8 +288,8 @@ export default function App() {
           );
         }
 
-        // Distinct handling for Admin vs Student 401 errors
-        if (error.response && error.response.status === 401) {
+        // Distinct handling for Admin vs Student 401/403 errors
+        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
           const isAdminRoute = url.includes("/admin") || url.includes("/subadmin");
           const isStudentRoute =
             url.includes("/student") ||
@@ -297,17 +297,21 @@ export default function App() {
             url.includes("/timetable") ||
             url.includes("/results");
 
-          if (isAdminRoute) {
+          if (isAdminRoute && error.response.status === 401) {
             // Admin 401: clear admin session without evicting student state
             if (typeof adminLogout === "function") {
               adminLogout(false);
             }
           } else if (isStudentRoute && !isStudentAuthRoute) {
-            // Student 401: evict student state only when confirmed student route
+            // Student 401/403: evict student state on termination or suspension
             const code = error.response.data?.code;
             const msg = error.response.data?.message || "";
             if (
               code === "SESSION_TERMINATED" ||
+              code === "ACCOUNT_SUSPENDED" ||
+              code === "STUDENT_BLOCKED" ||
+              msg.includes("suspended") ||
+              msg.includes("blocked") ||
               msg.includes("logged out") ||
               msg.includes("Session ended") ||
               msg.includes("Session expired")
@@ -315,7 +319,9 @@ export default function App() {
               setStudentSession(null);
               setStudentData(null);
               setSessionRevokedNotice(
-                "Your session ended because your account was logged in or transferred to another device."
+                code === "ACCOUNT_SUSPENDED" || code === "STUDENT_BLOCKED" || msg.includes("suspended") || msg.includes("blocked")
+                  ? (msg || "Your portal access has been suspended by the administration.")
+                  : "Your session ended because your account was logged in or transferred to another device."
               );
               navigate("/", { replace: true });
             }

@@ -18,6 +18,7 @@ import AdminLiveTrafficManager from "../components/AdminLiveTrafficManager";
 import AdminVercelQuotaMonitor from "../components/AdminVercelQuotaMonitor";
 import ModernMobileSubNav from "../components/ModernMobileSubNav";
 import AdminNotificationBroadcast from "../components/AdminNotificationBroadcast";
+import StudentAccessControl from "../components/StudentAccessControl";
 import { subscribeAdminChannel } from "../services/ablyClient";
 import { getAdminCache, setAdminCache, onAdminCacheDirty, invalidateAdminCache, AdminCacheScopes } from "../utils/adminRealtimeCache";
 import { motion, AnimatePresence } from "framer-motion";
@@ -76,6 +77,7 @@ import {
   Activity,
   Route,
   Zap,
+  UserX,
 } from "lucide-react";
 
 function getDynamicSessionOptions(bStr, semVal, yStr) {
@@ -5040,6 +5042,12 @@ export default function AdminDashboard({ defaultTab = null }) {
 
   if (isMainAdmin) {
     ALL_ADMIN_TABS.push({
+      id: "access-control",
+      label: "Student Access Control",
+      icon: <UserX size={15} />,
+      desc: "Temporarily or permanently restrict student portal access",
+    });
+    ALL_ADMIN_TABS.push({
       id: "otp-management",
       label: "Session & OTP Management",
       icon: <ShieldAlert size={15} />,
@@ -5068,6 +5076,7 @@ export default function AdminDashboard({ defaultTab = null }) {
       if (
         tab === "admin-management" ||
         tab === "otp-management" ||
+        tab === "access-control" ||
         (tab !== "live-traffic" &&
           tab !== "vercel-quota" &&
           !permittedRoutes.includes(tab) &&
@@ -6510,6 +6519,11 @@ export default function AdminDashboard({ defaultTab = null }) {
           <div id="admin-broadcast-notifications" data-tab-content="broadcast-notifications">
             <AdminNotificationBroadcast API={API} authHeaders={authHeaders} isMobile={isMobile} />
           </div>
+        )}
+
+        {/* ── TAB: STUDENT ACCESS & BLOCK CONTROL (MAIN ADMIN EXCLUSIVE) ── */}
+        {tab === "access-control" && isMainAdmin && (
+          <StudentAccessControl API={API} authHeaders={authHeaders} isMobile={isMobile} />
         )}
 
         {/* ── TAB 6: STUDENT OTP ATTEMPT MANAGEMENT (MAIN ADMIN EXCLUSIVE) ── */}

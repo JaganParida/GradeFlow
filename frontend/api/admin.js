@@ -1372,7 +1372,7 @@ module.exports = async function handler(req, res) {
 
       const registeredStudents = await Student.find(
         query,
-        "regNo passwordCreatedAt createdAt updatedAt failedPasswordAttempts lockedUntil"
+        "regNo passwordCreatedAt createdAt updatedAt failedPasswordAttempts lockedUntil isBlocked blockType blockedUntil blockedReason"
       )
         .sort({ updatedAt: -1, createdAt: -1 })
         .limit(limit)
@@ -1467,6 +1467,10 @@ module.exports = async function handler(req, res) {
           failedPasswordAttempts: st.failedPasswordAttempts || 0,
           isLocked,
           lockedUntil: st.lockedUntil,
+          isBlocked: Boolean(Student.isStudentBlocked ? Student.isStudentBlocked(st) : st.isBlocked),
+          blockType: st.blockType || null,
+          blockedUntil: st.blockedUntil || null,
+          blockedReason: st.blockedReason || "",
         };
       });
 
@@ -1498,6 +1502,311 @@ module.exports = async function handler(req, res) {
         totalOffline: Math.max(0, totalRegistered - totalActive),
         accounts: list,
       });
+    }
+
+    // 1B2. STUDENT ACCESS & BLOCK CONTROL
+    if (action === "student-access-control" || cleanUrl.includes("/student-access-control")) {
+      const isMain = admin.adminType === "main" || !admin.adminType;
+      if (!isMain) {
+        return res.status(403).json({
+          success: false,
+          message: "Access Denied: Only Institutional Main Administrator is authorized to manage student portal access.",
+          code: "MAIN_ADMIN_REQUIRED",
+        });
+      }
+
+      const now = new Date();
+
+      // Sub-route: GET /list
+      if (cleanUrl.includes("/list") || (req.method === "GET" && !cleanUrl.includes("/inspect"))) {
+        const expiredBlocks = await Student.find({
+          isBlocked: true,
+          blockType: "temporary",
+          blockedUntil: { $lte: now },
+        });
+        if (expiredBlocks.length > 0) {
+          const expiredIds = expiredBlocks.map((b) => b._id);
+          await Student.updateMany(
+            { _id: { $in: expiredIds } },
+            {
+              $set: {
+                isBlocked: false,
+                blockType: null,
+                blockedUntil: null,
+                blockedReason: "",
+                blockedAt: null,
+                blockedBy: null,
+              },
+            }
+          );
+        }
+
+        const blockedDocs = await Student.find({ isBlocked: true }).sort({ blockedAt: -1 }).lean();
+        const regNos = blockedDocs.map((d) => d.regNo);
+
+        const results = await SemesterResult.find(
+          { regNo: { $in: regNos } },
+          "regNo studentName branch batch section"
+        ).lean();
+
+        const metaMap = {};
+        results.forEach((r) => {
+          if (!metaMap[r.regNo]) {
+            metaMap[r.regNo] = {
+              studentName: r.studentName || "Student",
+              branch: r.branch || "",
+              batch: r.batch || "",
+              section: r.section || "",
+            };
+          }
+        });
+
+        const blockedStudents = blockedDocs.map((doc) => {
+          const meta = metaMap[doc.regNo] || { studentName: "Student", branch: "", batch: "", section: "" };
+          const isTemp = doc.blockType === "temporary";
+          let remainingMs = 0;
+          if (isTemp && doc.blockedUntil) {
+            remainingMs = Math.max(0, new Date(doc.blockedUntil).getTime() - now.getTime());
+          }
+
+          return {
+            regNo: doc.regNo,
+            studentName: meta.studentName,
+            branch: meta.branch,
+            batch: meta.batch,
+            section: meta.section,
+            blockType: doc.blockType || "permanent",
+            blockedUntil: doc.blockedUntil,
+            blockedReason: doc.blockedReason || "Administrative restriction",
+            blockedAt: doc.blockedAt || doc.updatedAt,
+            blockedBy: doc.blockedBy || "Admin",
+            remainingMs,
+          };
+        });
+
+        const tempCount = blockedStudents.filter((b) => b.blockType === "temporary").length;
+        const permCount = blockedStudents.filter((b) => b.blockType === "permanent").length;
+
+        return res.json({
+          success: true,
+          totalBlocked: blockedStudents.length,
+          tempBlocked: tempCount,
+          permBlocked: permCount,
+          blockedStudents,
+        });
+      }
+
+      // Sub-route: GET /inspect/:regNo
+      if (cleanUrl.includes("/inspect") || req.query.regNo) {
+        let rawReg = String(req.query.regNo || "").trim().toUpperCase();
+        if (!rawReg) {
+          const parts = cleanUrl.split("/inspect/")[1];
+          if (parts) rawReg = parts.split("/")[0].trim().toUpperCase();
+        }
+
+        if (!rawReg || !/^[a-zA-Z0-9_-]{3,30}$/.test(rawReg)) {
+          return res.status(400).json({ success: false, message: "Valid registration number required." });
+        }
+
+        const [studentDoc, resultDoc, activeSessions] = await Promise.all([
+          Student.findOne({ regNo: rawReg }),
+          SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 }).lean(),
+          StudentSession.find({ regNo: rawReg, isActive: true }).lean(),
+        ]);
+
+        if (!studentDoc && !resultDoc) {
+          return res.status(404).json({ success: false, message: `Student registration ${rawReg} not found in records.` });
+        }
+
+        let isBlocked = false;
+        let blockType = null;
+        let blockedUntil = null;
+        let blockedReason = "";
+        let blockedAt = null;
+        let blockedBy = null;
+
+        if (studentDoc && studentDoc.isBlocked) {
+          if (studentDoc.blockType === "temporary" && studentDoc.blockedUntil && now >= new Date(studentDoc.blockedUntil)) {
+            studentDoc.isBlocked = false;
+            studentDoc.blockType = null;
+            studentDoc.blockedUntil = null;
+            studentDoc.blockedReason = "";
+            studentDoc.blockedAt = null;
+            studentDoc.blockedBy = null;
+            await studentDoc.save();
+          } else {
+            isBlocked = true;
+            blockType = studentDoc.blockType;
+            blockedUntil = studentDoc.blockedUntil;
+            blockedReason = studentDoc.blockedReason;
+            blockedAt = studentDoc.blockedAt;
+            blockedBy = studentDoc.blockedBy;
+          }
+        }
+
+        return res.json({
+          success: true,
+          regNo: rawReg,
+          studentName: resultDoc?.studentName || "Student",
+          branch: resultDoc?.branch || "",
+          batch: resultDoc?.batch || "",
+          section: resultDoc?.section || "",
+          hasAccount: Boolean(studentDoc && studentDoc.passwordHash),
+          isBlocked,
+          blockType,
+          blockedUntil,
+          blockedReason,
+          blockedAt,
+          blockedBy,
+          activeSessionsCount: activeSessions.length,
+        });
+      }
+
+      // Sub-route: POST /block
+      if ((cleanUrl.includes("/block") && !cleanUrl.includes("/unblock")) && req.method === "POST") {
+        const rawReg = String(req.body?.regNo || "").trim().toUpperCase();
+        const blockType = String(req.body?.blockType || "temporary").toLowerCase();
+        const reason = String(req.body?.reason || "Portal access suspended by administration").trim().slice(0, 500);
+
+        if (!rawReg || !/^[a-zA-Z0-9_-]{3,30}$/.test(rawReg)) {
+          return res.status(400).json({ success: false, message: "Valid registration number required." });
+        }
+
+        if (blockType !== "temporary" && blockType !== "permanent") {
+          return res.status(400).json({ success: false, message: "Invalid blockType. Must be 'temporary' or 'permanent'." });
+        }
+
+        let blockedUntil = null;
+        if (blockType === "temporary") {
+          if (req.body?.customUntilDate) {
+            blockedUntil = new Date(req.body.customUntilDate);
+            if (isNaN(blockedUntil.getTime()) || blockedUntil <= now) {
+              return res.status(400).json({ success: false, message: "Custom expiration date must be a valid future date and time." });
+            }
+          } else {
+            const days = Math.max(0, parseInt(req.body?.durationDays, 10) || 0);
+            const hours = Math.max(0, parseInt(req.body?.durationHours, 10) || 0);
+            const totalMs = (days * 24 * 60 * 60 * 1000) + (hours * 60 * 60 * 1000);
+            if (totalMs <= 0) {
+              return res.status(400).json({ success: false, message: "Temporary block duration must be at least 1 hour or 1 day." });
+            }
+            blockedUntil = new Date(now.getTime() + totalMs);
+          }
+        }
+
+        await Student.findOneAndUpdate(
+          { regNo: rawReg },
+          {
+            $set: {
+              isBlocked: true,
+              blockType,
+              blockedUntil,
+              blockedReason: reason,
+              blockedAt: now,
+              blockedBy: admin.email || admin.name || "Institutional Administrator",
+            },
+          },
+          { upsert: true, new: true }
+        );
+
+        await StudentSession.updateMany(
+          { regNo: rawReg, isActive: true },
+          {
+            $set: {
+              isActive: false,
+              loggedOutAt: now,
+              lastActiveAt: now,
+              logoutType: "admin_blocked",
+              revokedAt: now,
+              revokeReason: `Account blocked (${blockType}): ${reason}`,
+            },
+          }
+        );
+
+        try {
+          await publishStudentRealtimeEvent(rawReg, "session-revoked", {
+            allSessionsRevoked: true,
+            reason: "ACCOUNT_SUSPENDED",
+            message: "Your portal access has been suspended by the administration.",
+          });
+        } catch (_) {}
+
+        try {
+          await AdminAuditLog.create({
+            actorEmail: admin.email || "admin",
+            actorType: "main_admin",
+            action: "STUDENT_ACCESS_BLOCKED",
+            actionType: "SECURITY_ACTION",
+            route: "/api/admin/student-access-control/block",
+            result: "SUCCESS",
+            targetRegNo: rawReg,
+            details: { regNo: rawReg, blockType, blockedUntil, reason },
+            ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
+            userAgent: req.headers["user-agent"] || "",
+          });
+        } catch (_) {}
+
+        return res.json({
+          success: true,
+          message: `Student ${rawReg} has been ${blockType === "temporary" ? `temporarily blocked until ${blockedUntil.toLocaleString()}` : "permanently blocked"}. All active sessions terminated immediately.`,
+          student: {
+            regNo: rawReg,
+            isBlocked: true,
+            blockType,
+            blockedUntil,
+            blockedReason: reason,
+          },
+        });
+      }
+
+      // Sub-route: POST /unblock
+      if (cleanUrl.includes("/unblock") && req.method === "POST") {
+        let rawReg = String(req.body?.regNo || req.query?.regNo || "").trim().toUpperCase();
+        if (!rawReg) {
+          const parts = cleanUrl.split("/unblock/")[1];
+          if (parts) rawReg = parts.split("/")[0].trim().toUpperCase();
+        }
+
+        if (!rawReg || !/^[a-zA-Z0-9_-]{3,30}$/.test(rawReg)) {
+          return res.status(400).json({ success: false, message: "Valid registration number required." });
+        }
+
+        await Student.findOneAndUpdate(
+          { regNo: rawReg },
+          {
+            $set: {
+              isBlocked: false,
+              blockType: null,
+              blockedUntil: null,
+              blockedReason: "",
+              blockedAt: null,
+              blockedBy: null,
+            },
+          }
+        );
+
+        try {
+          await AdminAuditLog.create({
+            actorEmail: admin.email || "admin",
+            actorType: "main_admin",
+            action: "STUDENT_ACCESS_UNBLOCKED",
+            actionType: "SECURITY_ACTION",
+            route: `/api/admin/student-access-control/unblock/${rawReg}`,
+            result: "SUCCESS",
+            targetRegNo: rawReg,
+            details: { regNo: rawReg },
+            ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
+            userAgent: req.headers["user-agent"] || "",
+          });
+        } catch (_) {}
+
+        return res.json({
+          success: true,
+          message: `Student ${rawReg} has been unblocked. Full portal access restored.`,
+        });
+      }
+
+      return res.status(400).json({ success: false, message: "Invalid student access control action." });
     }
 
     // 1C. GET /attendance-tracker/monitor

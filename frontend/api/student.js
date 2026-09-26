@@ -490,6 +490,17 @@ module.exports = async function handler(req, res) {
         return res.status(401).json({ message: "Invalid session token." });
       }
 
+      // Portal Access Control: Verify if student is blocked by Admin
+      const studentAccount = await Student.findOne({ regNo: decodedStudent.regNo }).lean();
+      if (studentAccount && Student.isStudentBlocked(studentAccount)) {
+        await StudentSession.updateMany({ regNo: decodedStudent.regNo }, { $set: { isActive: false } });
+        return res.status(403).json({
+          message: "Your portal access has been suspended by the administration.",
+          code: "ACCOUNT_SUSPENDED",
+          isBlocked: true,
+        });
+      }
+
       const activeSession = await StudentSession.findOne({
         regNo: decodedStudent.regNo,
         sessionId: decodedStudent.sessionId,

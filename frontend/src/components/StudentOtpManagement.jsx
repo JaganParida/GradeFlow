@@ -2979,10 +2979,25 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                                     <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                       {acc.studentName}
                                     </div>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 1 }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 1, flexWrap: "wrap" }}>
                                       <span style={{ fontSize: 11.5, color: "#4f46e5", fontFamily: "'Space Mono', monospace", fontWeight: 700 }}>
                                         {acc.regNo}
                                       </span>
+                                      {acc.isBlocked && (
+                                        <span
+                                          style={{
+                                            fontSize: 9.5,
+                                            fontWeight: 800,
+                                            padding: "1px 5px",
+                                            borderRadius: 4,
+                                            background: acc.blockType === "permanent" ? "#fef2f2" : "#fff7ed",
+                                            color: acc.blockType === "permanent" ? "#dc2626" : "#ea580c",
+                                            border: acc.blockType === "permanent" ? "1px solid #fecaca" : "1px solid #fed7aa",
+                                          }}
+                                        >
+                                          {acc.blockType === "permanent" ? "Blocked (Perm)" : "Blocked (Temp)"}
+                                        </span>
+                                      )}
                                       <span style={{ fontSize: 10.5, color: "#64748b", background: "#f1f5f9", padding: "1px 5px", borderRadius: 4 }}>
                                         {resolvedBranch} • Sec {resolvedSection}
                                       </span>
@@ -3168,9 +3183,26 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                                     </div>
                                     <div>
                                       <strong style={{ color: "#0f172a", display: "block" }}>{acc.studentName}</strong>
-                                      <span style={{ fontSize: 11.5, color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
-                                        {acc.regNo}
-                                      </span>
+                                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                        <span style={{ fontSize: 11.5, color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
+                                          {acc.regNo}
+                                        </span>
+                                        {acc.isBlocked && (
+                                          <span
+                                            style={{
+                                              fontSize: 9.5,
+                                              fontWeight: 800,
+                                              padding: "1px 5px",
+                                              borderRadius: 4,
+                                              background: acc.blockType === "permanent" ? "#fef2f2" : "#fff7ed",
+                                              color: acc.blockType === "permanent" ? "#dc2626" : "#ea580c",
+                                              border: acc.blockType === "permanent" ? "1px solid #fecaca" : "1px solid #fed7aa",
+                                            }}
+                                          >
+                                            {acc.blockType === "permanent" ? "Blocked (Perm)" : "Blocked (Temp)"}
+                                          </span>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                 </td>

@@ -395,6 +395,9 @@ router.get("/student/check-status", async (req, res) => {
 
     const studentName = studentRecord.studentName || "Student";
     const studentAccount = await Student.findOne({ regNo: rawReg });
+    if (studentAccount && Student.isStudentBlocked(studentAccount)) {
+      return res.json({ success: true, exists: false });
+    }
     const hasPassword = Boolean(studentAccount && studentAccount.passwordHash);
     const failedPasswordAttempts = studentAccount ? studentAccount.failedPasswordAttempts || 0 : 0;
 
@@ -638,6 +641,14 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
 
     const studentName = studentRecord.studentName || "Student";
     let studentAccount = await Student.findOne({ regNo: rawReg });
+
+    if (studentAccount && Student.isStudentBlocked(studentAccount)) {
+      return res.status(404).json({
+        success: false,
+        message: "No student records found for this registration number.",
+        code: "STUDENT_NOT_FOUND",
+      });
+    }
 
     if (!studentAccount || !studentAccount.passwordHash) {
       return res.status(400).json({
@@ -1113,6 +1124,14 @@ router.post("/student/send-recovery-otp", otpSendLimiter, async (req, res) => {
     const studentName = studentRecord.studentName || "Student";
     let studentAccount = await Student.findOne({ regNo: rawReg });
 
+    if (studentAccount && Student.isStudentBlocked(studentAccount)) {
+      return res.status(404).json({
+        success: false,
+        message: "No student records found for this registration number.",
+        code: "STUDENT_NOT_FOUND",
+      });
+    }
+
     if (!studentAccount || !studentAccount.passwordHash) {
       return res.status(400).json({
         success: false,
@@ -1296,6 +1315,12 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
     const isUnlimited = rawReg === "230301120327";
 
     let studentAccount = await Student.findOne({ regNo: rawReg });
+    if (studentAccount && Student.isStudentBlocked(studentAccount)) {
+      return res.status(404).json({
+        message: "No student records found for this registration number. Please check and try again.",
+        code: "STUDENT_NOT_FOUND",
+      });
+    }
     const hasPassword = Boolean(studentAccount && studentAccount.passwordHash);
     const failedPasswordAttempts = studentAccount ? studentAccount.failedPasswordAttempts || 0 : 0;
 
@@ -1576,6 +1601,15 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
     }
     if (!rawOtp || !/^\d{6}$/.test(rawOtp)) {
       return res.status(400).json({ success: false, message: "Invalid OTP format. Must be a 6-digit numeric code." });
+    }
+
+    const studentAccount = await Student.findOne({ regNo: rawReg });
+    if (studentAccount && Student.isStudentBlocked(studentAccount)) {
+      return res.status(404).json({
+        success: false,
+        message: "No student records found for this registration number.",
+        code: "STUDENT_NOT_FOUND",
+      });
     }
 
     const otpRecord = await OtpVerification.findOne({ regNo: rawReg });
