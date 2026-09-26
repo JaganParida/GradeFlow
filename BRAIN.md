@@ -4185,8 +4185,8 @@ const WHATSAPP_URL = `https://wa.me/919124540575?text=${WHATSAPP_MESSAGE}`;
   - Icon: Inline custom high-precision `WhatsAppIcon` SVG.
   - Security attributes: `target="_blank"`, `rel="noopener noreferrer"`.
 
-### 2. Right Block: 4 Social Hub Cards Matrix
-The grid automatically shifts from a desktop 4-column horizontal strip (`repeat(4, 1fr)`) to a mobile 2x2 card matrix (`repeat(2, 1fr)`, gap: `12px`).
+### 2. Right Block: 5 Social Hub Cards Matrix
+The grid automatically shifts from a desktop 5-column horizontal strip (`repeat(5, 1fr)`) to a mobile 2-column card matrix (`repeat(2, 1fr)`, gap: `12px` mobile, `10px` desktop) with the 5th card (Email) spanning both columns on mobile (`gridColumn: "span 2"`).
 
 #### Social Channels Specifications Table:
 
@@ -4196,6 +4196,9 @@ The grid automatically shifts from a desktop 4-column horizontal strip (`repeat(
 +-----------+-----------------------------------------------+---------------+---------------+----------------------+------------------+
 | LinkedIn  | https://www.linkedin.com/in/jagan-parida04/   | LinkedInIcon  | #0a66c2 (Blue)| #eff6ff (Light Blue) | Professional     |
 |           |                                               | (Custom SVG)  |               |                      | profile          |
++-----------+-----------------------------------------------+---------------+---------------+----------------------+------------------+
+| Instagram | https://www.instagram.com/imjagaan/           | InstagramIcon | #e1306c (Rose)| #fdf2f8 (Light Pink) | Photos & updates |
+|           |                                               | (Custom SVG)  |               |                      |                  |
 +-----------+-----------------------------------------------+---------------+---------------+----------------------+------------------+
 | GitHub    | https://github.com/JaganParida                | GitHubIcon    | #0f172a(Slate)| #f8fafc (Light Slate)| Code repositories|
 |           |                                               | (Custom SVG)  |               |                      |                  |

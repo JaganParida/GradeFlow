@@ -27,6 +27,14 @@ const LinkedInIcon = ({ size = 20, color = "#0a66c2" }) => (
   </svg>
 );
 
+const InstagramIcon = ({ size = 20, color = "#e1306c" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+  </svg>
+);
+
 const GitHubIcon = ({ size = 20, color = "#0f172a" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
@@ -441,12 +449,12 @@ export default function AboutDev() {
             )}
           </div>
 
-          {/* Right Block: 4 Social Cards in a 2x2 Grid on Mobile or 4x1 on Desktop */}
+          {/* Right Block: 5 Social Cards in a 2x2 Grid on Mobile or 5x1 on Desktop */}
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
-              gap: 12,
+              gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(5, 1fr)",
+              gap: isMobile ? 12 : 10,
               width: "100%",
             }}
             className="gf-social-cards"
@@ -461,7 +469,7 @@ export default function AboutDev() {
                 background: "#ffffff",
                 border: "1px solid #f1f5f9",
                 borderRadius: 16,
-                padding: isMobile ? "14px 12px" : "18px 16px",
+                padding: isMobile ? "14px 12px" : "18px 12px",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
@@ -508,7 +516,64 @@ export default function AboutDev() {
               </div>
             </a>
 
-            {/* 2. GitHub */}
+            {/* 2. Instagram */}
+            <a
+              href="https://www.instagram.com/imjagaan/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                textDecoration: "none",
+                background: "#ffffff",
+                border: "1px solid #f1f5f9",
+                borderRadius: 16,
+                padding: isMobile ? "14px 12px" : "18px 12px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: 12,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-3px)";
+                e.currentTarget.style.borderColor = "#cbd5e1";
+                e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.05)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.borderColor = "#f1f5f9";
+                e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)";
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    background: "#fdf2f8",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: 10,
+                  }}
+                >
+                  <InstagramIcon size={18} color="#e1306c" />
+                </div>
+                <h4 style={{ fontSize: 14, fontWeight: 800, color: "#0f172a", margin: "0 0 3px 0" }}>
+                  Instagram
+                </h4>
+                <p style={{ fontSize: 11.5, color: "#64748b", margin: 0, lineHeight: 1.35 }}>
+                  Photos & updates
+                </p>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#2563eb", fontSize: 12, fontWeight: 700 }}>
+                Follow <ArrowRight size={12} />
+              </div>
+            </a>
+
+            {/* 3. GitHub */}
             <a
               href="https://github.com/JaganParida"
               target="_blank"
@@ -518,7 +583,7 @@ export default function AboutDev() {
                 background: "#ffffff",
                 border: "1px solid #f1f5f9",
                 borderRadius: 16,
-                padding: isMobile ? "14px 12px" : "18px 16px",
+                padding: isMobile ? "14px 12px" : "18px 12px",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
@@ -565,7 +630,7 @@ export default function AboutDev() {
               </div>
             </a>
 
-            {/* 3. Portfolio */}
+            {/* 4. Portfolio */}
             <a
               href="https://www.jaganparida.com/"
               target="_blank"
@@ -575,7 +640,7 @@ export default function AboutDev() {
                 background: "#ffffff",
                 border: "1px solid #f1f5f9",
                 borderRadius: 16,
-                padding: isMobile ? "14px 12px" : "18px 16px",
+                padding: isMobile ? "14px 12px" : "18px 12px",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
@@ -623,7 +688,7 @@ export default function AboutDev() {
               </div>
             </a>
 
-            {/* 4. Email */}
+            {/* 5. Email */}
             <a
               href="mailto:jagan.parida.dev@gmail.com"
               style={{
@@ -631,12 +696,13 @@ export default function AboutDev() {
                 background: "#ffffff",
                 border: "1px solid #f1f5f9",
                 borderRadius: 16,
-                padding: isMobile ? "14px 12px" : "18px 16px",
+                padding: isMobile ? "14px 12px" : "18px 12px",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
                 gap: 12,
                 boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                gridColumn: isMobile ? "span 2" : "auto",
                 transition: "all 0.2s ease",
               }}
               onMouseEnter={(e) => {
