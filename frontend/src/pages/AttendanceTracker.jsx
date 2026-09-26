@@ -2894,25 +2894,26 @@ export default function AttendanceTracker() {
                       {!hasSavedAttendance ? (
                         <div
                           style={{
-                            background: "#faf5ff",
-                            border: "1.5px solid #ddd6fe",
+                            background: "#ffffff",
+                            border: "1.5px solid #e2e8f0",
                             borderRadius: 12,
-                            padding: "11px 13px",
+                            padding: "12px 14px",
                             display: "flex",
                             flexDirection: "column",
-                            gap: 9,
+                            gap: 10,
                             width: "100%",
                             boxSizing: "border-box",
-                            boxShadow: "0 1px 3px rgba(124, 58, 237, 0.05)",
+                            boxShadow: "0 1px 4px rgba(15, 23, 42, 0.05)",
                           }}
                         >
-                          <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}>
                             <div
                               style={{
-                                width: 22,
-                                height: 22,
-                                borderRadius: 6,
-                                background: "#ede9fe",
+                                width: 24,
+                                height: 24,
+                                borderRadius: 7,
+                                background: "#eff6ff",
+                                border: "1px solid #dbeafe",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
@@ -2920,26 +2921,34 @@ export default function AttendanceTracker() {
                                 marginTop: 1,
                               }}
                             >
-                              <Zap size={13} color="#7c3aed" />
+                              <Zap size={13} color="#2563eb" />
                             </div>
-                            <div style={{ fontSize: 11.5, color: "#3b0764", lineHeight: 1.45 }}>
-                              <strong style={{ color: "#6d28d9" }}>One-Time Setup (Save to Cloud):</strong> You only need to import your attendance once! After confirming and saving to cloud, you never have to upload screenshots again.
+                            <div style={{ fontSize: 11.5, color: "#334155", lineHeight: 1.5 }}>
+                              <strong style={{ color: "#0f172a" }}>One-Time Setup (Save to Cloud):</strong> You only need to import your attendance once! After confirming and saving to cloud, you never have to upload screenshots again.
                             </div>
                           </div>
 
                           <div
                             style={{
-                              borderTop: "1px dashed #c4b5fd",
-                              paddingTop: 8,
-                              fontSize: 11,
-                              color: "#4338ca",
-                              lineHeight: 1.45,
+                              background: "#f8fafc",
+                              border: "1px solid #e2e8f0",
+                              borderRadius: 8,
+                              padding: "9px 11px",
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: 7,
                             }}
                           >
-                            <strong style={{ color: "#3730a3" }}>Taking Screenshot Mid-Day?</strong> If your ERP portal attendance was updated up to earlier classes and you still have classes left today, open <strong>Daily Attendance</strong> and mark <strong>Present</strong> or <strong>Absent</strong> for today's remaining classes. If all classes for today are already finished and included in the screenshot, simply start marking from <strong>Tomorrow / Next Day</strong>!
+                            <Info size={13} color="#2563eb" style={{ marginTop: 2, flexShrink: 0 }} />
+                            <div style={{ fontSize: 11, color: "#334155", lineHeight: 1.5 }}>
+                              <strong style={{ color: "#0f172a" }}>Taking Screenshot Mid-Day?</strong> If your ERP portal attendance was updated up to earlier classes and you still have classes left today, open <strong>Daily Attendance</strong> and mark <strong>Present</strong> or <strong>Absent</strong> for today's remaining classes. If all classes for today are already finished and included in the screenshot, simply start marking from <strong>Tomorrow / Next Day in Daily Attendance</strong>!
+                            </div>
                           </div>
 
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6, paddingTop: 3 }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 2 }}>
+                            <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, lineHeight: 1.4 }}>
+                              For setup guide, follow the details guide below or refer to this PDF guide:
+                            </div>
                             <a
                               href="/GradeFlow_Attendance_Setup_Guide.pdf"
                               target="_blank"
@@ -2950,11 +2959,12 @@ export default function AttendanceTracker() {
                                 gap: 6,
                                 background: "#0f172a",
                                 color: "#ffffff",
-                                padding: "6.5px 12px",
+                                padding: "6.5px 13px",
                                 borderRadius: 7,
                                 fontSize: 11,
                                 fontWeight: 750,
                                 textDecoration: "none",
+                                width: "fit-content",
                                 boxShadow: "0 1px 2px rgba(15, 23, 42, 0.1)",
                               }}
                             >
@@ -2962,9 +2972,6 @@ export default function AttendanceTracker() {
                               <span>Official PDF Setup Guide</span>
                               <ExternalLink size={10} style={{ opacity: 0.8 }} />
                             </a>
-                            <span style={{ fontSize: 9.5, color: "#7c3aed", fontWeight: 600 }}>
-                              docs/GradeFlow_Attendance_Setup_Guide.pdf
-                            </span>
                           </div>
                         </div>
                       ) : (
@@ -3166,16 +3173,16 @@ export default function AttendanceTracker() {
                   /* Executive Onboarding Guide Banner (Desktop / Laptop View) */
                   <div
                     style={{
-                      background: "#faf5ff",
-                      border: "1.5px solid #ddd6fe",
+                      background: "#ffffff",
+                      border: "1px solid #e2e8f0",
                       borderRadius: 14,
-                      padding: isMobile ? "14px 14px" : "18px 22px",
+                      padding: isMobile ? "14px 16px" : "18px 24px",
                       display: "flex",
                       flexDirection: "column",
                       gap: 12,
                       width: "100%",
                       boxSizing: "border-box",
-                      boxShadow: "0 2px 6px rgba(124, 58, 237, 0.05)",
+                      boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02)",
                       position: "relative",
                       overflow: "hidden",
                     }}
@@ -3188,7 +3195,7 @@ export default function AttendanceTracker() {
                         left: 0,
                         right: 0,
                         height: 3,
-                        background: "linear-gradient(90deg, #7c3aed 0%, #6366f1 50%, #10b981 100%)",
+                        background: "linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #0ea5e9 100%)",
                       }}
                     />
 
@@ -3205,11 +3212,11 @@ export default function AttendanceTracker() {
                       <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flex: 1, minWidth: 260 }}>
                         <div
                           style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: 9,
-                            background: "#ede9fe",
-                            border: "1px solid #ddd6fe",
+                            width: 36,
+                            height: 36,
+                            borderRadius: 10,
+                            background: "#eff6ff",
+                            border: "1px solid #dbeafe",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -3217,22 +3224,22 @@ export default function AttendanceTracker() {
                             marginTop: 1,
                           }}
                         >
-                          <Zap size={18} color="#7c3aed" strokeWidth={2.2} />
+                          <Zap size={18} color="#2563eb" strokeWidth={2.2} />
                         </div>
                         <div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 3 }}>
-                            <span style={{ fontSize: isMobile ? 13 : 14.5, fontWeight: 800, color: "#4c1d95", letterSpacing: "-0.2px" }}>
+                            <span style={{ fontSize: isMobile ? 13.5 : 15, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.2px" }}>
                               One-Time Setup (Save to Cloud)
                             </span>
                             <span
                               style={{
                                 fontSize: 10,
                                 fontWeight: 700,
-                                background: "#ede9fe",
-                                color: "#6d28d9",
-                                padding: "2px 7px",
-                                borderRadius: 5,
-                                border: "1px solid #ddd6fe",
+                                background: "#f1f5f9",
+                                color: "#475569",
+                                padding: "2.5px 8px",
+                                borderRadius: 6,
+                                border: "1px solid #e2e8f0",
                                 textTransform: "uppercase",
                                 letterSpacing: "0.5px",
                               }}
@@ -3240,14 +3247,17 @@ export default function AttendanceTracker() {
                               Initial Sync Required
                             </span>
                           </div>
-                          <p style={{ fontSize: isMobile ? 12 : 12.5, color: "#3b0764", margin: 0, lineHeight: 1.5 }}>
+                          <p style={{ fontSize: isMobile ? 12 : 12.5, color: "#475569", margin: 0, lineHeight: 1.5 }}>
                             You only need to import your attendance once! After confirming and saving to cloud, you never have to upload screenshots again.
                           </p>
                         </div>
                       </div>
 
                       {/* Right Action: PDF Guide Link */}
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: isMobile ? "flex-start" : "flex-end", gap: 4, flexShrink: 0 }}>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: isMobile ? "flex-start" : "flex-end", gap: 6, flexShrink: 0 }}>
+                        <span style={{ fontSize: 11.5, color: "#64748b", fontWeight: 600, textAlign: isMobile ? "left" : "right", maxWidth: 290, lineHeight: 1.35 }}>
+                          For setup guide, follow the details guide below or refer to this PDF guide:
+                        </span>
                         <a
                           href="/GradeFlow_Attendance_Setup_Guide.pdf"
                           target="_blank"
@@ -3273,22 +3283,27 @@ export default function AttendanceTracker() {
                           <span>Official PDF Setup Guide</span>
                           <ExternalLink size={12} style={{ opacity: 0.8 }} />
                         </a>
-                        <span style={{ fontSize: 10, color: "#7c3aed", fontWeight: 600 }}>
-                          docs/GradeFlow_Attendance_Setup_Guide.pdf
-                        </span>
                       </div>
                     </div>
 
                     {/* Divider */}
-                    <div style={{ borderTop: "1px dashed #c4b5fd", margin: "2px 0" }} />
+                    <div style={{ borderTop: "1px solid #e2e8f0", margin: "2px 0" }} />
 
                     {/* Bottom Row: Mid-Day Class Notice */}
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                      <div style={{ color: "#6d28d9", marginTop: 2, flexShrink: 0 }}>
-                        <Info size={14} />
-                      </div>
-                      <div style={{ fontSize: isMobile ? 11.5 : 12, color: "#4338ca", lineHeight: 1.5 }}>
-                        <strong style={{ color: "#3730a3" }}>Taking Screenshot Mid-Day?</strong> If your ERP portal attendance was updated up to earlier classes and you still have classes left today, open <strong>Daily Attendance</strong> and mark <strong>Present</strong> or <strong>Absent</strong> for today's remaining classes. If all classes for today are already finished and included in the screenshot, simply start marking from <strong>Tomorrow / Next Day</strong>!
+                    <div
+                      style={{
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 10,
+                        padding: "10px 14px",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 9,
+                      }}
+                    >
+                      <Info size={15} color="#2563eb" style={{ marginTop: 2, flexShrink: 0 }} />
+                      <div style={{ fontSize: isMobile ? 11.5 : 12, color: "#334155", lineHeight: 1.55 }}>
+                        <strong style={{ color: "#0f172a" }}>Taking Screenshot Mid-Day?</strong> If your ERP portal attendance was updated up to earlier classes and you still have classes left today, open <strong>Daily Attendance</strong> and mark <strong>Present</strong> or <strong>Absent</strong> for today's remaining classes. If all classes for today are already finished and included in the screenshot, simply start marking from <strong>Tomorrow / Next Day in Daily Attendance</strong>!
                       </div>
                     </div>
                   </div>
