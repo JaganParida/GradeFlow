@@ -696,9 +696,10 @@ export default function AboutDev() {
                 background: "#ffffff",
                 border: "1px solid #f1f5f9",
                 borderRadius: 16,
-                padding: isMobile ? "14px 12px" : "18px 12px",
+                padding: isMobile ? "14px 18px" : "18px 12px",
                 display: "flex",
-                flexDirection: "column",
+                flexDirection: isMobile ? "row" : "column",
+                alignItems: isMobile ? "center" : "stretch",
                 justifyContent: "space-between",
                 gap: 12,
                 boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
@@ -716,7 +717,14 @@ export default function AboutDev() {
                 e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)";
               }}
             >
-              <div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: isMobile ? "center" : "flex-start",
+                  flexDirection: isMobile ? "row" : "column",
+                  gap: isMobile ? 12 : 0,
+                }}
+              >
                 <div
                   style={{
                     width: 34,
@@ -726,21 +734,37 @@ export default function AboutDev() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    marginBottom: 10,
+                    marginBottom: isMobile ? 0 : 10,
                     color: "#ef4444",
+                    flexShrink: 0,
                   }}
                 >
                   <Mail size={18} />
                 </div>
-                <h4 style={{ fontSize: 14, fontWeight: 800, color: "#0f172a", margin: "0 0 3px 0" }}>
-                  Email
-                </h4>
-                <p style={{ fontSize: 11.5, color: "#64748b", margin: 0, lineHeight: 1.35 }}>
-                  Drop a message
-                </p>
+                <div>
+                  <h4 style={{ fontSize: 14, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0" }}>
+                    Email
+                  </h4>
+                  <p style={{ fontSize: 11.5, color: "#64748b", margin: 0, lineHeight: 1.35 }}>
+                    Drop a message
+                  </p>
+                </div>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#2563eb", fontSize: 12, fontWeight: 700 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  color: "#2563eb",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  flexShrink: 0,
+                  background: isMobile ? "#eff6ff" : "transparent",
+                  padding: isMobile ? "6px 14px" : 0,
+                  borderRadius: isMobile ? 20 : 0,
+                }}
+              >
                 Contact <ArrowRight size={12} />
               </div>
             </a>
