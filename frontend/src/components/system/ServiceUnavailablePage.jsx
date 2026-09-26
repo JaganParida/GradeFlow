@@ -1,20 +1,91 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { RefreshCw, Home as HomeIcon } from "lucide-react";
 
 export default function ServiceUnavailablePage({ onRetry }) {
   const [refreshing, setRefreshing] = useState(false);
+  const [autoChecking, setAutoChecking] = useState(false);
+  const mountedRef = useRef(true);
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
+    if (refreshing) return;
     setRefreshing(true);
     try {
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+    } catch (_) {}
+
+    try {
       if (onRetry) await onRetry();
-      else window.location.reload();
+      else {
+        const url = new URL(window.location.href);
+        url.searchParams.set("_r", String(Date.now()));
+        window.location.replace(url.toString());
+      }
     } finally {
-      setTimeout(() => setRefreshing(false), 800);
+      if (mountedRef.current) {
+        setTimeout(() => setRefreshing(false), 800);
+      }
     }
-  };
+  }, [onRetry, refreshing]);
+
+  // ─── Intelligent Auto-Recovery on Service Restore ───
+  useEffect(() => {
+    mountedRef.current = true;
+
+    const checkServiceStatus = async () => {
+      if (refreshing || !mountedRef.current) return;
+      try {
+        setAutoChecking(true);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 4000);
+
+        const res = await fetch("/api/health?_t=" + Date.now(), {
+          method: "GET",
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (res.ok && mountedRef.current) {
+          handleRefresh();
+        }
+      } catch (_) {
+        // Still unavailable
+      } finally {
+        if (mountedRef.current) {
+          setAutoChecking(false);
+        }
+      }
+    };
+
+    // Poll every 6 seconds
+    const interval = setInterval(checkServiceStatus, 6000);
+
+    // Immediate check when student switches back to this tab
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        checkServiceStatus();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", handleVisibility);
+
+    return () => {
+      mountedRef.current = false;
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", handleVisibility);
+    };
+  }, [handleRefresh, refreshing]);
 
   React.useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -197,6 +268,39 @@ export default function ServiceUnavailablePage({ onRetry }) {
           <HomeIcon size={16} />
           <span>Return to Home</span>
         </Link>
+      </motion.div>
+
+      {/* ── Auto-Recovery Status Indicator ── */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5, duration: 0.4 }}
+        style={{
+          marginTop: 24,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          fontSize: 12.5,
+          color: "#94a3b8",
+          fontWeight: 500,
+        }}
+      >
+        <span
+          style={{
+            width: 7,
+            height: 7,
+            borderRadius: "50%",
+            backgroundColor: autoChecking ? "#3b82f6" : "#22c55e",
+            boxShadow: autoChecking ? "0 0 8px #3b82f6" : "0 0 6px rgba(34, 197, 94, 0.4)",
+            display: "inline-block",
+            transition: "all 0.3s ease",
+          }}
+        />
+        <span>
+          {autoChecking
+            ? "Checking connection..."
+            : "Auto-reconnecting when service is restored"}
+        </span>
       </motion.div>
     </div>
   );

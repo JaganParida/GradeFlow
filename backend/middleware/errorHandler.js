@@ -5,6 +5,12 @@
  */
 
 function errorHandler(err, req, res, next) {
+  // Prevent any caching of error responses across all browsers, proxies, and CDNs
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  res.setHeader("Surrogate-Control", "no-store");
+
   // Always log detailed error information on server side for debugging
   console.error(`[SERVER ERROR] ${req.method} ${req.originalUrl}:`, {
     message: err.message,

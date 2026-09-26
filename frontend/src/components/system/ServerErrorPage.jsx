@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { RefreshCw, Home as HomeIcon } from "lucide-react";
 
 export default function ServerErrorPage({ onRetry, onReset, isChunkError = false }) {
   const [retrying, setRetrying] = useState(false);
+  const [autoChecking, setAutoChecking] = useState(false);
+  const mountedRef = useRef(true);
 
-  const handleRetry = async () => {
+  const handleRetry = useCallback(async () => {
+    if (retrying) return;
     setRetrying(true);
     try {
       if ("caches" in window) {
@@ -17,6 +20,17 @@ export default function ServerErrorPage({ onRetry, onReset, isChunkError = false
     try {
       sessionStorage.removeItem("gradeflow_auto_reloaded_chunk");
       sessionStorage.removeItem("gf_auto_reload_shield");
+      sessionStorage.removeItem("gf_auto_heal_chunk");
+      sessionStorage.removeItem("gradeflow_chunk_retry_" + window.location.pathname);
+    } catch (_) {}
+
+    try {
+      if ("serviceWorker" in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          await reg.update();
+        }
+      }
     } catch (_) {}
 
     try {
@@ -32,10 +46,83 @@ export default function ServerErrorPage({ onRetry, onReset, isChunkError = false
       url.searchParams.set("_r", String(Date.now()));
       window.location.replace(url.toString());
     } finally {
-      setTimeout(() => setRetrying(false), 800);
+      if (mountedRef.current) {
+        setTimeout(() => setRetrying(false), 800);
+      }
     }
-  };
+  }, [onRetry, onReset, retrying]);
 
+  // ─── Automatic Recovery When Deployment Goes Live Or Tab Refocused ───
+  useEffect(() => {
+    mountedRef.current = true;
+
+    // 1. Chunk load error instant recovery:
+    // If a deployment occurred and caused chunk load mismatch, try auto-refreshing once after 1.2s
+    if (isChunkError) {
+      const lastChunkHeal = Number(sessionStorage.getItem("gf_auto_heal_chunk") || 0);
+      if (Date.now() - lastChunkHeal > 10000) {
+        sessionStorage.setItem("gf_auto_heal_chunk", String(Date.now()));
+        const timer = setTimeout(() => {
+          if (mountedRef.current) {
+            handleRetry();
+          }
+        }, 1200);
+        return () => clearTimeout(timer);
+      }
+    }
+
+    // 2. Background polling: check if server / API has recovered or new version deployed
+    const checkServerHealth = async () => {
+      if (retrying || !mountedRef.current) return;
+      try {
+        setAutoChecking(true);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 4000);
+
+        const res = await fetch("/api/health?_t=" + Date.now(), {
+          method: "GET",
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (res.ok && mountedRef.current) {
+          // Server is back online and healthy! Trigger auto-recovery
+          handleRetry();
+        }
+      } catch (_) {
+        // Still deploying or server offline
+      } finally {
+        if (mountedRef.current) {
+          setAutoChecking(false);
+        }
+      }
+    };
+
+    // Poll every 5 seconds while on this screen
+    const interval = setInterval(checkServerHealth, 5000);
+
+    // Immediate check when student re-opens or switches back to tab (BFCache / Tab focus)
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        checkServerHealth();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", handleVisibility);
+
+    return () => {
+      mountedRef.current = false;
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", handleVisibility);
+    };
+  }, [handleRetry, isChunkError, retrying]);
 
   React.useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -244,6 +331,40 @@ export default function ServerErrorPage({ onRetry, onReset, isChunkError = false
         </button>
       </motion.div>
 
+      {/* ── Auto-Recovery Status Indicator ── */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5, duration: 0.4 }}
+        style={{
+          marginTop: 24,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          fontSize: 12.5,
+          color: "#94a3b8",
+          fontWeight: 500,
+        }}
+      >
+        <span
+          style={{
+            width: 7,
+            height: 7,
+            borderRadius: "50%",
+            backgroundColor: autoChecking ? "#3b82f6" : "#22c55e",
+            boxShadow: autoChecking ? "0 0 8px #3b82f6" : "0 0 6px rgba(34, 197, 94, 0.4)",
+            display: "inline-block",
+            transition: "all 0.3s ease",
+          }}
+        />
+        <span>
+          {isChunkError
+            ? "Applying new update automatically..."
+            : autoChecking
+            ? "Checking for server updates..."
+            : "Auto-reconnecting when deployment goes live"}
+        </span>
+      </motion.div>
     </div>
   );
 }

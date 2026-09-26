@@ -58,6 +58,10 @@ module.exports = async function handler(req, res) {
   if (applyCors(req, res, "GET,POST,PUT,DELETE,OPTIONS")) return;
 
   if (req.query.action === "health" || req.url?.includes("/api/health")) {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("Surrogate-Control", "no-store");
     return res.status(200).json({ status: "ok", uptime: process.uptime(), timestamp: new Date().toISOString() });
   }
 

@@ -409,6 +409,28 @@
     window.addEventListener('online', () => {
       handleRetry();
     });
+
+    // Auto-check connection every 6 seconds if online
+    setInterval(() => {
+      const btn = document.getElementById('btn-retry');
+      if (navigator.onLine && btn && !btn.disabled) {
+        handleRetry();
+      }
+    }, 6000);
+
+    // Auto-check when student re-opens or focuses the tab
+    document.addEventListener('visibilitychange', () => {
+      const btn = document.getElementById('btn-retry');
+      if (document.visibilityState === 'visible' && navigator.onLine && btn && !btn.disabled) {
+        handleRetry();
+      }
+    });
+    window.addEventListener('focus', () => {
+      const btn = document.getElementById('btn-retry');
+      if (navigator.onLine && btn && !btn.disabled) {
+        handleRetry();
+      }
+    });
   </script>
 </body>
 </html>
