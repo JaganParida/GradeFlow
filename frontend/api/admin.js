@@ -1360,6 +1360,9 @@ module.exports = async function handler(req, res) {
     if (action === "student-accounts" || cleanUrl.includes("/student-accounts")) {
       const search = String(req.query.search || "").trim().toUpperCase();
       const filter = String(req.query.filter || "all").toLowerCase();
+      const batch = String(req.query.batch || "").trim();
+      const branch = String(req.query.branch || "").trim().toUpperCase();
+      const section = String(req.query.section || "").trim().toUpperCase();
       const limit = Math.min(Number(req.query.limit) || 200, 500);
 
       const query = { passwordHash: { $exists: true, $ne: null } };
@@ -1471,6 +1474,17 @@ module.exports = async function handler(req, res) {
         list = list.filter((item) => item.isCurrentlyLoggedIn);
       } else if (filter === "offline") {
         list = list.filter((item) => !item.isCurrentlyLoggedIn);
+      }
+
+      if (batch && batch !== "all") {
+        list = list.filter((item) => String(item.batch || "").includes(batch) || item.regNo.startsWith(batch.slice(-2)));
+      }
+      if (branch && branch !== "all") {
+        list = list.filter((item) => String(item.branch || "").toUpperCase() === branch);
+      }
+      if (section && section !== "all") {
+        const cleanSec = section.replace(/^SEC\s*/i, "");
+        list = list.filter((item) => String(item.section || "").replace(/^SEC\s*/i, "").toUpperCase() === cleanSec);
       }
 
       const totalRegistered = await Student.countDocuments({ passwordHash: { $exists: true, $ne: null } });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAdminCache, setAdminCache, onAdminCacheDirty, invalidateAdminCache, AdminCacheScopes } from "../utils/adminRealtimeCache";
@@ -93,6 +93,23 @@ function getDynamicBranch(regNo, fallbackBranch) {
   return fallbackBranch || "CSE";
 }
 
+function resolveStudentMeta(acc) {
+  if (!acc) return { branch: "CSE", section: "A", batch: "2023" };
+  const branch = (acc.branch && acc.branch !== "N/A") ? acc.branch : getDynamicBranch(acc.regNo);
+  const section = (acc.section && acc.section !== "N/A")
+    ? String(acc.section).replace(/^Sec\s*/i, "").trim().toUpperCase()
+    : getSectionFromRegNo(acc.regNo);
+  let batch = (acc.batch && acc.batch !== "N/A") ? String(acc.batch).trim() : "";
+  if (!batch && acc.regNo && /^\d{2}/.test(String(acc.regNo).trim())) {
+    batch = `20${String(acc.regNo).trim().slice(0, 2)}`;
+  }
+  return {
+    branch: branch || "CSE",
+    section: section || "A",
+    batch: batch || "2023",
+  };
+}
+
 function formatISTDate(dateVal) {
   if (!dateVal) return "N/A";
   try {
@@ -161,8 +178,96 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   const [accountsStats, setAccountsStats] = useState({ totalRegistered: 0, totalActive: 0, totalOffline: 0 });
   const [directoryFilter, setDirectoryFilter] = useState("all"); // "all" | "active" | "offline"
   const [directorySearch, setDirectorySearch] = useState("");
+  const [selectedBatch, setSelectedBatch] = useState("all");
+  const [selectedBranch, setSelectedBranch] = useState("all");
+  const [selectedSection, setSelectedSection] = useState("all");
   const [directoryPage, setDirectoryPage] = useState(1);
   const directoryPageSize = 10;
+
+  // Available batches derived from data + standard defaults
+  const availableBatches = useMemo(() => {
+    const set = new Set(["2021", "2022", "2023", "2024", "2025"]);
+    accountsList.forEach((acc) => {
+      const meta = resolveStudentMeta(acc);
+      if (meta.batch && meta.batch !== "N/A") set.add(meta.batch);
+    });
+    return Array.from(set).sort();
+  }, [accountsList]);
+
+  // Available branches derived from data + standard defaults
+  const availableBranches = useMemo(() => {
+    const set = new Set(["CSE", "ECE", "EEE", "ME", "CIVIL", "AERO", "BIO", "MI"]);
+    accountsList.forEach((acc) => {
+      const meta = resolveStudentMeta(acc);
+      if (meta.branch) set.add(meta.branch.toUpperCase());
+    });
+    return Array.from(set).sort();
+  }, [accountsList]);
+
+  // Available sections derived from data + standard defaults
+  const availableSections = useMemo(() => {
+    const set = new Set(["A", "B", "C", "D", "E", "F", "G", "H", "I"]);
+    accountsList.forEach((acc) => {
+      const meta = resolveStudentMeta(acc);
+      if (meta.section) set.add(meta.section.toUpperCase());
+    });
+    return Array.from(set).sort();
+  }, [accountsList]);
+
+  // Dynamic filtered accounts list
+  const filteredAccountsList = useMemo(() => {
+    const cleanSearch = String(directorySearch || "").trim().toLowerCase();
+    return accountsList.filter((acc) => {
+      const meta = resolveStudentMeta(acc);
+
+      // 1. Status Filter (all, active, offline)
+      if (directoryFilter === "active" && !acc.isCurrentlyLoggedIn) return false;
+      if (directoryFilter === "offline" && acc.isCurrentlyLoggedIn) return false;
+
+      // 2. Batch Filter
+      if (selectedBatch && selectedBatch !== "all") {
+        const normBatch = String(selectedBatch).trim();
+        const accBatch = String(meta.batch || "").trim();
+        const matchBatch = accBatch.includes(normBatch) || (acc.regNo && acc.regNo.startsWith(normBatch.slice(-2)));
+        if (!matchBatch) return false;
+      }
+
+      // 3. Branch Filter
+      if (selectedBranch && selectedBranch !== "all") {
+        if (meta.branch.toUpperCase() !== selectedBranch.toUpperCase()) return false;
+      }
+
+      // 4. Section Filter
+      if (selectedSection && selectedSection !== "all") {
+        const targetSec = selectedSection.replace(/^Sec\s*/i, "").trim().toUpperCase();
+        if (meta.section.toUpperCase() !== targetSec) return false;
+      }
+
+      // 5. Search Text Filter (RegNo, StudentName, Branch, Section)
+      if (cleanSearch) {
+        const reg = String(acc.regNo || "").toLowerCase();
+        const name = String(acc.studentName || "").toLowerCase();
+        const br = String(meta.branch || "").toLowerCase();
+        const sec = `sec ${String(meta.section || "").toLowerCase()}`;
+        const secLetter = String(meta.section || "").toLowerCase();
+        const matchSearch = reg.includes(cleanSearch) || name.includes(cleanSearch) || br.includes(cleanSearch) || sec.includes(cleanSearch) || secLetter === cleanSearch;
+        if (!matchSearch) return false;
+      }
+
+      return true;
+    });
+  }, [accountsList, directoryFilter, selectedBatch, selectedBranch, selectedSection, directorySearch]);
+
+  const hasActiveFilters = selectedBatch !== "all" || selectedBranch !== "all" || selectedSection !== "all" || directorySearch.trim() !== "" || directoryFilter !== "all";
+
+  const handleResetFilters = () => {
+    setSelectedBatch("all");
+    setSelectedBranch("all");
+    setSelectedSection("all");
+    setDirectorySearch("");
+    setDirectoryFilter("all");
+    setDirectoryPage(1);
+  };
 
   // Reset Modal state
   const [showResetModal, setShowResetModal] = useState(false);
@@ -827,6 +932,189 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               <span>Search Activity</span>
             </button>
           </form>
+
+          {/* Quick Filter & Choose by Batch, Branch, Section */}
+          <div
+            style={{
+              marginTop: 14,
+              paddingTop: 12,
+              borderTop: "1px dashed #e2e8f0",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 8,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#475569", fontSize: 12, fontWeight: 700 }}>
+                <Filter size={13} color="#4f46e5" />
+                <span>Quick Choose Student (by Batch, Branch & Section):</span>
+              </div>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                    border: "1px solid #fecaca",
+                    background: "#fef2f2",
+                    color: "#dc2626",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                  title="Reset filters to All"
+                >
+                  <RotateCcw size={11} />
+                  <span>Reset Filters</span>
+                </button>
+              )}
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMob ? "1fr 1fr" : "130px 140px 130px 1fr",
+                gap: 8,
+                alignItems: "center",
+              }}
+            >
+              {/* Batch Select */}
+              <div>
+                <select
+                  value={selectedBatch}
+                  onChange={(e) => {
+                    setSelectedBatch(e.target.value);
+                    setDirectoryPage(1);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "7px 10px",
+                    borderRadius: 8,
+                    border: selectedBatch !== "all" ? "1.5px solid #4f46e5" : "1px solid #cbd5e1",
+                    background: selectedBatch !== "all" ? "#f5f3ff" : "#ffffff",
+                    color: selectedBatch !== "all" ? "#4338ca" : "#1e293b",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    outline: "none",
+                  }}
+                >
+                  <option value="all">All Batches</option>
+                  {availableBatches.map((b) => (
+                    <option key={b} value={b}>Batch {b}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Branch Select */}
+              <div>
+                <select
+                  value={selectedBranch}
+                  onChange={(e) => {
+                    setSelectedBranch(e.target.value);
+                    setDirectoryPage(1);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "7px 10px",
+                    borderRadius: 8,
+                    border: selectedBranch !== "all" ? "1.5px solid #4f46e5" : "1px solid #cbd5e1",
+                    background: selectedBranch !== "all" ? "#f5f3ff" : "#ffffff",
+                    color: selectedBranch !== "all" ? "#4338ca" : "#1e293b",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    outline: "none",
+                  }}
+                >
+                  <option value="all">All Branches</option>
+                  {availableBranches.map((br) => (
+                    <option key={br} value={br}>{br}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Section Select */}
+              <div>
+                <select
+                  value={selectedSection}
+                  onChange={(e) => {
+                    setSelectedSection(e.target.value);
+                    setDirectoryPage(1);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "7px 10px",
+                    borderRadius: 8,
+                    border: selectedSection !== "all" ? "1.5px solid #4f46e5" : "1px solid #cbd5e1",
+                    background: selectedSection !== "all" ? "#f5f3ff" : "#ffffff",
+                    color: selectedSection !== "all" ? "#4338ca" : "#1e293b",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    outline: "none",
+                  }}
+                >
+                  <option value="all">All Sections</option>
+                  {availableSections.map((sec) => (
+                    <option key={sec} value={sec}>Section {sec}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Student Picker Select */}
+              <div style={{ gridColumn: isMob ? "1 / -1" : "auto" }}>
+                <select
+                  value={studentData?.regNo || ""}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      handleSearchWithReg(e.target.value);
+                    }
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "7px 10px",
+                    borderRadius: 8,
+                    border: "1.5px solid #c7d2fe",
+                    background: "#f8fafc",
+                    color: "#312e81",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    outline: "none",
+                  }}
+                >
+                  <option value="">
+                    {accountsLoading
+                      ? "Loading accounts..."
+                      : filteredAccountsList.length > 0
+                      ? `Select Student (${filteredAccountsList.length} matching)...`
+                      : "No students matching filters"}
+                  </option>
+                  {filteredAccountsList.map((acc) => {
+                    const m = resolveStudentMeta(acc);
+                    return (
+                      <option key={acc.regNo} value={acc.regNo}>
+                        {acc.regNo} — {acc.studentName} ({m.branch} Sec {m.section}) {acc.isCurrentlyLoggedIn ? "• Online" : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            </div>
+          </div>
           {errorMsg && (
             <div
               style={{
@@ -2393,90 +2681,381 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
           </div>
         </div>
 
-        {/* Filter Pills & Directory Search */}
-        <div style={{ display: "flex", flexDirection: isMob ? "column" : "row", justifyContent: "space-between", alignItems: isMob ? "stretch" : "center", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, overflowX: isMob ? "auto" : "visible", paddingBottom: isMob ? 4 : 0 }}>
-            {[
-              { id: "all", label: `All (${accountsStats.totalRegistered})`, icon: <Users size={12} /> },
-              { id: "active", label: `Online (${accountsStats.totalActive})`, icon: <Activity size={12} color="#16a34a" />, dotColor: "#16a34a" },
-              { id: "offline", label: `Offline (${accountsStats.totalOffline})`, icon: <Clock size={12} color="#64748b" />, dotColor: "#94a3b8" },
-            ].map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setDirectoryFilter(f.id)}
+        {/* Filter Pills, Multi-Selectors & Directory Search */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {/* Top Line: Status Pills + Match Count Badge + Reset All */}
+          <div style={{ display: "flex", flexDirection: isMob ? "column" : "row", justifyContent: "space-between", alignItems: isMob ? "flex-start" : "center", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, overflowX: isMob ? "auto" : "visible", paddingBottom: isMob ? 4 : 0 }}>
+              {[
+                { id: "all", label: `All (${accountsStats.totalRegistered})`, icon: <Users size={12} /> },
+                { id: "active", label: `Online (${accountsStats.totalActive})`, icon: <Activity size={12} color="#16a34a" />, dotColor: "#16a34a" },
+                { id: "offline", label: `Offline (${accountsStats.totalOffline})`, icon: <Clock size={12} color="#64748b" />, dotColor: "#94a3b8" },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => {
+                    setDirectoryFilter(f.id);
+                    setDirectoryPage(1);
+                  }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    padding: isMob ? "5px 10px" : "6px 12px",
+                    borderRadius: 8,
+                    border: directoryFilter === f.id ? "1.5px solid #4f46e5" : "1px solid #e2e8f0",
+                    background: directoryFilter === f.id ? "#eef2ff" : "#ffffff",
+                    color: directoryFilter === f.id ? "#4338ca" : "#64748b",
+                    fontSize: isMob ? 11.5 : 12,
+                    fontWeight: directoryFilter === f.id ? 700 : 600,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
+                  {f.dotColor ? (
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: f.dotColor, display: "inline-block" }} />
+                  ) : (
+                    f.icon
+                  )}
+                  <span>{f.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  padding: isMob ? "5px 10px" : "6px 12px",
-                  borderRadius: 8,
-                  border: directoryFilter === f.id ? "1.5px solid #4f46e5" : "1px solid #e2e8f0",
-                  background: directoryFilter === f.id ? "#eef2ff" : "#ffffff",
-                  color: directoryFilter === f.id ? "#4338ca" : "#64748b",
-                  fontSize: isMob ? 11.5 : 12,
-                  fontWeight: directoryFilter === f.id ? 700 : 600,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  flexShrink: 0,
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  color: "#4338ca",
+                  background: "#eef2ff",
+                  border: "1px solid #c7d2fe",
+                  padding: "4px 9px",
+                  borderRadius: 6,
                 }}
               >
-                {f.dotColor ? (
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: f.dotColor, display: "inline-block" }} />
-                ) : (
-                  f.icon
-                )}
-                <span>{f.label}</span>
-              </button>
-            ))}
+                Showing {filteredAccountsList.length} of {accountsList.length} accounts
+              </span>
+
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    border: "1px solid #fecaca",
+                    background: "#fef2f2",
+                    color: "#dc2626",
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                  title="Reset all filters to All"
+                >
+                  <RotateCcw size={11} />
+                  <span>Reset All</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          <form onSubmit={handleDirectorySearchSubmit} style={{ display: "flex", gap: 6, width: isMob ? "100%" : "auto" }}>
-            <input
-              type="text"
-              placeholder="Search Reg No or Name..."
-              value={directorySearch}
-              onChange={(e) => setDirectorySearch(e.target.value)}
-              style={{
-                flex: isMob ? 1 : "initial",
-                width: isMob ? "auto" : 180,
-                padding: "6px 10px",
-                borderRadius: 8,
-                border: "1px solid #cbd5e1",
-                fontSize: 12,
-                outline: "none",
-              }}
-            />
-            <button
-              type="submit"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                padding: "6px 12px",
-                borderRadius: 8,
-                border: "none",
-                background: "#4f46e5",
-                color: "#ffffff",
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: "pointer",
-                flexShrink: 0,
-              }}
-            >
-              <Filter size={11} />
-              <span>Filter</span>
-            </button>
-          </form>
+          {/* Filter Selectors Bar: Batch, Branch, Section & Search */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMob ? "1fr 1fr" : "140px 150px 140px 1fr",
+              gap: 8,
+              background: "#f8fafc",
+              padding: isMob ? "8px" : "10px 12px",
+              borderRadius: 12,
+              border: "1px solid #e2e8f0",
+              alignItems: "center",
+            }}
+          >
+            {/* Batch Choose */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <label style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Batch</label>
+              <select
+                value={selectedBatch}
+                onChange={(e) => {
+                  setSelectedBatch(e.target.value);
+                  setDirectoryPage(1);
+                }}
+                style={{
+                  width: "100%",
+                  padding: "6px 8px",
+                  borderRadius: 7,
+                  border: selectedBatch !== "all" ? "1.5px solid #4f46e5" : "1px solid #cbd5e1",
+                  background: selectedBatch !== "all" ? "#f5f3ff" : "#ffffff",
+                  color: selectedBatch !== "all" ? "#4338ca" : "#0f172a",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  outline: "none",
+                }}
+              >
+                <option value="all">All Batches</option>
+                {availableBatches.map((b) => (
+                  <option key={b} value={b}>Batch {b}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Branch Choose */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <label style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Branch</label>
+              <select
+                value={selectedBranch}
+                onChange={(e) => {
+                  setSelectedBranch(e.target.value);
+                  setDirectoryPage(1);
+                }}
+                style={{
+                  width: "100%",
+                  padding: "6px 8px",
+                  borderRadius: 7,
+                  border: selectedBranch !== "all" ? "1.5px solid #4f46e5" : "1px solid #cbd5e1",
+                  background: selectedBranch !== "all" ? "#f5f3ff" : "#ffffff",
+                  color: selectedBranch !== "all" ? "#4338ca" : "#0f172a",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  outline: "none",
+                }}
+              >
+                <option value="all">All Branches</option>
+                {availableBranches.map((br) => (
+                  <option key={br} value={br}>{br}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Section Choose */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <label style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Section</label>
+              <select
+                value={selectedSection}
+                onChange={(e) => {
+                  setSelectedSection(e.target.value);
+                  setDirectoryPage(1);
+                }}
+                style={{
+                  width: "100%",
+                  padding: "6px 8px",
+                  borderRadius: 7,
+                  border: selectedSection !== "all" ? "1.5px solid #4f46e5" : "1px solid #cbd5e1",
+                  background: selectedSection !== "all" ? "#f5f3ff" : "#ffffff",
+                  color: selectedSection !== "all" ? "#4338ca" : "#0f172a",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  outline: "none",
+                }}
+              >
+                <option value="all">All Sections</option>
+                {availableSections.map((sec) => (
+                  <option key={sec} value={sec}>Section {sec}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Search Input Box */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 3, gridColumn: isMob ? "1 / -1" : "auto" }}>
+              <label style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Search Reg / Name</label>
+              <div style={{ position: "relative", width: "100%" }}>
+                <input
+                  type="text"
+                  placeholder="Filter by Reg No or Name..."
+                  value={directorySearch}
+                  onChange={(e) => {
+                    setDirectorySearch(e.target.value);
+                    setDirectoryPage(1);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "6px 28px 6px 10px",
+                    borderRadius: 7,
+                    border: directorySearch ? "1.5px solid #4f46e5" : "1px solid #cbd5e1",
+                    background: "#ffffff",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+                {directorySearch ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDirectorySearch("");
+                      setDirectoryPage(1);
+                    }}
+                    style={{
+                      position: "absolute",
+                      right: 6,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      color: "#94a3b8",
+                      cursor: "pointer",
+                      padding: 2,
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                    title="Clear search"
+                  >
+                    <X size={13} />
+                  </button>
+                ) : (
+                  <Search
+                    size={13}
+                    color="#94a3b8"
+                    style={{
+                      position: "absolute",
+                      right: 8,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Active Filter Chips Bar */}
+          {hasActiveFilters && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", paddingTop: 2 }}>
+              <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>Active Filters:</span>
+              {directoryFilter !== "all" && (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    background: "#eef2ff",
+                    color: "#4338ca",
+                    border: "1px solid #c7d2fe",
+                    padding: "2px 7px",
+                    borderRadius: 6,
+                    fontSize: 11,
+                    fontWeight: 700,
+                  }}
+                >
+                  Status: {directoryFilter === "active" ? "Online" : "Offline"}
+                  <X size={10} style={{ cursor: "pointer" }} onClick={() => setDirectoryFilter("all")} />
+                </span>
+              )}
+              {selectedBatch !== "all" && (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    background: "#eef2ff",
+                    color: "#4338ca",
+                    border: "1px solid #c7d2fe",
+                    padding: "2px 7px",
+                    borderRadius: 6,
+                    fontSize: 11,
+                    fontWeight: 700,
+                  }}
+                >
+                  Batch: {selectedBatch}
+                  <X size={10} style={{ cursor: "pointer" }} onClick={() => setSelectedBatch("all")} />
+                </span>
+              )}
+              {selectedBranch !== "all" && (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    background: "#eef2ff",
+                    color: "#4338ca",
+                    border: "1px solid #c7d2fe",
+                    padding: "2px 7px",
+                    borderRadius: 6,
+                    fontSize: 11,
+                    fontWeight: 700,
+                  }}
+                >
+                  Branch: {selectedBranch}
+                  <X size={10} style={{ cursor: "pointer" }} onClick={() => setSelectedBranch("all")} />
+                </span>
+              )}
+              {selectedSection !== "all" && (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    background: "#eef2ff",
+                    color: "#4338ca",
+                    border: "1px solid #c7d2fe",
+                    padding: "2px 7px",
+                    borderRadius: 6,
+                    fontSize: 11,
+                    fontWeight: 700,
+                  }}
+                >
+                  Section: {selectedSection}
+                  <X size={10} style={{ cursor: "pointer" }} onClick={() => setSelectedSection("all")} />
+                </span>
+              )}
+              {directorySearch && (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    background: "#eef2ff",
+                    color: "#4338ca",
+                    border: "1px solid #c7d2fe",
+                    padding: "2px 7px",
+                    borderRadius: 6,
+                    fontSize: 11,
+                    fontWeight: 700,
+                  }}
+                >
+                  Search: "{directorySearch}"
+                  <X size={10} style={{ cursor: "pointer" }} onClick={() => setDirectorySearch("")} />
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#dc2626",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  padding: "2px 4px",
+                  textDecoration: "underline",
+                }}
+              >
+                Clear all
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ── Directory Accounts Content: Paginated (10 per page) ── */}
         {(() => {
-          const totalAccounts = accountsList.length;
+          const totalAccounts = filteredAccountsList.length;
           const dirTotalPages = Math.max(1, Math.ceil(totalAccounts / directoryPageSize));
           const dirSafePage = Math.min(Math.max(1, directoryPage), dirTotalPages);
           const dirStart = (dirSafePage - 1) * directoryPageSize;
           const dirEnd = Math.min(dirStart + directoryPageSize, totalAccounts);
-          const paginatedAccounts = accountsList.slice(dirStart, dirEnd);
+          const paginatedAccounts = filteredAccountsList.slice(dirStart, dirEnd);
 
           return (
             <>
@@ -2488,9 +3067,32 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                       <Loader2 size={20} className="spin" style={{ margin: "0 auto 8px" }} />
                       <div style={{ fontSize: 12.5 }}>Loading accounts directory...</div>
                     </div>
-                  ) : accountsList.length === 0 ? (
-                    <div style={{ padding: "24px", textAlign: "center", color: "#94a3b8", background: "#f8fafc", borderRadius: 12, border: "1px dashed #e2e8f0", fontSize: 12.5 }}>
-                      No student accounts found matching filter.
+                  ) : filteredAccountsList.length === 0 ? (
+                    <div style={{ padding: "28px 16px", textAlign: "center", color: "#94a3b8", background: "#f8fafc", borderRadius: 12, border: "1px dashed #e2e8f0", fontSize: 12.5 }}>
+                      <div>No registered student accounts found matching filter criteria.</div>
+                      {hasActiveFilters && (
+                        <button
+                          type="button"
+                          onClick={handleResetFilters}
+                          style={{
+                            marginTop: 10,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            padding: "6px 12px",
+                            borderRadius: 8,
+                            border: "1px solid #c7d2fe",
+                            background: "#eef2ff",
+                            color: "#4338ca",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                        >
+                          <RotateCcw size={12} />
+                          <span>Reset Filters</span>
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <AnimatePresence mode="wait">
@@ -2503,8 +3105,9 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                         style={{ display: "flex", flexDirection: "column", gap: 10 }}
                       >
                         {paginatedAccounts.map((acc) => {
-                          const resolvedBranch = (acc.branch && acc.branch !== "N/A") ? acc.branch : getDynamicBranch(acc.regNo);
-                          const resolvedSection = (acc.section && acc.section !== "N/A") ? acc.section : getSectionFromRegNo(acc.regNo);
+                          const meta = resolveStudentMeta(acc);
+                          const resolvedBranch = meta.branch;
+                          const resolvedSection = meta.section;
 
                           return (
                             <div
@@ -2690,16 +3293,40 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                               <div>Loading verified accounts directory...</div>
                             </td>
                           </tr>
-                        ) : accountsList.length === 0 ? (
+                        ) : filteredAccountsList.length === 0 ? (
                           <tr>
-                            <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "#94a3b8" }}>
-                              No registered student accounts found matching filter.
+                            <td colSpan={5} style={{ padding: "32px 16px", textAlign: "center", color: "#94a3b8" }}>
+                              <div>No registered student accounts found matching filter criteria.</div>
+                              {hasActiveFilters && (
+                                <button
+                                  type="button"
+                                  onClick={handleResetFilters}
+                                  style={{
+                                    marginTop: 10,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 5,
+                                    padding: "6px 12px",
+                                    borderRadius: 8,
+                                    border: "1px solid #c7d2fe",
+                                    background: "#eef2ff",
+                                    color: "#4338ca",
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <RotateCcw size={12} />
+                                  <span>Reset Filters</span>
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ) : (
                           paginatedAccounts.map((acc) => {
-                            const resolvedBranch = (acc.branch && acc.branch !== "N/A") ? acc.branch : getDynamicBranch(acc.regNo);
-                            const resolvedSection = (acc.section && acc.section !== "N/A") ? acc.section : getSectionFromRegNo(acc.regNo);
+                            const meta = resolveStudentMeta(acc);
+                            const resolvedBranch = meta.branch;
+                            const resolvedSection = meta.section;
 
                             return (
                               <tr key={acc.regNo} style={{ borderBottom: "1px solid #f1f5f9" }}>
