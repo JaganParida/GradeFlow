@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from "react";
-import { Printer, GraduationCap, AlertTriangle, ZoomIn, ZoomOut, MessageSquare, Lock, ShieldCheck, FileDown, ImageDown } from "lucide-react";
+import { motion } from "framer-motion";
+import { Printer, GraduationCap, AlertTriangle, ZoomIn, ZoomOut, MessageSquare, Lock, ShieldCheck, FileDown, ImageDown, Loader2 } from "lucide-react";
 import {
   FAIL_GRADES,
   calculateCGPA,
@@ -51,6 +52,8 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const [sheetHeight, setSheetHeight] = useState(680);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [isSavingImage, setIsSavingImage] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -176,23 +179,33 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
       triggerFeedbackModal();
       return;
     }
-    const { default: html2canvas } = await import("html2canvas");
-    const { default: jsPDF } = await import("jspdf");
-    const canvas = await html2canvas(sheetRef.current, {
-      scale: 4,
-      backgroundColor: "#fff",
-      useCORS: true,
-    });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: "a4",
-    });
-    const w = pdf.internal.pageSize.getWidth();
-    const h = (canvas.height * w) / canvas.width;
-    pdf.addImage(imgData, "PNG", 0, 0, w, h);
-    pdf.save(`GradeSheet_${displayRegNo || "Student"}_Sem${result.semester}.pdf`);
+    if (isDownloadingPdf || isSavingImage) return;
+
+    try {
+      setIsDownloadingPdf(true);
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      const { default: html2canvas } = await import("html2canvas");
+      const { default: jsPDF } = await import("jspdf");
+      const canvas = await html2canvas(sheetRef.current, {
+        scale: 4,
+        backgroundColor: "#fff",
+        useCORS: true,
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+      const w = pdf.internal.pageSize.getWidth();
+      const h = (canvas.height * w) / canvas.width;
+      pdf.addImage(imgData, "PNG", 0, 0, w, h);
+      pdf.save(`GradeSheet_${displayRegNo || "Student"}_Sem${result.semester}.pdf`);
+    } catch (err) {
+      console.error("Failed to export PDF:", err);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   }
 
   async function saveImage() {
@@ -200,16 +213,26 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
       triggerFeedbackModal();
       return;
     }
-    const { default: html2canvas } = await import("html2canvas");
-    const canvas = await html2canvas(sheetRef.current, {
-      scale: 4,
-      backgroundColor: "#fff",
-      useCORS: true,
-    });
-    const link = document.createElement("a");
-    link.download = `GradeSheet_${displayRegNo || "Student"}_Sem${result.semester}.png`;
-    link.href = canvas.toDataURL();
-    link.click();
+    if (isDownloadingPdf || isSavingImage) return;
+
+    try {
+      setIsSavingImage(true);
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      const { default: html2canvas } = await import("html2canvas");
+      const canvas = await html2canvas(sheetRef.current, {
+        scale: 4,
+        backgroundColor: "#fff",
+        useCORS: true,
+      });
+      const link = document.createElement("a");
+      link.download = `GradeSheet_${displayRegNo || "Student"}_Sem${result.semester}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    } catch (err) {
+      console.error("Failed to export image:", err);
+    } finally {
+      setIsSavingImage(false);
+    }
   }
 
   function printSheet() {
@@ -276,24 +299,37 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
       {/* ── Action Buttons & Toolbar ── */}
       <div data-html2canvas-ignore="true" className="gradesheet-toolbar">
         <div className="gradesheet-toolbar-btns">
-          <button
+          <motion.button
             type="button"
+            whileTap={{ scale: 0.95 }}
+            disabled={isDownloadingPdf || isSavingImage}
             className="btn btn-primary gradesheet-btn"
             onClick={downloadPDF}
-            title={!isUnlocked ? "Unlock via Feedback to Download PDF" : "Download PDF"}
+            title={isDownloadingPdf ? "Exporting PDF..." : !isUnlocked ? "Unlock via Feedback to Download PDF" : "Download PDF"}
+            style={{
+              cursor: isDownloadingPdf || isSavingImage ? "not-allowed" : "pointer",
+            }}
           >
             {!isUnlocked ? (
               <Lock size={14} className="gradesheet-btn-icon" strokeWidth={2.2} />
             ) : (
               <FileDown size={15} className="gradesheet-btn-icon" strokeWidth={2.2} />
             )}
-            <span>Download</span>
-          </button>
-          <button
+            <span>PDF</span>
+            {isDownloadingPdf && (
+              <Loader2 size={13} className="gf-spin" style={{ flexShrink: 0, marginLeft: 1 }} />
+            )}
+          </motion.button>
+          <motion.button
             type="button"
+            whileTap={{ scale: 0.95 }}
+            disabled={isDownloadingPdf || isSavingImage}
             className="btn btn-ghost gradesheet-btn"
             onClick={saveImage}
-            title={!isUnlocked ? "Unlock via Feedback to Save Image" : "Download Image (PNG)"}
+            title={isSavingImage ? "Exporting Image..." : !isUnlocked ? "Unlock via Feedback to Download Image" : "Download Image (PNG)"}
+            style={{
+              cursor: isDownloadingPdf || isSavingImage ? "not-allowed" : "pointer",
+            }}
           >
             {!isUnlocked ? (
               <Lock size={14} className="gradesheet-btn-icon" strokeWidth={2.2} />
@@ -301,12 +337,20 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
               <ImageDown size={15} className="gradesheet-btn-icon" strokeWidth={2.2} />
             )}
             <span>Image</span>
-          </button>
-          <button
+            {isSavingImage && (
+              <Loader2 size={13} className="gf-spin" style={{ flexShrink: 0, marginLeft: 1 }} />
+            )}
+          </motion.button>
+          <motion.button
             type="button"
+            whileTap={{ scale: 0.95 }}
+            disabled={isDownloadingPdf || isSavingImage}
             className="btn btn-ghost gradesheet-btn"
             onClick={printSheet}
             title={!isUnlocked ? "Unlock via Feedback to Print" : "Print Sheet"}
+            style={{
+              cursor: isDownloadingPdf || isSavingImage ? "not-allowed" : "pointer",
+            }}
           >
             {!isUnlocked ? (
               <Lock size={14} className="gradesheet-btn-icon" strokeWidth={2.2} />
@@ -314,7 +358,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
               <Printer size={15} className="gradesheet-btn-icon" strokeWidth={2.2} />
             )}
             <span>Print</span>
-          </button>
+          </motion.button>
         </div>
 
         <div className="gradesheet-toolbar-zoom">

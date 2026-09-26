@@ -1978,7 +1978,19 @@ input[type="number"].no-spin-button {
   min-width: 0;
   height: 38px;
   box-sizing: border-box;
-  transition: all 0.15s ease;
+  transition: transform 0.1s ease, background 0.15s ease, opacity 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gradesheet-btn:active {
+  transform: scale(0.95);
+}
+
+.gradesheet-btn:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.72;
 }
 
 .gradesheet-btn-icon {
