@@ -1725,8 +1725,8 @@ export default function Dashboard() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(160px, 1fr))",
-                  gap: isMobile ? 8 : 14,
+                  gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(150px, 1fr))",
+                  gap: isMobile ? 8 : 10,
                   width: "100%",
                 }}
               >
@@ -1738,11 +1738,11 @@ export default function Dashboard() {
                     background: "#ffffff",
                     border: "1px solid #e2e8f0",
                     borderRadius: 14,
-                    padding: isMobile ? "11px 11px 13px 11px" : "16px 18px",
+                    padding: isMobile ? "11px 11px 13px 11px" : "13px 14px 14px 14px",
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
-                    minHeight: isMobile ? 116 : 136,
+                    minHeight: isMobile ? 116 : 130,
                     boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
                     position: "relative",
                     overflow: "hidden",
@@ -1753,11 +1753,10 @@ export default function Dashboard() {
                     <span
                       title="Semester SGPA"
                       style={{
-                        fontSize: isMobile ? 10 : 11.5,
+                        fontSize: isMobile ? 10.5 : 11.5,
                         fontWeight: 700,
                         color: "#475569",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.4px",
+                        letterSpacing: "0.1px",
                         whiteSpace: "nowrap",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
@@ -1771,7 +1770,7 @@ export default function Dashboard() {
                         background: "#eff6ff",
                         color: "#2563eb",
                         border: "1px solid #bfdbfe",
-                        padding: "1.5px 6px",
+                        padding: "1.5px 5px",
                         borderRadius: 5,
                         fontWeight: 750,
                         whiteSpace: "nowrap",
@@ -1786,7 +1785,7 @@ export default function Dashboard() {
                   <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginTop: 4, marginBottom: 2 }}>
                     <span
                       style={{
-                        fontSize: isMobile ? 22 : 30,
+                        fontSize: isMobile ? 22 : 28,
                         fontWeight: 800,
                         color: "#2563eb",
                         fontFamily: "'Space Mono', monospace",
@@ -1810,7 +1809,7 @@ export default function Dashboard() {
                       textOverflow: "ellipsis",
                     }}
                   >
-                    {isMobile ? "Current sem score" : "Current semester performance"}
+                    {isMobile ? "Current sem score" : "Current semester"}
                   </span>
 
                   <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "#f1f5f9" }}>
@@ -1832,11 +1831,11 @@ export default function Dashboard() {
                     background: "#ffffff",
                     border: "1px solid #e2e8f0",
                     borderRadius: 14,
-                    padding: isMobile ? "11px 11px 13px 11px" : "16px 18px",
+                    padding: isMobile ? "11px 11px 13px 11px" : "13px 14px 14px 14px",
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
-                    minHeight: isMobile ? 116 : 136,
+                    minHeight: isMobile ? 116 : 130,
                     boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
                     position: "relative",
                     overflow: "hidden",
@@ -1848,11 +1847,10 @@ export default function Dashboard() {
                     <span
                       title="Cumulative CGPA"
                       style={{
-                        fontSize: isMobile ? 10 : 11.5,
+                        fontSize: isMobile ? 10.5 : 11.5,
                         fontWeight: 700,
                         color: "#475569",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.4px",
+                        letterSpacing: "0.1px",
                         whiteSpace: "nowrap",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
@@ -1866,7 +1864,7 @@ export default function Dashboard() {
                         background: "#f5f3ff",
                         color: "#7c3aed",
                         border: "1px solid #ddd6fe",
-                        padding: "1.5px 6px",
+                        padding: "1.5px 5px",
                         borderRadius: 5,
                         fontWeight: 750,
                         whiteSpace: "nowrap",
@@ -1881,7 +1879,7 @@ export default function Dashboard() {
                   <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginTop: 4, marginBottom: 2 }}>
                     <span
                       style={{
-                        fontSize: isMobile ? 22 : 30,
+                        fontSize: isMobile ? 22 : 28,
                         fontWeight: 800,
                         color: "#7c3aed",
                         fontFamily: "'Space Mono', monospace",
@@ -1905,7 +1903,7 @@ export default function Dashboard() {
                       textOverflow: "ellipsis",
                     }}
                   >
-                    {isMobile ? "Across all sems" : "Across all completed semesters"}
+                    {isMobile ? "Across all sems" : "Across all semesters"}
                   </span>
 
                   <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "#f1f5f9" }}>
@@ -1928,11 +1926,11 @@ export default function Dashboard() {
                     background: "#ffffff",
                     border: "1px solid #e2e8f0",
                     borderRadius: 14,
-                    padding: isMobile ? "11px 11px 13px 11px" : "16px 18px",
+                    padding: isMobile ? "11px 11px 13px 11px" : "13px 14px 14px 14px",
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
-                    minHeight: isMobile ? 116 : 136,
+                    minHeight: isMobile ? 116 : 130,
                     boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
                     position: "relative",
                     overflow: "hidden",
@@ -1944,11 +1942,10 @@ export default function Dashboard() {
                     <span
                       title="Equivalent Percentage"
                       style={{
-                        fontSize: isMobile ? 10 : 11.5,
+                        fontSize: isMobile ? 10.5 : 11.5,
                         fontWeight: 700,
                         color: "#475569",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.4px",
+                        letterSpacing: "0.1px",
                         whiteSpace: "nowrap",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
@@ -1962,7 +1959,7 @@ export default function Dashboard() {
                         background: "#eef2ff",
                         color: "#4f46e5",
                         border: "1px solid #c7d2fe",
-                        padding: "1.5px 6px",
+                        padding: "1.5px 5px",
                         borderRadius: 5,
                         fontWeight: 750,
                         whiteSpace: "nowrap",
@@ -1977,7 +1974,7 @@ export default function Dashboard() {
                   <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginTop: 4, marginBottom: 2 }}>
                     <span
                       style={{
-                        fontSize: isMobile ? 22 : 30,
+                        fontSize: isMobile ? 22 : 28,
                         fontWeight: 800,
                         color: "#4f46e5",
                         fontFamily: "'Space Mono', monospace",
@@ -2003,7 +2000,7 @@ export default function Dashboard() {
                       textOverflow: "ellipsis",
                     }}
                   >
-                    {isMobile ? "Formula: CGPA × 10" : "Official CUTM scale (CGPA × 10)"}
+                    {isMobile ? "Formula: CGPA × 10" : "Formula: CGPA × 10"}
                   </span>
 
                   <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "#f1f5f9" }}>
@@ -2016,7 +2013,7 @@ export default function Dashboard() {
                   </div>
                 </motion.div>
 
-                {/* 3. Credits Cleared */}
+                {/* 4. Credits Cleared */}
                 <motion.div
                   whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.98 }}
@@ -2025,11 +2022,11 @@ export default function Dashboard() {
                     background: "#ffffff",
                     border: "1px solid #e2e8f0",
                     borderRadius: 14,
-                    padding: isMobile ? "11px 11px 13px 11px" : "16px 18px",
+                    padding: isMobile ? "11px 11px 13px 11px" : "13px 14px 14px 14px",
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
-                    minHeight: isMobile ? 116 : 136,
+                    minHeight: isMobile ? 116 : 130,
                     boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
                     position: "relative",
                     overflow: "hidden",
@@ -2041,11 +2038,10 @@ export default function Dashboard() {
                     <span
                       title="Credits Cleared"
                       style={{
-                        fontSize: isMobile ? 10 : 11.5,
+                        fontSize: isMobile ? 10.5 : 11.5,
                         fontWeight: 700,
                         color: "#475569",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.4px",
+                        letterSpacing: "0.1px",
                         whiteSpace: "nowrap",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
@@ -2059,7 +2055,7 @@ export default function Dashboard() {
                         background: "#f8fafc",
                         color: "#334155",
                         border: "1px solid #e2e8f0",
-                        padding: "1.5px 6px",
+                        padding: "1.5px 5px",
                         borderRadius: 5,
                         fontWeight: 750,
                         whiteSpace: "nowrap",
@@ -2074,7 +2070,7 @@ export default function Dashboard() {
                   <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginTop: 4, marginBottom: 2 }}>
                     <span
                       style={{
-                        fontSize: isMobile ? 22 : 30,
+                        fontSize: isMobile ? 22 : 28,
                         fontWeight: 800,
                         color: "#0f172a",
                         fontFamily: "'Space Mono', monospace",
@@ -2098,7 +2094,7 @@ export default function Dashboard() {
                       textOverflow: "ellipsis",
                     }}
                   >
-                    {isMobile ? `${totalCreditsCleared} of 160 credits` : "Degree requirement progress"}
+                    {isMobile ? `${totalCreditsCleared} of 160 credits` : "Degree requirement"}
                   </span>
 
                   <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "#f1f5f9" }}>
@@ -2124,11 +2120,11 @@ export default function Dashboard() {
                       background: "#ffffff",
                       border: "1px solid #e2e8f0",
                       borderRadius: 14,
-                      padding: isMobile ? "11px 11px 13px 11px" : "16px 18px",
+                      padding: isMobile ? "11px 11px 13px 11px" : "13px 14px 14px 14px",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
-                      minHeight: isMobile ? 116 : 136,
+                      minHeight: isMobile ? 116 : 130,
                       boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
                       position: "relative",
                       overflow: "hidden",
@@ -2138,19 +2134,18 @@ export default function Dashboard() {
                   >
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4, minHeight: 20 }}>
                       <span
-                        title="Overall Attendance"
+                        title="Attendance"
                         style={{
-                          fontSize: isMobile ? 10 : 11.5,
+                          fontSize: isMobile ? 10.5 : 11.5,
                           fontWeight: 700,
                           color: "#475569",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.4px",
+                          letterSpacing: "0.1px",
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                         }}
                       >
-                        {isMobile ? "Attendance" : "Overall Attendance"}
+                        {isMobile ? "Attendance" : "Attendance"}
                       </span>
                       {attendanceSummary && attendanceSummary.percentage !== null && attendanceSummary.percentage !== undefined ? (
                         <span
@@ -2159,7 +2154,7 @@ export default function Dashboard() {
                             background: attendanceSummary.percentage >= 75 ? "#f0fdf4" : "#fef2f2",
                             color: attendanceSummary.percentage >= 75 ? "#16a34a" : "#dc2626",
                             border: `1px solid ${attendanceSummary.percentage >= 75 ? "#bbf7d0" : "#fecaca"}`,
-                            padding: "1.5px 6px",
+                            padding: "1.5px 5px",
                             borderRadius: 5,
                             fontWeight: 750,
                             whiteSpace: "nowrap",
@@ -2177,7 +2172,7 @@ export default function Dashboard() {
                             gap: 2,
                             fontSize: 9.5,
                             fontWeight: 750,
-                            padding: "1.5px 6px",
+                            padding: "1.5px 5px",
                             borderRadius: 5,
                             background: "#eff6ff",
                             color: "#2563eb",
@@ -2197,7 +2192,7 @@ export default function Dashboard() {
                         <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginTop: 4, marginBottom: 2 }}>
                           <span
                             style={{
-                              fontSize: isMobile ? 22 : 30,
+                              fontSize: isMobile ? 22 : 28,
                               fontWeight: 800,
                               color: attendanceSummary.percentage >= 75 ? "#16a34a" : "#dc2626",
                               fontFamily: "'Space Mono', monospace",
@@ -2217,9 +2212,7 @@ export default function Dashboard() {
                             textOverflow: "ellipsis",
                           }}
                         >
-                          {isMobile
-                            ? `${attendanceSummary.totalAttended}/${attendanceSummary.totalDelivered} classes · ${attendanceSummary.subjectsCount} subs`
-                            : `${attendanceSummary.totalAttended} / ${attendanceSummary.totalDelivered} classes attended (${attendanceSummary.subjectsCount} subjects)`}
+                          {`${attendanceSummary.totalAttended}/${attendanceSummary.totalDelivered} classes attended`}
                         </span>
                         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "#f1f5f9" }}>
                           <motion.div
@@ -2270,7 +2263,7 @@ export default function Dashboard() {
                             textOverflow: "ellipsis",
                           }}
                         >
-                          {isMobile ? "Tap to track & predict" : "Track subjects, timetable & bunk margin"}
+                          {isMobile ? "Tap to set timetable" : "Set timetable & tracker"}
                         </span>
                         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "#eff6ff" }}>
                           <div style={{ height: "100%", width: "100%", background: "linear-gradient(90deg, #bfdbfe 0%, #3b82f6 100%)", opacity: 0.6 }} />
@@ -2288,11 +2281,11 @@ export default function Dashboard() {
                       background: "#ffffff",
                       border: "1px solid #e2e8f0",
                       borderRadius: 14,
-                      padding: isMobile ? "11px 11px 13px 11px" : "16px 18px",
+                      padding: isMobile ? "11px 11px 13px 11px" : "13px 14px 14px 14px",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
-                      minHeight: isMobile ? 116 : 136,
+                      minHeight: isMobile ? 116 : 130,
                       boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
                       position: "relative",
                       overflow: "hidden",
@@ -2304,11 +2297,10 @@ export default function Dashboard() {
                       <span
                         title="Academic Health"
                         style={{
-                          fontSize: isMobile ? 10 : 11.5,
+                          fontSize: isMobile ? 10.5 : 11.5,
                           fontWeight: 700,
                           color: "#475569",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.4px",
+                          letterSpacing: "0.1px",
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
@@ -2322,7 +2314,7 @@ export default function Dashboard() {
                           background: academicHealthScore >= 80 ? "#f0fdf4" : academicHealthScore >= 60 ? "#fffbeb" : "#fef2f2",
                           color: healthColor,
                           border: `1px solid ${academicHealthScore >= 80 ? "#bbf7d0" : academicHealthScore >= 60 ? "#fde68a" : "#fecaca"}`,
-                          padding: "1.5px 6px",
+                          padding: "1.5px 5px",
                           borderRadius: 5,
                           fontWeight: 750,
                           whiteSpace: "nowrap",
@@ -2337,7 +2329,7 @@ export default function Dashboard() {
                     <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginTop: 4, marginBottom: 2 }}>
                       <span
                         style={{
-                          fontSize: isMobile ? 22 : 30,
+                          fontSize: isMobile ? 22 : 28,
                           fontWeight: 800,
                           color: healthColor,
                           fontFamily: "'Space Mono', monospace",
@@ -2361,9 +2353,7 @@ export default function Dashboard() {
                         textOverflow: "ellipsis",
                       }}
                     >
-                      {isMobile
-                        ? (backlogs.length === 0 ? "Zero active backlogs" : `${backlogs.length} active backlogs`)
-                        : (backlogs.length === 0 ? "All Clear · Zero active backlogs" : `${backlogs.length} active backlogs detected`)}
+                      {backlogs.length === 0 ? "Zero active backlogs" : `${backlogs.length} active backlog${backlogs.length > 1 ? "s" : ""}`}
                     </span>
 
                     <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "#f1f5f9" }}>
