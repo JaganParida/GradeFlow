@@ -487,6 +487,7 @@ export default function AttendanceTracker() {
 
   const LOCKED_TAB_IDS = useMemo(() => new Set([
     "checkin",
+    "matrix",
     "studio_schedule",
     "studio_penalty",
     "studio_roadmap",
@@ -625,6 +626,7 @@ export default function AttendanceTracker() {
     if (isTabLocked(normalized)) {
       const tabNames = {
         checkin: "Daily Attendance",
+        matrix: "Subject-wise Attendance",
         studio_schedule: "Target with Schedule",
         studio_penalty: "Miss Impact between Target",
         studio_roadmap: "Miss Classes After Target",
@@ -1210,6 +1212,7 @@ export default function AttendanceTracker() {
       }
       const tabNames = {
         checkin: "Daily Attendance",
+        matrix: "Subject-wise Attendance",
         studio_schedule: "Target with Schedule",
         studio_penalty: "Miss Impact between Target",
         studio_roadmap: "Miss Classes After Target",
@@ -2136,9 +2139,9 @@ export default function AttendanceTracker() {
       label: "Subject-wise Attendance",
       shortLabel: "Subjects",
       icon: <Grid size={16} />,
-      badge: `${allSectionSubjects.length} Subs`,
+      badge: isTabLocked("matrix") ? "Locked" : `${allSectionSubjects.length} Subs`,
       desc: "Detailed attendance % across all semester subjects",
-      isLocked: false,
+      isLocked: isTabLocked("matrix"),
     },
     {
       id: "studio_simulator",
@@ -2725,39 +2728,41 @@ export default function AttendanceTracker() {
                   )}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleResetAllAttendance()}
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "7px 9px",
-                    borderRadius: 8,
-                    border: "1px solid transparent",
-                    background: "transparent",
-                    color: "#64748b",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    fontFamily: "'DM Sans', sans-serif",
-                    transition: "all 0.15s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#fff1f2";
-                    e.currentTarget.style.color = "#dc2626";
-                    e.currentTarget.style.borderColor = "#fecaca";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.color = "#64748b";
-                    e.currentTarget.style.borderColor = "transparent";
-                  }}
-                >
-                  <RotateCcw size={12} color="#dc2626" />
-                  <span style={{ flex: 1, textAlign: "left" }}>Reset Attendance Data</span>
-                </button>
+                {hasSavedAttendance && (
+                  <button
+                    type="button"
+                    onClick={() => handleResetAllAttendance()}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "7px 9px",
+                      borderRadius: 8,
+                      border: "1px solid transparent",
+                      background: "transparent",
+                      color: "#64748b",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: "'DM Sans', sans-serif",
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#fff1f2";
+                      e.currentTarget.style.color = "#dc2626";
+                      e.currentTarget.style.borderColor = "#fecaca";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "#64748b";
+                      e.currentTarget.style.borderColor = "transparent";
+                    }}
+                  >
+                    <RotateCcw size={12} color="#dc2626" />
+                    <span style={{ flex: 1, textAlign: "left" }}>Reset Attendance Data</span>
+                  </button>
+                )}
               </div>
             </div>
           </aside>
