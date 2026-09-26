@@ -42,6 +42,8 @@ import {
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
+  Percent,
+  ExternalLink,
 } from "lucide-react";
 
 /* ─── Fraction component ─────────────────────────────────────── */
@@ -105,11 +107,48 @@ const EXAMPLE_CALC_ROWS = [
   { course: "Software Engineering", credit: 4, grade: "A+", gp: 9, total: 36 },
 ];
 
+const CGPA_PERCENTAGE_SCALE = [
+  { cgpa: 10.0, pct: "100.0%", division: "First Class with Distinction", grade: "O (Outstanding)", color: "#15803d", bg: "#dcfce7" },
+  { cgpa: 9.5, pct: "95.0%", division: "First Class with Distinction", grade: "O (Outstanding)", color: "#15803d", bg: "#dcfce7" },
+  { cgpa: 9.0, pct: "90.0%", division: "First Class with Distinction", grade: "O (Outstanding)", color: "#15803d", bg: "#dcfce7" },
+  { cgpa: 8.5, pct: "85.0%", division: "First Class with Distinction", grade: "E (Excellent)", color: "#1d4ed8", bg: "#dbeafe" },
+  { cgpa: 8.0, pct: "80.0%", division: "First Class with Distinction", grade: "E (Excellent)", color: "#1d4ed8", bg: "#dbeafe" },
+  { cgpa: 7.5, pct: "75.0%", division: "First Class", grade: "A (Very Good)", color: "#7e22ce", bg: "#f3e8ff" },
+  { cgpa: 7.0, pct: "70.0%", division: "First Class", grade: "A (Very Good)", color: "#7e22ce", bg: "#f3e8ff" },
+  { cgpa: 6.5, pct: "65.0%", division: "First Class", grade: "B (Good)", color: "#c2410c", bg: "#ffedd5" },
+  { cgpa: 6.0, pct: "60.0%", division: "First Class (Official Benchmark)", grade: "B (Good)", color: "#c2410c", bg: "#ffedd5" },
+  { cgpa: 5.5, pct: "55.0%", division: "Second Class", grade: "C (Fair)", color: "#b45309", bg: "#fef3c7" },
+  { cgpa: 5.0, pct: "50.0%", division: "Second Class", grade: "C (Fair)", color: "#b45309", bg: "#fef3c7" },
+  { cgpa: 4.5, pct: "45.0%", division: "Pass Class", grade: "D (Pass)", color: "#475569", bg: "#f1f5f9" },
+  { cgpa: 4.0, pct: "40.0%", division: "Pass Class (Min Clearance)", grade: "D (Pass)", color: "#475569", bg: "#f1f5f9" },
+];
+
+const getCutmDivisionInfo = (cgpa) => {
+  const val = Number(cgpa);
+  if (isNaN(val) || val <= 0) {
+    return { division: "Invalid Input", badge: "Enter a valid CGPA", color: "#64748b", bg: "#f1f5f9" };
+  }
+  if (val >= 8.0) {
+    return { division: "First Class with Distinction", badge: "Honours Tier (≥ 80%)", color: "#15803d", bg: "#dcfce7" };
+  }
+  if (val >= 6.0) {
+    return { division: "First Class", badge: "Official University Benchmark (≥ 60%)", color: "#1d4ed8", bg: "#dbeafe" };
+  }
+  if (val >= 5.0) {
+    return { division: "Second Class", badge: "Satisfactory Standing (50% – 59.99%)", color: "#b45309", bg: "#fef3c7" };
+  }
+  if (val >= 4.0) {
+    return { division: "Pass Class", badge: "Minimum Passing Clearance (40% – 49.99%)", color: "#475569", bg: "#f1f5f9" };
+  }
+  return { division: "Below Passing Threshold", badge: "Uncleared Backlog Zone (< 40%)", color: "#b91c1c", bg: "#fee2e2" };
+};
+
 const ALL_RESOURCE_TABS = [
   { id: "all-overview", label: "Overview & Formulas", shortLabel: "Overview", icon: <Calculator size={16} />, desc: "How SGPA & CGPA are officially calculated" },
   { id: "grading-scale", label: "Grading Scale", shortLabel: "Grading Scale", icon: <Star size={16} />, desc: "Grade point scale & cutoff guidelines" },
   { id: "academic-health", label: "Academic Health", shortLabel: "Academic Health", icon: <Activity size={16} />, desc: "Performance index & risk assessment" },
   { id: "badges-tab", label: "Badges & Achievements", shortLabel: "Badges", icon: <Medal size={16} />, desc: "Milestones, badges & scholar awards" },
+  { id: "cgpa-to-percentage", label: "CGPA to % Converter", shortLabel: "Percentage", icon: <Percent size={16} />, desc: "Official CUTM marks percentage converter" },
   { id: "sgpa-calc", label: "SGPA Calculator", shortLabel: "SGPA Calc", icon: <Calculator size={16} />, desc: "Interactive semester GPA simulator" },
   { id: "cgpa-calc", label: "CGPA Calculator", shortLabel: "CGPA Calc", icon: <BarChart2 size={16} />, desc: "Multi-semester cumulative GPA calculator" },
   { id: "target-predictor", label: "Target GPA Predictor", shortLabel: "Goal Predictor", icon: <Target size={16} />, desc: "Forecast future semester target requirements" },
@@ -120,6 +159,7 @@ const ALL_RESOURCE_TABS = [
 const resolveResourceTab = (raw) => {
   if (!raw) return "all-overview";
   const clean = String(raw).replace("#", "").toLowerCase().trim();
+  if (clean === "cgpa-to-percentage" || clean === "percentage" || clean === "percent" || clean === "cgpa-percentage" || clean === "percentage-calc" || clean === "cgpatopercentage") return "cgpa-to-percentage";
   if (clean === "sgpa" || clean === "sgpa-calc" || clean === "calculatesgpa" || clean === "calculate-sgpa") return "sgpa-calc";
   if (clean === "cgpa" || clean === "cgpa-calc" || clean === "calculatecgpa" || clean === "calculate-cgpa") return "cgpa-calc";
   if (clean === "target-predictor" || clean === "predictor" || clean === "gpapredictor" || clean === "gpa-predictor" || clean === "goal") return "target-predictor";
@@ -335,6 +375,45 @@ export default function Resources() {
     setTargetCgpaGoal(Math.min(10, Number(((studentData.cgpa || 8.5) + 0.2).toFixed(2))));
   }, [studentData]);
 
+  // Interactive CGPA to Percentage Converter State
+  const [cgpaConvertInput, setCgpaConvertInput] = useState(() => {
+    if (studentData?.cgpa && typeof studentData.cgpa === "number") {
+      return Number(studentData.cgpa.toFixed(2));
+    }
+    return 8.5;
+  });
+  const [percentageConvertInput, setPercentageConvertInput] = useState(() => {
+    if (studentData?.cgpa && typeof studentData.cgpa === "number") {
+      return Number((studentData.cgpa * 10).toFixed(2));
+    }
+    return 85.0;
+  });
+  const [convertDirection, setConvertDirection] = useState("cgpa-to-pct"); // "cgpa-to-pct" | "pct-to-cgpa"
+
+  const handleCgpaConvertChange = useCallback((val) => {
+    setCgpaConvertInput(val);
+    const num = Number(val);
+    if (!isNaN(num)) {
+      setPercentageConvertInput(Number((Math.min(10, Math.max(0, num)) * 10).toFixed(2)));
+    }
+  }, []);
+
+  const handlePercentageConvertChange = useCallback((val) => {
+    setPercentageConvertInput(val);
+    const num = Number(val);
+    if (!isNaN(num)) {
+      setCgpaConvertInput(Number((Math.min(100, Math.max(0, num)) / 10).toFixed(2)));
+    }
+  }, []);
+
+  const handleAutoFillPercentage = useCallback(() => {
+    if (!studentData || typeof studentData.cgpa !== "number") return;
+    const myCgpa = Number(studentData.cgpa.toFixed(2));
+    setCgpaConvertInput(myCgpa);
+    setPercentageConvertInput(Number((myCgpa * 10).toFixed(2)));
+    setConvertDirection("cgpa-to-pct");
+  }, [studentData]);
+
   const studentTotalCredits = useMemo(() => {
     if (!studentData?.results) return 0;
     return studentData.results.reduce((acc, r) => {
@@ -350,7 +429,7 @@ export default function Resources() {
   const faqs = [
     {
       q: "Is CGPA the same as percentage?",
-      a: "No, CGPA is a weighted grade average on a 10-point scale. For Centurion University, percentage is standardly evaluated as Percentage = (CGPA - 0.5) × 10 or as defined in official grade transcripts.",
+      a: "No, CGPA is a 10-point cumulative grade point average. Under official Centurion University regulations (approved by the Conducting Board on 26 Dec 2012), the conversion is strictly: Marks in Percentage = CGPA × 10. No deduction (such as -0.5) is applied. A CGPA of 6.0 (60%) or higher qualifies as First Class.",
     },
     {
       q: "Are backlogs included in CGPA?",
@@ -540,6 +619,7 @@ export default function Resources() {
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   {[
+                    { id: "cgpa-to-percentage", label: "CGPA to % Converter", icon: <Percent size={16} /> },
                     { id: "sgpa-calc", label: "SGPA Calculator", icon: <Calculator size={16} /> },
                     { id: "cgpa-calc", label: "CGPA Calculator", icon: <BarChart2 size={16} /> },
                     { id: "target-predictor", label: "Target GPA Predictor", icon: <Target size={16} /> },
@@ -936,6 +1016,86 @@ export default function Resources() {
                   <div>
                     <strong style={{ color: "#78350f" }}>Note on Simple Averaging:</strong> You can use <em>CGPA = Σ All SGPAs / Total Semesters</em> only when every semester has the exact same number of total credits. Otherwise the credit-weighted formula must be used.
                   </div>
+                </div>
+
+                {/* ── ROW 2.5: OFFICIAL CGPA TO PERCENTAGE CONVERSION CARD ── */}
+                <div
+                  style={{
+                    background: "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)",
+                    border: "1px solid #bbf7d0",
+                    borderRadius: 14,
+                    padding: isMobile ? "14px 14px" : "18px 22px",
+                    display: "flex",
+                    flexDirection: isMobile ? "column" : "row",
+                    alignItems: isMobile ? "flex-start" : "center",
+                    justifyContent: "space-between",
+                    gap: 14,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                    <div
+                      style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 10,
+                        background: "#15803d",
+                        color: "#ffffff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Percent size={20} />
+                    </div>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                        <span style={{ fontSize: 15, fontWeight: 800, color: "#166534" }}>
+                          Official CUTM CGPA to Percentage Conversion
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: "2px 8px",
+                            borderRadius: 6,
+                            background: "#dcfce7",
+                            color: "#15803d",
+                            border: "1px solid #86efac",
+                          }}
+                        >
+                          Marks (%) = CGPA × 10
+                        </span>
+                      </div>
+                      <p style={{ fontSize: isMobile ? 12 : 12.8, color: "#166534", margin: 0, lineHeight: 1.45 }}>
+                        Approved in Conducting Board Meeting on 26 Dec 2012. Centurion University does <strong>not</strong> deduct 0.5. Percentage of 60% or above (CGPA ≥ 6.0) is deemed <strong>First Class</strong>.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange("cgpa-to-percentage")}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      background: "#15803d",
+                      color: "#ffffff",
+                      border: "none",
+                      padding: "9px 16px",
+                      borderRadius: 10,
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                      boxShadow: "0 2px 8px rgba(21, 128, 61, 0.2)",
+                    }}
+                  >
+                    <span>Open Converter</span>
+                    <ArrowRight size={14} />
+                  </button>
                 </div>
 
                 {/* ── ROW 3: SYMMETRICAL 2-COLUMN GRID (Grading Scale & Academic Health) ── */}
@@ -1748,6 +1908,92 @@ export default function Resources() {
                     </table>
                   </div>
                 )}
+
+                {/* ── Official CUTM CGPA to Percentage Callout Card ── */}
+                <div
+                  style={{
+                    marginTop: 16,
+                    background: "linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%)",
+                    border: "1px solid #c7d2fe",
+                    borderRadius: 14,
+                    padding: isMobile ? "14px 14px" : "18px 22px",
+                    display: "flex",
+                    flexDirection: isMobile ? "column" : "row",
+                    alignItems: isMobile ? "flex-start" : "center",
+                    justifyContent: "space-between",
+                    gap: 14,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div
+                      style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 10,
+                        background: "#eef2ff",
+                        color: "#4f46e5",
+                        border: "1px solid #c7d2fe",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Percent size={18} />
+                    </div>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: isMobile ? 14 : 15, fontWeight: 800, color: "#1e1b4b" }}>
+                          CUTM Equivalent Percentage Formula
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: 800,
+                            padding: "2px 7px",
+                            borderRadius: 5,
+                            background: "#eef2ff",
+                            color: "#4f46e5",
+                            border: "1px solid #c7d2fe",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          CGPA × 10
+                        </span>
+                      </div>
+                      <p style={{ fontSize: isMobile ? 11.5 : 12.5, color: "#475569", margin: "2px 0 0 0", lineHeight: 1.4 }}>
+                        Official Centurion University regulation: <strong>Equivalent Percentage (%) = CGPA × 10</strong>. Zero deduction applied.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange("cgpa-to-percentage")}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "8px 16px",
+                      borderRadius: 9,
+                      background: "#4f46e5",
+                      color: "#ffffff",
+                      border: "none",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                      boxShadow: "0 2px 6px rgba(79, 70, 229, 0.25)",
+                      transition: "all 0.15s ease",
+                      alignSelf: isMobile ? "stretch" : "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <span>Open Converter</span>
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
               </motion.div>
             )}
 
@@ -2075,6 +2321,647 @@ export default function Resources() {
                 </div>
               </motion.div>
             )}
+
+            {/* ────────────────────────────────────────────────────────
+                VIEW: CGPA TO PERCENTAGE CONVERTER
+            ──────────────────────────────────────────────────────── */}
+            {activeTab === "cgpa-to-percentage" && (() => {
+              const effectiveCgpa = Math.max(0, Math.min(10, Number(cgpaConvertInput) || 0));
+              const effectivePercentage = Math.max(0, Math.min(100, Number(percentageConvertInput) || 0));
+              const currentDivision = getCutmDivisionInfo(effectiveCgpa);
+              const computedPercentage = Number((effectiveCgpa * 10).toFixed(2));
+              const computedCgpa = Number((effectivePercentage / 10).toFixed(2));
+
+              return (
+                <motion.div
+                  key="cgpa-to-percentage"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.22, ease: "easeInOut" }}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #f1f5f9",
+                    borderRadius: isMobile ? 16 : 20,
+                    padding: isMobile ? "20px 14px" : "28px 28px",
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+                    display: "flex",
+                    flexDirection: "column",
+                    width: "100%",
+                    boxSizing: "border-box",
+                    margin: 0,
+                    gap: isMobile ? 18 : 24,
+                  }}
+                >
+                  {/* Subtab Header */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: isMobile ? "flex-start" : "center",
+                      flexDirection: isMobile ? "column" : "row",
+                      gap: 12,
+                      paddingBottom: 16,
+                      borderBottom: "1px solid #f1f5f9",
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 8,
+                            background: "#eff6ff",
+                            color: "#2563eb",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Percent size={18} />
+                        </div>
+                        <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.4px" }}>
+                          CGPA to Percentage Converter
+                        </h2>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: "3px 8px",
+                            borderRadius: 6,
+                            background: "#dcfce7",
+                            color: "#15803d",
+                            border: "1px solid #86efac",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <CheckCircle2 size={11} /> CUTM Official Regulation
+                        </span>
+                      </div>
+                      <p style={{ fontSize: isMobile ? 12.5 : 13.5, color: "#64748b", margin: 0 }}>
+                        Official Centurion University conversion formula: <strong>Marks in Percentage = CGPA × 10</strong> (Conducting Board, 26 Dec 2012).
+                      </p>
+                    </div>
+
+                    {studentData && typeof studentData.cgpa === "number" && (
+                      <button
+                        type="button"
+                        onClick={handleAutoFillPercentage}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "8px 14px",
+                          borderRadius: 10,
+                          background: "#eff6ff",
+                          color: "#2563eb",
+                          border: "1px solid #bfdbfe",
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          whiteSpace: "nowrap",
+                          alignSelf: isMobile ? "flex-start" : "auto",
+                        }}
+                      >
+                        <Zap size={14} /> Auto-Fill My CGPA ({Number(studentData.cgpa.toFixed(2))})
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Mode Selector Toggle */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      Conversion Mode:
+                    </span>
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        background: "#f1f5f9",
+                        padding: 3,
+                        borderRadius: 10,
+                        gap: 4,
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setConvertDirection("cgpa-to-pct")}
+                        style={{
+                          border: "none",
+                          padding: "6px 14px",
+                          borderRadius: 8,
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                          background: convertDirection === "cgpa-to-pct" ? "#ffffff" : "transparent",
+                          color: convertDirection === "cgpa-to-pct" ? "#2563eb" : "#64748b",
+                          boxShadow: convertDirection === "cgpa-to-pct" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+                        }}
+                      >
+                        CGPA → Percentage
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConvertDirection("pct-to-cgpa")}
+                        style={{
+                          border: "none",
+                          padding: "6px 14px",
+                          borderRadius: 8,
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                          background: convertDirection === "pct-to-cgpa" ? "#ffffff" : "transparent",
+                          color: convertDirection === "pct-to-cgpa" ? "#2563eb" : "#64748b",
+                          boxShadow: convertDirection === "pct-to-cgpa" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+                        }}
+                      >
+                        Percentage → CGPA
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Primary Interactive Converter Card */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: isMobile ? "1fr" : "1.1fr 0.9fr",
+                      gap: isMobile ? 16 : 24,
+                      alignItems: "stretch",
+                    }}
+                  >
+                    {/* Left Column: Input Controller */}
+                    <div
+                      style={{
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 16,
+                        padding: isMobile ? "16px 14px" : "22px 20px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 16,
+                      }}
+                    >
+                      {convertDirection === "cgpa-to-pct" ? (
+                        <>
+                          <div>
+                            <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 6 }}>
+                              Enter Cumulative Grade Point Average (CGPA)
+                            </label>
+                            <div style={{ position: "relative" }}>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                max="10"
+                                value={cgpaConvertInput}
+                                onChange={(e) => handleCgpaConvertChange(e.target.value)}
+                                placeholder="e.g. 8.5"
+                                style={{
+                                  width: "100%",
+                                  padding: "12px 14px",
+                                  borderRadius: 10,
+                                  border: "1.5px solid #cbd5e1",
+                                  fontSize: 18,
+                                  fontWeight: 800,
+                                  color: "#0f172a",
+                                  background: "#ffffff",
+                                  outline: "none",
+                                  boxSizing: "border-box",
+                                }}
+                              />
+                              <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", fontSize: 13, fontWeight: 700, color: "#94a3b8" }}>
+                                / 10.00
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Range Slider */}
+                          <div>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "#64748b", marginBottom: 4 }}>
+                              <span>0.00 (Min)</span>
+                              <span style={{ fontWeight: 700, color: "#2563eb" }}>Active: {effectiveCgpa.toFixed(2)}</span>
+                              <span>10.00 (Max)</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="10"
+                              step="0.05"
+                              value={effectiveCgpa}
+                              onChange={(e) => handleCgpaConvertChange(e.target.value)}
+                              style={{ width: "100%", accentColor: "#2563eb", cursor: "pointer" }}
+                            />
+                          </div>
+
+                          {/* Quick Chips */}
+                          <div>
+                            <span style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                              Quick Select Presets:
+                            </span>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                              {[
+                                { val: 6.0, label: "6.0 (First Class Cutoff)" },
+                                { val: 7.0, label: "7.0" },
+                                { val: 7.5, label: "7.5" },
+                                { val: 8.0, label: "8.0 (Distinction)" },
+                                { val: 8.5, label: "8.5" },
+                                { val: 9.0, label: "9.0" },
+                                { val: 9.5, label: "9.5" },
+                                { val: 10.0, label: "10.0" },
+                              ].map((chip) => {
+                                const isSelected = Math.abs(effectiveCgpa - chip.val) < 0.01;
+                                return (
+                                  <button
+                                    key={chip.val}
+                                    type="button"
+                                    onClick={() => handleCgpaConvertChange(chip.val)}
+                                    style={{
+                                      border: isSelected ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
+                                      background: isSelected ? "#eff6ff" : "#ffffff",
+                                      color: isSelected ? "#2563eb" : "#334155",
+                                      padding: "5px 10px",
+                                      borderRadius: 8,
+                                      fontSize: 11.5,
+                                      fontWeight: isSelected ? 700 : 500,
+                                      cursor: "pointer",
+                                      transition: "all 0.15s ease",
+                                    }}
+                                  >
+                                    {chip.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 6 }}>
+                              Enter Marks Percentage (%)
+                            </label>
+                            <div style={{ position: "relative" }}>
+                              <input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="100"
+                                value={percentageConvertInput}
+                                onChange={(e) => handlePercentageConvertChange(e.target.value)}
+                                placeholder="e.g. 85.0"
+                                style={{
+                                  width: "100%",
+                                  padding: "12px 14px",
+                                  borderRadius: 10,
+                                  border: "1.5px solid #cbd5e1",
+                                  fontSize: 18,
+                                  fontWeight: 800,
+                                  color: "#0f172a",
+                                  background: "#ffffff",
+                                  outline: "none",
+                                  boxSizing: "border-box",
+                                }}
+                              />
+                              <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", fontSize: 13, fontWeight: 700, color: "#94a3b8" }}>
+                                %
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Range Slider */}
+                          <div>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "#64748b", marginBottom: 4 }}>
+                              <span>0% (Min)</span>
+                              <span style={{ fontWeight: 700, color: "#2563eb" }}>Active: {effectivePercentage.toFixed(1)}%</span>
+                              <span>100% (Max)</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              step="0.5"
+                              value={effectivePercentage}
+                              onChange={(e) => handlePercentageConvertChange(e.target.value)}
+                              style={{ width: "100%", accentColor: "#2563eb", cursor: "pointer" }}
+                            />
+                          </div>
+
+                          {/* Quick Chips for Percentage */}
+                          <div>
+                            <span style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                              Quick Select Presets:
+                            </span>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                              {[
+                                { val: 60, label: "60% (First Class Cutoff)" },
+                                { val: 65, label: "65%" },
+                                { val: 70, label: "70%" },
+                                { val: 75, label: "75%" },
+                                { val: 80, label: "80% (Distinction)" },
+                                { val: 85, label: "85%" },
+                                { val: 90, label: "90%" },
+                                { val: 95, label: "95%" },
+                                { val: 100, label: "100%" },
+                              ].map((chip) => {
+                                const isSelected = Math.abs(effectivePercentage - chip.val) < 0.1;
+                                return (
+                                  <button
+                                    key={chip.val}
+                                    type="button"
+                                    onClick={() => handlePercentageConvertChange(chip.val)}
+                                    style={{
+                                      border: isSelected ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
+                                      background: isSelected ? "#eff6ff" : "#ffffff",
+                                      color: isSelected ? "#2563eb" : "#334155",
+                                      padding: "5px 10px",
+                                      borderRadius: 8,
+                                      fontSize: 11.5,
+                                      fontWeight: isSelected ? 700 : 500,
+                                      cursor: "pointer",
+                                      transition: "all 0.15s ease",
+                                    }}
+                                  >
+                                    {chip.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Right Column: Output Card */}
+                    <div
+                      style={{
+                        background: "linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)",
+                        border: "1.5px solid #bfdbfe",
+                        borderRadius: 16,
+                        padding: isMobile ? "18px 16px" : "24px 22px",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "space-between",
+                        gap: 16,
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                          <span style={{ fontSize: 11.5, fontWeight: 800, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.8px" }}>
+                            {convertDirection === "cgpa-to-pct" ? "Calculated Percentage" : "Calculated CGPA"}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: "2px 8px",
+                              borderRadius: 6,
+                              background: currentDivision.bg,
+                              color: currentDivision.color,
+                            }}
+                          >
+                            {currentDivision.badge}
+                          </span>
+                        </div>
+
+                        {/* Huge Result Typography */}
+                        <div style={{ fontSize: isMobile ? 36 : 44, fontWeight: 900, color: "#0f172a", letterSpacing: "-1px", lineHeight: 1.1 }}>
+                          {convertDirection === "cgpa-to-pct" ? (
+                            <>
+                              {computedPercentage.toFixed(2)}
+                              <span style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: "#2563eb", marginLeft: 4 }}>%</span>
+                            </>
+                          ) : (
+                            <>
+                              {computedCgpa.toFixed(2)}
+                              <span style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, color: "#64748b", marginLeft: 6 }}>/ 10.0</span>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Division Standing Banner */}
+                        <div
+                          style={{
+                            marginTop: 12,
+                            padding: "8px 12px",
+                            borderRadius: 10,
+                            background: currentDivision.bg,
+                            border: `1px solid ${currentDivision.color}30`,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
+                          <Award size={16} color={currentDivision.color} />
+                          <div>
+                            <span style={{ fontSize: 12, fontWeight: 800, color: currentDivision.color }}>
+                              Official Award Standing: {currentDivision.division}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Step-by-Step Formula Demonstration Box */}
+                      <div
+                        style={{
+                          background: "#ffffff",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 12,
+                          padding: "12px 14px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 6,
+                        }}
+                      >
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                          Formula Breakdown:
+                        </span>
+                        <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+                          {convertDirection === "cgpa-to-pct" ? (
+                            <>
+                              Percentage = CGPA × 10
+                              <div style={{ fontSize: 12, color: "#2563eb", marginTop: 2 }}>
+                                {effectiveCgpa.toFixed(2)} × 10 = {computedPercentage.toFixed(2)}%
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              CGPA = Percentage / 10
+                              <div style={{ fontSize: 12, color: "#2563eb", marginTop: 2 }}>
+                                {effectivePercentage.toFixed(2)} ÷ 10 = {computedCgpa.toFixed(2)}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: "#166534", display: "flex", alignItems: "center", gap: 4, marginTop: 2 }}>
+                          <CheckCircle2 size={12} />
+                          <span>Direct multiplier — Zero deduction applied (-0.5 is not used by CUTM)</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Official Regulation Reference & Clarification Grid */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+                      gap: isMobile ? 12 : 16,
+                    }}
+                  >
+                    {/* Official Circular Card */}
+                    <div
+                      style={{
+                        background: "#f0fdf4",
+                        border: "1px solid #bbf7d0",
+                        borderRadius: 14,
+                        padding: "16px 18px",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "space-between",
+                        gap: 12,
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                          <FileText size={18} color="#15803d" />
+                          <h4 style={{ fontSize: 14, fontWeight: 800, color: "#166534", margin: 0 }}>
+                            Official University Notification
+                          </h4>
+                        </div>
+                        <p style={{ fontSize: 12.5, color: "#166534", margin: 0, lineHeight: 1.5 }}>
+                          Published by the <strong>Director (Examination &amp; Quality Assurance)</strong>, Centurion University of Technology and Management, Odisha.
+                          Approved in the statutory <strong>Conducting Board Meeting</strong> held on <strong>26th December 2012</strong>.
+                        </p>
+                      </div>
+
+                      <a
+                        href="https://cutm.ac.in/wp-content/uploads/2024/11/System-of-Grading.pdf"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          alignSelf: "flex-start",
+                          background: "#15803d",
+                          color: "#ffffff",
+                          textDecoration: "none",
+                          padding: "8px 14px",
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          boxShadow: "0 2px 6px rgba(21, 128, 61, 0.2)",
+                        }}
+                      >
+                        <span>View Official Circular PDF</span>
+                        <ExternalLink size={13} />
+                      </a>
+                    </div>
+
+                    {/* Clarification Alert: Why No Deduction */}
+                    <div
+                      style={{
+                        background: "#fffbeb",
+                        border: "1px solid #fde68a",
+                        borderRadius: 14,
+                        padding: "16px 18px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Info size={18} color="#d97706" />
+                        <h4 style={{ fontSize: 14, fontWeight: 800, color: "#78350f", margin: 0 }}>
+                          Why CUTM Does Not Deduct 0.5 or 0.75
+                        </h4>
+                      </div>
+                      <p style={{ fontSize: 12.5, color: "#92400e", margin: 0, lineHeight: 1.5 }}>
+                        While some legacy universities or boards (like CBSE or old state technical boards) evaluate percentage as <em>(CGPA − 0.5) × 10</em> or <em>(CGPA − 0.75) × 10</em>, Centurion University’s statutory regulations strictly evaluate percentage as <strong>CGPA × 10</strong>.
+                      </p>
+                      <div style={{ fontSize: 11.5, fontWeight: 700, color: "#78350f", background: "#fef3c7", padding: "6px 10px", borderRadius: 6, border: "1px solid #fde68a" }}>
+                        Benchmark: A CGPA of 6.00 (60.00%) or above is officially deemed as First Class.
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Comprehensive Conversion Scale Table */}
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+                      <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                        Centurion University CGPA to Percentage Reference Scale
+                      </h3>
+                      <span style={{ fontSize: 12, color: "#64748b" }}>
+                        Highlighted row indicates active selection bracket
+                      </span>
+                    </div>
+
+                    <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 12 }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
+                        <thead>
+                          <tr style={{ background: "#f8fafc", borderBottom: "1.5px solid #e2e8f0" }}>
+                            <th style={{ padding: "10px 14px", fontWeight: 800, color: "#475569" }}>CGPA</th>
+                            <th style={{ padding: "10px 14px", fontWeight: 800, color: "#475569" }}>Marks in % (CGPA × 10)</th>
+                            <th style={{ padding: "10px 14px", fontWeight: 800, color: "#475569" }}>Official Division</th>
+                            <th style={{ padding: "10px 14px", fontWeight: 800, color: "#475569" }}>Typical Grade Tier</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {CGPA_PERCENTAGE_SCALE.map((row) => {
+                            const isRowActive = Math.abs(effectiveCgpa - row.cgpa) < 0.26;
+                            return (
+                              <tr
+                                key={row.cgpa}
+                                style={{
+                                  background: isRowActive ? "#eff6ff" : "transparent",
+                                  borderBottom: "1px solid #f1f5f9",
+                                  transition: "background 0.15s ease",
+                                }}
+                              >
+                                <td style={{ padding: "10px 14px", fontWeight: isRowActive ? 800 : 700, color: isRowActive ? "#2563eb" : "#0f172a" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                    <span>{row.cgpa.toFixed(1)}</span>
+                                    {isRowActive && (
+                                      <span style={{ fontSize: 10, fontWeight: 800, color: "#2563eb", background: "#dbeafe", padding: "1px 6px", borderRadius: 4 }}>
+                                        Current
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td style={{ padding: "10px 14px", fontWeight: isRowActive ? 800 : 600, color: isRowActive ? "#2563eb" : "#334155", fontFamily: "'Space Mono', monospace" }}>
+                                  {row.pct}
+                                </td>
+                                <td style={{ padding: "10px 14px" }}>
+                                  <span
+                                    style={{
+                                      fontSize: 11.5,
+                                      fontWeight: 700,
+                                      padding: "3px 8px",
+                                      borderRadius: 6,
+                                      background: row.bg,
+                                      color: row.color,
+                                    }}
+                                  >
+                                    {row.division}
+                                  </span>
+                                </td>
+                                <td style={{ padding: "10px 14px", color: "#64748b", fontSize: 12.5 }}>
+                                  {row.grade}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })()}
 
             {/* ────────────────────────────────────────────────────────
                 VIEW: TARGET GPA PREDICTOR

@@ -1725,7 +1725,7 @@ export default function Dashboard() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(200px, 1fr))",
+                  gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(160px, 1fr))",
                   gap: isMobile ? 8 : 14,
                   width: "100%",
                 }}
@@ -1918,6 +1918,104 @@ export default function Dashboard() {
                   </div>
                 </motion.div>
 
+                {/* 3. Equivalent Percentage (CUTM CGPA * 10) */}
+                <motion.div
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigate("/resources?tab=cgpa-to-percentage")}
+                  title="Official Centurion University Equivalent Percentage (CGPA × 10). Click to view in Resources."
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 14,
+                    padding: isMobile ? "11px 11px 13px 11px" : "16px 18px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    minHeight: isMobile ? 116 : 136,
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
+                    position: "relative",
+                    overflow: "hidden",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4, minHeight: 20 }}>
+                    <span
+                      title="Equivalent Percentage"
+                      style={{
+                        fontSize: isMobile ? 10 : 11.5,
+                        fontWeight: 700,
+                        color: "#475569",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.4px",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {isMobile ? "Equiv. %" : "Equivalent %"}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 9.5,
+                        background: "#eef2ff",
+                        color: "#4f46e5",
+                        border: "1px solid #c7d2fe",
+                        padding: "1.5px 6px",
+                        borderRadius: 5,
+                        fontWeight: 750,
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                        letterSpacing: "0.2px",
+                      }}
+                    >
+                      CUTM ×10
+                    </span>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginTop: 4, marginBottom: 2 }}>
+                    <span
+                      style={{
+                        fontSize: isMobile ? 22 : 30,
+                        fontWeight: 800,
+                        color: "#4f46e5",
+                        fontFamily: "'Space Mono', monospace",
+                        lineHeight: 1,
+                      }}
+                    >
+                      {cgpa ? (cgpa * 10).toFixed(1) : "—"}
+                    </span>
+                    {cgpa ? (
+                      <span style={{ fontSize: isMobile ? 12 : 14, color: "#6366f1", fontWeight: 700, fontFamily: "'Space Mono', monospace" }}>
+                        %
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <span
+                    style={{
+                      fontSize: isMobile ? 10 : 11,
+                      color: "#64748b",
+                      fontWeight: 500,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {isMobile ? "Formula: CGPA × 10" : "Official CUTM scale (CGPA × 10)"}
+                  </span>
+
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "#f1f5f9" }}>
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, Math.max(0, (cgpa || 0) * 10))}%` }}
+                      transition={{ duration: 0.9, ease: "easeOut" }}
+                      style={{ height: "100%", background: "#4f46e5" }}
+                    />
+                  </div>
+                </motion.div>
+
                 {/* 3. Credits Cleared */}
                 <motion.div
                   whileHover={{ y: -2 }}
@@ -2015,13 +2113,14 @@ export default function Dashboard() {
                   </div>
                 </motion.div>
 
-                {/* 4. Overall Attendance (For CSE) OR Academic Health (For Non-CSE) */}
+                {/* 5. Overall Attendance (For CSE) OR Academic Health (For Non-CSE) */}
                 {isCSE ? (
                   <motion.div
                     whileHover={{ y: -2 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => navigate(`/attendance/${encodeStudentId(regNo)}`)}
                     style={{
+                      gridColumn: isMobile ? "span 2" : "auto",
                       background: "#ffffff",
                       border: "1px solid #e2e8f0",
                       borderRadius: 14,
@@ -2185,6 +2284,7 @@ export default function Dashboard() {
                     whileTap={{ scale: 0.98 }}
                     onClick={() => navigate(`/analytics/${encodeStudentId(regNo)}`)}
                     style={{
+                      gridColumn: isMobile ? "span 2" : "auto",
                       background: "#ffffff",
                       border: "1px solid #e2e8f0",
                       borderRadius: 14,

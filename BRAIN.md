@@ -110,10 +110,11 @@
 81. [Academic Health Index & Multi-Factor Scoring Engine](#81-academic-health-index--multi-factor-scoring-engine)
 82. [Target GPA Predictor & Goal Forecasting Engine](#82-target-gpa-predictor--goal-forecasting-engine)
 83. [Zero-Request AppContext Synchronization Engine](#83-zero-request-appcontext-synchronization-engine)
-84. [Complete Subtabs Catalog & Functional Specification](#84-complete-subtabs-catalog--functional-specification)
-85. [Dual Responsive Navigation Architecture (Desktop Sidebar vs Mobile SubNav)](#85-dual-responsive-navigation-architecture-desktop-sidebar-vs-mobile-subnav)
-86. [Vercel Free-Tier Resource Safeguards & Performance Invariants](#86-vercel-free-tier-resource-safeguards--performance-invariants)
-87. [Resources Developer Maintenance & Extension Guidelines](#87-resources-developer-maintenance--extension-guidelines)
+84. [Official CUTM CGPA to Percentage Conversion Standard & Interactive Engine](#84-official-cutm-cgpa-to-percentage-conversion-standard--interactive-engine)
+85. [Complete Subtabs Catalog & Functional Specification](#85-complete-subtabs-catalog--functional-specification)
+86. [Dual Responsive Navigation Architecture (Desktop Sidebar vs Mobile SubNav)](#86-dual-responsive-navigation-architecture-desktop-sidebar-vs-mobile-subnav)
+87. [Vercel Free-Tier Resource Safeguards & Performance Invariants](#87-vercel-free-tier-resource-safeguards--performance-invariants)
+88. [Resources Developer Maintenance & Extension Guidelines](#88-resources-developer-maintenance--extension-guidelines)
 
 ### Part VIII: Student Testimonials & Reviews Engine, Multi-Tier Caching, Verification Guarantee & Zero-Burden Vercel Architecture
 88. [Testimonials Architecture, Philosophy & Student Verification Guarantee](#88-testimonials-architecture-philosophy--student-verification-guarantee)
@@ -3401,34 +3402,82 @@ The Resources module includes 1-click hydration bridges that connect directly to
    Populates `healthCgpa`, `healthSgpa`, and `healthBacklogs` directly from the authenticated record.
 4. **`handleAutoFillPredictor`**:
    Calculates total cleared credits across all completed semesters and sets an aspirational target ($+0.20$ CGPA).
+5. **`handleAutoFillPercentage`**:
+   Extracts active student's CGPA and calculates official marks percentage synchronously in-memory.
 
-*Zero-Request Invariant:* All 4 handlers operate purely on in-memory references. They issue zero HTTP requests to `/api/student/*` and execute zero database operations.
-
----
-
-## 84. Complete Subtabs Catalog & Functional Specification
-
-The Resources module contains 9 dedicated academic views:
-
-```
-+----+-------------------+---------------------------+--------------------------------------------------------+
-| #  | Tab Identifier    | Display Title             | Functional Responsibility                              |
-+----+-------------------+---------------------------+--------------------------------------------------------+
-| 1  | all-overview      | Overview & Formulas       | Comprehensive CUTM grading regulations & formulas.     |
-| 2  | grading-scale     | Grading Scale             | Real-time search & filterable 10-point grade matrix.   |
-| 3  | academic-health   | Academic Health           | Multi-variable institutional health score simulator.  |
-| 4  | badges-tab        | Badges & Achievements     | 6-tier academic milestone & scholar criteria badges.   |
-| 5  | sgpa-calc         | SGPA Calculator           | Interactive semester GPA builder with 1-click import.  |
-| 6  | cgpa-calc         | CGPA Calculator           | Multi-semester cumulative GPA simulator.               |
-| 7  | target-predictor  | Target GPA Predictor      | Goal forecasting engine with feasibility warnings.     |
-| 8  | academic-report   | Academic Report           | Student profile card with direct route to Dashboard.   |
-| 9  | help-faq          | Help & FAQ                | Interactive accordion answering core student questions.|
-+----+-------------------+---------------------------+--------------------------------------------------------+
-```
+*Zero-Request Invariant:* All 5 handlers operate purely on in-memory references. They issue zero HTTP requests to `/api/student/*` and execute zero database operations.
 
 ---
 
-## 85. Dual Responsive Navigation Architecture (Desktop Sidebar vs Mobile SubNav)
+## 84. Official CUTM CGPA to Percentage Conversion Standard & Interactive Engine
+
+### 1. Regulatory Foundation & Institutional Authority
+Centurion University of Technology and Management (CUTM), Odisha, formally standardized its CGPA-to-percentage conversion system through statutory resolution:
+- **Issuing Authority:** Director (Examination & Quality Assurance), Centurion University of Technology and Management, Odisha.
+- **Governing Body Approval:** Resolution ratified in the **Conducting Board Meeting** convened on **26th December 2012**.
+- **Official Regulation Document:** Published and verified at [System-of-Grading.pdf](https://cutm.ac.in/wp-content/uploads/2024/11/System-of-Grading.pdf).
+
+### 2. Approved Conversion Formula
+Under the CUTM Conducting Board statute, the conversion of Cumulative Grade Point Average (CGPA) on a 10-point scale into equivalent marks percentage is strictly defined as:
+
+$$\text{Marks in Percentage} = \text{CGPA} \times 10$$
+
+Conversely, converting marks percentage back into CGPA is defined as:
+
+$$\text{CGPA} = \frac{\text{Marks in Percentage}}{10}$$
+
+### 3. Official Division Classification Benchmarks
+The CUTM Conducting Board established official degree classifications tied to percentage and CGPA standing:
+
+| Minimum CGPA | Equivalent Percentage | Academic Standing / Division Awarded | University Benchmark Status |
+| :--- | :--- | :--- | :--- |
+| $\ge 8.00$ | $\ge 80.00\%$ | **First Class with Distinction** | Honours & High Academic Distinction |
+| $\ge 6.00$ | $\ge 60.00\%$ | **First Class** | **Official CUTM First Class Award Benchmark** |
+| $5.00 - 5.99$ | $50.00\% - 59.99\%$ | **Second Class** | Satisfactory Academic Performance |
+| $4.00 - 4.99$ | $40.00\% - 49.99\%$ | **Pass Class** | Minimum Prescribed Clearance Threshold |
+| $< 4.00$ | $< 40.00\%$ | **Below Passing Threshold** | Uncleared Academic Clearance Zone |
+
+### 4. Critical Institutional Invariant: Strict Zero-Deduction Standard
+A frequent point of student confusion arises from legacy conversion formulas adopted by other educational bodies:
+- Many central and state boards (e.g. CBSE secondary education or legacy state technical universities) apply deduction offsets such as:
+  $$\text{Legacy Formula (NOT CUTM): } \text{Percentage} = (\text{CGPA} - 0.5) \times 10 \quad \text{or} \quad (\text{CGPA} - 0.75) \times 10$$
+- **Centurion University explicitly does NOT deduct 0.5 or 0.75.**
+- GradeFlow strictly enforces the approved CUTM Conducting Board statute ($\text{CGPA} \times 10$). All academic transcripts, migration dossiers, employer placement verifications, GATE/CAT applications, and foreign credential evaluation requests must strictly use $\text{CGPA} \times 10$.
+
+### 5. Interactive Conversion Engine Architecture
+The dedicated subtab (`cgpa-to-percentage`) features:
+1. **Bidirectional Mode Toggle:** Instant 1-tap switching between `CGPA → Percentage` and `Percentage → CGPA`.
+2. **Synchronized Dual Controls:** High-precision numeric inputs accompanied by real-time range sliders with smooth live scrubbing.
+3. **Preset Quick Chips:** Rapid 1-click selection of common threshold values ($6.0$ First Class cutoff, $8.0$ Distinction, $8.5$, $9.0$, etc.).
+4. **Dynamic Reference Scale Highlighting:** The 13-tier reference scale table dynamically detects and highlights the user's active grade bracket with a soft blue badge.
+5. **Zero-Network Invariant:** 100% synchronous mathematical execution inside client memory with zero server round-trips.
+
+---
+
+## 85. Complete Subtabs Catalog & Functional Specification
+
+The Resources module contains 10 dedicated academic views:
+
+```
++----+--------------------+---------------------------+--------------------------------------------------------+
+| #  | Tab Identifier     | Display Title             | Functional Responsibility                              |
++----+--------------------+---------------------------+--------------------------------------------------------+
+| 1  | all-overview       | Overview & Formulas       | Comprehensive CUTM grading regulations & formulas.     |
+| 2  | grading-scale      | Grading Scale             | Real-time search & filterable 10-point grade matrix.   |
+| 3  | academic-health    | Academic Health           | Multi-variable institutional health score simulator.  |
+| 4  | badges-tab         | Badges & Achievements     | 6-tier academic milestone & scholar criteria badges.   |
+| 5  | cgpa-to-percentage | CGPA to % Converter       | Official CUTM marks percentage bidirectional converter.|
+| 6  | sgpa-calc          | SGPA Calculator           | Interactive semester GPA builder with 1-click import.  |
+| 7  | cgpa-calc          | CGPA Calculator           | Multi-semester cumulative GPA simulator.               |
+| 8  | target-predictor   | Target GPA Predictor      | Goal forecasting engine with feasibility warnings.     |
+| 9  | academic-report    | Academic Report           | Student profile card with direct route to Dashboard.   |
+| 10 | help-faq           | Help & FAQ                | Interactive accordion answering core student questions.|
++----+--------------------+---------------------------+--------------------------------------------------------+
+```
+
+---
+
+## 86. Dual Responsive Navigation Architecture (Desktop Sidebar vs Mobile SubNav)
 
 ### 1. Desktop Sticky Navigation (`>= 1100px`)
 - Fixed sticky sidebar (`position: sticky; top: 20px;`).
@@ -3446,7 +3495,7 @@ The Resources module contains 9 dedicated academic views:
 
 ---
 
-## 86. Vercel Free-Tier Resource Safeguards & Performance Invariants
+## 87. Vercel Free-Tier Resource Safeguards & Performance Invariants
 
 GradeFlow's Resources engine is engineered to stay well within all Vercel Free-Tier resource allowances:
 
@@ -3473,7 +3522,7 @@ GradeFlow's Resources engine is engineered to stay well within all Vercel Free-T
 
 ---
 
-## 87. Resources Developer Maintenance & Extension Guidelines
+## 88. Resources Developer Maintenance & Extension Guidelines
 
 Any engineer, auditor, or AI assistant modifying the Resources subsystem MUST follow these rules:
 
