@@ -26,6 +26,69 @@ import {
   Radio,
 } from "lucide-react";
 
+function getSectionFromRegNo(regNo) {
+  if (!regNo) return "A";
+  const str = String(regNo).trim();
+  const num = parseInt(str.slice(-3), 10);
+  if (!isNaN(num)) {
+    if (num >= 1 && num <= 65) return "A";
+    if (num >= 66 && num <= 125) return "B";
+    if (num >= 126 && num <= 180) return "C";
+    if (num >= 181 && num <= 240) return "D";
+    if (num >= 241 && num <= 300) return "E";
+    if (num >= 301 && num <= 360) return "F";
+    if (num >= 361 && num <= 420) return "G";
+    if (num >= 421 && num <= 480) return "H";
+    if (num >= 481 && num <= 549) return "I";
+  }
+  return "A";
+}
+
+function getDynamicBranch(regNo, fallbackBranch) {
+  if (!regNo) return fallbackBranch || "CSE";
+  const r = String(regNo).trim();
+  if (r === "230301180026") return "CSE";
+  if (["230301120110", "230301120186", "230301120371", "230301120481"].includes(r)) return "ECE";
+  if (r === "230301231033") return "AERO";
+
+  const suffix = r.length >= 9 ? r.slice(2) : r;
+  if (suffix.startsWith("0301110") || suffix.startsWith("0301111")) return "CIVIL";
+  if (suffix.startsWith("0301120") || suffix.startsWith("0301121")) return "CSE";
+  if (suffix.startsWith("0301130") || suffix.startsWith("0301131") || suffix.startsWith("0301132")) return "ECE";
+  if (suffix.startsWith("0301150") || suffix.startsWith("0301151")) return "EEE";
+  if (suffix.startsWith("0301160") || suffix.startsWith("0301161")) return "ME";
+  if (suffix.startsWith("0301180")) return "BIO";
+  if (suffix.startsWith("0301190") || suffix.startsWith("0301191")) return "MI";
+  if (suffix.startsWith("0301230")) return "AERO";
+
+  if (r.startsWith("230301110") || r.startsWith("230301111")) return "CIVIL";
+  if (r.startsWith("230301120") || r.startsWith("230301121")) return "CSE";
+  if (r.startsWith("230301130") || r.startsWith("230301131") || r.startsWith("230301132")) return "ECE";
+  if (r.startsWith("230301150") || r.startsWith("230301151")) return "EEE";
+  if (r.startsWith("230301160") || r.startsWith("230301161")) return "ME";
+  if (r.startsWith("230301180")) return "BIO";
+  if (r.startsWith("230301190") || r.startsWith("230301191")) return "MI";
+  if (r.startsWith("230301230")) return "AERO";
+  return fallbackBranch || "CSE";
+}
+
+function resolveStudentMeta(acc) {
+  if (!acc) return { branch: "CSE", section: "A", batch: "2023" };
+  const branch = (acc.branch && acc.branch !== "N/A") ? acc.branch : getDynamicBranch(acc.regNo);
+  const section = (acc.section && acc.section !== "N/A")
+    ? String(acc.section).replace(/^Sec\s*/i, "").trim().toUpperCase()
+    : getSectionFromRegNo(acc.regNo);
+  let batch = (acc.batch && acc.batch !== "N/A") ? String(acc.batch).trim() : "";
+  if (!batch && acc.regNo && /^\d{2}/.test(String(acc.regNo).trim())) {
+    batch = `20${String(acc.regNo).trim().slice(0, 2)}`;
+  }
+  return {
+    branch: branch || "CSE",
+    section: section || "A",
+    batch: batch || "2023",
+  };
+}
+
 export default function StudentAccessControl({ API, authHeaders, isMobile }) {
   const isMob = typeof isMobile === "boolean" ? isMobile : window.innerWidth < 768;
 
@@ -271,29 +334,48 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
     });
   }, [blockedList, filterType, searchTable]);
 
+  // Available batches derived from student accounts + defaults
+  const availableBatches = useMemo(() => {
+    const set = new Set(["2023", "2024", "2022"]);
+    allAccounts.forEach((acc) => {
+      const meta = resolveStudentMeta(acc);
+      if (meta.batch && meta.batch !== "N/A") set.add(meta.batch);
+    });
+    return Array.from(set).sort();
+  }, [allAccounts]);
+
+  // Available branches derived from student accounts + standard university branches
+  const availableBranches = useMemo(() => {
+    const set = new Set(["CSE", "CSIT", "CST", "ECE", "EEE", "ME", "CIVIL", "AERO"]);
+    allAccounts.forEach((acc) => {
+      const meta = resolveStudentMeta(acc);
+      if (meta.branch) set.add(meta.branch.toUpperCase());
+    });
+    return Array.from(set).sort();
+  }, [allAccounts]);
+
+  // Available sections derived from student accounts + standard sections
+  const availableSections = useMemo(() => {
+    const set = new Set(["A", "B", "C", "D", "E", "F", "G", "H", "I"]);
+    allAccounts.forEach((acc) => {
+      const meta = resolveStudentMeta(acc);
+      if (meta.section) set.add(meta.section.toUpperCase());
+    });
+    return Array.from(set).sort();
+  }, [allAccounts]);
+
   // Quick picker filtered students
   const filteredPickerAccounts = useMemo(() => {
     return allAccounts.filter((acc) => {
-      const reg = acc.regNo || "";
-      let batch = acc.batch;
-      if (!batch || batch === "N/A") {
-        const prefix = reg.slice(0, 2);
-        batch = /^\d{2}$/.test(prefix) ? `20${prefix}` : "2023";
+      const meta = resolveStudentMeta(acc);
+      if (selectedBatch !== "all") {
+        const normBatch = String(selectedBatch).trim();
+        const accBatch = String(meta.batch || "").trim();
+        const matchBatch = accBatch.includes(normBatch) || (acc.regNo && acc.regNo.startsWith(normBatch.slice(-2)));
+        if (!matchBatch) return false;
       }
-      let branch = acc.branch;
-      if (!branch) {
-        const code = reg.slice(6, 8);
-        branch = code === "01" ? "CSE" : code === "02" ? "CSIT" : code === "03" ? "CST" : "CSE";
-      }
-      let section = acc.section;
-      if (!section) {
-        const rollNum = parseInt(reg.slice(-3), 10);
-        section = !isNaN(rollNum) && rollNum > 65 ? "B" : "A";
-      }
-
-      if (selectedBatch !== "all" && String(batch) !== selectedBatch) return false;
-      if (selectedBranch !== "all" && branch !== selectedBranch) return false;
-      if (selectedSection !== "all" && section !== selectedSection) return false;
+      if (selectedBranch !== "all" && meta.branch.toUpperCase() !== selectedBranch.toUpperCase()) return false;
+      if (selectedSection !== "all" && meta.section.toUpperCase() !== selectedSection.toUpperCase()) return false;
       return true;
     });
   }, [allAccounts, selectedBatch, selectedBranch, selectedSection]);
@@ -781,102 +863,187 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
           </button>
         </form>
 
-        {/* Quick Student Selector Tool */}
+        {/* Quick Student Selector Tool with Dedicated Dropdowns */}
         <div
           style={{
             marginTop: 14,
-            padding: "12px 14px",
+            padding: "14px 16px",
             background: "#f8fafc",
-            borderRadius: 12,
+            borderRadius: 14,
             border: "1px solid #e2e8f0",
             display: "flex",
-            alignItems: "center",
-            gap: 10,
-            flexWrap: "wrap",
+            flexDirection: "column",
+            gap: 12,
           }}
         >
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "flex", alignItems: "center", gap: 5 }}>
-            <Filter size={13} color="#4f46e5" />
-            <span>Quick Select from Directory:</span>
-          </span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+            <span style={{ fontSize: 12.5, fontWeight: 800, color: "#1e293b", display: "flex", alignItems: "center", gap: 6 }}>
+              <Filter size={14} color="#4f46e5" />
+              <span>Filter Directory by Branch, Section & Batch:</span>
+            </span>
 
-          {/* Branch Pill Filter */}
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-            {["all", "CSE", "CSIT", "CST"].map((b) => (
+            {(selectedBatch !== "all" || selectedBranch !== "all" || selectedSection !== "all") && (
               <button
-                key={b}
                 type="button"
-                onClick={() => setSelectedBranch(b)}
+                onClick={() => {
+                  setSelectedBatch("all");
+                  setSelectedBranch("all");
+                  setSelectedSection("all");
+                }}
                 style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
                   padding: "3px 8px",
                   borderRadius: 6,
-                  border: selectedBranch === b ? "1px solid #4f46e5" : "1px solid #cbd5e1",
-                  background: selectedBranch === b ? "#eef2ff" : "#ffffff",
-                  color: selectedBranch === b ? "#4f46e5" : "#64748b",
+                  background: "#fee2e2",
+                  border: "1px solid #fecaca",
+                  color: "#b91c1c",
                   fontSize: 11,
                   fontWeight: 700,
                   cursor: "pointer",
                 }}
               >
-                {b.toUpperCase()}
+                <X size={12} />
+                <span>Reset Filters</span>
               </button>
-            ))}
+            )}
           </div>
 
-          {/* Section Pill Filter */}
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-            {["all", "A", "B"].map((sec) => (
-              <button
-                key={sec}
-                type="button"
-                onClick={() => setSelectedSection(sec)}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMob ? "repeat(2, 1fr)" : "repeat(3, 140px) 1fr",
+              gap: 10,
+              alignItems: "flex-end",
+            }}
+          >
+            {/* 1. Branch Dropdown */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <label style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                Branch
+              </label>
+              <select
+                value={selectedBranch}
+                onChange={(e) => setSelectedBranch(e.target.value)}
                 style={{
-                  padding: "3px 8px",
-                  borderRadius: 6,
-                  border: selectedSection === sec ? "1px solid #4f46e5" : "1px solid #cbd5e1",
-                  background: selectedSection === sec ? "#eef2ff" : "#ffffff",
-                  color: selectedSection === sec ? "#4f46e5" : "#64748b",
-                  fontSize: 11,
-                  fontWeight: 700,
+                  width: "100%",
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  border: selectedBranch !== "all" ? "1.5px solid #4f46e5" : "1.5px solid #cbd5e1",
+                  background: selectedBranch !== "all" ? "#f5f3ff" : "#ffffff",
+                  color: selectedBranch !== "all" ? "#4338ca" : "#0f172a",
+                  fontSize: 12,
+                  fontWeight: 600,
                   cursor: "pointer",
+                  outline: "none",
+                  boxSizing: "border-box",
                 }}
               >
-                {sec === "all" ? "All Sec" : `Sec ${sec}`}
-              </button>
-            ))}
-          </div>
+                <option value="all">All Branches</option>
+                {availableBranches.map((br) => (
+                  <option key={br} value={br}>{br}</option>
+                ))}
+              </select>
+            </div>
 
-          {/* Student Dropdown */}
-          <div style={{ flex: 1, minWidth: isMob ? "100%" : 240 }}>
-            <select
-              value={inspectedStudent?.regNo || ""}
-              onChange={(e) => {
-                if (e.target.value) handleInspect(e.target.value);
-              }}
-              style={{
-                width: "100%",
-                padding: "8px 12px",
-                borderRadius: 8,
-                border: "1.5px solid #cbd5e1",
-                fontSize: 12,
-                fontWeight: 600,
-                color: "#0f172a",
-                background: "#ffffff",
-                cursor: "pointer",
-                outline: "none",
-              }}
-            >
-              <option value="">
-                {accountsLoading
-                  ? "Loading registered accounts..."
-                  : `-- Choose from ${filteredPickerAccounts.length} students --`}
-              </option>
-              {filteredPickerAccounts.map((acc) => (
-                <option key={acc.regNo} value={acc.regNo}>
-                  {acc.regNo} — {acc.studentName} {acc.isBlocked ? "⛔ BLOCKED" : ""} {acc.isCurrentlyLoggedIn ? "• Online" : ""}
+            {/* 2. Section Dropdown */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <label style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                Section
+              </label>
+              <select
+                value={selectedSection}
+                onChange={(e) => setSelectedSection(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  border: selectedSection !== "all" ? "1.5px solid #4f46e5" : "1.5px solid #cbd5e1",
+                  background: selectedSection !== "all" ? "#f5f3ff" : "#ffffff",
+                  color: selectedSection !== "all" ? "#4338ca" : "#0f172a",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              >
+                <option value="all">All Sections</option>
+                {availableSections.map((sec) => (
+                  <option key={sec} value={sec}>Section {sec}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 3. Batch Dropdown */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, gridColumn: isMob ? "span 2" : "auto" }}>
+              <label style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                Batch
+              </label>
+              <select
+                value={selectedBatch}
+                onChange={(e) => setSelectedBatch(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  border: selectedBatch !== "all" ? "1.5px solid #4f46e5" : "1.5px solid #cbd5e1",
+                  background: selectedBatch !== "all" ? "#f5f3ff" : "#ffffff",
+                  color: selectedBatch !== "all" ? "#4338ca" : "#0f172a",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              >
+                <option value="all">All Batches</option>
+                {availableBatches.map((bt) => (
+                  <option key={bt} value={bt}>Batch {bt}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 4. Student Chooser Dropdown */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, gridColumn: isMob ? "span 2" : "auto" }}>
+              <label style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                Choose Student ({filteredPickerAccounts.length})
+              </label>
+              <select
+                value={inspectedStudent?.regNo || ""}
+                onChange={(e) => {
+                  if (e.target.value) handleInspect(e.target.value);
+                }}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  border: "1.5px solid #cbd5e1",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "#0f172a",
+                  background: "#ffffff",
+                  cursor: "pointer",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              >
+                <option value="">
+                  {accountsLoading
+                    ? "Loading registered accounts..."
+                    : `-- Choose from ${filteredPickerAccounts.length} students --`}
                 </option>
-              ))}
-            </select>
+                {filteredPickerAccounts.map((acc) => {
+                  const meta = resolveStudentMeta(acc);
+                  return (
+                    <option key={acc.regNo} value={acc.regNo}>
+                      {acc.regNo} — {acc.studentName} ({meta.branch} • Sec {meta.section}) {acc.isBlocked ? "⛔ BLOCKED" : ""} {acc.isCurrentlyLoggedIn ? "• Online" : ""}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
           </div>
         </div>
 
