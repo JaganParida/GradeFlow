@@ -5564,30 +5564,40 @@ export default function AttendanceTracker() {
                     <p style={{ fontSize: 12.5, color: "#475569", margin: "4px 0 0 0", lineHeight: 1.45, fontWeight: 500 }}>
                       Click on any class card to see how attending or skipping affects your semester percentage.
                     </p>
-                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 3, display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-                      <span>Simulation only — this does not mark daily attendance.</span>
+                    <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <span>Simulation only — this does not mark daily attendance. To mark daily attendance, use this:</span>
                       <button
                         type="button"
                         onClick={() => {
-                          setSelectedDateKey(todayDateKey);
-                          setActiveTab("daily");
+                          setSelectedCheckInDateKey(todayDateKey);
+                          handleTabClick("checkin");
                           window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
                         style={{
-                          background: "none",
-                          border: "none",
-                          padding: 0,
-                          color: "#0f172a",
+                          background: "#0f172a",
+                          color: "#ffffff",
+                          border: "1px solid #0f172a",
+                          padding: "3.5px 10px",
+                          borderRadius: 6,
                           fontWeight: 700,
-                          textDecoration: "underline",
                           cursor: "pointer",
                           fontSize: 11,
                           display: "inline-flex",
                           alignItems: "center",
-                          gap: 3,
+                          gap: 4.5,
+                          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.12)",
+                          transition: "all 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#1e293b";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "#0f172a";
                         }}
                       >
-                        Mark Attendance in Daily Attendance <ArrowRight size={10} />
+                        <ClipboardCheck size={11.5} color="#ffffff" />
+                        <span>Mark Daily Attendance</span>
+                        <ArrowRight size={10} color="#ffffff" />
                       </button>
                     </div>
                   </>
