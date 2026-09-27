@@ -2482,6 +2482,9 @@ export default function AttendanceTracker() {
         classCount: group.classCount,
         checkedCount: checkedForSub,
         missedCount: group.classCount - checkedForSub,
+        curSubAtt: group.curSubAtt,
+        curSubDel: group.curSubDel,
+        curSubPct: group.curSubPct,
         simSubAtt,
         simSubDel,
         simSubPct,
@@ -6130,24 +6133,14 @@ export default function AttendanceTracker() {
                               {cleanName}
                             </div>
 
-                            {/* Details row: Code, Room, Faculty */}
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 10.5, color: "#64748b" }}>
-                              {subCode && (
-                                <span style={{ fontWeight: 700, background: "#f1f5f9", color: "#334155", padding: "1px 5px", borderRadius: 4, border: "1px solid #e2e8f0" }}>
+                            {/* Details row: Subject Code Only (No room or teacher) */}
+                            {subCode && (
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10.5 }}>
+                                <span style={{ fontWeight: 700, background: "#f1f5f9", color: "#334155", padding: "1.5px 6px", borderRadius: 4, border: "1px solid #e2e8f0" }}>
                                   {subCode}
                                 </span>
-                              )}
-                              {room && (
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
-                                  <MapPin size={10} color="#94a3b8" /> Rm {room}
-                                </span>
-                              )}
-                              {faculty && (
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
-                                  <User size={10} color="#94a3b8" /> {faculty}
-                                </span>
-                              )}
-                            </div>
+                              </div>
+                            )}
 
                             {/* Small Locked note if marked */}
                             {isMarked ? (
@@ -6184,10 +6177,10 @@ export default function AttendanceTracker() {
                           background: "#f8fafc",
                           border: "1px solid #e2e8f0",
                           borderRadius: 8,
-                          padding: "9px 12px",
+                          padding: "10px 12px",
                           display: "flex",
                           flexDirection: "column",
-                          gap: 4,
+                          gap: 6,
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
@@ -6208,6 +6201,27 @@ export default function AttendanceTracker() {
                           </span>
                         </div>
 
+                        {/* Current recorded attendance in blue */}
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 6,
+                            fontSize: 11,
+                            background: "#eff6ff",
+                            border: "1px solid #dbeafe",
+                            padding: "3px 8px",
+                            borderRadius: 5,
+                          }}
+                        >
+                          <span style={{ color: "#1e40af", fontWeight: 700 }}>Current:</span>
+                          <strong style={{ color: "#2563eb", fontWeight: 800, fontSize: 11.5 }}>
+                            {sub.curSubAtt}/{sub.curSubDel} ({sub.curSubPct.toFixed(1)}%)
+                          </strong>
+                        </div>
+
+                        {/* Simulated Result */}
                         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 4 }}>
                           <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>
                             Attending {sub.checkedCount}/{sub.classCount}:
