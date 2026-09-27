@@ -90,7 +90,20 @@ function resolveStudentMeta(acc) {
 }
 
 export default function StudentAccessControl({ API, authHeaders, isMobile }) {
-  const isMob = typeof isMobile === "boolean" ? isMobile : window.innerWidth < 768;
+  const [isMobileScreen, setIsMobileScreen] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 768 : Boolean(isMobile)
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileScreen(window.innerWidth < 768 || Boolean(isMobile));
+    };
+    window.addEventListener("resize", handleResize);
+    handleResize();
+    return () => window.removeEventListener("resize", handleResize);
+  }, [isMobile]);
+
+  const isMob = isMobileScreen;
 
   // Search & Inspection State
   const [searchReg, setSearchReg] = useState("");
@@ -298,7 +311,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
     if (diffMs <= 0) return "Expired (Pending Auto-Refresh)";
 
     const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
-    const hours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+    const hours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 1000));
     const mins = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000));
 
     let timeStr = "";
@@ -385,175 +398,282 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
   const permBlocked = blockedList.filter((b) => b.blockType === "permanent").length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* ── 1. CLEAN EXECUTIVE HERO HEADER ── */}
-      <div
-        style={{
-          background: "#ffffff",
-          borderRadius: 20,
-          border: "1px solid #e2e8f0",
-          boxShadow: "0 4px 20px -2px rgba(15, 23, 42, 0.04)",
-          padding: isMob ? "18px 16px" : "24px 28px",
-          display: "flex",
-          flexDirection: isMob ? "column" : "row",
-          alignItems: isMob ? "flex-start" : "center",
-          justifyContent: "space-between",
-          gap: 16,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-          <div
-            style={{
-              width: isMob ? 42 : 48,
-              height: isMob ? 42 : 48,
-              borderRadius: 14,
-              background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#ffffff",
-              boxShadow: "0 6px 16px -2px rgba(79, 70, 229, 0.35)",
-              flexShrink: 0,
-            }}
-          >
-            <UserX size={isMob ? 22 : 25} />
-          </div>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: isMob ? 18 : 22,
-                  fontWeight: 800,
-                  color: "#0f172a",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                Student Access Control
-              </h2>
-              <span
-                style={{
-                  background: "#fee2e2",
-                  border: "1px solid #fecaca",
-                  color: "#b91c1c",
-                  fontSize: 10.5,
-                  fontWeight: 800,
-                  padding: "2px 8px",
-                  borderRadius: 999,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                }}
-              >
-                Main Admin Exclusive
-              </span>
-            </div>
-            <p
-              style={{
-                margin: "4px 0 0",
-                fontSize: isMob ? 12 : 13,
-                color: "#64748b",
-                maxWidth: 720,
-                lineHeight: 1.5,
-              }}
-            >
-              Temporarily or permanently restrict student portal privileges. Blocked students cannot log in or request OTPs (displays "Student not found"), and active sessions are terminated immediately.
-            </p>
-          </div>
-        </div>
-
-        {/* Right Action & Live Status Badges */}
+    <div style={{ display: "flex", flexDirection: "column", gap: isMob ? 14 : 20, width: "100%", boxSizing: "border-box" }}>
+      {/* ── 1. COMPACT STATUS RIBBON ON MOBILE vs FULL HERO ON DESKTOP ── */}
+      {isMob ? (
         <div
           style={{
+            background: "#ffffff",
+            borderRadius: 14,
+            border: "1px solid #e2e8f0",
+            boxShadow: "0 2px 8px -2px rgba(15, 23, 42, 0.04)",
+            padding: "10px 14px",
             display: "flex",
             alignItems: "center",
+            justifyContent: "space-between",
             gap: 10,
-            width: isMob ? "100%" : "auto",
-            justifyContent: isMob ? "space-between" : "flex-end",
-            borderTop: isMob ? "1px solid #f1f5f9" : "none",
-            paddingTop: isMob ? 12 : 0,
           }}
         >
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "6px 12px",
-              borderRadius: 10,
-              background: "#f0fdf4",
-              border: "1px solid #bbf7d0",
-              color: "#15803d",
-              fontSize: 11.5,
-              fontWeight: 700,
-            }}
-          >
-            <span
+          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            <div
               style={{
-                width: 7,
-                height: 7,
-                borderRadius: "50%",
-                background: "#16a34a",
-                display: "inline-block",
-                boxShadow: "0 0 0 2px rgba(22, 163, 74, 0.2)",
+                width: 32,
+                height: 32,
+                borderRadius: 9,
+                background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#ffffff",
+                boxShadow: "0 4px 10px -1px rgba(79, 70, 229, 0.3)",
+                flexShrink: 0,
               }}
-            />
-            <span>Live Realtime Shield</span>
+            >
+              <UserX size={17} />
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a" }}>
+                  Access Shield
+                </span>
+                <span
+                  style={{
+                    background: "#fee2e2",
+                    border: "1px solid #fecaca",
+                    color: "#b91c1c",
+                    fontSize: 9.5,
+                    fontWeight: 800,
+                    padding: "1px 6px",
+                    borderRadius: 999,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.03em",
+                  }}
+                >
+                  Admin
+                </span>
+              </div>
+            </div>
           </div>
 
-          <button
-            onClick={() => {
-              fetchBlockedList();
-              if (inspectedStudent?.regNo) handleInspect(inspectedStudent.regNo);
-            }}
-            disabled={listLoading}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "7px 14px",
-              borderRadius: 10,
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              color: "#334155",
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: listLoading ? "not-allowed" : "pointer",
-              transition: "all 0.15s ease",
-            }}
-            title="Refresh Block Registry"
-          >
-            <RefreshCw size={13} className={listLoading ? "spin" : ""} color="#4f46e5" />
-            <span>Refresh</span>
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "4px 8px",
+                borderRadius: 8,
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                color: "#15803d",
+                fontSize: 11,
+                fontWeight: 700,
+              }}
+            >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: "#16a34a",
+                  display: "inline-block",
+                  boxShadow: "0 0 0 2px rgba(22, 163, 74, 0.2)",
+                }}
+              />
+              <span>Live Active</span>
+            </div>
+
+            <button
+              onClick={() => {
+                fetchBlockedList();
+                if (inspectedStudent?.regNo) handleInspect(inspectedStudent.regNo);
+              }}
+              disabled={listLoading}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "5px 10px",
+                borderRadius: 8,
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                color: "#334155",
+                fontSize: 11.5,
+                fontWeight: 700,
+                cursor: listLoading ? "not-allowed" : "pointer",
+              }}
+              title="Refresh Block Registry"
+            >
+              <RefreshCw size={12} className={listLoading ? "spin" : ""} color="#4f46e5" />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Full Executive Hero on Desktop */
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: 20,
+            border: "1px solid #e2e8f0",
+            boxShadow: "0 4px 20px -2px rgba(15, 23, 42, 0.04)",
+            padding: "24px 28px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#ffffff",
+                boxShadow: "0 6px 16px -2px rgba(79, 70, 229, 0.35)",
+                flexShrink: 0,
+              }}
+            >
+              <UserX size={25} />
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <h2
+                  style={{
+                    margin: 0,
+                    fontSize: 22,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  Student Access Control
+                </h2>
+                <span
+                  style={{
+                    background: "#fee2e2",
+                    border: "1px solid #fecaca",
+                    color: "#b91c1c",
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  Main Admin Exclusive
+                </span>
+              </div>
+              <p
+                style={{
+                  margin: "4px 0 0",
+                  fontSize: 13,
+                  color: "#64748b",
+                  maxWidth: 720,
+                  lineHeight: 1.5,
+                }}
+              >
+                Temporarily or permanently restrict student portal privileges. Blocked students cannot log in or request OTPs (displays "Student not found"), and active sessions are terminated immediately.
+              </p>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "6px 12px",
+                borderRadius: 10,
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                color: "#15803d",
+                fontSize: 11.5,
+                fontWeight: 700,
+              }}
+            >
+              <span
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: "50%",
+                  background: "#16a34a",
+                  display: "inline-block",
+                  boxShadow: "0 0 0 2px rgba(22, 163, 74, 0.2)",
+                }}
+              />
+              <span>Live Realtime Shield</span>
+            </div>
+
+            <button
+              onClick={() => {
+                fetchBlockedList();
+                if (inspectedStudent?.regNo) handleInspect(inspectedStudent.regNo);
+              }}
+              disabled={listLoading}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "7px 14px",
+                borderRadius: 10,
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                color: "#334155",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: listLoading ? "not-allowed" : "pointer",
+                transition: "all 0.15s ease",
+              }}
+              title="Refresh Block Registry"
+            >
+              <RefreshCw size={13} className={listLoading ? "spin" : ""} color="#4f46e5" />
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── 2. TOP ELEVATED KPI METRICS GRID ── */}
       <div
         style={{
           display: "grid",
           gridTemplateColumns: isMob ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
-          gap: 12,
+          gap: isMob ? 8 : 12,
         }}
       >
         {/* Metric 1: Total Blocked */}
         <div
           style={{
             background: "#ffffff",
-            borderRadius: 16,
+            borderRadius: isMob ? 13 : 16,
             border: "1px solid #e2e8f0",
-            padding: "16px 18px",
+            padding: isMob ? "10px 12px" : "16px 18px",
             boxShadow: "0 2px 8px -2px rgba(15, 23, 42, 0.04)",
             display: "flex",
             alignItems: "center",
-            gap: 14,
+            gap: isMob ? 10 : 14,
+            minWidth: 0,
           }}
         >
           <div
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
+              width: isMob ? 32 : 44,
+              height: isMob ? 32 : 44,
+              borderRadius: isMob ? 9 : 12,
               background: totalBlocked > 0 ? "#fee2e2" : "#f1f5f9",
               color: totalBlocked > 0 ? "#dc2626" : "#64748b",
               display: "flex",
@@ -562,13 +682,32 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
               flexShrink: 0,
             }}
           >
-            <UserX size={22} />
+            <UserX size={isMob ? 16 : 22} />
           </div>
-          <div>
-            <div style={{ fontSize: 11.5, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.03em" }}>
+          <div style={{ minWidth: 0, overflow: "hidden" }}>
+            <div
+              style={{
+                fontSize: isMob ? 10 : 11.5,
+                color: "#64748b",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.03em",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
               Total Blocked
             </div>
-            <div style={{ fontSize: 24, fontWeight: 900, color: totalBlocked > 0 ? "#dc2626" : "#0f172a", marginTop: 1 }}>
+            <div
+              style={{
+                fontSize: isMob ? 20 : 24,
+                fontWeight: 900,
+                color: totalBlocked > 0 ? "#dc2626" : "#0f172a",
+                marginTop: 1,
+                lineHeight: 1.1,
+              }}
+            >
               {totalBlocked}
             </div>
           </div>
@@ -578,20 +717,21 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
         <div
           style={{
             background: "#ffffff",
-            borderRadius: 16,
+            borderRadius: isMob ? 13 : 16,
             border: "1px solid #e2e8f0",
-            padding: "16px 18px",
+            padding: isMob ? "10px 12px" : "16px 18px",
             boxShadow: "0 2px 8px -2px rgba(15, 23, 42, 0.04)",
             display: "flex",
             alignItems: "center",
-            gap: 14,
+            gap: isMob ? 10 : 14,
+            minWidth: 0,
           }}
         >
           <div
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
+              width: isMob ? 32 : 44,
+              height: isMob ? 32 : 44,
+              borderRadius: isMob ? 9 : 12,
               background: "#fff7ed",
               color: "#ea580c",
               display: "flex",
@@ -600,13 +740,32 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
               flexShrink: 0,
             }}
           >
-            <Clock size={22} />
+            <Clock size={isMob ? 16 : 22} />
           </div>
-          <div>
-            <div style={{ fontSize: 11.5, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.03em" }}>
+          <div style={{ minWidth: 0, overflow: "hidden" }}>
+            <div
+              style={{
+                fontSize: isMob ? 10 : 11.5,
+                color: "#64748b",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.03em",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
               Temporary
             </div>
-            <div style={{ fontSize: 24, fontWeight: 900, color: "#ea580c", marginTop: 1 }}>
+            <div
+              style={{
+                fontSize: isMob ? 20 : 24,
+                fontWeight: 900,
+                color: "#ea580c",
+                marginTop: 1,
+                lineHeight: 1.1,
+              }}
+            >
               {tempBlocked}
             </div>
           </div>
@@ -616,20 +775,21 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
         <div
           style={{
             background: "#ffffff",
-            borderRadius: 16,
+            borderRadius: isMob ? 13 : 16,
             border: "1px solid #e2e8f0",
-            padding: "16px 18px",
+            padding: isMob ? "10px 12px" : "16px 18px",
             boxShadow: "0 2px 8px -2px rgba(15, 23, 42, 0.04)",
             display: "flex",
             alignItems: "center",
-            gap: 14,
+            gap: isMob ? 10 : 14,
+            minWidth: 0,
           }}
         >
           <div
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
+              width: isMob ? 32 : 44,
+              height: isMob ? 32 : 44,
+              borderRadius: isMob ? 9 : 12,
               background: "#fef2f2",
               color: "#b91c1c",
               display: "flex",
@@ -638,36 +798,56 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
               flexShrink: 0,
             }}
           >
-            <Ban size={22} />
+            <Ban size={isMob ? 16 : 22} />
           </div>
-          <div>
-            <div style={{ fontSize: 11.5, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.03em" }}>
+          <div style={{ minWidth: 0, overflow: "hidden" }}>
+            <div
+              style={{
+                fontSize: isMob ? 10 : 11.5,
+                color: "#64748b",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.03em",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
               Permanent
             </div>
-            <div style={{ fontSize: 24, fontWeight: 900, color: "#b91c1c", marginTop: 1 }}>
+            <div
+              style={{
+                fontSize: isMob ? 20 : 24,
+                fontWeight: 900,
+                color: "#b91c1c",
+                marginTop: 1,
+                lineHeight: 1.1,
+              }}
+            >
               {permBlocked}
             </div>
           </div>
         </div>
 
-        {/* Metric 4: Auto-Expiration */}
+        {/* Metric 4: Auto-Expiring / Realtime Shield */}
         <div
           style={{
             background: "#ffffff",
-            borderRadius: 16,
+            borderRadius: isMob ? 13 : 16,
             border: "1px solid #e2e8f0",
-            padding: "16px 18px",
+            padding: isMob ? "10px 12px" : "16px 18px",
             boxShadow: "0 2px 8px -2px rgba(15, 23, 42, 0.04)",
             display: "flex",
             alignItems: "center",
-            gap: 14,
+            gap: isMob ? 10 : 14,
+            minWidth: 0,
           }}
         >
           <div
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
+              width: isMob ? 32 : 44,
+              height: isMob ? 32 : 44,
+              borderRadius: isMob ? 9 : 12,
               background: "#ecfdf5",
               color: "#059669",
               display: "flex",
@@ -676,14 +856,46 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
               flexShrink: 0,
             }}
           >
-            <Shield size={22} />
+            <Shield size={isMob ? 16 : 22} />
           </div>
-          <div>
-            <div style={{ fontSize: 11.5, color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-              Auto-Expiring
+          <div style={{ minWidth: 0, overflow: "hidden" }}>
+            <div
+              style={{
+                fontSize: isMob ? 10 : 11.5,
+                color: "#64748b",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.03em",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              Auto Expire
             </div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#059669", marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}>
-              <span>Zero-Cron DB Guard</span>
+            <div
+              style={{
+                fontSize: isMob ? 12 : 13,
+                fontWeight: 800,
+                color: "#059669",
+                marginTop: isMob ? 3 : 4,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                whiteSpace: "nowrap",
+              }}
+            >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: "#10b981",
+                  display: "inline-block",
+                  flexShrink: 0,
+                }}
+              />
+              <span>{isMob ? "Active" : "Zero-Cron DB Guard"}</span>
             </div>
           </div>
         </div>
@@ -696,22 +908,22 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
             background: "#fef2f2",
             border: "1px solid #fecaca",
             borderRadius: 12,
-            padding: "12px 16px",
+            padding: "10px 14px",
             color: "#b91c1c",
-            fontSize: 13,
+            fontSize: 12.5,
             display: "flex",
             alignItems: "center",
-            gap: 10,
+            gap: 8,
             boxShadow: "0 2px 6px rgba(220, 38, 38, 0.05)",
           }}
         >
-          <AlertTriangle size={18} color="#dc2626" style={{ flexShrink: 0 }} />
+          <AlertTriangle size={16} color="#dc2626" style={{ flexShrink: 0 }} />
           <span style={{ flex: 1, fontWeight: 600 }}>{errorMsg}</span>
           <button
             onClick={() => setErrorMsg("")}
             style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontWeight: 800, padding: 4 }}
           >
-            <X size={16} />
+            <X size={15} />
           </button>
         </div>
       )}
@@ -722,22 +934,22 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
             background: "#f0fdf4",
             border: "1px solid #bbf7d0",
             borderRadius: 12,
-            padding: "12px 16px",
+            padding: "10px 14px",
             color: "#15803d",
-            fontSize: 13,
+            fontSize: 12.5,
             display: "flex",
             alignItems: "center",
-            gap: 10,
+            gap: 8,
             boxShadow: "0 2px 6px rgba(22, 163, 74, 0.05)",
           }}
         >
-          <CheckCircle size={18} color="#16a34a" style={{ flexShrink: 0 }} />
+          <CheckCircle size={16} color="#16a34a" style={{ flexShrink: 0 }} />
           <span style={{ flex: 1, fontWeight: 600 }}>{successMsg}</span>
           <button
             onClick={() => setSuccessMsg("")}
             style={{ background: "none", border: "none", color: "#16a34a", cursor: "pointer", fontWeight: 800, padding: 4 }}
           >
-            <X size={16} />
+            <X size={15} />
           </button>
         </div>
       )}
@@ -746,34 +958,37 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
       <div
         style={{
           background: "#ffffff",
-          borderRadius: 20,
+          borderRadius: isMob ? 16 : 20,
           border: "1px solid #e2e8f0",
           boxShadow: "0 4px 20px -2px rgba(15, 23, 42, 0.04)",
-          padding: isMob ? "18px 16px" : "24px 26px",
+          padding: isMob ? "16px 14px" : "24px 26px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: isMob ? 10 : 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
             <div
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: 9,
+                width: isMob ? 28 : 32,
+                height: isMob ? 28 : 32,
+                borderRadius: 8,
                 background: "#eef2ff",
                 color: "#4f46e5",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                flexShrink: 0,
               }}
             >
-              <Search size={16} />
+              <Search size={isMob ? 14 : 16} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#0f172a" }}>
+              <h3 style={{ margin: 0, fontSize: isMob ? 15 : 16, fontWeight: 800, color: "#0f172a" }}>
                 Inspect & Manage Student
               </h3>
-              <p style={{ margin: "2px 0 0", fontSize: 12, color: "#64748b" }}>
-                Verify portal access status, view live active sessions, and execute temporary or permanent suspensions.
+              <p style={{ margin: "2px 0 0", fontSize: isMob ? 11.5 : 12, color: "#64748b" }}>
+                {isMob
+                  ? "Check status & configure suspensions."
+                  : "Verify portal access status, view live active sessions, and execute temporary or permanent suspensions."}
               </p>
             </div>
           </div>
@@ -787,16 +1002,16 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
           }}
           style={{
             display: "flex",
-            gap: 10,
+            gap: 8,
             flexDirection: isMob ? "column" : "row",
-            marginTop: 12,
+            marginTop: 10,
           }}
         >
           <div style={{ position: "relative", flex: 1 }}>
             <Search
               size={16}
               color="#94a3b8"
-              style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }}
+              style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }}
             />
             <input
               type="text"
@@ -805,10 +1020,10 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
               onChange={(e) => setSearchReg(e.target.value.toUpperCase())}
               style={{
                 width: "100%",
-                padding: "12px 14px 12px 42px",
-                borderRadius: 12,
+                padding: "10px 36px 10px 38px",
+                borderRadius: 10,
                 border: "1.5px solid #cbd5e1",
-                fontSize: 13.5,
+                fontSize: 14, // 14px prevents iOS Safari auto-zoom
                 fontWeight: 600,
                 color: "#0f172a",
                 outline: "none",
@@ -823,13 +1038,14 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                 onClick={() => setSearchReg("")}
                 style={{
                   position: "absolute",
-                  right: 12,
+                  right: 10,
                   top: "50%",
                   transform: "translateY(-50%)",
                   background: "none",
                   border: "none",
                   color: "#94a3b8",
                   cursor: "pointer",
+                  padding: 4,
                 }}
               >
                 <X size={15} />
@@ -841,12 +1057,12 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
             type="submit"
             disabled={inspectLoading}
             style={{
-              padding: "12px 24px",
-              borderRadius: 12,
+              padding: isMob ? "11px 18px" : "12px 24px",
+              borderRadius: 10,
               border: "none",
               background: "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)",
               color: "#ffffff",
-              fontSize: 13.5,
+              fontSize: 13,
               fontWeight: 700,
               cursor: inspectLoading ? "not-allowed" : "pointer",
               display: "inline-flex",
@@ -855,10 +1071,10 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
               gap: 8,
               boxShadow: "0 4px 14px rgba(79, 70, 229, 0.28)",
               flexShrink: 0,
-              transition: "transform 0.1s ease",
+              width: isMob ? "100%" : "auto",
             }}
           >
-            {inspectLoading ? <RefreshCw size={15} className="spin" /> : <Search size={15} />}
+            {inspectLoading ? <RefreshCw size={14} className="spin" /> : <Search size={14} />}
             <span>Inspect Access Status</span>
           </button>
         </form>
@@ -866,20 +1082,20 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
         {/* Quick Student Selector Tool with Dedicated Dropdowns */}
         <div
           style={{
-            marginTop: 14,
-            padding: "14px 16px",
+            marginTop: 12,
+            padding: isMob ? "12px 10px" : "14px 16px",
             background: "#f8fafc",
-            borderRadius: 14,
+            borderRadius: 12,
             border: "1px solid #e2e8f0",
             display: "flex",
             flexDirection: "column",
-            gap: 12,
+            gap: 10,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-            <span style={{ fontSize: 12.5, fontWeight: 800, color: "#1e293b", display: "flex", alignItems: "center", gap: 6 }}>
-              <Filter size={14} color="#4f46e5" />
-              <span>Filter Directory by Branch, Section & Batch:</span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+            <span style={{ fontSize: isMob ? 11.5 : 12.5, fontWeight: 800, color: "#1e293b", display: "flex", alignItems: "center", gap: 6 }}>
+              <Filter size={13} color="#4f46e5" />
+              <span>{isMob ? "Filter Students:" : "Filter Directory by Branch, Section & Batch:"}</span>
             </span>
 
             {(selectedBatch !== "all" || selectedBranch !== "all" || selectedSection !== "all") && (
@@ -899,13 +1115,13 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                   background: "#fee2e2",
                   border: "1px solid #fecaca",
                   color: "#b91c1c",
-                  fontSize: 11,
+                  fontSize: 10.5,
                   fontWeight: 700,
                   cursor: "pointer",
                 }}
               >
-                <X size={12} />
-                <span>Reset Filters</span>
+                <X size={11} />
+                <span>Reset</span>
               </button>
             )}
           </div>
@@ -913,14 +1129,14 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: isMob ? "repeat(2, 1fr)" : "repeat(3, 140px) 1fr",
-              gap: 10,
+              gridTemplateColumns: isMob ? "1fr 1fr" : "repeat(3, 140px) 1fr",
+              gap: 8,
               alignItems: "flex-end",
             }}
           >
             {/* 1. Branch Dropdown */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <label style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <label style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.03em" }}>
                 Branch
               </label>
               <select
@@ -928,7 +1144,8 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                 onChange={(e) => setSelectedBranch(e.target.value)}
                 style={{
                   width: "100%",
-                  padding: "8px 10px",
+                  height: 36,
+                  padding: "6px 8px",
                   borderRadius: 8,
                   border: selectedBranch !== "all" ? "1.5px solid #4f46e5" : "1.5px solid #cbd5e1",
                   background: selectedBranch !== "all" ? "#f5f3ff" : "#ffffff",
@@ -948,8 +1165,8 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
             </div>
 
             {/* 2. Section Dropdown */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <label style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <label style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.03em" }}>
                 Section
               </label>
               <select
@@ -957,7 +1174,8 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                 onChange={(e) => setSelectedSection(e.target.value)}
                 style={{
                   width: "100%",
-                  padding: "8px 10px",
+                  height: 36,
+                  padding: "6px 8px",
                   borderRadius: 8,
                   border: selectedSection !== "all" ? "1.5px solid #4f46e5" : "1.5px solid #cbd5e1",
                   background: selectedSection !== "all" ? "#f5f3ff" : "#ffffff",
@@ -977,8 +1195,8 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
             </div>
 
             {/* 3. Batch Dropdown */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, gridColumn: isMob ? "span 2" : "auto" }}>
-              <label style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 3, gridColumn: isMob ? "span 2" : "auto" }}>
+              <label style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.03em" }}>
                 Batch
               </label>
               <select
@@ -986,7 +1204,8 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                 onChange={(e) => setSelectedBatch(e.target.value)}
                 style={{
                   width: "100%",
-                  padding: "8px 10px",
+                  height: 36,
+                  padding: "6px 8px",
                   borderRadius: 8,
                   border: selectedBatch !== "all" ? "1.5px solid #4f46e5" : "1.5px solid #cbd5e1",
                   background: selectedBatch !== "all" ? "#f5f3ff" : "#ffffff",
@@ -1006,8 +1225,8 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
             </div>
 
             {/* 4. Student Chooser Dropdown */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, gridColumn: isMob ? "span 2" : "auto" }}>
-              <label style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 3, gridColumn: isMob ? "span 2" : "auto" }}>
+              <label style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.03em" }}>
                 Choose Student ({filteredPickerAccounts.length})
               </label>
               <select
@@ -1017,7 +1236,8 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                 }}
                 style={{
                   width: "100%",
-                  padding: "8px 12px",
+                  height: 36,
+                  padding: "6px 10px",
                   borderRadius: 8,
                   border: "1.5px solid #cbd5e1",
                   fontSize: 12,
@@ -1051,8 +1271,8 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
         {inspectedStudent && (
           <div
             style={{
-              marginTop: 20,
-              borderRadius: 16,
+              marginTop: 14,
+              borderRadius: isMob ? 14 : 16,
               border: inspectedStudent.isBlocked ? "1.5px solid #fca5a5" : "1.5px solid #bbf7d0",
               background: inspectedStudent.isBlocked ? "#fff5f5" : "#f0fdf4",
               boxShadow: inspectedStudent.isBlocked
@@ -1064,23 +1284,23 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
             {/* Header: Student Profile Information */}
             <div
               style={{
-                padding: isMob ? "16px" : "20px 22px",
+                padding: isMob ? "14px 12px" : "20px 22px",
                 background: inspectedStudent.isBlocked ? "#fffafa" : "#ffffff",
                 borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
                 display: "flex",
                 flexDirection: isMob ? "column" : "row",
-                alignItems: isMob ? "flex-start" : "center",
+                alignItems: isMob ? "stretch" : "center",
                 justifyContent: "space-between",
-                gap: 14,
+                gap: 12,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                 {/* Initials Avatar */}
                 <div
                   style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 14,
+                    width: isMob ? 40 : 48,
+                    height: isMob ? 40 : 48,
+                    borderRadius: isMob ? 11 : 14,
                     background: inspectedStudent.isBlocked
                       ? "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)"
                       : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
@@ -1088,7 +1308,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: 18,
+                    fontSize: isMob ? 16 : 18,
                     fontWeight: 800,
                     boxShadow: inspectedStudent.isBlocked
                       ? "0 4px 12px rgba(220, 38, 38, 0.25)"
@@ -1099,18 +1319,18 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                   {(inspectedStudent.studentName || "S").charAt(0).toUpperCase()}
                 </div>
 
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <h4 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0f172a" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <h4 style={{ margin: 0, fontSize: isMob ? 15 : 17, fontWeight: 800, color: "#0f172a" }}>
                       {inspectedStudent.studentName}
                     </h4>
                     <span
                       style={{
                         fontFamily: "'Space Mono', monospace",
                         fontWeight: 800,
-                        fontSize: 12.5,
-                        padding: "2px 8px",
-                        borderRadius: 6,
+                        fontSize: 11.5,
+                        padding: "1px 6px",
+                        borderRadius: 5,
                         background: "#e2e8f0",
                         color: "#1e293b",
                       }}
@@ -1119,22 +1339,22 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                     </span>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 11.5, color: "#64748b", background: "#f1f5f9", padding: "1px 6px", borderRadius: 4, fontWeight: 600 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 11, color: "#64748b", background: "#f1f5f9", padding: "1px 6px", borderRadius: 4, fontWeight: 600 }}>
                       {inspectedStudent.branch || "Branch"} {inspectedStudent.section ? `• Sec ${inspectedStudent.section}` : ""}{" "}
                       {inspectedStudent.batch ? `• Batch ${inspectedStudent.batch}` : ""}
                     </span>
 
-                    <span style={{ fontSize: 11.5, color: inspectedStudent.hasAccount ? "#059669" : "#64748b", fontWeight: 700 }}>
-                      {inspectedStudent.hasAccount ? "• Password Account Registered" : "• Results Only (Unregistered)"}
+                    <span style={{ fontSize: 11, color: inspectedStudent.hasAccount ? "#059669" : "#64748b", fontWeight: 700 }}>
+                      {inspectedStudent.hasAccount ? "• Registered Account" : "• Unregistered"}
                     </span>
 
                     {/* Active Live Device Badge */}
                     <span
                       style={{
-                        fontSize: 11,
+                        fontSize: 10.5,
                         fontWeight: 700,
-                        padding: "1px 7px",
+                        padding: "1px 6px",
                         borderRadius: 999,
                         background: inspectedStudent.activeSessionsCount > 0 ? "#dcfce7" : "#f1f5f9",
                         color: inspectedStudent.activeSessionsCount > 0 ? "#15803d" : "#64748b",
@@ -1145,8 +1365,8 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                     >
                       <span
                         style={{
-                          width: 6,
-                          height: 6,
+                          width: 5,
+                          height: 5,
                           borderRadius: "50%",
                           background: inspectedStudent.activeSessionsCount > 0 ? "#16a34a" : "#94a3b8",
                         }}
@@ -1162,23 +1382,26 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
               </div>
 
               {/* Status Badge */}
-              <div>
+              <div style={{ width: isMob ? "100%" : "auto" }}>
                 {inspectedStudent.isBlocked ? (
                   <div
                     style={{
-                      display: "inline-flex",
+                      display: "flex",
                       alignItems: "center",
+                      justifyContent: "center",
                       gap: 6,
-                      padding: "8px 14px",
-                      borderRadius: 10,
+                      padding: isMob ? "7px 12px" : "8px 14px",
+                      borderRadius: 9,
                       background: inspectedStudent.blockType === "permanent" ? "#dc2626" : "#ea580c",
                       color: "#ffffff",
-                      fontSize: 12.5,
+                      fontSize: 12,
                       fontWeight: 800,
                       boxShadow: "0 2px 8px rgba(220, 38, 38, 0.25)",
+                      width: isMob ? "100%" : "auto",
+                      boxSizing: "border-box",
                     }}
                   >
-                    <Ban size={15} />
+                    <Ban size={14} />
                     <span>
                       {inspectedStudent.blockType === "permanent"
                         ? "PERMANENTLY BLOCKED"
@@ -1188,19 +1411,22 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                 ) : (
                   <div
                     style={{
-                      display: "inline-flex",
+                      display: "flex",
                       alignItems: "center",
+                      justifyContent: "center",
                       gap: 6,
-                      padding: "8px 14px",
-                      borderRadius: 10,
+                      padding: isMob ? "7px 12px" : "8px 14px",
+                      borderRadius: 9,
                       background: "#16a34a",
                       color: "#ffffff",
-                      fontSize: 12.5,
+                      fontSize: 12,
                       fontWeight: 800,
                       boxShadow: "0 2px 8px rgba(22, 163, 74, 0.25)",
+                      width: isMob ? "100%" : "auto",
+                      boxSizing: "border-box",
                     }}
                   >
-                    <UserCheck size={15} />
+                    <UserCheck size={14} />
                     <span>ACCESS ACTIVE (ALLOWED)</span>
                   </div>
                 )}
@@ -1209,21 +1435,21 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
 
             {/* ── Sub-Panel A: When Student IS ALREADY BLOCKED ── */}
             {inspectedStudent.isBlocked ? (
-              <div style={{ padding: isMob ? "16px" : "20px 22px" }}>
+              <div style={{ padding: isMob ? "14px 12px" : "20px 22px" }}>
                 <div
                   style={{
                     background: "#ffffff",
-                    padding: "16px",
-                    borderRadius: 14,
+                    padding: "14px",
+                    borderRadius: 12,
                     border: "1px solid #fecaca",
                     display: "flex",
                     flexDirection: "column",
-                    gap: 8,
-                    fontSize: 13,
+                    gap: 6,
+                    fontSize: 12.5,
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 7, color: "#991b1b", fontWeight: 700 }}>
-                    <Clock size={16} />
+                    <Clock size={15} />
                     <span>
                       Suspension Period: {formatExpiration(inspectedStudent.blockedUntil)}
                     </span>
@@ -1231,13 +1457,13 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                   <div style={{ color: "#334155" }}>
                     Reason: <strong>{inspectedStudent.blockedReason || "Administrative restriction"}</strong>
                   </div>
-                  <div style={{ color: "#64748b", fontSize: 12 }}>
+                  <div style={{ color: "#64748b", fontSize: 11.5 }}>
                     Enforced By: <strong>{inspectedStudent.blockedBy || "Admin"}</strong> on{" "}
                     {inspectedStudent.blockedAt ? new Date(inspectedStudent.blockedAt).toLocaleString() : "N/A"}
                   </div>
                 </div>
 
-                <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+                <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
                   <button
                     type="button"
                     disabled={actionLoading}
@@ -1253,12 +1479,12 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 8,
-                      padding: "11px 22px",
+                      padding: isMob ? "11px 16px" : "11px 22px",
                       borderRadius: 10,
                       border: "none",
                       background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
                       color: "#ffffff",
-                      fontSize: 13.5,
+                      fontSize: 13,
                       fontWeight: 700,
                       cursor: actionLoading ? "not-allowed" : "pointer",
                       boxShadow: "0 4px 12px rgba(22, 163, 74, 0.25)",
@@ -1266,45 +1492,47 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                       justifyContent: "center",
                     }}
                   >
-                    {actionLoading ? <RefreshCw size={15} className="spin" /> : <Unlock size={15} />}
+                    {actionLoading ? <RefreshCw size={14} className="spin" /> : <Unlock size={14} />}
                     <span>Unblock Student & Restore Access</span>
                   </button>
                 </div>
               </div>
             ) : (
               /* ── Sub-Panel B: When Student IS ACTIVE (Configuration Form) ── */
-              <div style={{ padding: isMob ? "16px" : "20px 22px" }}>
-                <h5 style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 800, color: "#0f172a" }}>
+              <div style={{ padding: isMob ? "14px 12px" : "20px 22px" }}>
+                <h5 style={{ margin: "0 0 10px", fontSize: 13.5, fontWeight: 800, color: "#0f172a" }}>
                   Configure Suspension Parameters:
                 </h5>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   {/* Segmented Block Type Switch */}
-                  <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr" : "1fr 1fr", gap: 10 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr 1fr" : "1fr 1fr", gap: 8 }}>
                     <button
                       type="button"
                       onClick={() => setBlockType("temporary")}
                       style={{
-                        padding: "12px 16px",
-                        borderRadius: 12,
+                        padding: isMob ? "10px 8px" : "12px 16px",
+                        borderRadius: 10,
                         border: blockType === "temporary" ? "2px solid #ea580c" : "1.5px solid #e2e8f0",
                         background: blockType === "temporary" ? "#fff7ed" : "#ffffff",
                         color: blockType === "temporary" ? "#c2410c" : "#475569",
                         fontWeight: 700,
-                        fontSize: 13,
+                        fontSize: isMob ? 12 : 13,
                         cursor: "pointer",
                         display: "inline-flex",
                         alignItems: "center",
-                        gap: 8,
+                        gap: 7,
                         transition: "all 0.15s ease",
                       }}
                     >
-                      <Clock size={16} color={blockType === "temporary" ? "#ea580c" : "#94a3b8"} />
+                      <Clock size={16} color={blockType === "temporary" ? "#ea580c" : "#94a3b8"} style={{ flexShrink: 0 }} />
                       <div style={{ textAlign: "left" }}>
                         <div>Temporary Block</div>
-                        <div style={{ fontSize: 11, fontWeight: 500, color: "#9a3412" }}>
-                          Auto-expires after specified days/hours
-                        </div>
+                        {!isMob && (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: "#9a3412" }}>
+                            Auto-expires after specified days
+                          </div>
+                        )}
                       </div>
                     </button>
 
@@ -1312,26 +1540,28 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                       type="button"
                       onClick={() => setBlockType("permanent")}
                       style={{
-                        padding: "12px 16px",
-                        borderRadius: 12,
+                        padding: isMob ? "10px 8px" : "12px 16px",
+                        borderRadius: 10,
                         border: blockType === "permanent" ? "2px solid #dc2626" : "1.5px solid #e2e8f0",
                         background: blockType === "permanent" ? "#fef2f2" : "#ffffff",
                         color: blockType === "permanent" ? "#b91c1c" : "#475569",
                         fontWeight: 700,
-                        fontSize: 13,
+                        fontSize: isMob ? 12 : 13,
                         cursor: "pointer",
                         display: "inline-flex",
                         alignItems: "center",
-                        gap: 8,
+                        gap: 7,
                         transition: "all 0.15s ease",
                       }}
                     >
-                      <Ban size={16} color={blockType === "permanent" ? "#dc2626" : "#94a3b8"} />
+                      <Ban size={16} color={blockType === "permanent" ? "#dc2626" : "#94a3b8"} style={{ flexShrink: 0 }} />
                       <div style={{ textAlign: "left" }}>
                         <div>Permanent Ban</div>
-                        <div style={{ fontSize: 11, fontWeight: 500, color: "#991b1b" }}>
-                          Indefinite suspension until manual unblock
-                        </div>
+                        {!isMob && (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: "#991b1b" }}>
+                            Suspension until manual unblock
+                          </div>
+                        )}
                       </div>
                     </button>
                   </div>
@@ -1342,20 +1572,20 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                       style={{
                         background: "#ffffff",
                         border: "1.5px solid #fed7aa",
-                        borderRadius: 14,
-                        padding: "14px 16px",
+                        borderRadius: 12,
+                        padding: isMob ? "12px 10px" : "14px 16px",
                         display: "flex",
                         flexDirection: "column",
-                        gap: 12,
+                        gap: 10,
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                        <span style={{ fontSize: 12.5, fontWeight: 800, color: "#9a3412", display: "flex", alignItems: "center", gap: 6 }}>
-                          <CalendarClock size={15} />
-                          <span>Quick Duration Presets:</span>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 800, color: "#9a3412", display: "flex", alignItems: "center", gap: 5 }}>
+                          <CalendarClock size={14} />
+                          <span>Quick Presets:</span>
                         </span>
 
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                           {[1, 2, 3, 7, 15, 30].map((d) => (
                             <button
                               key={d}
@@ -1366,27 +1596,27 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                                 setUseCustomDate(false);
                               }}
                               style={{
-                                padding: "4px 10px",
-                                borderRadius: 8,
+                                padding: "3px 8px",
+                                borderRadius: 6,
                                 border: durationDays === d && !useCustomDate ? "1.5px solid #ea580c" : "1px solid #cbd5e1",
                                 background: durationDays === d && !useCustomDate ? "#ffedd5" : "#ffffff",
                                 color: durationDays === d && !useCustomDate ? "#c2410c" : "#475569",
-                                fontSize: 11.5,
+                                fontSize: 11,
                                 fontWeight: 700,
                                 cursor: "pointer",
                                 transition: "all 0.1s ease",
                               }}
                             >
-                              {d} {d === 1 ? "Day" : "Days"}
+                              {d}d
                             </button>
                           ))}
                         </div>
                       </div>
 
                       {/* Manual days & custom date input */}
-                      <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr" : "1fr 1fr", gap: 12 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr" : "1fr 1fr", gap: 10 }}>
                         <div>
-                          <label style={{ fontSize: 11.5, fontWeight: 700, color: "#475569" }}>Duration in Days</label>
+                          <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>Duration in Days</label>
                           <input
                             type="number"
                             min="0"
@@ -1398,19 +1628,19 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                             }}
                             style={{
                               width: "100%",
-                              padding: "9px 12px",
+                              padding: "8px 10px",
                               borderRadius: 8,
                               border: "1.5px solid #cbd5e1",
                               fontSize: 13,
                               fontWeight: 600,
                               boxSizing: "border-box",
-                              marginTop: 4,
+                              marginTop: 3,
                             }}
                           />
                         </div>
 
                         <div>
-                          <label style={{ fontSize: 11.5, fontWeight: 700, color: "#475569" }}>Or Custom Expiration Date & Time</label>
+                          <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>Or Custom Expiration Date & Time</label>
                           <input
                             type="datetime-local"
                             value={customUntilDate}
@@ -1420,13 +1650,13 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                             }}
                             style={{
                               width: "100%",
-                              padding: "8px 12px",
+                              padding: "8px 10px",
                               borderRadius: 8,
                               border: useCustomDate ? "1.5px solid #ea580c" : "1.5px solid #cbd5e1",
-                              fontSize: 12.5,
+                              fontSize: 12,
                               fontWeight: 600,
                               boxSizing: "border-box",
-                              marginTop: 4,
+                              marginTop: 3,
                               background: useCustomDate ? "#fff7ed" : "#ffffff",
                             }}
                           />
@@ -1437,7 +1667,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
 
                   {/* Suspension Reason Input with 1-Click Preset Tags */}
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>
+                    <label style={{ fontSize: 11.5, fontWeight: 700, color: "#334155" }}>
                       Suspension Reason (Logged to Security Audit Trail):
                     </label>
                     <input
@@ -1447,21 +1677,21 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                       onChange={(e) => setReason(e.target.value)}
                       style={{
                         width: "100%",
-                        padding: "10px 14px",
-                        borderRadius: 10,
+                        padding: "9px 12px",
+                        borderRadius: 8,
                         border: "1.5px solid #cbd5e1",
                         fontSize: 13,
                         fontWeight: 500,
                         color: "#0f172a",
                         boxSizing: "border-box",
-                        marginTop: 5,
+                        marginTop: 4,
                       }}
                     />
 
                     {/* Quick Preset Reason Tags */}
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b", alignSelf: "center" }}>
-                        Quick Suggestions:
+                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 6 }}>
+                      <span style={{ fontSize: 10.5, fontWeight: 600, color: "#64748b", alignSelf: "center" }}>
+                        Presets:
                       </span>
                       {PRESET_REASONS.map((pr) => (
                         <button
@@ -1469,12 +1699,12 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                           type="button"
                           onClick={() => setReason(pr)}
                           style={{
-                            padding: "3px 8px",
+                            padding: "2px 7px",
                             borderRadius: 6,
                             border: "1px solid #e2e8f0",
                             background: "#ffffff",
                             color: "#475569",
-                            fontSize: 11,
+                            fontSize: 10.5,
                             fontWeight: 600,
                             cursor: "pointer",
                             transition: "all 0.1s ease",
@@ -1487,7 +1717,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                   </div>
 
                   {/* Action Button */}
-                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
                     <button
                       type="button"
                       disabled={actionLoading}
@@ -1510,12 +1740,12 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 8,
-                        padding: "12px 24px",
-                        borderRadius: 12,
+                        padding: isMob ? "11px 18px" : "12px 24px",
+                        borderRadius: 10,
                         border: "none",
                         background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
                         color: "#ffffff",
-                        fontSize: 13.5,
+                        fontSize: 13,
                         fontWeight: 700,
                         cursor: actionLoading ? "not-allowed" : "pointer",
                         boxShadow: "0 4px 14px rgba(220, 38, 38, 0.28)",
@@ -1523,7 +1753,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                         justifyContent: "center",
                       }}
                     >
-                      {actionLoading ? <RefreshCw size={15} className="spin" /> : <Ban size={15} />}
+                      {actionLoading ? <RefreshCw size={14} className="spin" /> : <Ban size={14} />}
                       <span>Suspend Student Access Now</span>
                     </button>
                   </div>
@@ -1538,85 +1768,91 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
       <div
         style={{
           background: "#ffffff",
-          borderRadius: 20,
+          borderRadius: isMob ? 16 : 20,
           border: "1px solid #e2e8f0",
           boxShadow: "0 4px 20px -2px rgba(15, 23, 42, 0.04)",
-          padding: isMob ? "18px 16px" : "24px 26px",
+          padding: isMob ? "16px 14px" : "24px 26px",
         }}
       >
         <div
           style={{
             display: "flex",
-            alignItems: isMob ? "flex-start" : "center",
+            alignItems: isMob ? "stretch" : "center",
             justifyContent: "space-between",
             flexDirection: isMob ? "column" : "row",
-            gap: 14,
-            marginBottom: 18,
+            gap: 12,
+            marginBottom: isMob ? 12 : 18,
           }}
         >
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 9,
+                  width: isMob ? 28 : 32,
+                  height: isMob ? 28 : 32,
+                  borderRadius: 8,
                   background: "#fee2e2",
                   color: "#dc2626",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  flexShrink: 0,
                 }}
               >
-                <ShieldAlert size={16} />
+                <ShieldAlert size={isMob ? 14 : 16} />
               </div>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#0f172a" }}>
-                Currently Blocked Students Registry
+              <h3 style={{ margin: 0, fontSize: isMob ? 15 : 16, fontWeight: 800, color: "#0f172a" }}>
+                Blocked Students Registry
               </h3>
             </div>
-            <p style={{ margin: "2px 0 0", fontSize: 12, color: "#64748b" }}>
-              Live directory of accounts whose portal privileges are currently suspended.
+            <p style={{ margin: "2px 0 0", fontSize: isMob ? 11.5 : 12, color: "#64748b" }}>
+              {isMob
+                ? "Live directory of currently suspended accounts."
+                : "Live directory of accounts whose portal privileges are currently suspended."}
             </p>
           </div>
 
           <div
             style={{
               display: "flex",
-              alignItems: "center",
+              alignItems: "stretch",
               gap: 8,
-              flexWrap: "wrap",
+              flexDirection: isMob ? "column" : "row",
               width: isMob ? "100%" : "auto",
             }}
           >
             {/* Filter Pills */}
             <div
               style={{
-                display: "inline-flex",
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
                 background: "#f1f5f9",
-                borderRadius: 10,
+                borderRadius: 9,
                 padding: 3,
                 gap: 2,
               }}
             >
               {[
                 { id: "all", label: `All (${totalBlocked})` },
-                { id: "temporary", label: `Temporary (${tempBlocked})` },
-                { id: "permanent", label: `Permanent (${permBlocked})` },
+                { id: "temporary", label: `Temp (${tempBlocked})` },
+                { id: "permanent", label: `Perm (${permBlocked})` },
               ].map((f) => (
                 <button
                   key={f.id}
                   onClick={() => setFilterType(f.id)}
                   style={{
-                    padding: "5px 12px",
-                    borderRadius: 8,
+                    padding: "5px 6px",
+                    borderRadius: 7,
                     border: "none",
                     background: filterType === f.id ? "#ffffff" : "transparent",
                     color: filterType === f.id ? "#dc2626" : "#64748b",
-                    fontSize: 12,
+                    fontSize: 11.5,
                     fontWeight: 700,
                     cursor: "pointer",
                     boxShadow: filterType === f.id ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
                     transition: "all 0.15s ease",
+                    whiteSpace: "nowrap",
+                    textAlign: "center",
                   }}
                 >
                   {f.label}
@@ -1625,7 +1861,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
             </div>
 
             {/* Table Search Input */}
-            <div style={{ position: "relative", flex: isMob ? 1 : "none" }}>
+            <div style={{ position: "relative", width: isMob ? "100%" : 180 }}>
               <Search
                 size={13}
                 color="#94a3b8"
@@ -1638,11 +1874,11 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                 onChange={(e) => setSearchTable(e.target.value)}
                 style={{
                   padding: "7px 10px 7px 30px",
-                  borderRadius: 10,
+                  borderRadius: 9,
                   border: "1.5px solid #cbd5e1",
                   fontSize: 12,
                   outline: "none",
-                  width: isMob ? "100%" : 180,
+                  width: "100%",
                   boxSizing: "border-box",
                 }}
               />
@@ -1652,40 +1888,40 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
 
         {/* ── Blocked Registry Content ── */}
         {listLoading ? (
-          <div style={{ padding: 48, textAlign: "center", color: "#64748b" }}>
-            <RefreshCw size={26} className="spin" style={{ margin: "0 auto 10px", color: "#4f46e5" }} />
-            <div style={{ fontSize: 13.5, fontWeight: 700 }}>Synchronizing blocked registry...</div>
+          <div style={{ padding: 36, textAlign: "center", color: "#64748b" }}>
+            <RefreshCw size={24} className="spin" style={{ margin: "0 auto 10px", color: "#4f46e5" }} />
+            <div style={{ fontSize: 13, fontWeight: 700 }}>Synchronizing blocked registry...</div>
           </div>
         ) : filteredBlockedList.length === 0 ? (
           <div
             style={{
-              padding: "48px 24px",
+              padding: isMob ? "32px 16px" : "48px 24px",
               textAlign: "center",
               background: "#f8fafc",
-              borderRadius: 16,
+              borderRadius: 14,
               border: "1px dashed #cbd5e1",
             }}
           >
             <div
               style={{
-                width: 52,
-                height: 52,
+                width: 44,
+                height: 44,
                 borderRadius: "50%",
                 background: "#dcfce7",
                 color: "#16a34a",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                margin: "0 auto 14px",
+                margin: "0 auto 12px",
                 boxShadow: "0 4px 12px rgba(22, 163, 74, 0.15)",
               }}
             >
-              <UserCheck size={26} />
+              <UserCheck size={22} />
             </div>
-            <h4 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 800, color: "#0f172a" }}>
+            <h4 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
               {searchTable ? "No Matching Blocked Students" : "No Students Currently Blocked"}
             </h4>
-            <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>
+            <p style={{ margin: 0, fontSize: 12, color: "#64748b" }}>
               {searchTable
                 ? "Try adjusting your search query or filter selection."
                 : "All students have unrestricted access to check semester results and log in."}
@@ -1693,27 +1929,27 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
           </div>
         ) : isMob ? (
           /* ── MOBILE VIEW: RESPONSIVE CARDS ── */
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {filteredBlockedList.map((item) => (
               <div
                 key={item.regNo}
                 style={{
                   background: "#ffffff",
-                  borderRadius: 14,
+                  borderRadius: 12,
                   border: "1px solid #e2e8f0",
-                  padding: "14px",
+                  padding: "12px",
                   display: "flex",
                   flexDirection: "column",
-                  gap: 10,
+                  gap: 8,
                   boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                   <div>
-                    <div style={{ fontWeight: 800, color: "#0f172a", fontSize: 14.5 }}>
+                    <div style={{ fontWeight: 800, color: "#0f172a", fontSize: 14 }}>
                       {item.studentName}
                     </div>
-                    <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 12, color: "#4f46e5", fontWeight: 700 }}>
+                    <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 11.5, color: "#4f46e5", fontWeight: 700, marginTop: 1 }}>
                       {item.regNo}
                     </div>
                   </div>
@@ -1723,21 +1959,22 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 4,
-                      padding: "2px 8px",
+                      padding: "2px 7px",
                       borderRadius: 6,
-                      fontSize: 11,
+                      fontSize: 10.5,
                       fontWeight: 800,
                       background: item.blockType === "permanent" ? "#fef2f2" : "#fff7ed",
                       color: item.blockType === "permanent" ? "#b91c1c" : "#c2410c",
                       border: item.blockType === "permanent" ? "1px solid #fca5a5" : "1px solid #fed7aa",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    {item.blockType === "permanent" ? <Ban size={11} /> : <Clock size={11} />}
+                    {item.blockType === "permanent" ? <Ban size={10} /> : <Clock size={10} />}
                     <span>{item.blockType === "permanent" ? "Permanent" : "Temporary"}</span>
                   </span>
                 </div>
 
-                <div style={{ fontSize: 12, color: "#475569", background: "#f8fafc", padding: "8px 10px", borderRadius: 8 }}>
+                <div style={{ fontSize: 11.5, color: "#475569", background: "#f8fafc", padding: "8px 10px", borderRadius: 8 }}>
                   <div style={{ fontWeight: 700, color: "#9a3412" }}>
                     Remaining: {formatExpiration(item.blockedUntil)}
                   </div>
@@ -1746,13 +1983,13 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                   </div>
                 </div>
 
-                <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
+                <div style={{ display: "flex", gap: 8, paddingTop: 2 }}>
                   <button
                     type="button"
                     onClick={() => handleInspect(item.regNo)}
                     style={{
                       flex: 1,
-                      padding: "8px",
+                      padding: "8px 0",
                       borderRadius: 8,
                       border: "1px solid #cbd5e1",
                       background: "#ffffff",
@@ -1760,6 +1997,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                       fontSize: 12,
                       fontWeight: 700,
                       cursor: "pointer",
+                      textAlign: "center",
                     }}
                   >
                     Inspect
@@ -1778,7 +2016,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                     }}
                     style={{
                       flex: 1,
-                      padding: "8px",
+                      padding: "8px 0",
                       borderRadius: 8,
                       border: "1px solid #bbf7d0",
                       background: "#f0fdf4",
@@ -1786,6 +2024,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                       fontSize: 12,
                       fontWeight: 700,
                       cursor: actionLoading ? "not-allowed" : "pointer",
+                      textAlign: "center",
                     }}
                   >
                     Unblock
@@ -1949,22 +2188,22 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
           <div
             style={{
               background: "#ffffff",
-              borderRadius: 20,
-              maxWidth: 480,
+              borderRadius: 18,
+              maxWidth: 440,
               width: "100%",
-              padding: "24px",
+              padding: isMob ? "18px 16px" : "24px",
               boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
               display: "flex",
               flexDirection: "column",
-              gap: 16,
+              gap: 14,
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div
                 style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 12,
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
                   background: "#fee2e2",
                   color: "#dc2626",
                   display: "flex",
@@ -1973,33 +2212,35 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                   flexShrink: 0,
                 }}
               >
-                <AlertTriangle size={22} />
+                <AlertTriangle size={20} />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0f172a" }}>
+                <h3 style={{ margin: 0, fontSize: isMob ? 15.5 : 17, fontWeight: 800, color: "#0f172a" }}>
                   {confirmModal.title}
                 </h3>
-                <span style={{ fontSize: 12, color: "#64748b" }}>Admin Security Confirmation</span>
+                <span style={{ fontSize: 11.5, color: "#64748b" }}>Admin Security Confirmation</span>
               </div>
             </div>
 
-            <p style={{ margin: 0, fontSize: 13.5, color: "#475569", lineHeight: 1.55 }}>
+            <p style={{ margin: 0, fontSize: 13, color: "#475569", lineHeight: 1.5 }}>
               {confirmModal.message}
             </p>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 4 }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
               <button
                 type="button"
                 onClick={() => setConfirmModal({ isOpen: false, title: "", message: "", onConfirm: null })}
                 style={{
-                  padding: "9px 18px",
-                  borderRadius: 10,
+                  flex: isMob ? 1 : "none",
+                  padding: "8px 16px",
+                  borderRadius: 8,
                   border: "1.5px solid #cbd5e1",
                   background: "#ffffff",
                   color: "#475569",
-                  fontSize: 13,
+                  fontSize: 12.5,
                   fontWeight: 600,
                   cursor: "pointer",
+                  textAlign: "center",
                 }}
               >
                 Cancel
@@ -2009,22 +2250,24 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                 disabled={actionLoading}
                 onClick={confirmModal.onConfirm}
                 style={{
-                  padding: "9px 20px",
-                  borderRadius: 10,
+                  flex: isMob ? 1 : "none",
+                  padding: "8px 18px",
+                  borderRadius: 8,
                   border: "none",
                   background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
                   color: "#ffffff",
-                  fontSize: 13,
+                  fontSize: 12.5,
                   fontWeight: 700,
                   cursor: actionLoading ? "not-allowed" : "pointer",
                   display: "inline-flex",
                   alignItems: "center",
+                  justifyContent: "center",
                   gap: 6,
                   boxShadow: "0 4px 12px rgba(220, 38, 38, 0.25)",
                 }}
               >
-                {actionLoading && <RefreshCw size={13} className="spin" />}
-                <span>Confirm Action</span>
+                {actionLoading && <RefreshCw size={12} className="spin" />}
+                <span>Confirm</span>
               </button>
             </div>
           </div>
