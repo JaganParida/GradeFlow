@@ -425,6 +425,11 @@ export default function AttendanceTracker() {
   }, [todayDateKey, maxInstructionDateKey]);
 
   const [selectedAdvisorDateKey, setSelectedAdvisorDateKey] = useState(() => todayDateKey);
+  useEffect(() => {
+    if (selectedAdvisorDateKey !== todayDateKey) {
+      setSelectedAdvisorDateKey(todayDateKey);
+    }
+  }, [todayDateKey, selectedAdvisorDateKey]);
   const selectedAdvisorDateObj = useMemo(() => new Date(selectedAdvisorDateKey + "T00:00:00"), [selectedAdvisorDateKey]);
   const isAdvisorSelectedToday = selectedAdvisorDateKey === todayDateKey;
   const canAdvisorGoPrev = selectedAdvisorDateKey > todayDateKey;
@@ -5690,137 +5695,30 @@ export default function AttendanceTracker() {
                   </>
                 ) : (
                   <p style={{ fontSize: 12.5, color: "#64748b", margin: "4px 0 0 0", lineHeight: 1.45, fontWeight: 500 }}>
-                    {formatFriendlyDate(selectedAdvisorDateKey)} · Schedule & Routine Overview
+                    {formatFriendlyDate(todayDateKey)} · Schedule & Routine Overview
                   </p>
                 )}
               </div>
 
-              {/* Date Controls (Strictly bounded: todayDateKey -> lastDateOfInstruction) */}
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", alignSelf: isMobile ? "stretch" : "center" }}>
-                <button
-                  type="button"
-                  onClick={handleAdvisorPrevDay}
-                  disabled={!canAdvisorGoPrev}
-                  title={!canAdvisorGoPrev ? "Past dates are not available in Advisor (Today is minimum)" : "Previous Day"}
-                  style={{
-                    flex: isMobile ? 1 : "initial",
-                    padding: "6px 10px",
-                    borderRadius: 7,
-                    border: `1px solid ${canAdvisorGoPrev ? "#cbd5e1" : "#e2e8f0"}`,
-                    background: canAdvisorGoPrev ? "#ffffff" : "#f1f5f9",
-                    color: canAdvisorGoPrev ? "#0f172a" : "#94a3b8",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: canAdvisorGoPrev ? "pointer" : "not-allowed",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 4,
-                  }}
-                >
-                  <ChevronLeft size={13} />
-                  <span>Prev</span>
-                </button>
-
-                <div style={{ position: "relative", display: "inline-flex", alignItems: "center", flex: isMobile ? 2 : "initial" }}>
-                  <button
-                    type="button"
-                    onClick={handleOpenAdvisorDatePicker}
-                    style={{
-                      width: "100%",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 6,
-                      padding: "6px 12px",
-                      borderRadius: 7,
-                      background: "#ffffff",
-                      border: "1px solid #cbd5e1",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: "#0f172a",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <CalendarIcon size={12} color="#475569" />
-                    <span>{formatFriendlyDate(selectedAdvisorDateKey)}</span>
-                    <ChevronDown size={12} color="#64748b" />
-                  </button>
-                  <input
-                    ref={advisorDateInputRef}
-                    type="date"
-                    min={todayDateKey}
-                    max={effectiveMaxAdvisorDateKey}
-                    value={selectedAdvisorDateKey}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        handleAdvisorSelectDate(e.target.value);
-                      }
-                    }}
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      height: "100%",
-                      opacity: 0,
-                      pointerEvents: "none",
-                    }}
-                    tabIndex={-1}
-                    aria-hidden="true"
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleAdvisorNextDay}
-                  disabled={!canAdvisorGoNext}
-                  title={!canAdvisorGoNext ? "End of semester instruction reached (Oct 31, 2026)" : "Next Day"}
-                  style={{
-                    flex: isMobile ? 1 : "initial",
-                    padding: "6px 10px",
-                    borderRadius: 7,
-                    border: `1px solid ${canAdvisorGoNext ? "#cbd5e1" : "#e2e8f0"}`,
-                    background: canAdvisorGoNext ? "#ffffff" : "#f1f5f9",
-                    color: canAdvisorGoNext ? "#0f172a" : "#94a3b8",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: canAdvisorGoNext ? "pointer" : "not-allowed",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 4,
-                  }}
-                >
-                  <span>Next</span>
-                  <ChevronRight size={13} />
-                </button>
-
-                {!isAdvisorSelectedToday && (
-                  <button
-                    type="button"
-                    onClick={() => handleAdvisorSelectDate(todayDateKey)}
-                    style={{
-                      padding: "6px 12px",
-                      borderRadius: 7,
-                      border: "1px solid #cbd5e1",
-                      background: "#f8fafc",
-                      color: "#0f172a",
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#f1f5f9";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "#f8fafc";
-                    }}
-                  >
-                    Today
-                  </button>
-                )}
+              {/* Strictly Today's Date Badge */}
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6.5,
+                  padding: "6px 13px",
+                  borderRadius: 8,
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  alignSelf: isMobile ? "flex-start" : "center",
+                  boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
+                }}
+              >
+                <CalendarIcon size={13} color="#475569" />
+                <span>Today · {formatFriendlyDate(todayDateKey)}</span>
               </div>
             </div>
 
