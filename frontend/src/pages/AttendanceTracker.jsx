@@ -5562,43 +5562,130 @@ export default function AttendanceTracker() {
                 {dailyAdvisorAnalysis.classes.length > 0 ? (
                   <>
                     <p style={{ fontSize: 12.5, color: "#475569", margin: "4px 0 0 0", lineHeight: 1.45, fontWeight: 500 }}>
-                      Click on any class card to see how attending or skipping affects your semester percentage.
+                      Click on any class card to see how attending or skipping affects your attendance percentage.
                     </p>
-                    <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                      <span>Simulation only — this does not mark daily attendance. To mark daily attendance, use this:</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedCheckInDateKey(todayDateKey);
-                          handleTabClick("checkin");
-                          window.scrollTo({ top: 0, behavior: "smooth" });
-                        }}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 5 }}>
+                      <div style={{ fontSize: 11.5, color: "#64748b", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", lineHeight: 1.4 }}>
+                        <span>Simulation only — this does not mark daily attendance. To mark daily attendance, use this:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedCheckInDateKey(todayDateKey);
+                            handleTabClick("checkin");
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                          style={{
+                            background: "#0f172a",
+                            color: "#ffffff",
+                            border: "1px solid #0f172a",
+                            padding: "3.5px 10px",
+                            borderRadius: 6,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            fontSize: 11,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4.5,
+                            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.12)",
+                            transition: "all 0.15s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#1e293b";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "#0f172a";
+                          }}
+                        >
+                          <ClipboardCheck size={11.5} color="#ffffff" />
+                          <span>Mark Daily Attendance</span>
+                          <ArrowRight size={10} color="#ffffff" />
+                        </button>
+                      </div>
+
+                      <div
                         style={{
-                          background: "#0f172a",
-                          color: "#ffffff",
-                          border: "1px solid #0f172a",
-                          padding: "3.5px 10px",
-                          borderRadius: 6,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          fontSize: 11,
-                          display: "inline-flex",
+                          fontSize: 11.5,
+                          color: "#64748b",
+                          display: "flex",
                           alignItems: "center",
-                          gap: 4.5,
-                          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.12)",
-                          transition: "all 0.15s ease",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "#1e293b";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "#0f172a";
+                          gap: 6,
+                          flexWrap: "wrap",
+                          lineHeight: 1.4,
+                          paddingTop: 4,
+                          borderTop: "1px dashed #e2e8f0",
                         }}
                       >
-                        <ClipboardCheck size={11.5} color="#ffffff" />
-                        <span>Mark Daily Attendance</span>
-                        <ArrowRight size={10} color="#ffffff" />
-                      </button>
+                        <span>For more classes to skip, check details in</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleTabClick("bunk_analyzer");
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                          style={{
+                            background: "#ffffff",
+                            color: "#0f172a",
+                            border: "1px solid #cbd5e1",
+                            padding: "3px 9px",
+                            borderRadius: 6,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            fontSize: 11,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
+                            transition: "all 0.15s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#f8fafc";
+                            e.currentTarget.style.borderColor = "#94a3b8";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "#ffffff";
+                            e.currentTarget.style.borderColor = "#cbd5e1";
+                          }}
+                        >
+                          <TrendingUp size={11} color="#0f172a" />
+                          <span>Future Predictor</span>
+                          <ArrowRight size={10} color="#0f172a" />
+                        </button>
+                        <span>— or to see each subject percentage effect of more classes, visit</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleTabClick("studio_simulator");
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                          style={{
+                            background: "#ffffff",
+                            color: "#0f172a",
+                            border: "1px solid #cbd5e1",
+                            padding: "3px 9px",
+                            borderRadius: 6,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            fontSize: 11,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
+                            transition: "all 0.15s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#f8fafc";
+                            e.currentTarget.style.borderColor = "#94a3b8";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "#ffffff";
+                            e.currentTarget.style.borderColor = "#cbd5e1";
+                          }}
+                        >
+                          <Sliders size={11} color="#0f172a" />
+                          <span>Edit & What-If</span>
+                          <ArrowRight size={10} color="#0f172a" />
+                        </button>
+                      </div>
                     </div>
                   </>
                 ) : (
