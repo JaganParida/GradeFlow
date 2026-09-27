@@ -2061,19 +2061,61 @@ export default function AttendanceTracker() {
     }, 60);
   };
 
-  // ─── Daily Attendance Advisor Engine (Schedule & Class Impact Studio) ───
+  // ─── Daily Attendance Advisor Engine (Schedule & Subject Impact Studio) ───
   const calculateAdvisorAnalysis = useCallback(
     (classesList, dateKey) => {
       if (!classesList || classesList.length === 0) {
-        return { classes: [], topPriority: null, safeCount: 0, criticalCount: 0, totalClasses: 0 };
+        return { classes: [], topPriority: null, safeCount: 0, criticalCount: 0, totalClasses: 0, totalSubjects: 0 };
       }
 
       const activeDateLogs = allDailyLogs[dateKey] || {};
       const target = Number(targetGoal) || 75;
 
-      const list = classesList.map((period) => {
+      // Group scheduled periods by distinct subject code / clean name
+      const subjectMap = new Map();
+      classesList.forEach((period) => {
         const cleanName = period.cleanName || period.subject || "";
         const subCode = resolveSubjectCode(period, studentData);
+        const groupKey = subCode ? subCode.trim().toUpperCase() : cleanName.trim().toLowerCase();
+
+        if (!subjectMap.has(groupKey)) {
+          subjectMap.set(groupKey, {
+            groupKey,
+            cleanName,
+            subCode,
+            periods: [],
+          });
+        }
+        subjectMap.get(groupKey).periods.push(period);
+      });
+
+      const list = Array.from(subjectMap.values()).map((group) => {
+        const { cleanName, subCode, periods, groupKey } = group;
+        periods.sort((a, b) => a.slotIndex - b.slotIndex);
+        const classCount = periods.length;
+
+        // Slot and timing info
+        const startTime = periods[0]?.slot?.startTime || "";
+        const endTime = periods[periods.length - 1]?.slot?.endTime || "";
+        const timingRange = startTime && endTime ? `${startTime} - ${endTime}` : "";
+        const periodLabels = periods.map((p) => `P${p.slotIndex + 1}`).join(", ");
+        const rooms = [...new Set(periods.map((p) => p.slot?.room || p.room).filter(Boolean))];
+        const types = [...new Set(periods.map((p) => p.type).filter(Boolean))];
+
+        // Logs status for this subject's classes on dateKey
+        let markedPresentCount = 0;
+        let markedAbsentCount = 0;
+        periods.forEach((p) => {
+          const log = activeDateLogs[p.slotIndex];
+          if (log === "present") markedPresentCount++;
+          else if (log === "absent") markedAbsentCount++;
+        });
+        const markedTotal = markedPresentCount + markedAbsentCount;
+        const isAllPresent = markedPresentCount === classCount;
+        const isAllAbsent = markedAbsentCount === classCount;
+        const isPartiallyMarked = markedTotal > 0 && !isAllPresent && !isAllAbsent;
+
+        // Current totals from subject catalog
         const sub =
           allSectionSubjects.find((s) => isSameSubject(s, cleanName)) ||
           savedSubjects.find((s) => isSameSubject(s, cleanName));
@@ -2092,43 +2134,34 @@ export default function AttendanceTracker() {
         const curOverallDel = overallAggregate.totalDelivered;
         const curOverallPct = overallAggregate.percentage;
 
-        const status = activeDateLogs[period.slotIndex]; // "present" | "absent" | undefined
-        const isPresent = status === "present";
-        const isAbsent = status === "absent";
-        const isMarked = isPresent || isAbsent;
-
-        // Baseline before this specific period:
-        // If already marked "present", 1 was added to attended and delivered.
-        // If already marked "absent", 0 was added to attended and 1 to delivered.
-        // If unmarked, nothing has been added yet.
-        const baseSubAtt = isPresent ? Math.max(0, curSubAtt - 1) : curSubAtt;
-        const baseSubDel = isMarked ? Math.max(0, curSubDel - 1) : curSubDel;
+        // Baseline (before any of today's marks for these periods):
+        const baseSubAtt = Math.max(0, curSubAtt - markedPresentCount);
+        const baseSubDel = Math.max(0, curSubDel - markedTotal);
         const baseSubPct = baseSubDel > 0 ? (baseSubAtt / baseSubDel) * 100 : 0;
 
-        const baseOverallAtt = isPresent ? Math.max(0, curOverallAtt - 1) : curOverallAtt;
-        const baseOverallDel = isMarked ? Math.max(0, curOverallDel - 1) : curOverallDel;
+        const baseOverallAtt = Math.max(0, curOverallAtt - markedPresentCount);
+        const baseOverallDel = Math.max(0, curOverallDel - markedTotal);
         const baseOverallPct = baseOverallDel > 0 ? (baseOverallAtt / baseOverallDel) * 100 : 0;
 
-        // 1. If this class is Attended (+1 attended, +1 delivered from base)
-        const attendSubAtt = baseSubAtt + 1;
-        const attendSubDel = baseSubDel + 1;
-        const attendSubPct = (attendSubAtt / attendSubDel) * 100;
+        // 1. If All Classes of this subject Attended (+classCount)
+        const attendSubAtt = baseSubAtt + classCount;
+        const attendSubDel = baseSubDel + classCount;
+        const attendSubPct = attendSubDel > 0 ? (attendSubAtt / attendSubDel) * 100 : 0;
         const attendSubDelta = attendSubPct - baseSubPct;
 
-        // 2. If this class is Missed (0 attended, +1 delivered from base)
-        const missSubAtt = baseSubAtt;
-        const missSubDel = baseSubDel + 1;
-        const missSubPct = (missSubAtt / missSubDel) * 100;
-        const missSubDelta = missSubPct - baseSubPct;
-
-        // 3. Overall Semester Attendance Impact (Across all semester subjects)
-        const attendOverallAtt = baseOverallAtt + 1;
-        const attendOverallDel = baseOverallDel + 1;
+        const attendOverallAtt = baseOverallAtt + classCount;
+        const attendOverallDel = baseOverallDel + classCount;
         const attendOverallPct = attendOverallDel > 0 ? (attendOverallAtt / attendOverallDel) * 100 : 0;
         const attendOverallDelta = attendOverallPct - baseOverallPct;
 
+        // 2. If All Classes of this subject Missed (+0 attended, +classCount delivered)
+        const missSubAtt = baseSubAtt;
+        const missSubDel = baseSubDel + classCount;
+        const missSubPct = missSubDel > 0 ? (missSubAtt / missSubDel) * 100 : 0;
+        const missSubDelta = missSubPct - baseSubPct;
+
         const missOverallAtt = baseOverallAtt;
-        const missOverallDel = baseOverallDel + 1;
+        const missOverallDel = baseOverallDel + classCount;
         const missOverallPct = missOverallDel > 0 ? (missOverallAtt / missOverallDel) * 100 : 0;
         const missOverallDelta = missOverallPct - baseOverallPct;
 
@@ -2143,7 +2176,7 @@ export default function AttendanceTracker() {
           }
         }
 
-        // Safe Bunks / Classes Needed after Attending
+        // Safe Bunks / Classes Needed after Attending All
         let postAttendSafeBunks = 0;
         let postAttendClassesNeeded = 0;
         if (attendSubPct >= target) {
@@ -2152,7 +2185,7 @@ export default function AttendanceTracker() {
           postAttendClassesNeeded = Math.ceil((target * attendSubDel - 100 * attendSubAtt) / (100 - target));
         }
 
-        // Safe Bunks / Classes Needed after Missing
+        // Safe Bunks / Classes Needed after Missing All
         let postMissSafeBunks = 0;
         let postMissClassesNeeded = 0;
         if (missSubPct >= target) {
@@ -2163,33 +2196,39 @@ export default function AttendanceTracker() {
 
         // Priority Scoring for the Morning Action Card
         let priorityScore = 0;
-        let urgencyType = "maintain_buffer"; // "safe_opportunity" | "boundary_warning" | "critical_recovery" | "maintain_buffer"
+        let urgencyType = "maintain_buffer";
         let adviceText = "";
 
-        if (isPresent) {
+        const classLabel = classCount === 1 ? "class" : `${classCount} classes`;
+
+        if (isAllPresent) {
           priorityScore = -100;
           urgencyType = "marked_present";
-          adviceText = `Attended today! Attendance reached ${curSubPct.toFixed(1)}% (+${attendSubDelta.toFixed(1)}%). Great job!`;
-        } else if (isAbsent) {
+          adviceText = `All ${classLabel} attended today! Attendance reached ${curSubPct.toFixed(1)}% (+${attendSubDelta.toFixed(1)}%). Great job!`;
+        } else if (isAllAbsent) {
           priorityScore = 200;
           urgencyType = "marked_absent";
-          adviceText = `Missed today! Attendance dropped to ${curSubPct.toFixed(1)}% (${missSubDelta.toFixed(1)}%). Needs recovery!`;
+          adviceText = `All ${classLabel} missed today! Attendance dropped to ${curSubPct.toFixed(1)}% (${missSubDelta.toFixed(1)}%). Needs recovery!`;
+        } else if (isPartiallyMarked) {
+          priorityScore = 50;
+          urgencyType = "maintain_buffer";
+          adviceText = `${markedPresentCount} attended, ${markedAbsentCount} missed today. Current attendance is ${curSubPct.toFixed(1)}%.`;
         } else if (baseSubDel === 0) {
           priorityScore = 15;
           urgencyType = "maintain_buffer";
-          adviceText = `First lecture of the semester! Attend to start off strong with a 100% record.`;
+          adviceText = `First ${classLabel} of the semester! Attend to start off strong with a 100% record.`;
         } else if (baseSubPct < target && attendSubPct >= target) {
           priorityScore = 1000 + (attendSubPct - baseSubPct);
           urgencyType = "safe_opportunity";
-          adviceText = `Attending this lecture will boost ${cleanName} from ${baseSubPct.toFixed(1)}% to ${attendSubPct.toFixed(1)}% and cross into the Safe Zone (≥${target}%)!`;
+          adviceText = `Attending today's ${classLabel} will boost ${cleanName} from ${baseSubPct.toFixed(1)}% to ${attendSubPct.toFixed(1)}% and cross into the Safe Zone (≥${target}%)!`;
         } else if (baseSubPct >= target && missSubPct < target) {
           priorityScore = 800 + (target - missSubPct);
           urgencyType = "boundary_warning";
-          adviceText = `Missing this lecture will drop ${cleanName} to ${missSubPct.toFixed(1)}% into Danger Zone (<${target}%). Must attend!`;
+          adviceText = `Missing today's ${classLabel} will drop ${cleanName} from ${baseSubPct.toFixed(1)}% to ${missSubPct.toFixed(1)}% into Shortage (<${target}%). Must attend!`;
         } else if (baseSubPct < target) {
           priorityScore = 500 + (target - baseSubPct);
           urgencyType = "critical_recovery";
-          adviceText = `Currently in Shortage (${baseSubPct.toFixed(1)}%). Attending yields +${attendSubDelta.toFixed(1)}% and cuts your recovery backlog!`;
+          adviceText = `Currently in Shortage (${baseSubPct.toFixed(1)}%). Attending today yields +${attendSubDelta.toFixed(1)}% and helps clear your backlog!`;
         } else {
           priorityScore = 100 - Math.min(50, currentSafeBunks);
           urgencyType = "maintain_buffer";
@@ -2197,9 +2236,15 @@ export default function AttendanceTracker() {
         }
 
         return {
-          period,
+          groupKey,
           cleanName,
           subCode,
+          periods,
+          classCount,
+          timingRange,
+          periodLabels,
+          rooms,
+          types,
           curSubAtt,
           curSubDel,
           curSubPct,
@@ -2215,10 +2260,18 @@ export default function AttendanceTracker() {
           missSubDel,
           missSubPct,
           missSubDelta,
+          curOverallAtt,
+          curOverallDel,
           curOverallPct,
+          baseOverallAtt,
+          baseOverallDel,
           baseOverallPct,
+          attendOverallAtt,
+          attendOverallDel,
           attendOverallPct,
           attendOverallDelta,
+          missOverallAtt,
+          missOverallDel,
           missOverallPct,
           missOverallDelta,
           currentSafeBunks,
@@ -2230,10 +2283,12 @@ export default function AttendanceTracker() {
           priorityScore,
           urgencyType,
           adviceText,
-          status,
-          isPresent,
-          isAbsent,
-          isMarked,
+          markedPresentCount,
+          markedAbsentCount,
+          markedTotal,
+          isAllPresent,
+          isAllAbsent,
+          isPartiallyMarked,
         };
       });
 
@@ -2248,7 +2303,8 @@ export default function AttendanceTracker() {
         topPriority,
         safeCount,
         criticalCount,
-        totalClasses: list.length,
+        totalClasses: classesList.length,
+        totalSubjects: list.length,
       };
     },
     [allSectionSubjects, savedSubjects, studentData, targetGoal, overallAggregate, allDailyLogs]
@@ -5504,6 +5560,10 @@ export default function AttendanceTracker() {
                       <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>{dailyAdvisorAnalysis.totalClasses}</div>
                       <div style={{ fontSize: 9.5, color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Classes {isAdvisorSelectedToday ? "Today" : "Scheduled"}</div>
                     </div>
+                    <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "6px 11px", textAlign: "center" }}>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>{dailyAdvisorAnalysis.totalSubjects}</div>
+                      <div style={{ fontSize: 9.5, color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Subjects</div>
+                    </div>
                     <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "6px 11px", textAlign: "center" }}>
                       <div style={{ fontSize: 13, fontWeight: 800, color: "#16a34a" }}>{dailyAdvisorAnalysis.safeCount}</div>
                       <div style={{ fontSize: 9.5, color: "#15803d", fontWeight: 700, textTransform: "uppercase" }}>Safe (≥{targetGoal}%)</div>
@@ -5571,269 +5631,319 @@ export default function AttendanceTracker() {
 
                   return (
                     <div
-                      key={`advisor-${item.period.slotIndex}`}
+                      key={`advisor-${item.groupKey}`}
                       style={{
                         background: "#ffffff",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: 14,
-                        padding: isMobile ? "14px 14px" : "16px 18px",
+                        border: "1.5px solid #e2e8f0",
+                        borderRadius: 12,
+                        padding: isMobile ? "13px 13px" : "15px 18px",
                         display: "flex",
                         flexDirection: "column",
-                        gap: 11,
+                        gap: 10,
                         boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
                         transition: "all 0.15s ease",
                       }}
                     >
-                      {/* Card Top: Slot timing + Component badge */}
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      {/* TOP HEADER: Badge (Dark class count) + Period & Time + Status Pill */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
                           <span
                             style={{
                               fontSize: 11,
                               fontWeight: 800,
-                              background: "#f1f5f9",
-                              color: "#0f172a",
-                              padding: "2px 7px",
-                              borderRadius: 5,
+                              background: "#0f172a",
+                              color: "#ffffff",
+                              padding: "2.5px 8px",
+                              borderRadius: 6,
+                              letterSpacing: "0.2px",
                             }}
                           >
-                            P{item.period.slotIndex + 1}
+                            {item.classCount === 1 ? "1 Class" : `${item.classCount} Classes`}
                           </span>
-                          <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b", fontFamily: "'DM Sans', monospace" }}>
-                            {item.period.slot?.startTime} - {item.period.slot?.endTime}
-                          </span>
+
+                          <div style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 700, color: "#334155" }}>
+                            <Clock size={12} color="#64748b" />
+                            <span>{item.periodLabels}</span>
+                            {item.timingRange && (
+                              <>
+                                <span style={{ color: "#cbd5e1" }}>·</span>
+                                <span>{item.timingRange}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
 
-                        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                          {item.status && (
-                            <span
-                              style={{
-                                fontSize: 10,
-                                fontWeight: 700,
-                                background: item.isPresent ? "#dcfce7" : "#fee2e2",
-                                color: item.isPresent ? "#15803d" : "#b91c1c",
-                                padding: "2px 6px",
-                                borderRadius: 4,
-                                border: `1px solid ${item.isPresent ? "#bbf7d0" : "#fecaca"}`,
-                              }}
-                            >
-                              {item.isPresent ? "✓ Attended" : "✕ Missed"}
+                        {/* Status / Logged Badge + Target Safe Pill */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          {item.isAllPresent ? (
+                            <span style={{ fontSize: 10.5, fontWeight: 800, background: "#dcfce7", color: "#15803d", border: "1px solid #bbf7d0", padding: "2px 7px", borderRadius: 6 }}>
+                              ✓ Logged
                             </span>
-                          )}
+                          ) : item.isAllAbsent ? (
+                            <span style={{ fontSize: 10.5, fontWeight: 800, background: "#fee2e2", color: "#b91c1c", border: "1px solid #fecaca", padding: "2px 7px", borderRadius: 6 }}>
+                              ✕ Missed
+                            </span>
+                          ) : item.isPartiallyMarked ? (
+                            <span style={{ fontSize: 10.5, fontWeight: 700, background: "#fef3c7", color: "#b45309", border: "1px solid #fde68a", padding: "2px 7px", borderRadius: 6 }}>
+                              {item.markedPresentCount}P · {item.markedAbsentCount}A
+                            </span>
+                          ) : null}
+
                           <span
                             style={{
-                              fontSize: 10,
-                              fontWeight: 800,
-                              background: item.period.type === "PR" ? "#faf5ff" : item.period.type === "TUT" ? "#fffbeb" : "#f1f5f9",
-                              color: item.period.type === "PR" ? "#7c3aed" : item.period.type === "TUT" ? "#b45309" : "#475569",
-                              padding: "2px 6px",
-                              borderRadius: 4,
-                              border: `1px solid ${item.period.type === "PR" ? "#ddd6fe" : item.period.type === "TUT" ? "#fde68a" : "#e2e8f0"}`,
+                              fontSize: 10.5,
+                              fontWeight: 700,
+                              background: isSafe ? "#ecfdf5" : "#fef2f2",
+                              color: isSafe ? "#047857" : "#b91c1c",
+                              border: `1px solid ${isSafe ? "#a7f3d0" : "#fecaca"}`,
+                              padding: "2px 8px",
+                              borderRadius: 6,
                             }}
                           >
-                            {item.period.type || "PP"}
+                            {isSafe ? `Safe ≥ ${item.target}%` : `Shortage < ${item.target}%`}
                           </span>
                         </div>
                       </div>
 
-                      {/* Subject Name & Current Standing */}
+                      {/* SUBJECT NAME & CURRENT STANDING */}
                       <div>
-                        <div style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", lineHeight: 1.35 }}>
+                        <h4 style={{ fontSize: isMobile ? 15 : 15.5, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.2px", lineHeight: 1.3 }}>
                           {item.cleanName}
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+                        </h4>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap", fontSize: 11, color: "#64748b" }}>
                           {item.subCode && (
-                            <span style={{ fontSize: 10.5, fontFamily: "'DM Sans', monospace", fontWeight: 700, color: "#475569", background: "#f8fafc", border: "1px solid #e2e8f0", padding: "1.5px 6px", borderRadius: 4 }}>
+                            <span style={{ fontWeight: 700, fontFamily: "'DM Sans', monospace", background: "#f8fafc", border: "1px solid #e2e8f0", padding: "1px 6px", borderRadius: 4, color: "#334155" }}>
                               {item.subCode}
                             </span>
                           )}
-                          <span style={{ fontSize: 11, fontWeight: 700, color: isSafe ? "#16a34a" : "#dc2626" }}>
-                            Current: {item.curSubDel > 0 ? `${item.curSubAtt}/${item.curSubDel} (${item.curSubPct.toFixed(1)}%)` : "No prior classes"}
-                          </span>
-                          <span style={{ fontSize: 10.5, color: "#64748b" }}>
-                            {isSafe
-                              ? `· ${item.currentSafeBunks} safe bunk(s)`
-                              : `· ${item.currentClassesNeeded} needed to hit ${item.target}%`}
+                          {item.rooms.length > 0 && <span>Room {item.rooms.join(", ")}</span>}
+                          {item.types.length > 0 && <span>({item.types.join(", ")})</span>}
+                          <span style={{ color: "#cbd5e1" }}>•</span>
+                          <span style={{ fontWeight: 600, color: "#475569" }}>
+                            Current: <strong style={{ color: isSafe ? "#15803d" : "#dc2626" }}>{item.curSubDel > 0 ? `${item.curSubAtt}/${item.curSubDel} (${item.curSubPct.toFixed(1)}%)` : "No prior classes"}</strong>
                           </span>
                         </div>
                       </div>
 
-                      {/* 2-Column Impact Grid: If Attended vs If Missed for this Subject */}
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                        {/* Attend Box */}
+                      <div style={{ height: 1, background: "#f1f5f9", margin: "2px 0" }} />
+
+                      {/* 2-COLUMN RESULTING ATTENDANCE IMPACT: IF ATTEND vs IF MISS */}
+                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
+                        {/* ATTEND BOX */}
                         <div
                           style={{
-                            background: item.isAbsent ? "#f8fafc" : "#f0fdf4",
-                            border: item.isPresent ? "1.5px solid #16a34a" : item.isAbsent ? "1px dashed #cbd5e1" : "1px solid #bbf7d0",
-                            borderRadius: 10,
-                            padding: "9px 11px",
+                            background: item.isAllAbsent ? "#f8fafc" : "#f0fdf4",
+                            border: item.isAllPresent
+                              ? "1.5px solid #16a34a"
+                              : item.isAllAbsent
+                              ? "1px dashed #cbd5e1"
+                              : "1px solid #bbf7d0",
+                            borderRadius: 9,
+                            padding: "10px 12px",
                             display: "flex",
                             flexDirection: "column",
-                            gap: 2,
-                            opacity: item.isAbsent ? 0.55 : 1,
+                            gap: 6,
+                            opacity: item.isAllAbsent ? 0.55 : 1,
                             transition: "all 0.15s ease",
                           }}
                         >
-                          <div style={{ fontSize: 10.5, fontWeight: 800, color: item.isAbsent ? "#94a3b8" : "#15803d", textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: 4, textDecoration: item.isAbsent ? "line-through" : "none" }}>
-                              <CheckCircle2 size={12} color={item.isAbsent ? "#94a3b8" : "#16a34a"} />
-                              <span>{item.isPresent ? "Attended (+1)" : "If Attended (+1)"}</span>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 800,
+                                color: item.isAllAbsent ? "#94a3b8" : "#15803d",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.4px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                textDecoration: item.isAllAbsent ? "line-through" : "none",
+                              }}
+                            >
+                              <CheckCircle2 size={13} color={item.isAllAbsent ? "#94a3b8" : "#16a34a"} />
+                              <span>{item.isAllPresent ? "Attended Today" : `If Attend (+${item.classCount})`}</span>
                             </span>
-                            {item.isPresent ? (
-                              <span style={{ background: "#16a34a", color: "#ffffff", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 800 }}>✓ LOGGED</span>
-                            ) : item.isAbsent ? (
-                              <span style={{ background: "#e2e8f0", color: "#64748b", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>Missed</span>
+                            {item.isAllPresent ? (
+                              <span style={{ background: "#16a34a", color: "#ffffff", padding: "1px 6px", borderRadius: 4, fontSize: 9.5, fontWeight: 800 }}>✓ LOGGED</span>
+                            ) : item.isAllAbsent ? (
+                              <span style={{ background: "#e2e8f0", color: "#64748b", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>Cancelled</span>
                             ) : null}
                           </div>
+
+                          {/* Subject Result Line */}
                           <div
                             style={{
                               display: "flex",
                               alignItems: "baseline",
-                              gap: 5,
-                              marginTop: 1,
-                              textDecoration: item.isAbsent ? "line-through" : "none",
+                              justifyContent: "space-between",
+                              gap: 6,
+                              textDecoration: item.isAllAbsent ? "line-through" : "none",
                               textDecorationColor: "#16a34a",
                               textDecorationThickness: "2px",
                             }}
                           >
-                            <span style={{ fontSize: 16, fontWeight: 800, color: item.isAbsent ? "#94a3b8" : "#15803d" }}>
-                              {item.attendSubPct.toFixed(1)}%
-                            </span>
-                            <span style={{ fontSize: 10.5, fontWeight: 700, color: item.isAbsent ? "#94a3b8" : "#16a34a" }}>
-                              +{item.attendSubDelta.toFixed(1)}%
-                            </span>
+                            <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>Subject Result:</span>
+                            <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+                              <strong style={{ fontSize: 14.5, fontWeight: 800, color: item.isAllAbsent ? "#94a3b8" : "#15803d" }}>
+                                {item.attendSubAtt}/{item.attendSubDel} ({item.attendSubPct.toFixed(1)}%)
+                              </strong>
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 800,
+                                  background: item.isAllAbsent ? "#f1f5f9" : "#dcfce7",
+                                  color: item.isAllAbsent ? "#94a3b8" : "#15803d",
+                                  padding: "1px 5px",
+                                  borderRadius: 4,
+                                }}
+                              >
+                                +{item.attendSubDelta.toFixed(1)}%
+                              </span>
+                            </div>
                           </div>
-                          <div
-                            style={{
-                              fontSize: 10.5,
-                              color: item.isAbsent ? "#94a3b8" : "#166534",
-                              marginTop: 2,
-                              lineHeight: 1.35,
-                              textDecoration: item.isAbsent ? "line-through" : "none",
-                            }}
-                          >
-                            {item.isAbsent
-                              ? `Missed +${item.attendSubDelta.toFixed(1)}% boost`
-                              : item.baseSubDel === 0
-                              ? "Starts with 100%"
-                              : item.baseSubPct < item.target && item.attendSubPct >= item.target
-                              ? (item.isPresent ? "🎉 Reached Safe Zone!" : "🎉 Crosses into Safe Zone!")
-                              : item.attendSubPct >= item.target
-                              ? `Buffer: ${item.postAttendSafeBunks} safe bunks`
-                              : `${item.postAttendClassesNeeded} more needed`}
-                          </div>
-                        </div>
 
-                        {/* Miss Box */}
-                        <div
-                          style={{
-                            background: item.isPresent ? "#f8fafc" : "#fff1f2",
-                            border: item.isAbsent ? "1.5px solid #dc2626" : item.isPresent ? "1px dashed #cbd5e1" : "1px solid #fecaca",
-                            borderRadius: 10,
-                            padding: "9px 11px",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 2,
-                            opacity: item.isPresent ? 0.55 : 1,
-                            transition: "all 0.15s ease",
-                          }}
-                        >
-                          <div style={{ fontSize: 10.5, fontWeight: 800, color: item.isPresent ? "#94a3b8" : "#b91c1c", textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: 4, textDecoration: item.isPresent ? "line-through" : "none" }}>
-                              <XCircle size={12} color={item.isPresent ? "#94a3b8" : "#dc2626"} />
-                              <span>{item.isAbsent ? "Missed (+0)" : "If Missed (+0)"}</span>
-                            </span>
-                            {item.isAbsent ? (
-                              <span style={{ background: "#dc2626", color: "#ffffff", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 800 }}>✗ LOGGED</span>
-                            ) : item.isPresent ? (
-                              <span style={{ background: "#e2e8f0", color: "#64748b", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>Cancelled</span>
-                            ) : null}
-                          </div>
+                          {/* Overall Semester Result Line */}
                           <div
                             style={{
                               display: "flex",
                               alignItems: "baseline",
-                              gap: 5,
-                              marginTop: 1,
-                              textDecoration: item.isPresent ? "line-through" : "none",
+                              justifyContent: "space-between",
+                              gap: 6,
+                              paddingTop: 5,
+                              borderTop: "1px solid rgba(22, 163, 74, 0.15)",
+                              fontSize: 11,
+                              textDecoration: item.isAllAbsent ? "line-through" : "none",
+                            }}
+                          >
+                            <span style={{ color: "#64748b", fontWeight: 600 }}>Semester Overall:</span>
+                            <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+                              <strong style={{ color: item.isAllAbsent ? "#94a3b8" : "#0f172a", fontWeight: 750 }}>
+                                {item.attendOverallAtt}/{item.attendOverallDel} ({item.attendOverallPct.toFixed(1)}%)
+                              </strong>
+                              <span style={{ color: item.isAllAbsent ? "#94a3b8" : "#15803d", fontWeight: 700, fontSize: 10 }}>
+                                +{item.attendOverallDelta.toFixed(2)}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* MISS BOX */}
+                        <div
+                          style={{
+                            background: item.isAllPresent ? "#f8fafc" : "#fff1f2",
+                            border: item.isAllAbsent
+                              ? "1.5px solid #dc2626"
+                              : item.isAllPresent
+                              ? "1px dashed #cbd5e1"
+                              : "1px solid #fecaca",
+                            borderRadius: 9,
+                            padding: "10px 12px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 6,
+                            opacity: item.isAllPresent ? 0.55 : 1,
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 800,
+                                color: item.isAllPresent ? "#94a3b8" : "#b91c1c",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.4px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                textDecoration: item.isAllPresent ? "line-through" : "none",
+                              }}
+                            >
+                              <XCircle size={13} color={item.isAllPresent ? "#94a3b8" : "#dc2626"} />
+                              <span>{item.isAllAbsent ? "Missed Today" : `If Miss (+0)`}</span>
+                            </span>
+                            {item.isAllAbsent ? (
+                              <span style={{ background: "#dc2626", color: "#ffffff", padding: "1px 6px", borderRadius: 4, fontSize: 9.5, fontWeight: 800 }}>✗ LOGGED</span>
+                            ) : item.isAllPresent ? (
+                              <span style={{ background: "#e2e8f0", color: "#64748b", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>Cancelled</span>
+                            ) : null}
+                          </div>
+
+                          {/* Subject Result Line */}
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "baseline",
+                              justifyContent: "space-between",
+                              gap: 6,
+                              textDecoration: item.isAllPresent ? "line-through" : "none",
                               textDecorationColor: "#dc2626",
                               textDecorationThickness: "2px",
                             }}
                           >
-                            <span style={{ fontSize: 16, fontWeight: 800, color: item.isPresent ? "#94a3b8" : "#b91c1c" }}>
-                              {item.missSubPct.toFixed(1)}%
-                            </span>
-                            <span style={{ fontSize: 10.5, fontWeight: 700, color: item.isPresent ? "#94a3b8" : "#dc2626" }}>
-                              {item.missSubDelta.toFixed(1)}%
-                            </span>
+                            <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>Subject Result:</span>
+                            <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+                              <strong style={{ fontSize: 14.5, fontWeight: 800, color: item.isAllPresent ? "#94a3b8" : "#b91c1c" }}>
+                                {item.missSubAtt}/{item.missSubDel} ({item.missSubPct.toFixed(1)}%)
+                              </strong>
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 800,
+                                  background: item.isAllPresent ? "#f1f5f9" : "#fee2e2",
+                                  color: item.isAllPresent ? "#94a3b8" : "#b91c1c",
+                                  padding: "1px 5px",
+                                  borderRadius: 4,
+                                }}
+                              >
+                                {item.missSubDelta.toFixed(1)}%
+                              </span>
+                            </div>
                           </div>
+
+                          {/* Overall Semester Result Line */}
                           <div
                             style={{
-                              fontSize: 10.5,
-                              color: item.isPresent ? "#94a3b8" : "#991b1b",
-                              marginTop: 2,
-                              lineHeight: 1.35,
-                              textDecoration: item.isPresent ? "line-through" : "none",
+                              display: "flex",
+                              alignItems: "baseline",
+                              justifyContent: "space-between",
+                              gap: 6,
+                              paddingTop: 5,
+                              borderTop: "1px solid rgba(220, 38, 38, 0.15)",
+                              fontSize: 11,
+                              textDecoration: item.isAllPresent ? "line-through" : "none",
                             }}
                           >
-                            {item.isPresent
-                              ? `Avoided ${item.missSubDelta.toFixed(1)}% penalty`
-                              : item.baseSubDel === 0
-                              ? "Drops to 0%"
-                              : item.baseSubPct >= item.target && item.missSubPct < item.target
-                              ? (item.isAbsent ? "⚠️ Dropped into Shortage!" : "⚠️ Drops into Shortage!")
-                              : item.missSubPct < item.target
-                              ? `Backlog: ${item.postMissClassesNeeded} needed`
-                              : `Buffer drops to ${item.postMissSafeBunks} bunks`}
+                            <span style={{ color: "#64748b", fontWeight: 600 }}>Semester Overall:</span>
+                            <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+                              <strong style={{ color: item.isAllPresent ? "#94a3b8" : "#0f172a", fontWeight: 750 }}>
+                                {item.missOverallAtt}/{item.missOverallDel} ({item.missOverallPct.toFixed(1)}%)
+                              </strong>
+                              <span style={{ color: item.isAllPresent ? "#94a3b8" : "#dc2626", fontWeight: 700, fontSize: 10 }}>
+                                {item.missOverallDelta.toFixed(2)}%
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Semester Overall Impact Row (The requested exact overall calculation) */}
-                      <div
-                        style={{
-                          background: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 8,
-                          padding: "8px 10px",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 3,
-                        }}
-                      >
-                        <div style={{ fontSize: 10.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                            <Globe size={11} color="#2563eb" />
-                            <span>Semester Overall Impact (Current: {item.curOverallPct.toFixed(1)}%)</span>
-                          </span>
-                          {item.isPresent ? (
-                            <span style={{ background: "#dcfce7", color: "#15803d", padding: "1px 6px", borderRadius: 4, fontSize: 9.5, fontWeight: 800 }}>ATTENDED TODAY</span>
-                          ) : item.isAbsent ? (
-                            <span style={{ background: "#fee2e2", color: "#b91c1c", padding: "1px 6px", borderRadius: 4, fontSize: 9.5, fontWeight: 800 }}>MISSED TODAY</span>
-                          ) : null}
-                        </div>
-                        <div style={{ fontSize: 11, color: "#334155", lineHeight: 1.45 }}>
-                          <div style={{ textDecoration: item.isAbsent ? "line-through" : "none", opacity: item.isAbsent ? 0.5 : 1 }}>
-                            • <strong>{item.isPresent ? "Attended Outcome:" : "If Attended:"}</strong> Overall {item.isPresent ? "reached" : "rises to"} <strong style={{ color: "#15803d" }}>{item.attendOverallPct.toFixed(2)}%</strong> ({item.attendOverallDelta >= 0 ? `+${item.attendOverallDelta.toFixed(2)}%` : `${item.attendOverallDelta.toFixed(2)}%`})
-                          </div>
-                          <div style={{ textDecoration: item.isPresent ? "line-through" : "none", opacity: item.isPresent ? 0.5 : 1 }}>
-                            • <strong>{item.isAbsent ? "Missed Outcome:" : "If Missed:"}</strong> Overall {item.isAbsent ? "fell to" : "drops to"} <strong style={{ color: "#b91c1c" }}>{item.missOverallPct.toFixed(2)}%</strong> ({item.missOverallDelta.toFixed(2)}%)
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Fast Check-In Action Row (For Today: Quick Check-in | For Future: Upcoming Schedule Pill) */}
+                      {/* Quick Action Buttons (when viewing today) */}
                       {isAdvisorSelectedToday ? (
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, paddingTop: 2 }}>
                           <button
                             type="button"
-                            onClick={() => handleMarkDailyAttendance(item.period, "present", todayDateKey)}
+                            onClick={() => {
+                              item.periods.forEach((p) => {
+                                handleMarkDailyAttendance(p, "present", todayDateKey);
+                              });
+                            }}
                             style={{
                               height: 32,
                               borderRadius: 7,
-                              border: item.isPresent ? "1px solid #047857" : "1px solid #bbf7d0",
-                              background: item.isPresent ? "#059669" : "#ffffff",
-                              color: item.isPresent ? "#ffffff" : "#059669",
+                              border: item.isAllPresent ? "1px solid #047857" : "1px solid #bbf7d0",
+                              background: item.isAllPresent ? "#059669" : "#ffffff",
+                              color: item.isAllPresent ? "#ffffff" : "#059669",
                               fontSize: 11.5,
                               fontWeight: 700,
                               cursor: "pointer",
@@ -5844,19 +5954,23 @@ export default function AttendanceTracker() {
                               transition: "all 0.15s ease",
                             }}
                           >
-                            <CheckCircle2 size={12} color={item.isPresent ? "#ffffff" : "#059669"} />
-                            <span>{item.isPresent ? "Attended" : "Mark Present"}</span>
+                            <CheckCircle2 size={12} color={item.isAllPresent ? "#ffffff" : "#059669"} />
+                            <span>{item.isAllPresent ? "Attended" : item.classCount > 1 ? `Mark ${item.classCount} Present` : "Mark Present"}</span>
                           </button>
 
                           <button
                             type="button"
-                            onClick={() => handleMarkDailyAttendance(item.period, "absent", todayDateKey)}
+                            onClick={() => {
+                              item.periods.forEach((p) => {
+                                handleMarkDailyAttendance(p, "absent", todayDateKey);
+                              });
+                            }}
                             style={{
                               height: 32,
                               borderRadius: 7,
-                              border: item.isAbsent ? "1px solid #b91c1c" : "1px solid #fecaca",
-                              background: item.isAbsent ? "#dc2626" : "#ffffff",
-                              color: item.isAbsent ? "#ffffff" : "#dc2626",
+                              border: item.isAllAbsent ? "1px solid #b91c1c" : "1px solid #fecaca",
+                              background: item.isAllAbsent ? "#dc2626" : "#ffffff",
+                              color: item.isAllAbsent ? "#ffffff" : "#dc2626",
                               fontSize: 11.5,
                               fontWeight: 700,
                               cursor: "pointer",
@@ -5867,8 +5981,8 @@ export default function AttendanceTracker() {
                               transition: "all 0.15s ease",
                             }}
                           >
-                            <XCircle size={12} color={item.isAbsent ? "#ffffff" : "#dc2626"} />
-                            <span>{item.isAbsent ? "Missed" : "Mark Absent"}</span>
+                            <XCircle size={12} color={item.isAllAbsent ? "#ffffff" : "#dc2626"} />
+                            <span>{item.isAllAbsent ? "Missed" : item.classCount > 1 ? `Mark ${item.classCount} Absent` : "Mark Absent"}</span>
                           </button>
                         </div>
                       ) : (
