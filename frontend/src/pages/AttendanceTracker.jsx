@@ -797,7 +797,7 @@ export default function AttendanceTracker() {
       const tabNames = {
         checkin: "Daily Attendance",
         matrix: "Subject-wise Attendance",
-        advisor: "Daily Attendance Advisor",
+        advisor: "Daily Attendance Calculator",
         studio_schedule: "Target with Schedule",
         studio_penalty: "Miss Impact between Target",
         studio_roadmap: "Miss Classes After Target",
@@ -1384,7 +1384,7 @@ export default function AttendanceTracker() {
       const tabNames = {
         checkin: "Daily Attendance",
         matrix: "Subject-wise Attendance",
-        advisor: "Daily Attendance Advisor",
+        advisor: "Daily Attendance Calculator",
         studio_schedule: "Target with Schedule",
         studio_penalty: "Miss Impact between Target",
         studio_roadmap: "Miss Classes After Target",
@@ -2523,7 +2523,7 @@ export default function AttendanceTracker() {
 
   const handleRedirectToTodayAdvisor = () => {
     if (isTabLocked("advisor")) {
-      handleLockedTabAttempt("Daily Attendance Advisor");
+      handleLockedTabAttempt("Daily Attendance Calculator");
       return;
     }
     setSelectedAdvisorDateKey(todayDateKey);
@@ -2710,8 +2710,8 @@ export default function AttendanceTracker() {
     },
     {
       id: "advisor",
-      label: "Daily Attendance Advisor",
-      shortLabel: "Daily Advisor",
+      label: "Daily Attendance Calculator",
+      shortLabel: "Daily Calculator",
       icon: <AdvisorIcon size={16} />,
       badge: isTabLocked("advisor") ? "Locked" : "Schedule Impact",
       desc: "Today's routine & instant class-by-class attend vs miss impact",
@@ -5543,7 +5543,7 @@ export default function AttendanceTracker() {
                     <AdvisorIcon size={15} color="#0f172a" />
                   </div>
                   <h3 style={{ fontSize: isMobile ? 16 : 17.5, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.2px" }}>
-                    Daily Attendance Advisor
+                    Daily Attendance Calculator
                   </h3>
                   <span
                     style={{
@@ -5894,46 +5894,66 @@ export default function AttendanceTracker() {
                   }}
                 >
                   {/* Left: Projected Percentage and Net Change */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 260 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                       Projected Semester Overall Attendance
                     </div>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: isMobile ? 26 : 32, fontWeight: 900, color: "#0f172a", letterSpacing: "-1px", lineHeight: 1 }}>
-                        {advisorSimulationResult.simOverallPct.toFixed(2)}%
-                      </span>
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                          fontSize: 12,
-                          fontWeight: 800,
-                          padding: "2px 7px",
-                          borderRadius: 6,
-                          background: advisorSimulationResult.simOverallDelta >= 0 ? "#ecfdf5" : "#fef2f2",
-                          color: advisorSimulationResult.simOverallDelta >= 0 ? "#047857" : "#b91c1c",
-                          border: `1px solid ${advisorSimulationResult.simOverallDelta >= 0 ? "#a7f3d0" : "#fecaca"}`,
-                        }}
-                      >
-                        {advisorSimulationResult.simOverallDelta >= 0 ? (
-                          <>
-                            <TrendingUp size={12} strokeWidth={2.5} />
-                            <span>+{advisorSimulationResult.simOverallDelta.toFixed(2)}%</span>
-                          </>
-                        ) : (
-                          <>
-                            <TrendingDown size={12} strokeWidth={2.5} />
-                            <span>{advisorSimulationResult.simOverallDelta.toFixed(2)}%</span>
-                          </>
-                        )}
-                      </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12, flexWrap: "wrap" }}>
+                      {/* Current / Baseline */}
+                      <div style={{ display: "flex", flexDirection: "column" }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                          Current
+                        </span>
+                        <span style={{ fontSize: isMobile ? 24 : 30, fontWeight: 800, color: "#64748b", letterSpacing: "-0.8px", lineHeight: 1.1 }}>
+                          {advisorSimulationResult.baseOverallPct.toFixed(2)}%
+                        </span>
+                      </div>
+
+                      {/* Directional Arrow */}
+                      <div style={{ display: "flex", alignItems: "center", paddingTop: 14 }}>
+                        <ArrowRight size={isMobile ? 18 : 22} color="#94a3b8" strokeWidth={2.5} />
+                      </div>
+
+                      {/* Simulated / Projected */}
+                      <div style={{ display: "flex", flexDirection: "column" }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: advisorSimulationResult.simOverallDelta >= 0 ? "#047857" : "#b91c1c", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                          Projected
+                        </span>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                          <span style={{ fontSize: isMobile ? 26 : 32, fontWeight: 900, color: "#0f172a", letterSpacing: "-1px", lineHeight: 1.1 }}>
+                            {advisorSimulationResult.simOverallPct.toFixed(2)}%
+                          </span>
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 3.5,
+                              fontSize: 11.5,
+                              fontWeight: 800,
+                              padding: "2px 7px",
+                              borderRadius: 6,
+                              background: advisorSimulationResult.simOverallDelta >= 0 ? "#ecfdf5" : "#fef2f2",
+                              color: advisorSimulationResult.simOverallDelta >= 0 ? "#047857" : "#b91c1c",
+                              border: `1px solid ${advisorSimulationResult.simOverallDelta >= 0 ? "#a7f3d0" : "#fecaca"}`,
+                            }}
+                          >
+                            {advisorSimulationResult.simOverallDelta >= 0 ? (
+                              <>
+                                <TrendingUp size={12} strokeWidth={2.5} />
+                                <span>+{advisorSimulationResult.simOverallDelta.toFixed(2)}%</span>
+                              </>
+                            ) : (
+                              <>
+                                <TrendingDown size={12} strokeWidth={2.5} />
+                                <span>{advisorSimulationResult.simOverallDelta.toFixed(2)}%</span>
+                              </>
+                            )}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                     <div style={{ fontSize: 11.5, color: "#64748b", fontWeight: 600 }}>
-                      {advisorSimulationResult.simOverallAtt} / {advisorSimulationResult.simOverallDel} total classes attended ·{" "}
-                      <span>
-                        Baseline: {advisorSimulationResult.baseOverallAtt}/{advisorSimulationResult.baseOverallDel} ({advisorSimulationResult.baseOverallPct.toFixed(2)}%)
-                      </span>
+                      Baseline {advisorSimulationResult.baseOverallAtt}/{advisorSimulationResult.baseOverallDel} → Projected {advisorSimulationResult.simOverallAtt}/{advisorSimulationResult.simOverallDel} classes attended
                     </div>
                   </div>
 
