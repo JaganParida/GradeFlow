@@ -4574,8 +4574,8 @@ export default function AttendanceTracker() {
                 </div>
               </div>
 
-              {/* Quick-Action Daily Attendance Advisor Banner (Shifted to Top, Only One) */}
-              {hasSavedAttendance && selectedDayClasses.length > 0 && (
+              {/* Quick-Action Daily Attendance Advisor Banner (Only on Today) */}
+              {hasSavedAttendance && isSelectedToday && selectedDayClasses.length > 0 && (
                 <div
                   style={{
                     padding: isMobile ? "12px 14px" : "12px 18px",
@@ -5529,14 +5529,14 @@ export default function AttendanceTracker() {
                       width: 28,
                       height: 28,
                       borderRadius: 8,
-                      background: "#eff6ff",
-                      border: "1px solid #bfdbfe",
+                      background: "#f1f5f9",
+                      border: "1px solid #e2e8f0",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
-                    <AdvisorIcon size={15} color="#2563eb" />
+                    <AdvisorIcon size={15} color="#0f172a" />
                   </div>
                   <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.2px" }}>
                     Daily Attendance Advisor
@@ -5590,7 +5590,7 @@ export default function AttendanceTracker() {
                       cursor: "pointer",
                     }}
                   >
-                    <CalendarIcon size={12} color="#2563eb" />
+                    <CalendarIcon size={12} color="#475569" />
                     <span>{formatFriendlyDate(selectedAdvisorDateKey)}</span>
                     <ChevronDown size={12} color="#64748b" />
                   </button>
@@ -5647,20 +5647,110 @@ export default function AttendanceTracker() {
                     type="button"
                     onClick={() => handleAdvisorSelectDate(todayDateKey)}
                     style={{
-                      padding: "5.5px 10px",
+                      padding: "5.5px 11px",
                       borderRadius: 7,
-                      border: "1px solid #bfdbfe",
-                      background: "#eff6ff",
-                      color: "#1d4ed8",
+                      border: "1px solid #cbd5e1",
+                      background: "#f8fafc",
+                      color: "#0f172a",
                       fontSize: 11.5,
                       fontWeight: 700,
                       cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#f1f5f9";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "#f8fafc";
                     }}
                   >
                     Today
                   </button>
                 )}
               </div>
+            </div>
+
+            {/* Daily Attendance Clarification & Redirect Banner */}
+            <div
+              style={{
+                padding: isMobile ? "12px 14px" : "12px 16px",
+                borderRadius: 12,
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                display: "flex",
+                flexDirection: isMobile ? "column" : "row",
+                alignItems: isMobile ? "flex-start" : "center",
+                justifyContent: "space-between",
+                gap: 12,
+                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+                boxSizing: "border-box",
+                width: "100%",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 8,
+                    background: "#f1f5f9",
+                    border: "1px solid #e2e8f0",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Info size={15} color="#0f172a" />
+                </div>
+                <div>
+                  <div style={{ fontSize: isMobile ? 12.5 : 13, fontWeight: 700, color: "#0f172a" }}>
+                    Attendance is not marked here · Simulation Only
+                  </div>
+                  <div style={{ fontSize: isMobile ? 11 : 11.5, color: "#64748b", marginTop: 2 }}>
+                    This page previews your semester percentage impact. To mark your actual attendance, use the Daily Attendance page.
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedDateKey(todayDateKey);
+                  setActiveTab("daily");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6.5,
+                  background: "#000000",
+                  color: "#ffffff",
+                  padding: isMobile ? "9px 14px" : "7.5px 14px",
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  border: "1px solid #000000",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  boxShadow: "0 2px 5px rgba(0, 0, 0, 0.15)",
+                  transition: "all 0.15s ease",
+                  width: isMobile ? "100%" : "auto",
+                  alignSelf: isMobile ? "stretch" : "center",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#18181b";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#000000";
+                }}
+              >
+                <ClipboardCheck size={13.5} color="#ffffff" />
+                <span>Mark Attendance in Daily Attendance</span>
+                <ArrowRight size={12.5} color="#ffffff" />
+              </button>
             </div>
 
             {/* ADVISOR SCHEDULE CONTENT */}
