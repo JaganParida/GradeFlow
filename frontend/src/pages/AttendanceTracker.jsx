@@ -2264,6 +2264,23 @@ export default function AttendanceTracker() {
     return calculateAdvisorAnalysis(actualTodayClasses, todayDateKey);
   }, [calculateAdvisorAnalysis, actualTodayClasses, todayDateKey]);
 
+  const handleRedirectToTodayAdvisor = () => {
+    if (isTabLocked("advisor")) {
+      handleLockedTabAttempt("Daily Attendance Advisor");
+      return;
+    }
+    setSelectedAdvisorDateKey(todayDateKey);
+    handleTabClick("advisor");
+    setTimeout(() => {
+      const el = document.getElementById("attendance-advisor-section");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        window.scrollTo({ top: 380, behavior: "smooth" });
+      }
+    }, 60);
+  };
+
   const handleOpenSubjectInSchedule = (sub) => {
     if (isTabLocked("studio_schedule")) {
       handleLockedTabAttempt("Target with Schedule");
@@ -4304,7 +4321,7 @@ export default function AttendanceTracker() {
               </div>
 
               {/* 🎯 Morning Priority Action Card (Daily Hub Banner) */}
-              {hasSavedAttendance && todayAdvisorAnalysis.topPriority && (
+              {hasSavedAttendance && (
                 <div
                   style={{
                     background: "#ffffff",
@@ -4331,11 +4348,11 @@ export default function AttendanceTracker() {
                       background: "linear-gradient(90deg, #2563eb 0%, #0ea5e9 100%)",
                     }}
                   />
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flex: 1, minWidth: 260 }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flex: 1, minWidth: isMobile ? "100%" : 280 }}>
                     <div
                       style={{
-                        width: 32,
-                        height: 32,
+                        width: 34,
+                        height: 34,
                         borderRadius: 8,
                         background: "#eff6ff",
                         border: "1px solid #bfdbfe",
@@ -4346,12 +4363,12 @@ export default function AttendanceTracker() {
                         marginTop: 1,
                       }}
                     >
-                      <Target size={16} color="#2563eb" />
+                      <Compass size={17} color="#2563eb" />
                     </div>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 }}>
                         <span style={{ fontSize: 11, fontWeight: 800, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                          Daily Priority Advisor
+                          Daily Attendance Advisor
                         </span>
                         <span
                           style={{
@@ -4363,39 +4380,61 @@ export default function AttendanceTracker() {
                             borderRadius: 4,
                           }}
                         >
-                          Morning Action
+                          Live Impact Preview
                         </span>
                       </div>
                       <div style={{ fontSize: isMobile ? 12 : 12.5, color: "#0f172a", lineHeight: 1.45 }}>
-                        <strong>Today's Priority: {todayAdvisorAnalysis.topPriority.cleanName} ({todayAdvisorAnalysis.topPriority.curSubPct.toFixed(1)}%)</strong> — {todayAdvisorAnalysis.topPriority.adviceText}
+                        {todayAdvisorAnalysis?.topPriority ? (
+                          <>
+                            <strong>Today's Priority: {todayAdvisorAnalysis.topPriority.cleanName} ({todayAdvisorAnalysis.topPriority.curSubPct.toFixed(1)}%)</strong> — {todayAdvisorAnalysis.topPriority.adviceText}
+                          </>
+                        ) : todayAdvisorAnalysis?.totalClasses > 0 ? (
+                          <>
+                            <strong>Today's Impact Preview:</strong> See how attending or missing each class today changes your subject & semester percentage.
+                          </>
+                        ) : (
+                          <>
+                            <strong>Daily Attendance Advisor:</strong> Check your attendance projections and plan your upcoming semester schedule.
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleTabClick("advisor")}
+                    onClick={handleRedirectToTodayAdvisor}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 6,
-                      background: "#0f172a",
+                      justifyContent: "center",
+                      gap: 7,
+                      background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
                       color: "#ffffff",
-                      padding: "6.5px 12px",
-                      borderRadius: 7,
-                      fontSize: 11,
-                      fontWeight: 750,
-                      border: "none",
+                      padding: isMobile ? "9px 14px" : "8px 16px",
+                      borderRadius: 8,
+                      fontSize: isMobile ? 12 : 12.5,
+                      fontWeight: 700,
+                      border: "1px solid rgba(255, 255, 255, 0.12)",
                       cursor: "pointer",
                       whiteSpace: "nowrap",
-                      boxShadow: "0 1px 2px rgba(15, 23, 42, 0.1)",
-                      transition: "background 0.15s ease",
+                      boxShadow: "0 2px 4px rgba(15, 23, 42, 0.1)",
+                      transition: "all 0.18s ease",
+                      width: isMobile ? "100%" : "auto",
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "#1e293b"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "#0f172a"; }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "linear-gradient(135deg, #1e293b 0%, #334155 100%)";
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                      e.currentTarget.style.boxShadow = "0 4px 8px rgba(15, 23, 42, 0.18)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)";
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "0 2px 4px rgba(15, 23, 42, 0.1)";
+                    }}
                   >
-                    <Compass size={12} />
-                    <span>View Full Advisor</span>
-                    <ArrowRight size={11} />
+                    <Compass size={13} color="#93c5fd" />
+                    <span>Check your today attendance effect</span>
+                    <ArrowRight size={12} color="#93c5fd" />
                   </button>
                 </div>
               )}
@@ -5203,6 +5242,7 @@ export default function AttendanceTracker() {
         {activeTab === "advisor" && (
           <motion.div
             key="advisor"
+            id="attendance-advisor-section"
             initial={activeTabMotion.initial}
             animate={activeTabMotion.animate}
             exit={activeTabMotion.exit}
