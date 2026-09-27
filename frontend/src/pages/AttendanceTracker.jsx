@@ -454,20 +454,34 @@ export default function AttendanceTracker() {
   // Interactive Day Simulator State for Daily Attendance Advisor (slotIndex -> boolean)
   const [advisorSimulatedPresents, setAdvisorSimulatedPresents] = useState(() => ({}));
 
-  // Auto-initialize simulator when advisor date or scheduled classes change (default: ALL CHECKED)
+  // Auto-initialize simulator when advisor date, scheduled classes, or daily logs change
   useEffect(() => {
     if (advisorClasses && advisorClasses.length > 0) {
+      const activeDateLogs = allDailyLogs[selectedAdvisorDateKey] || {};
       const defaultState = {};
       advisorClasses.forEach((p) => {
-        defaultState[p.slotIndex] = true;
+        const dbStatus = activeDateLogs[p.slotIndex];
+        if (dbStatus === "present") {
+          defaultState[p.slotIndex] = true;
+        } else if (dbStatus === "absent") {
+          defaultState[p.slotIndex] = false;
+        } else {
+          defaultState[p.slotIndex] = true; // Unmarked default to Attending
+        }
       });
       setAdvisorSimulatedPresents(defaultState);
     } else {
       setAdvisorSimulatedPresents({});
     }
-  }, [selectedAdvisorDateKey, advisorClasses.length]);
+  }, [selectedAdvisorDateKey, advisorClasses.length, allDailyLogs]);
 
   const handleToggleAdvisorPeriod = (slotIndex) => {
+    const activeDateLogs = allDailyLogs[selectedAdvisorDateKey] || {};
+    const dbStatus = activeDateLogs[slotIndex];
+    // Locked if already marked in daily attendance
+    if (dbStatus === "present" || dbStatus === "absent") {
+      return;
+    }
     setAdvisorSimulatedPresents((prev) => ({
       ...prev,
       [slotIndex]: prev[slotIndex] === false ? true : false,
@@ -475,11 +489,18 @@ export default function AttendanceTracker() {
   };
 
   const handleSetAllAdvisorPeriods = (attend) => {
-    const next = {};
-    advisorClasses.forEach((p) => {
-      next[p.slotIndex] = attend;
+    const activeDateLogs = allDailyLogs[selectedAdvisorDateKey] || {};
+    setAdvisorSimulatedPresents((prev) => {
+      const next = { ...prev };
+      advisorClasses.forEach((p) => {
+        const dbStatus = activeDateLogs[p.slotIndex];
+        // Only toggle unlogged / pending classes
+        if (dbStatus !== "present" && dbStatus !== "absent") {
+          next[p.slotIndex] = attend;
+        }
+      });
+      return next;
     });
-    setAdvisorSimulatedPresents(next);
   };
 
   const handleOpenAdvisorDatePicker = () => {
@@ -2407,9 +2428,18 @@ export default function AttendanceTracker() {
     const baseOverallDel = Math.max(0, overallAggregate.totalDelivered - loggedTotal);
     const baseOverallPct = baseOverallDel > 0 ? (baseOverallAtt / baseOverallDel) * 100 : 0;
 
-    // How many classes are checked in the simulator (default is true)
-    const simulatedAttCount = advisorClasses.filter((p) => advisorSimulatedPresents[p.slotIndex] !== false).length;
+    // How many classes are attending today:
+    // If already recorded in database: "present" => attended (+1), "absent" => missed (+0)
+    // If not yet recorded: based on advisorSimulatedPresents state
+    const simulatedAttCount = advisorClasses.filter((p) => {
+      const dbStatus = activeDateLogs[p.slotIndex];
+      if (dbStatus === "present") return true;
+      if (dbStatus === "absent") return false;
+      return advisorSimulatedPresents[p.slotIndex] !== false;
+    }).length;
     const simulatedMissCount = totalScheduled - simulatedAttCount;
+    const markedClassesCount = loggedTotal;
+    const unloggedClassesCount = totalScheduled - loggedTotal;
 
     // Resulting simulated overall attendance
     const simOverallAtt = baseOverallAtt + simulatedAttCount;
@@ -2433,7 +2463,12 @@ export default function AttendanceTracker() {
 
     // Per-subject simulated results
     const subjectBreakdown = dailyAdvisorAnalysis.classes.map((group) => {
-      const checkedForSub = group.periods.filter((p) => advisorSimulatedPresents[p.slotIndex] !== false).length;
+      const checkedForSub = group.periods.filter((p) => {
+        const dbStatus = activeDateLogs[p.slotIndex];
+        if (dbStatus === "present") return true;
+        if (dbStatus === "absent") return false;
+        return advisorSimulatedPresents[p.slotIndex] !== false;
+      }).length;
       const simSubAtt = group.baseSubAtt + checkedForSub;
       const simSubDel = group.baseSubDel + group.classCount;
       const simSubPct = simSubDel > 0 ? (simSubAtt / simSubDel) * 100 : 0;
@@ -5628,125 +5663,7 @@ export default function AttendanceTracker() {
               </div>
             </div>
 
-            {/* MORNING ACTION CARD (Daily Priority Advisor) */}
-            {dailyAdvisorAnalysis.topPriority ? (
-              <div
-                style={{
-                  background: "#ffffff",
-                  border: "1.5px solid #e2e8f0",
-                  borderRadius: 14,
-                  padding: isMobile ? "14px 16px" : "18px 22px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                  boxShadow: "0 2px 6px rgba(15, 23, 42, 0.04)",
-                  position: "relative",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 3,
-                    background: "linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #0ea5e9 100%)",
-                  }}
-                />
-
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 11, flex: 1, minWidth: 260 }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        background: "#eff6ff",
-                        border: "1px solid #bfdbfe",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                        marginTop: 1,
-                      }}
-                    >
-                      <AdvisorIcon size={18} color="#2563eb" />
-                    </div>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 3 }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                          Daily Priority Advisor
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            background:
-                              dailyAdvisorAnalysis.topPriority.urgencyType === "safe_opportunity"
-                                ? "#dcfce7"
-                                : dailyAdvisorAnalysis.topPriority.urgencyType === "boundary_warning"
-                                ? "#fef3c7"
-                                : dailyAdvisorAnalysis.topPriority.urgencyType === "critical_recovery"
-                                ? "#fee2e2"
-                                : "#f1f5f9",
-                            color:
-                              dailyAdvisorAnalysis.topPriority.urgencyType === "safe_opportunity"
-                                ? "#15803d"
-                                : dailyAdvisorAnalysis.topPriority.urgencyType === "boundary_warning"
-                                ? "#b45309"
-                                : dailyAdvisorAnalysis.topPriority.urgencyType === "critical_recovery"
-                                ? "#b91c1c"
-                                : "#475569",
-                            padding: "2px 7px",
-                            borderRadius: 5,
-                            border: "1px solid rgba(0,0,0,0.06)",
-                          }}
-                        >
-                          {dailyAdvisorAnalysis.topPriority.urgencyType === "safe_opportunity"
-                            ? "Important to Attend"
-                            : dailyAdvisorAnalysis.topPriority.urgencyType === "boundary_warning"
-                            ? "Risk of Shortage"
-                            : dailyAdvisorAnalysis.topPriority.urgencyType === "critical_recovery"
-                            ? "Attendance Recovery"
-                            : "Safe Zone"}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: isMobile ? 14 : 15, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.2px" }}>
-                        {isAdvisorSelectedToday ? "Today's Priority" : `${advisorDayName}'s Priority`}: {dailyAdvisorAnalysis.topPriority.cleanName} ({dailyAdvisorAnalysis.topPriority.curSubPct.toFixed(1)}%)
-                      </div>
-                      <p style={{ fontSize: isMobile ? 12 : 12.5, color: "#475569", margin: "4px 0 0 0", lineHeight: 1.5 }}>
-                        {dailyAdvisorAnalysis.topPriority.adviceText}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Summary Metric Pills */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", alignSelf: isMobile ? "flex-start" : "center" }}>
-                    <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "6px 11px", textAlign: "center" }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>{dailyAdvisorAnalysis.totalClasses}</div>
-                      <div style={{ fontSize: 9.5, color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Classes {isAdvisorSelectedToday ? "Today" : "Scheduled"}</div>
-                    </div>
-                    <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "6px 11px", textAlign: "center" }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>{dailyAdvisorAnalysis.totalSubjects}</div>
-                      <div style={{ fontSize: 9.5, color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Subjects</div>
-                    </div>
-                    <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "6px 11px", textAlign: "center" }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: "#16a34a" }}>{dailyAdvisorAnalysis.safeCount}</div>
-                      <div style={{ fontSize: 9.5, color: "#15803d", fontWeight: 700, textTransform: "uppercase" }}>Safe (≥{targetGoal}%)</div>
-                    </div>
-                    {dailyAdvisorAnalysis.criticalCount > 0 && (
-                      <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 11px", textAlign: "center" }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: "#dc2626" }}>{dailyAdvisorAnalysis.criticalCount}</div>
-                        <div style={{ fontSize: 9.5, color: "#b91c1c", fontWeight: 700, textTransform: "uppercase" }}>Shortage</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
-            {/* CLASS SCHEDULE IMPACT LIST */}
+            {/* ADVISOR SCHEDULE CONTENT */}
             {dailyAdvisorAnalysis.classes.length === 0 ? (
               <div
                 style={{
@@ -5785,773 +5702,477 @@ export default function AttendanceTracker() {
                     : `There are no scheduled lectures, tutorials, or labs for Section ${selectedSection} on ${advisorDayName}.`}
                 </div>
               </div>
-            ) : (
-              <>
-                <div
+            ) : advisorSimulationResult && advisorClasses.length > 0 ? (
+              <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(340px, 1fr))",
-                  gap: 14,
+                  background: "#ffffff",
+                  border: "1.5px solid #e2e8f0",
+                  borderRadius: 14,
+                  padding: isMobile ? "16px 14px" : "22px 24px",
+                  boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 16,
+                  boxSizing: "border-box",
+                  width: "100%",
+                  minWidth: 0,
                 }}
               >
-                {dailyAdvisorAnalysis.classes.map((item) => {
-                  const isSafe = item.curSubDel === 0 || item.curSubPct >= item.target;
+                {/* Header with Title, Understanding Description & Quick Buttons */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: isMobile ? "flex-start" : "center",
+                    justifyContent: "space-between",
+                    flexDirection: isMobile ? "column" : "row",
+                    gap: 12,
+                    paddingBottom: 14,
+                    borderBottom: "1px solid #f1f5f9",
+                  }}
+                >
+                  <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 800,
+                          color: "#0f172a",
+                          background: "#f1f5f9",
+                          border: "1px solid #e2e8f0",
+                          padding: "2px 8px",
+                          borderRadius: 5,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.4px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <Calculator size={11} color="#0f172a" /> Live Attendance Planner
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>
+                        {isAdvisorSelectedToday ? "Today's Schedule" : `${advisorDayName} Schedule`} · {advisorSimulationResult.totalScheduled} {advisorSimulationResult.totalScheduled === 1 ? "Class" : "Classes"}
+                      </span>
+                    </div>
+                    <h3 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.3px" }}>
+                      Overall Semester Attendance Simulator
+                    </h3>
+                    <p style={{ fontSize: 12.5, color: "#475569", margin: 0, lineHeight: 1.45, fontWeight: 500 }}>
+                      Click on any class card to see your effect on overall semester attendance.
+                    </p>
+                  </div>
 
-                  return (
-                    <div
-                      key={`advisor-${item.groupKey}`}
+                  {/* Quick Selection Buttons */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", width: isMobile ? "100%" : "auto" }}>
+                    <button
+                      type="button"
+                      onClick={() => handleSetAllAdvisorPeriods(true)}
                       style={{
+                        flex: isMobile ? 1 : "initial",
+                        padding: "7px 13px",
+                        borderRadius: 8,
+                        border: "1px solid #cbd5e1",
                         background: "#ffffff",
-                        border: "1.5px solid #e2e8f0",
-                        borderRadius: 12,
-                        padding: isMobile ? "13px 13px" : "15px 18px",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 10,
-                        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+                        color: "#0f172a",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 5,
                         transition: "all 0.15s ease",
                       }}
                     >
-                      {/* TOP HEADER: Badge (Dark class count) + Period & Time + Status Pill */}
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 800,
-                              background: "#0f172a",
-                              color: "#ffffff",
-                              padding: "2.5px 8px",
-                              borderRadius: 6,
-                              letterSpacing: "0.2px",
-                            }}
-                          >
-                            {item.classCount === 1 ? "1 Class" : `${item.classCount} Classes`}
-                          </span>
-
-                          <div style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 700, color: "#334155" }}>
-                            <Clock size={12} color="#64748b" />
-                            <span>{item.periodLabels}</span>
-                            {item.timingRange && (
-                              <>
-                                <span style={{ color: "#cbd5e1" }}>·</span>
-                                <span>{item.timingRange}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Status / Logged Badge + Target Safe Pill */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          {item.isAllPresent ? (
-                            <span style={{ fontSize: 10.5, fontWeight: 800, background: "#dcfce7", color: "#15803d", border: "1px solid #bbf7d0", padding: "2px 7px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 3.5 }}>
-                              <Check size={11} strokeWidth={2.5} /> <span>Logged</span>
-                            </span>
-                          ) : item.isAllAbsent ? (
-                            <span style={{ fontSize: 10.5, fontWeight: 800, background: "#fee2e2", color: "#b91c1c", border: "1px solid #fecaca", padding: "2px 7px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 3.5 }}>
-                              <X size={11} strokeWidth={2.5} /> <span>Missed</span>
-                            </span>
-                          ) : item.isPartiallyMarked ? (
-                            <span style={{ fontSize: 10.5, fontWeight: 700, background: "#fef3c7", color: "#b45309", border: "1px solid #fde68a", padding: "2px 7px", borderRadius: 6 }}>
-                              {item.markedPresentCount}P · {item.markedAbsentCount}A
-                            </span>
-                          ) : null}
-
-                          <span
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 700,
-                              background: isSafe ? "#ecfdf5" : "#fef2f2",
-                              color: isSafe ? "#047857" : "#b91c1c",
-                              border: `1px solid ${isSafe ? "#a7f3d0" : "#fecaca"}`,
-                              padding: "2px 8px",
-                              borderRadius: 6,
-                            }}
-                          >
-                            {isSafe ? `Safe ≥ ${item.target}%` : `Shortage < ${item.target}%`}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* SUBJECT NAME & CURRENT STANDING */}
-                      <div>
-                        <h4 style={{ fontSize: isMobile ? 15 : 15.5, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.2px", lineHeight: 1.3 }}>
-                          {item.cleanName}
-                        </h4>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap", fontSize: 11, color: "#64748b" }}>
-                          {item.subCode && (
-                            <span style={{ fontWeight: 700, fontFamily: "'DM Sans', monospace", background: "#f8fafc", border: "1px solid #e2e8f0", padding: "1px 6px", borderRadius: 4, color: "#334155" }}>
-                              {item.subCode}
-                            </span>
-                          )}
-                          {item.rooms.length > 0 && (
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 3.5 }}>
-                              <MapPin size={10.5} color="#64748b" /> Room {item.rooms.join(", ")}
-                            </span>
-                          )}
-                          {item.faculties?.length > 0 && (
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 3.5 }}>
-                              <User size={10.5} color="#64748b" /> {item.faculties.join(", ")}
-                            </span>
-                          )}
-                          {item.types.length > 0 && <span>({item.types.join(", ")})</span>}
-                          <span style={{ color: "#cbd5e1" }}>•</span>
-                          <span style={{ fontWeight: 600, color: "#475569" }}>
-                            Current: <strong style={{ color: isSafe ? "#15803d" : "#dc2626" }}>{item.curSubDel > 0 ? `${item.curSubAtt}/${item.curSubDel} (${item.curSubPct.toFixed(1)}%)` : "No prior classes"}</strong>
-                          </span>
-                        </div>
-                      </div>
-
-                      <div style={{ height: 1, background: "#f1f5f9", margin: "2px 0" }} />
-
-                      {/* 2-COLUMN RESULTING ATTENDANCE IMPACT: IF ATTEND vs IF MISS */}
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-                          gap: 8,
-                          width: "100%",
-                          boxSizing: "border-box",
-                          minWidth: 0,
-                        }}
-                      >
-                        {/* ATTEND BOX */}
-                        <div
-                          style={{
-                            background: item.isAllAbsent ? "#f8fafc" : "#f0fdf4",
-                            border: item.isAllPresent
-                              ? "1.5px solid #16a34a"
-                              : item.isAllAbsent
-                              ? "1px dashed #cbd5e1"
-                              : "1px solid #bbf7d0",
-                            borderRadius: 9,
-                            padding: "9px 10px",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 5,
-                            opacity: item.isAllAbsent ? 0.55 : 1,
-                            transition: "all 0.15s ease",
-                            boxSizing: "border-box",
-                            minWidth: 0,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4, flexWrap: "wrap" }}>
-                            <span
-                              style={{
-                                fontSize: 10.5,
-                                fontWeight: 800,
-                                color: item.isAllAbsent ? "#94a3b8" : "#15803d",
-                                textTransform: "uppercase",
-                                letterSpacing: "0.3px",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 3.5,
-                                textDecoration: item.isAllAbsent ? "line-through" : "none",
-                              }}
-                            >
-                              <CheckCircle2 size={12} color={item.isAllAbsent ? "#94a3b8" : "#16a34a"} />
-                              <span>{item.isAllPresent ? "Attended Today" : `If Attend (+${item.classCount})`}</span>
-                            </span>
-                            {item.isAllPresent ? (
-                              <span style={{ background: "#16a34a", color: "#ffffff", padding: "1.5px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                                <Check size={10} strokeWidth={3} /> LOGGED
-                              </span>
-                            ) : item.isAllAbsent ? (
-                              <span style={{ background: "#e2e8f0", color: "#64748b", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>Cancelled</span>
-                            ) : null}
-                          </div>
-
-                          {/* Subject Result Line */}
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "baseline",
-                              justifyContent: "space-between",
-                              gap: 4,
-                              flexWrap: "wrap",
-                              textDecoration: item.isAllAbsent ? "line-through" : "none",
-                              textDecorationColor: "#16a34a",
-                              textDecorationThickness: "2px",
-                              marginTop: 2,
-                            }}
-                          >
-                            <span style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600 }}>Result:</span>
-                            <div style={{ display: "flex", alignItems: "baseline", gap: 4, flexWrap: "wrap" }}>
-                              <strong style={{ fontSize: 13.5, fontWeight: 800, color: item.isAllAbsent ? "#94a3b8" : "#15803d" }}>
-                                {item.attendSubAtt}/{item.attendSubDel} ({item.attendSubPct.toFixed(1)}%)
-                              </strong>
-                              <span
-                                style={{
-                                  fontSize: 10,
-                                  fontWeight: 800,
-                                  background: item.isAllAbsent ? "#f1f5f9" : "#dcfce7",
-                                  color: item.isAllAbsent ? "#94a3b8" : "#15803d",
-                                  padding: "1px 5px",
-                                  borderRadius: 4,
-                                }}
-                              >
-                                +{item.attendSubDelta.toFixed(1)}%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* MISS BOX */}
-                        <div
-                          style={{
-                            background: item.isAllPresent ? "#f8fafc" : "#fff1f2",
-                            border: item.isAllAbsent
-                              ? "1.5px solid #dc2626"
-                              : item.isAllPresent
-                              ? "1px dashed #cbd5e1"
-                              : "1px solid #fecaca",
-                            borderRadius: 9,
-                            padding: "9px 10px",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 5,
-                            opacity: item.isAllPresent ? 0.55 : 1,
-                            transition: "all 0.15s ease",
-                            boxSizing: "border-box",
-                            minWidth: 0,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4, flexWrap: "wrap" }}>
-                            <span
-                              style={{
-                                fontSize: 10.5,
-                                fontWeight: 800,
-                                color: item.isAllPresent ? "#94a3b8" : "#b91c1c",
-                                textTransform: "uppercase",
-                                letterSpacing: "0.3px",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 3.5,
-                                textDecoration: item.isAllPresent ? "line-through" : "none",
-                              }}
-                            >
-                              <XCircle size={12} color={item.isAllPresent ? "#94a3b8" : "#dc2626"} />
-                              <span>{item.isAllAbsent ? "Missed Today" : `If Miss (+0)`}</span>
-                            </span>
-                            {item.isAllAbsent ? (
-                              <span style={{ background: "#dc2626", color: "#ffffff", padding: "1.5px 6px", borderRadius: 4, fontSize: 9, fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                                <X size={10} strokeWidth={3} /> LOGGED
-                              </span>
-                            ) : item.isAllPresent ? (
-                              <span style={{ background: "#e2e8f0", color: "#64748b", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>Cancelled</span>
-                            ) : null}
-                          </div>
-
-                          {/* Subject Result Line */}
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "baseline",
-                              justifyContent: "space-between",
-                              gap: 4,
-                              flexWrap: "wrap",
-                              textDecoration: item.isAllPresent ? "line-through" : "none",
-                              textDecorationColor: "#dc2626",
-                              textDecorationThickness: "2px",
-                              marginTop: 2,
-                            }}
-                          >
-                            <span style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600 }}>Result:</span>
-                            <div style={{ display: "flex", alignItems: "baseline", gap: 4, flexWrap: "wrap" }}>
-                              <strong style={{ fontSize: 13.5, fontWeight: 800, color: item.isAllPresent ? "#94a3b8" : "#b91c1c" }}>
-                                {item.missSubAtt}/{item.missSubDel} ({item.missSubPct.toFixed(1)}%)
-                              </strong>
-                              <span
-                                style={{
-                                  fontSize: 10,
-                                  fontWeight: 800,
-                                  background: item.isAllPresent ? "#f1f5f9" : "#fee2e2",
-                                  color: item.isAllPresent ? "#94a3b8" : "#b91c1c",
-                                  padding: "1px 5px",
-                                  borderRadius: 4,
-                                }}
-                              >
-                                {item.missSubDelta.toFixed(1)}%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Quick Action Buttons (when viewing today) */}
-                      {isAdvisorSelectedToday ? (
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, paddingTop: 2 }}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              item.periods.forEach((p) => {
-                                handleMarkDailyAttendance(p, "present", todayDateKey);
-                              });
-                            }}
-                            style={{
-                              height: 32,
-                              borderRadius: 7,
-                              border: item.isAllPresent ? "1px solid #047857" : "1px solid #bbf7d0",
-                              background: item.isAllPresent ? "#059669" : "#ffffff",
-                              color: item.isAllPresent ? "#ffffff" : "#059669",
-                              fontSize: 11.5,
-                              fontWeight: 700,
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: 4,
-                              transition: "all 0.15s ease",
-                            }}
-                          >
-                            <CheckCircle2 size={12} color={item.isAllPresent ? "#ffffff" : "#059669"} />
-                            <span>{item.isAllPresent ? "Attended" : item.classCount > 1 ? `Mark ${item.classCount} Present` : "Mark Present"}</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              item.periods.forEach((p) => {
-                                handleMarkDailyAttendance(p, "absent", todayDateKey);
-                              });
-                            }}
-                            style={{
-                              height: 32,
-                              borderRadius: 7,
-                              border: item.isAllAbsent ? "1px solid #b91c1c" : "1px solid #fecaca",
-                              background: item.isAllAbsent ? "#dc2626" : "#ffffff",
-                              color: item.isAllAbsent ? "#ffffff" : "#dc2626",
-                              fontSize: 11.5,
-                              fontWeight: 700,
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: 4,
-                              transition: "all 0.15s ease",
-                            }}
-                          >
-                            <XCircle size={12} color={item.isAllAbsent ? "#ffffff" : "#dc2626"} />
-                            <span>{item.isAllAbsent ? "Missed" : item.classCount > 1 ? `Mark ${item.classCount} Absent` : "Mark Absent"}</span>
-                          </button>
-                        </div>
-                      ) : (
-                        <div
-                          style={{
-                            padding: "6.5px 10px",
-                            borderRadius: 7,
-                            background: "#f8fafc",
-                            border: "1px dashed #cbd5e1",
-                            fontSize: 11,
-                            fontWeight: 600,
-                            color: "#64748b",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 5,
-                          }}
-                        >
-                          <CalendarIcon size={11} color="#64748b" />
-                          <span>Upcoming Class · Check-in opens on {formatFriendlyDate(selectedAdvisorDateKey)}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* TODAY'S OVERALL SEMESTER IMPACT SIMULATOR ("NICHE RAKHO") */}
-              {advisorSimulationResult && advisorClasses.length > 0 && (
-                <div
-                  style={{
-                    marginTop: 18,
-                    background: "#ffffff",
-                    border: "1.5px solid #e2e8f0",
-                    borderRadius: 14,
-                    padding: isMobile ? "16px 14px" : "22px 24px",
-                    boxShadow: "0 2px 8px rgba(15, 23, 42, 0.05)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 16,
-                    boxSizing: "border-box",
-                    width: "100%",
-                    minWidth: 0,
-                  }}
-                >
-                  {/* Top Header with Controls */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: isMobile ? "flex-start" : "center",
-                      justifyContent: "space-between",
-                      flexDirection: isMobile ? "column" : "row",
-                      gap: 12,
-                      paddingBottom: 14,
-                      borderBottom: "1px solid #f1f5f9",
-                    }}
-                  >
-                    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-                        <span
-                          style={{
-                            fontSize: 10.5,
-                            fontWeight: 800,
-                            color: "#2563eb",
-                            background: "#eff6ff",
-                            border: "1px solid #bfdbfe",
-                            padding: "2px 8px",
-                            borderRadius: 5,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.4px",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
-                        >
-                          <Calculator size={11} /> Real-Time Day Planner
-                        </span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>
-                          {isAdvisorSelectedToday ? "Today's Schedule" : `${advisorDayName} Schedule`} · {advisorSimulationResult.totalScheduled} {advisorSimulationResult.totalScheduled === 1 ? "Class" : "Classes"}
-                        </span>
-                      </div>
-                      <h3 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.3px" }}>
-                        Overall Semester Attendance Simulator
-                      </h3>
-                      <p style={{ fontSize: 12, color: "#64748b", margin: 0, lineHeight: 1.4 }}>
-                        Check or uncheck classes below to see how attending or skipping them affects your overall semester attendance in real-time.
-                      </p>
-                    </div>
-
-                    {/* Quick Selection Buttons */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", width: isMobile ? "100%" : "auto" }}>
-                      <button
-                        type="button"
-                        onClick={() => handleSetAllAdvisorPeriods(true)}
-                        style={{
-                          flex: isMobile ? 1 : "initial",
-                          padding: "7px 13px",
-                          borderRadius: 8,
-                          border: "1px solid #bbf7d0",
-                          background: "#f0fdf4",
-                          color: "#15803d",
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 5,
-                          transition: "all 0.15s ease",
-                        }}
-                      >
-                        <CheckCircle2 size={13} />
-                        <span>Attend All ({advisorSimulationResult.totalScheduled})</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleSetAllAdvisorPeriods(false)}
-                        style={{
-                          flex: isMobile ? 1 : "initial",
-                          padding: "7px 13px",
-                          borderRadius: 8,
-                          border: "1px solid #e2e8f0",
-                          background: "#f8fafc",
-                          color: "#64748b",
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 5,
-                          transition: "all 0.15s ease",
-                        }}
-                      >
-                        <XCircle size={13} />
-                        <span>Miss All (0)</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* High-Contrast Projected Semester Attendance Banner */}
-                  <div
-                    style={{
-                      background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-                      borderRadius: 12,
-                      padding: isMobile ? "14px 14px" : "18px 20px",
-                      color: "#ffffff",
-                      display: "flex",
-                      flexDirection: isMobile ? "column" : "row",
-                      alignItems: isMobile ? "flex-start" : "center",
-                      justifyContent: "space-between",
-                      gap: 14,
-                      boxSizing: "border-box",
-                      width: "100%",
-                    }}
-                  >
-                    {/* Left: Big simulated % and net change */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                        Projected Semester Overall Attendance
-                      </div>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: isMobile ? 28 : 34, fontWeight: 900, color: "#ffffff", letterSpacing: "-1px", lineHeight: 1 }}>
-                          {advisorSimulationResult.simOverallPct.toFixed(2)}%
-                        </span>
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                            fontSize: 12,
-                            fontWeight: 800,
-                            padding: "3px 8px",
-                            borderRadius: 6,
-                            background: advisorSimulationResult.simOverallDelta >= 0 ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)",
-                            color: advisorSimulationResult.simOverallDelta >= 0 ? "#4ade80" : "#f87171",
-                            border: `1px solid ${advisorSimulationResult.simOverallDelta >= 0 ? "rgba(74, 222, 128, 0.3)" : "rgba(248, 113, 113, 0.3)"}`,
-                          }}
-                        >
-                          {advisorSimulationResult.simOverallDelta >= 0 ? (
-                            <>
-                              <TrendingUp size={13} strokeWidth={2.5} />
-                              <span>+{advisorSimulationResult.simOverallDelta.toFixed(2)}%</span>
-                            </>
-                          ) : (
-                            <>
-                              <TrendingDown size={13} strokeWidth={2.5} />
-                              <span>{advisorSimulationResult.simOverallDelta.toFixed(2)}%</span>
-                            </>
-                          )}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 11.5, color: "#cbd5e1", fontWeight: 600 }}>
-                        {advisorSimulationResult.simOverallAtt} / {advisorSimulationResult.simOverallDel} total classes attended ·{" "}
-                        <span style={{ color: "#94a3b8" }}>
-                          Baseline: {advisorSimulationResult.baseOverallAtt}/{advisorSimulationResult.baseOverallDel} ({advisorSimulationResult.baseOverallPct.toFixed(2)}%)
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Right: Target & Buffer status card */}
-                    <div
+                      <CheckCircle2 size={13} color="#16a34a" />
+                      <span>Attend All ({advisorSimulationResult.totalScheduled})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSetAllAdvisorPeriods(false)}
                       style={{
-                        background: "rgba(255, 255, 255, 0.08)",
-                        border: "1px solid rgba(255, 255, 255, 0.12)",
-                        borderRadius: 10,
-                        padding: "12px 16px",
-                        minWidth: isMobile ? "100%" : 260,
-                        boxSizing: "border-box",
-                        display: "flex",
-                        flexDirection: "column",
+                        flex: isMobile ? 1 : "initial",
+                        padding: "7px 13px",
+                        borderRadius: 8,
+                        border: "1px solid #e2e8f0",
+                        background: "#f8fafc",
+                        color: "#64748b",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                         gap: 5,
+                        transition: "all 0.15s ease",
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 800, color: advisorSimulationResult.isSimSafe ? "#4ade80" : "#f87171" }}>
-                          {advisorSimulationResult.isSimSafe ? <ShieldCheck size={15} /> : <ShieldAlert size={15} />}
-                          {advisorSimulationResult.isSimSafe ? `Safe Zone (≥${advisorSimulationResult.target}%)` : `Shortage Warning (<${advisorSimulationResult.target}%)`}
-                        </span>
-                        <span style={{ fontSize: 10.5, fontWeight: 700, color: "#94a3b8" }}>
-                          {advisorSimulationResult.simulatedAttCount}/{advisorSimulationResult.totalScheduled} Checked
-                        </span>
-                      </div>
-                      <p style={{ fontSize: 11.5, color: "#e2e8f0", margin: 0, lineHeight: 1.45 }}>
-                        {advisorSimulationResult.isSimSafe
-                          ? `With this selection, you can safely miss up to ${advisorSimulationResult.simSafeBunks} class${advisorSimulationResult.simSafeBunks === 1 ? "" : "es"} without falling below ${advisorSimulationResult.target}%.`
-                          : `With this selection, you will need to attend ${advisorSimulationResult.simClassesNeeded} consecutive class${advisorSimulationResult.simClassesNeeded === 1 ? "" : "es"} to reach ${advisorSimulationResult.target}%.`}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Today's Classes Interactive Checklist Grid */}
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
-                        Click to Toggle Class Attendance ({advisorSimulationResult.simulatedAttCount} of {advisorSimulationResult.totalScheduled} Attending)
-                      </span>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
-                        gap: 9,
-                      }}
-                    >
-                      {[...advisorClasses]
-                        .sort((a, b) => (a.slotIndex ?? 0) - (b.slotIndex ?? 0))
-                        .map((period) => {
-                          const isChecked = advisorSimulatedPresents[period.slotIndex] !== false;
-                          const cleanName = period.cleanName || cleanSubjectBaseName(period.subject);
-                          const subCode = resolveSubjectCode(period, studentData);
-                          const room = period.slot?.room || period.room;
-                          const faculty = period.faculty || period.teacher;
-                          const timing = period.slot?.startTime && period.slot?.endTime ? `${period.slot.startTime} - ${period.slot.endTime}` : "";
-
-                          return (
-                            <div
-                              key={`sim-period-${period.slotIndex}`}
-                              onClick={() => handleToggleAdvisorPeriod(period.slotIndex)}
-                              style={{
-                                background: isChecked ? "#f0fdf4" : "#fef2f2",
-                                border: `1.5px solid ${isChecked ? "#86efac" : "#fca5a5"}`,
-                                borderRadius: 10,
-                                padding: "11px 13px",
-                                cursor: "pointer",
-                                userSelect: "none",
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: 6,
-                                transition: "all 0.15s ease",
-                                boxShadow: isChecked ? "0 1px 3px rgba(34, 197, 94, 0.08)" : "none",
-                              }}
-                            >
-                              {/* Period & Time + Checkbox */}
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                  <span
-                                    style={{
-                                      fontSize: 10.5,
-                                      fontWeight: 800,
-                                      background: "#0f172a",
-                                      color: "#ffffff",
-                                      padding: "2px 7px",
-                                      borderRadius: 5,
-                                    }}
-                                  >
-                                    P{period.slotIndex + 1}
-                                  </span>
-                                  {timing && (
-                                    <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", display: "inline-flex", alignItems: "center", gap: 3.5 }}>
-                                      <Clock size={11} color="#64748b" /> {timing}
-                                    </span>
-                                  )}
-                                </div>
-
-                                {/* Custom interactive checkbox pill */}
-                                <div
-                                  style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: 5,
-                                    background: isChecked ? "#16a34a" : "#dc2626",
-                                    color: "#ffffff",
-                                    padding: "3px 8px",
-                                    borderRadius: 6,
-                                    fontSize: 10.5,
-                                    fontWeight: 800,
-                                    letterSpacing: "0.2px",
-                                    transition: "all 0.15s ease",
-                                  }}
-                                >
-                                  {isChecked ? <Check size={12} strokeWidth={3} /> : <X size={12} strokeWidth={3} />}
-                                  <span>{isChecked ? "Attending (+1)" : "Missing (+0)"}</span>
-                                </div>
-                              </div>
-
-                              {/* Subject Name */}
-                              <div style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a", lineHeight: 1.25 }}>
-                                {cleanName}
-                              </div>
-
-                              {/* Details row: Code, Room, Faculty */}
-                              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 10.5, color: "#64748b" }}>
-                                {subCode && (
-                                  <span style={{ fontWeight: 700, background: isChecked ? "#dcfce7" : "#fee2e2", color: isChecked ? "#15803d" : "#b91c1c", padding: "1px 5px", borderRadius: 4 }}>
-                                    {subCode}
-                                  </span>
-                                )}
-                                {room && (
-                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
-                                    <MapPin size={10} color="#64748b" /> Rm {room}
-                                  </span>
-                                )}
-                                {faculty && (
-                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
-                                    <User size={10} color="#64748b" /> {faculty}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
-
-                  {/* Subject-by-Subject Result Breakdown */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 6, borderTop: "1px solid #f1f5f9" }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.4px" }}>
-                      Simulated Impact by Subject
-                    </div>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(260px, 1fr))",
-                        gap: 8,
-                      }}
-                    >
-                      {advisorSimulationResult.subjectBreakdown.map((sub) => (
-                        <div
-                          key={`sim-sub-${sub.groupKey}`}
-                          style={{
-                            background: "#f8fafc",
-                            border: "1px solid #e2e8f0",
-                            borderRadius: 8,
-                            padding: "9px 12px",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 4,
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                            <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a" }}>
-                              {sub.cleanName}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: 9.5,
-                                fontWeight: 800,
-                                background: sub.isSubSafe ? "#dcfce7" : "#fee2e2",
-                                color: sub.isSubSafe ? "#15803d" : "#b91c1c",
-                                padding: "1.5px 5px",
-                                borderRadius: 4,
-                              }}
-                            >
-                              {sub.isSubSafe ? `≥${sub.target}%` : `<${sub.target}%`}
-                            </span>
-                          </div>
-
-                          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 4 }}>
-                            <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>
-                              Attending {sub.checkedCount}/{sub.classCount}:
-                            </span>
-                            <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                              <strong style={{ fontSize: 13, fontWeight: 800, color: sub.isSubSafe ? "#15803d" : "#b91c1c" }}>
-                                {sub.simSubAtt}/{sub.simSubDel} ({sub.simSubPct.toFixed(1)}%)
-                              </strong>
-                              <span
-                                style={{
-                                  fontSize: 10,
-                                  fontWeight: 800,
-                                  color: sub.simSubDelta >= 0 ? "#15803d" : "#b91c1c",
-                                }}
-                              >
-                                {sub.simSubDelta >= 0 ? `+${sub.simSubDelta.toFixed(1)}%` : `${sub.simSubDelta.toFixed(1)}%`}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                      <XCircle size={13} color="#dc2626" />
+                      <span>Miss All (0)</span>
+                    </button>
                   </div>
                 </div>
-              )}
-            </>
-          )}
-        </motion.div>
+
+                {/* Clean, Non-Colorful Projected Attendance Banner */}
+                <div
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 12,
+                    padding: isMobile ? "14px 14px" : "18px 20px",
+                    display: "flex",
+                    flexDirection: isMobile ? "column" : "row",
+                    alignItems: isMobile ? "flex-start" : "center",
+                    justifyContent: "space-between",
+                    gap: 14,
+                    boxSizing: "border-box",
+                    width: "100%",
+                  }}
+                >
+                  {/* Left: Projected Percentage and Net Change */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      Projected Semester Overall Attendance
+                    </div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: isMobile ? 28 : 34, fontWeight: 900, color: "#0f172a", letterSpacing: "-1px", lineHeight: 1 }}>
+                        {advisorSimulationResult.simOverallPct.toFixed(2)}%
+                      </span>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          fontSize: 12,
+                          fontWeight: 800,
+                          padding: "2.5px 8px",
+                          borderRadius: 6,
+                          background: advisorSimulationResult.simOverallDelta >= 0 ? "#ecfdf5" : "#fef2f2",
+                          color: advisorSimulationResult.simOverallDelta >= 0 ? "#047857" : "#b91c1c",
+                          border: `1px solid ${advisorSimulationResult.simOverallDelta >= 0 ? "#a7f3d0" : "#fecaca"}`,
+                        }}
+                      >
+                        {advisorSimulationResult.simOverallDelta >= 0 ? (
+                          <>
+                            <TrendingUp size={13} strokeWidth={2.5} />
+                            <span>+{advisorSimulationResult.simOverallDelta.toFixed(2)}%</span>
+                          </>
+                        ) : (
+                          <>
+                            <TrendingDown size={13} strokeWidth={2.5} />
+                            <span>{advisorSimulationResult.simOverallDelta.toFixed(2)}%</span>
+                          </>
+                        )}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11.5, color: "#64748b", fontWeight: 600 }}>
+                      {advisorSimulationResult.simOverallAtt} / {advisorSimulationResult.simOverallDel} total classes attended ·{" "}
+                      <span>
+                        Baseline: {advisorSimulationResult.baseOverallAtt}/{advisorSimulationResult.baseOverallDel} ({advisorSimulationResult.baseOverallPct.toFixed(2)}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Right: Target & Safe Buffer Status */}
+                  <div
+                    style={{
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 10,
+                      padding: "12px 16px",
+                      minWidth: isMobile ? "100%" : 270,
+                      boxSizing: "border-box",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 5,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                          fontSize: 12,
+                          fontWeight: 800,
+                          color: advisorSimulationResult.isSimSafe ? "#047857" : "#b91c1c",
+                        }}
+                      >
+                        {advisorSimulationResult.isSimSafe ? <ShieldCheck size={15} /> : <ShieldAlert size={15} />}
+                        {advisorSimulationResult.isSimSafe ? `Safe Zone (≥${advisorSimulationResult.target}%)` : `Shortage Warning (<${advisorSimulationResult.target}%)`}
+                      </span>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b" }}>
+                        {advisorSimulationResult.simulatedAttCount}/{advisorSimulationResult.totalScheduled} Attending
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 11.5, color: "#475569", margin: 0, lineHeight: 1.45 }}>
+                      {advisorSimulationResult.isSimSafe
+                        ? `With this selection, you can safely miss up to ${advisorSimulationResult.simSafeBunks} class${advisorSimulationResult.simSafeBunks === 1 ? "" : "es"} without falling below ${advisorSimulationResult.target}%.`
+                        : `With this selection, you will need to attend ${advisorSimulationResult.simClassesNeeded} consecutive class${advisorSimulationResult.simClassesNeeded === 1 ? "" : "es"} to reach ${advisorSimulationResult.target}%.`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Class Cards Grid with Connected Daily Attendance Logic */}
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                      Click on any card to toggle attendance ({advisorSimulationResult.simulatedAttCount} of {advisorSimulationResult.totalScheduled} Attending)
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
+                      gap: 10,
+                    }}
+                  >
+                    {[...advisorClasses]
+                      .sort((a, b) => (a.slotIndex ?? 0) - (b.slotIndex ?? 0))
+                      .map((period) => {
+                        const activeDateLogs = allDailyLogs[selectedAdvisorDateKey] || {};
+                        const dbStatus = activeDateLogs[period.slotIndex];
+                        const isMarked = dbStatus === "present" || dbStatus === "absent";
+                        const isMarkedPresent = dbStatus === "present";
+                        const isMarkedAbsent = dbStatus === "absent";
+
+                        const isAttending = isMarked
+                          ? isMarkedPresent
+                          : advisorSimulatedPresents[period.slotIndex] !== false;
+
+                        const cleanName = period.cleanName || cleanSubjectBaseName(period.subject);
+                        const subCode = resolveSubjectCode(period, studentData);
+                        const room = period.slot?.room || period.room;
+                        const faculty = period.faculty || period.teacher;
+                        const timing = period.slot?.startTime && period.slot?.endTime ? `${period.slot.startTime} - ${period.slot.endTime}` : "";
+
+                        return (
+                          <div
+                            key={`sim-period-${period.slotIndex}`}
+                            onClick={() => {
+                              if (!isMarked) {
+                                handleToggleAdvisorPeriod(period.slotIndex);
+                              }
+                            }}
+                            style={{
+                              background: isMarked
+                                ? "#f8fafc"
+                                : "#ffffff",
+                              border: isMarked
+                                ? "1px dashed #cbd5e1"
+                                : isAttending
+                                ? "1.5px solid #10b981"
+                                : "1.5px solid #f87171",
+                              borderRadius: 10,
+                              padding: "12px 14px",
+                              cursor: isMarked ? "default" : "pointer",
+                              userSelect: "none",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 7,
+                              opacity: isMarked ? 0.62 : 1,
+                              filter: isMarked ? "grayscale(0.15)" : "none",
+                              boxShadow: isMarked
+                                ? "none"
+                                : isAttending
+                                ? "0 1px 3px rgba(16, 185, 129, 0.08)"
+                                : "0 1px 3px rgba(248, 113, 113, 0.08)",
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            {/* Period & Time + Status Pill */}
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <span
+                                  style={{
+                                    fontSize: 10.5,
+                                    fontWeight: 800,
+                                    background: "#0f172a",
+                                    color: "#ffffff",
+                                    padding: "2px 6.5px",
+                                    borderRadius: 5,
+                                  }}
+                                >
+                                  P{period.slotIndex + 1}
+                                </span>
+                                {timing && (
+                                  <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 3.5 }}>
+                                    <Clock size={11} color="#94a3b8" /> {timing}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Status Pill in small, clean style */}
+                              {isMarkedPresent ? (
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    background: "#ecfdf5",
+                                    color: "#047857",
+                                    border: "1px solid #a7f3d0",
+                                    padding: "2px 7px",
+                                    borderRadius: 5,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 3.5,
+                                  }}
+                                >
+                                  <Check size={11} strokeWidth={2.5} /> Marked Present
+                                </span>
+                              ) : isMarkedAbsent ? (
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    background: "#fef2f2",
+                                    color: "#b91c1c",
+                                    border: "1px solid #fecaca",
+                                    padding: "2px 7px",
+                                    borderRadius: 5,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 3.5,
+                                  }}
+                                >
+                                  <X size={11} strokeWidth={2.5} /> Marked Absent
+                                </span>
+                              ) : isAttending ? (
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    background: "#f0fdf4",
+                                    color: "#15803d",
+                                    border: "1px solid #bbf7d0",
+                                    padding: "2px 7px",
+                                    borderRadius: 5,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 3.5,
+                                  }}
+                                >
+                                  <Check size={11} strokeWidth={2.5} /> Attending (+1)
+                                </span>
+                              ) : (
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    background: "#fef2f2",
+                                    color: "#b91c1c",
+                                    border: "1px solid #fecaca",
+                                    padding: "2px 7px",
+                                    borderRadius: 5,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 3.5,
+                                  }}
+                                >
+                                  <X size={11} strokeWidth={2.5} /> Missing (+0)
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Subject Name */}
+                            <div style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a", lineHeight: 1.25 }}>
+                              {cleanName}
+                            </div>
+
+                            {/* Details row: Code, Room, Faculty */}
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 10.5, color: "#64748b" }}>
+                              {subCode && (
+                                <span style={{ fontWeight: 700, background: "#f1f5f9", color: "#334155", padding: "1px 5px", borderRadius: 4, border: "1px solid #e2e8f0" }}>
+                                  {subCode}
+                                </span>
+                              )}
+                              {room && (
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                                  <MapPin size={10} color="#94a3b8" /> Rm {room}
+                                </span>
+                              )}
+                              {faculty && (
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                                  <User size={10} color="#94a3b8" /> {faculty}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+
+                {/* Subject-by-Subject Result Breakdown */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 6, borderTop: "1px solid #f1f5f9" }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                    Simulated Impact by Subject
+                  </div>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(260px, 1fr))",
+                      gap: 8,
+                    }}
+                  >
+                    {advisorSimulationResult.subjectBreakdown.map((sub) => (
+                      <div
+                        key={`sim-sub-${sub.groupKey}`}
+                        style={{
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 8,
+                          padding: "9px 12px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 4,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                          <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a" }}>
+                            {sub.cleanName}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 9.5,
+                              fontWeight: 800,
+                              background: sub.isSubSafe ? "#dcfce7" : "#fee2e2",
+                              color: sub.isSubSafe ? "#15803d" : "#b91c1c",
+                              padding: "1.5px 5px",
+                              borderRadius: 4,
+                            }}
+                          >
+                            {sub.isSubSafe ? `≥${sub.target}%` : `<${sub.target}%`}
+                          </span>
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 4 }}>
+                          <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>
+                            Attending {sub.checkedCount}/{sub.classCount}:
+                          </span>
+                          <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                            <strong style={{ fontSize: 13, fontWeight: 800, color: sub.isSubSafe ? "#15803d" : "#b91c1c" }}>
+                              {sub.simSubAtt}/{sub.simSubDel} ({sub.simSubPct.toFixed(1)}%)
+                            </strong>
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 800,
+                                color: sub.simSubDelta >= 0 ? "#15803d" : "#b91c1c",
+                              }}
+                            >
+                              {sub.simSubDelta >= 0 ? `+${sub.simSubDelta.toFixed(1)}%` : `${sub.simSubDelta.toFixed(1)}%`}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </motion.div>
         )}
 
         {/* ═══════════════════════════════════════════════════════════════
