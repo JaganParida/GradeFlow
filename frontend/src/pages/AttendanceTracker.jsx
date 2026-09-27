@@ -383,6 +383,86 @@ export default function AttendanceTracker() {
     }
   };
 
+  // ── Daily Attendance Advisor State (Forward Planning: strictly todayDateKey -> lastDateOfInstruction) ──
+  const maxInstructionDateKey = useMemo(() => {
+    return CUTM_SESSION_BOUNDARIES?.lastDateOfInstruction || "2026-10-31";
+  }, []);
+  const effectiveMaxAdvisorDateKey = useMemo(() => {
+    return todayDateKey > maxInstructionDateKey ? todayDateKey : maxInstructionDateKey;
+  }, [todayDateKey, maxInstructionDateKey]);
+
+  const [selectedAdvisorDateKey, setSelectedAdvisorDateKey] = useState(() => todayDateKey);
+  const selectedAdvisorDateObj = useMemo(() => new Date(selectedAdvisorDateKey + "T00:00:00"), [selectedAdvisorDateKey]);
+  const isAdvisorSelectedToday = selectedAdvisorDateKey === todayDateKey;
+  const canAdvisorGoPrev = selectedAdvisorDateKey > todayDateKey;
+  const canAdvisorGoNext = selectedAdvisorDateKey < effectiveMaxAdvisorDateKey;
+  const advisorDateInputRef = useRef(null);
+
+  const advisorScheduleCtx = useMemo(() => {
+    return getSectionScheduleForDate(selectedSection, selectedAdvisorDateObj);
+  }, [selectedSection, selectedAdvisorDateObj, timetableVersion]);
+
+  const advisorDayName = advisorScheduleCtx.dayName;
+  const isAdvisorSunday = advisorScheduleCtx.isSunday;
+  const isAdvisorHoliday = advisorScheduleCtx.isOfficialHoliday;
+  const isAdvisorOptionalHoliday = advisorScheduleCtx.isOptionalHoliday;
+  const isAdvisorExam = advisorScheduleCtx.isExam;
+  const isAdvisorOutsideSession = advisorScheduleCtx.isOutsideSession;
+  const advisorHolidayInfo = advisorScheduleCtx.holidayInfo;
+  const advisorCalendarStatus = advisorScheduleCtx.calendarStatus;
+  const advisorClasses = advisorScheduleCtx.classes || [];
+
+  // Dedicated Today's routine context (independent of check-in stepper date)
+  const todayDateScheduleCtx = useMemo(() => {
+    return getSectionScheduleForDate(selectedSection, todayDateObj);
+  }, [selectedSection, todayDateObj, timetableVersion]);
+  const actualTodayClasses = todayDateScheduleCtx.classes || [];
+
+  const handleOpenAdvisorDatePicker = () => {
+    if (advisorDateInputRef.current) {
+      try {
+        if (typeof advisorDateInputRef.current.showPicker === "function") {
+          advisorDateInputRef.current.showPicker();
+        } else {
+          advisorDateInputRef.current.focus();
+        }
+      } catch {
+        advisorDateInputRef.current.focus();
+      }
+    }
+  };
+
+  const handleAdvisorPrevDay = () => {
+    if (!canAdvisorGoPrev) return;
+    const d = new Date(selectedAdvisorDateKey + "T00:00:00");
+    d.setDate(d.getDate() - 1);
+    const k = getLocalCalendarDateKey(d);
+    if (k >= todayDateKey) {
+      setSelectedAdvisorDateKey(k);
+    }
+  };
+
+  const handleAdvisorNextDay = () => {
+    if (!canAdvisorGoNext) return;
+    const d = new Date(selectedAdvisorDateKey + "T00:00:00");
+    d.setDate(d.getDate() + 1);
+    const k = getLocalCalendarDateKey(d);
+    if (k <= effectiveMaxAdvisorDateKey) {
+      setSelectedAdvisorDateKey(k);
+    }
+  };
+
+  const handleAdvisorSelectDate = (dateKey) => {
+    if (!dateKey || dateKey === selectedAdvisorDateKey) return;
+    const targetKey =
+      dateKey < todayDateKey
+        ? todayDateKey
+        : dateKey > effectiveMaxAdvisorDateKey
+        ? effectiveMaxAdvisorDateKey
+        : dateKey;
+    setSelectedAdvisorDateKey(targetKey);
+  };
+
   // Search State
   const [searchRegInput, setSearchRegInput] = useState("");
   const [searchError, setSearchError] = useState("");
@@ -1387,10 +1467,11 @@ export default function AttendanceTracker() {
 
 
   // Dedicated robust handler for marking Present or Absent on classes for the selected date
-  function handleMarkDailyAttendance(period, targetStatus) {
+  function handleMarkDailyAttendance(period, targetStatus, overrideDateKey = null) {
     const slotIdx = period.slotIndex;
+    const targetDateKey = overrideDateKey || selectedCheckInDateKey;
     const currentAllLogs = allDailyLogsRef.current || allDailyLogs || {};
-    const currentDateLogs = currentAllLogs[selectedCheckInDateKey] || {};
+    const currentDateLogs = currentAllLogs[targetDateKey] || {};
     const currentStatus = currentDateLogs[slotIdx]; // "present" | "absent" | undefined
     const cleanName = period.cleanName || cleanSubjectBaseName(period.subject);
     const compType = (period.type || "PP").toUpperCase();
@@ -1439,13 +1520,13 @@ export default function AttendanceTracker() {
 
     const nextAllLogs = { ...currentAllLogs };
     if (Object.keys(nextDateLogs).length > 0) {
-      nextAllLogs[selectedCheckInDateKey] = nextDateLogs;
+      nextAllLogs[targetDateKey] = nextDateLogs;
     } else {
-      delete nextAllLogs[selectedCheckInDateKey];
+      delete nextAllLogs[targetDateKey];
     }
     allDailyLogsRef.current = nextAllLogs;
     setAllDailyLogs(nextAllLogs);
-    if (selectedCheckInDateKey === todayDateKey) {
+    if (targetDateKey === todayDateKey) {
       setDailyAttendanceLogs(nextDateLogs);
     }
 
@@ -1981,169 +2062,207 @@ export default function AttendanceTracker() {
   };
 
   // ─── Daily Attendance Advisor Engine (Schedule & Class Impact Studio) ───
-  const dailyAdvisorAnalysis = useMemo(() => {
-    if (!selectedDayClasses || selectedDayClasses.length === 0) {
-      return { classes: [], topPriority: null, safeCount: 0, criticalCount: 0, totalClasses: 0 };
-    }
-
-    const activeDateLogs = allDailyLogs[selectedCheckInDateKey] || {};
-    const target = Number(targetGoal) || 75;
-
-    const list = selectedDayClasses.map((period) => {
-      const cleanName = period.cleanName || period.subject || "";
-      const subCode = resolveSubjectCode(period, studentData);
-      const sub =
-        allSectionSubjects.find((s) => isSameSubject(s, cleanName)) ||
-        savedSubjects.find((s) => isSameSubject(s, cleanName));
-
-      let curSubAtt = 0;
-      let curSubDel = 0;
-      if (sub) {
-        (sub.components || []).forEach((c) => {
-          curSubAtt += Number(c.attended) || 0;
-          curSubDel += Number(c.delivered) || 0;
-        });
+  const calculateAdvisorAnalysis = useCallback(
+    (classesList, dateKey) => {
+      if (!classesList || classesList.length === 0) {
+        return { classes: [], topPriority: null, safeCount: 0, criticalCount: 0, totalClasses: 0 };
       }
 
-      const curSubPct = curSubDel > 0 ? (curSubAtt / curSubDel) * 100 : 0;
+      const activeDateLogs = allDailyLogs[dateKey] || {};
+      const target = Number(targetGoal) || 75;
 
-      // 1. If this class is Attended (+1 attended, +1 delivered)
-      const attendSubAtt = curSubAtt + 1;
-      const attendSubDel = curSubDel + 1;
-      const attendSubPct = (attendSubAtt / attendSubDel) * 100;
-      const attendSubDelta = attendSubPct - curSubPct;
+      const list = classesList.map((period) => {
+        const cleanName = period.cleanName || period.subject || "";
+        const subCode = resolveSubjectCode(period, studentData);
+        const sub =
+          allSectionSubjects.find((s) => isSameSubject(s, cleanName)) ||
+          savedSubjects.find((s) => isSameSubject(s, cleanName));
 
-      // 2. If this class is Missed (0 attended, +1 delivered)
-      const missSubAtt = curSubAtt;
-      const missSubDel = curSubDel + 1;
-      const missSubPct = (missSubAtt / missSubDel) * 100;
-      const missSubDelta = missSubPct - curSubPct;
-
-      // 3. Overall Semester Attendance Impact (Across all semester subjects)
-      const curOverallAtt = overallAggregate.totalAttended;
-      const curOverallDel = overallAggregate.totalDelivered;
-      const curOverallPct = overallAggregate.percentage;
-
-      // If Attended:
-      const attendOverallAtt = curOverallAtt + 1;
-      const attendOverallDel = curOverallDel + 1;
-      const attendOverallPct = attendOverallDel > 0 ? (attendOverallAtt / attendOverallDel) * 100 : 0;
-      const attendOverallDelta = attendOverallPct - curOverallPct;
-
-      // If Missed:
-      const missOverallAtt = curOverallAtt;
-      const missOverallDel = curOverallDel + 1;
-      const missOverallPct = missOverallDel > 0 ? (missOverallAtt / missOverallDel) * 100 : 0;
-      const missOverallDelta = missOverallPct - curOverallPct;
-
-      // Safe Bunks / Classes Needed for this subject currently
-      let currentSafeBunks = 0;
-      let currentClassesNeeded = 0;
-      if (curSubDel > 0) {
-        if (curSubPct >= target) {
-          currentSafeBunks = Math.floor((100 * curSubAtt - target * curSubDel) / target);
-        } else {
-          currentClassesNeeded = Math.ceil((target * curSubDel - 100 * curSubAtt) / (100 - target));
+        let curSubAtt = 0;
+        let curSubDel = 0;
+        if (sub) {
+          (sub.components || []).forEach((c) => {
+            curSubAtt += Number(c.attended) || 0;
+            curSubDel += Number(c.delivered) || 0;
+          });
         }
-      }
 
-      // Safe Bunks / Classes Needed after Attending
-      let postAttendSafeBunks = 0;
-      let postAttendClassesNeeded = 0;
-      if (attendSubPct >= target) {
-        postAttendSafeBunks = Math.floor((100 * attendSubAtt - target * attendSubDel) / target);
-      } else {
-        postAttendClassesNeeded = Math.ceil((target * attendSubDel - 100 * attendSubAtt) / (100 - target));
-      }
+        const curSubPct = curSubDel > 0 ? (curSubAtt / curSubDel) * 100 : 0;
+        const curOverallAtt = overallAggregate.totalAttended;
+        const curOverallDel = overallAggregate.totalDelivered;
+        const curOverallPct = overallAggregate.percentage;
 
-      // Safe Bunks / Classes Needed after Missing
-      let postMissSafeBunks = 0;
-      let postMissClassesNeeded = 0;
-      if (missSubPct >= target) {
-        postMissSafeBunks = Math.floor((100 * missSubAtt - target * missSubDel) / target);
-      } else {
-        postMissClassesNeeded = Math.ceil((target * missSubDel - 100 * missSubAtt) / (100 - target));
-      }
+        const status = activeDateLogs[period.slotIndex]; // "present" | "absent" | undefined
+        const isPresent = status === "present";
+        const isAbsent = status === "absent";
+        const isMarked = isPresent || isAbsent;
 
-      // Priority Scoring for the Morning Action Card
-      let priorityScore = 0;
-      let urgencyType = "maintain_buffer"; // "safe_opportunity" | "boundary_warning" | "critical_recovery" | "maintain_buffer"
-      let adviceText = "";
+        // Baseline before this specific period:
+        // If already marked "present", 1 was added to attended and delivered.
+        // If already marked "absent", 0 was added to attended and 1 to delivered.
+        // If unmarked, nothing has been added yet.
+        const baseSubAtt = isPresent ? Math.max(0, curSubAtt - 1) : curSubAtt;
+        const baseSubDel = isMarked ? Math.max(0, curSubDel - 1) : curSubDel;
+        const baseSubPct = baseSubDel > 0 ? (baseSubAtt / baseSubDel) * 100 : 0;
 
-      if (curSubDel === 0) {
-        priorityScore = 15;
-        urgencyType = "maintain_buffer";
-        adviceText = `First lecture of the semester! Attend to start off strong with a 100% record.`;
-      } else if (curSubPct < target && attendSubPct >= target) {
-        priorityScore = 1000 + (attendSubPct - curSubPct);
-        urgencyType = "safe_opportunity";
-        adviceText = `Attending today's lecture will boost ${cleanName} from ${curSubPct.toFixed(1)}% to ${attendSubPct.toFixed(1)}% and cross into the Safe Zone (≥${target}%)!`;
-      } else if (curSubPct >= target && missSubPct < target) {
-        priorityScore = 800 + (target - missSubPct);
-        urgencyType = "boundary_warning";
-        adviceText = `Missing today's lecture will drop ${cleanName} to ${missSubPct.toFixed(1)}% into Danger Zone (<${target}%). Must attend!`;
-      } else if (curSubPct < target) {
-        priorityScore = 500 + (target - curSubPct);
-        urgencyType = "critical_recovery";
-        adviceText = `Currently in Shortage (${curSubPct.toFixed(1)}%). Attending yields +${attendSubDelta.toFixed(1)}% and cuts your recovery backlog!`;
-      } else {
-        priorityScore = 100 - Math.min(50, currentSafeBunks);
-        urgencyType = "maintain_buffer";
-        adviceText = `In Safe Zone (${curSubPct.toFixed(1)}%) with ${currentSafeBunks} safe bunk(s). Attending strengthens your cushion!`;
-      }
+        const baseOverallAtt = isPresent ? Math.max(0, curOverallAtt - 1) : curOverallAtt;
+        const baseOverallDel = isMarked ? Math.max(0, curOverallDel - 1) : curOverallDel;
+        const baseOverallPct = baseOverallDel > 0 ? (baseOverallAtt / baseOverallDel) * 100 : 0;
 
-      const status = activeDateLogs[period.slotIndex]; // "present" | "absent" | undefined
+        // 1. If this class is Attended (+1 attended, +1 delivered from base)
+        const attendSubAtt = baseSubAtt + 1;
+        const attendSubDel = baseSubDel + 1;
+        const attendSubPct = (attendSubAtt / attendSubDel) * 100;
+        const attendSubDelta = attendSubPct - baseSubPct;
+
+        // 2. If this class is Missed (0 attended, +1 delivered from base)
+        const missSubAtt = baseSubAtt;
+        const missSubDel = baseSubDel + 1;
+        const missSubPct = (missSubAtt / missSubDel) * 100;
+        const missSubDelta = missSubPct - baseSubPct;
+
+        // 3. Overall Semester Attendance Impact (Across all semester subjects)
+        const attendOverallAtt = baseOverallAtt + 1;
+        const attendOverallDel = baseOverallDel + 1;
+        const attendOverallPct = attendOverallDel > 0 ? (attendOverallAtt / attendOverallDel) * 100 : 0;
+        const attendOverallDelta = attendOverallPct - baseOverallPct;
+
+        const missOverallAtt = baseOverallAtt;
+        const missOverallDel = baseOverallDel + 1;
+        const missOverallPct = missOverallDel > 0 ? (missOverallAtt / missOverallDel) * 100 : 0;
+        const missOverallDelta = missOverallPct - baseOverallPct;
+
+        // Safe Bunks / Classes Needed for this subject currently
+        let currentSafeBunks = 0;
+        let currentClassesNeeded = 0;
+        if (curSubDel > 0) {
+          if (curSubPct >= target) {
+            currentSafeBunks = Math.floor((100 * curSubAtt - target * curSubDel) / target);
+          } else {
+            currentClassesNeeded = Math.ceil((target * curSubDel - 100 * curSubAtt) / (100 - target));
+          }
+        }
+
+        // Safe Bunks / Classes Needed after Attending
+        let postAttendSafeBunks = 0;
+        let postAttendClassesNeeded = 0;
+        if (attendSubPct >= target) {
+          postAttendSafeBunks = Math.floor((100 * attendSubAtt - target * attendSubDel) / target);
+        } else {
+          postAttendClassesNeeded = Math.ceil((target * attendSubDel - 100 * attendSubAtt) / (100 - target));
+        }
+
+        // Safe Bunks / Classes Needed after Missing
+        let postMissSafeBunks = 0;
+        let postMissClassesNeeded = 0;
+        if (missSubPct >= target) {
+          postMissSafeBunks = Math.floor((100 * missSubAtt - target * missSubDel) / target);
+        } else {
+          postMissClassesNeeded = Math.ceil((target * missSubDel - 100 * missSubAtt) / (100 - target));
+        }
+
+        // Priority Scoring for the Morning Action Card
+        let priorityScore = 0;
+        let urgencyType = "maintain_buffer"; // "safe_opportunity" | "boundary_warning" | "critical_recovery" | "maintain_buffer"
+        let adviceText = "";
+
+        if (isPresent) {
+          priorityScore = -100;
+          urgencyType = "marked_present";
+          adviceText = `Attended today! Attendance reached ${curSubPct.toFixed(1)}% (+${attendSubDelta.toFixed(1)}%). Great job!`;
+        } else if (isAbsent) {
+          priorityScore = 200;
+          urgencyType = "marked_absent";
+          adviceText = `Missed today! Attendance dropped to ${curSubPct.toFixed(1)}% (${missSubDelta.toFixed(1)}%). Needs recovery!`;
+        } else if (baseSubDel === 0) {
+          priorityScore = 15;
+          urgencyType = "maintain_buffer";
+          adviceText = `First lecture of the semester! Attend to start off strong with a 100% record.`;
+        } else if (baseSubPct < target && attendSubPct >= target) {
+          priorityScore = 1000 + (attendSubPct - baseSubPct);
+          urgencyType = "safe_opportunity";
+          adviceText = `Attending this lecture will boost ${cleanName} from ${baseSubPct.toFixed(1)}% to ${attendSubPct.toFixed(1)}% and cross into the Safe Zone (≥${target}%)!`;
+        } else if (baseSubPct >= target && missSubPct < target) {
+          priorityScore = 800 + (target - missSubPct);
+          urgencyType = "boundary_warning";
+          adviceText = `Missing this lecture will drop ${cleanName} to ${missSubPct.toFixed(1)}% into Danger Zone (<${target}%). Must attend!`;
+        } else if (baseSubPct < target) {
+          priorityScore = 500 + (target - baseSubPct);
+          urgencyType = "critical_recovery";
+          adviceText = `Currently in Shortage (${baseSubPct.toFixed(1)}%). Attending yields +${attendSubDelta.toFixed(1)}% and cuts your recovery backlog!`;
+        } else {
+          priorityScore = 100 - Math.min(50, currentSafeBunks);
+          urgencyType = "maintain_buffer";
+          adviceText = `In Safe Zone (${baseSubPct.toFixed(1)}%) with ${currentSafeBunks} safe bunk(s). Attending strengthens your cushion!`;
+        }
+
+        return {
+          period,
+          cleanName,
+          subCode,
+          curSubAtt,
+          curSubDel,
+          curSubPct,
+          baseSubAtt,
+          baseSubDel,
+          baseSubPct,
+          target,
+          attendSubAtt,
+          attendSubDel,
+          attendSubPct,
+          attendSubDelta,
+          missSubAtt,
+          missSubDel,
+          missSubPct,
+          missSubDelta,
+          curOverallPct,
+          baseOverallPct,
+          attendOverallPct,
+          attendOverallDelta,
+          missOverallPct,
+          missOverallDelta,
+          currentSafeBunks,
+          currentClassesNeeded,
+          postAttendSafeBunks,
+          postAttendClassesNeeded,
+          postMissSafeBunks,
+          postMissClassesNeeded,
+          priorityScore,
+          urgencyType,
+          adviceText,
+          status,
+          isPresent,
+          isAbsent,
+          isMarked,
+        };
+      });
+
+      const sorted = [...list].sort((a, b) => b.priorityScore - a.priorityScore);
+      const topPriority = sorted.length > 0 ? sorted[0] : null;
+
+      const safeCount = list.filter((item) => item.curSubDel === 0 || item.curSubPct >= item.target).length;
+      const criticalCount = list.filter((item) => item.curSubDel > 0 && item.curSubPct < item.target).length;
 
       return {
-        period,
-        cleanName,
-        subCode,
-        curSubAtt,
-        curSubDel,
-        curSubPct,
-        target,
-        attendSubAtt,
-        attendSubDel,
-        attendSubPct,
-        attendSubDelta,
-        missSubAtt,
-        missSubDel,
-        missSubPct,
-        missSubDelta,
-        curOverallPct,
-        attendOverallPct,
-        attendOverallDelta,
-        missOverallPct,
-        missOverallDelta,
-        currentSafeBunks,
-        currentClassesNeeded,
-        postAttendSafeBunks,
-        postAttendClassesNeeded,
-        postMissSafeBunks,
-        postMissClassesNeeded,
-        priorityScore,
-        urgencyType,
-        adviceText,
-        status,
-        isPresent: status === "present",
-        isAbsent: status === "absent",
+        classes: list,
+        topPriority,
+        safeCount,
+        criticalCount,
+        totalClasses: list.length,
       };
-    });
+    },
+    [allSectionSubjects, savedSubjects, studentData, targetGoal, overallAggregate, allDailyLogs]
+  );
 
-    const sorted = [...list].sort((a, b) => b.priorityScore - a.priorityScore);
-    const topPriority = sorted.length > 0 ? sorted[0] : null;
+  // Advisor Tab analysis (dynamically evaluates the schedule for selectedAdvisorDateKey)
+  const dailyAdvisorAnalysis = useMemo(() => {
+    return calculateAdvisorAnalysis(advisorClasses, selectedAdvisorDateKey);
+  }, [calculateAdvisorAnalysis, advisorClasses, selectedAdvisorDateKey]);
 
-    const safeCount = list.filter((item) => item.curSubDel === 0 || item.curSubPct >= item.target).length;
-    const criticalCount = list.filter((item) => item.curSubDel > 0 && item.curSubPct < item.target).length;
-
-    return {
-      classes: list,
-      topPriority,
-      safeCount,
-      criticalCount,
-      totalClasses: list.length,
-    };
-  }, [selectedDayClasses, allSectionSubjects, savedSubjects, studentData, targetGoal, overallAggregate, allDailyLogs, selectedCheckInDateKey]);
+  // Check-In Banner priority analysis (strictly evaluates today's actual schedule)
+  const todayAdvisorAnalysis = useMemo(() => {
+    return calculateAdvisorAnalysis(actualTodayClasses, todayDateKey);
+  }, [calculateAdvisorAnalysis, actualTodayClasses, todayDateKey]);
 
   const handleOpenSubjectInSchedule = (sub) => {
     if (isTabLocked("studio_schedule")) {
@@ -4185,7 +4304,7 @@ export default function AttendanceTracker() {
               </div>
 
               {/* 🎯 Morning Priority Action Card (Daily Hub Banner) */}
-              {hasSavedAttendance && dailyAdvisorAnalysis.topPriority && (
+              {hasSavedAttendance && todayAdvisorAnalysis.topPriority && (
                 <div
                   style={{
                     background: "#ffffff",
@@ -4248,7 +4367,7 @@ export default function AttendanceTracker() {
                         </span>
                       </div>
                       <div style={{ fontSize: isMobile ? 12 : 12.5, color: "#0f172a", lineHeight: 1.45 }}>
-                        <strong>Today's Priority: {dailyAdvisorAnalysis.topPriority.cleanName} ({dailyAdvisorAnalysis.topPriority.curSubPct.toFixed(1)}%)</strong> — {dailyAdvisorAnalysis.topPriority.adviceText}
+                        <strong>Today's Priority: {todayAdvisorAnalysis.topPriority.cleanName} ({todayAdvisorAnalysis.topPriority.curSubPct.toFixed(1)}%)</strong> — {todayAdvisorAnalysis.topPriority.adviceText}
                       </div>
                     </div>
                   </div>
@@ -5126,25 +5245,26 @@ export default function AttendanceTracker() {
                   </h3>
                 </div>
                 <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 3 }}>
-                  Section {selectedSection} Routine · See exact attend vs miss consequence for every scheduled class
+                  Section {selectedSection} Routine · {isAdvisorSelectedToday ? "Today's Schedule & Consequence Analysis" : `Forecast for ${formatFriendlyDate(selectedAdvisorDateKey)}`}
                 </div>
               </div>
 
-              {/* Date Controls */}
+              {/* Date Controls (Strictly bounded: todayDateKey -> lastDateOfInstruction) */}
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 <button
                   type="button"
-                  onClick={handlePrevDay}
-                  disabled={!canGoPrev}
+                  onClick={handleAdvisorPrevDay}
+                  disabled={!canAdvisorGoPrev}
+                  title={!canAdvisorGoPrev ? "Past dates are not available in Advisor (Today is minimum)" : "Previous Day"}
                   style={{
                     padding: "5.5px 10px",
                     borderRadius: 7,
-                    border: `1px solid ${canGoPrev ? "#cbd5e1" : "#e2e8f0"}`,
-                    background: canGoPrev ? "#ffffff" : "#f1f5f9",
-                    color: canGoPrev ? "#0f172a" : "#94a3b8",
+                    border: `1px solid ${canAdvisorGoPrev ? "#cbd5e1" : "#e2e8f0"}`,
+                    background: canAdvisorGoPrev ? "#ffffff" : "#f1f5f9",
+                    color: canAdvisorGoPrev ? "#0f172a" : "#94a3b8",
                     fontSize: 12,
                     fontWeight: 600,
-                    cursor: canGoPrev ? "pointer" : "not-allowed",
+                    cursor: canAdvisorGoPrev ? "pointer" : "not-allowed",
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 4,
@@ -5154,40 +5274,67 @@ export default function AttendanceTracker() {
                   <span>Prev</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={handleOpenCheckInDatePicker}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "5.5px 12px",
-                    borderRadius: 7,
-                    background: "#ffffff",
-                    border: "1px solid #cbd5e1",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: "#0f172a",
-                    cursor: "pointer",
-                  }}
-                >
-                  <CalendarIcon size={12} color="#2563eb" />
-                  <span>{formatFriendlyDate(selectedCheckInDateKey)}</span>
-                </button>
+                <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+                  <button
+                    type="button"
+                    onClick={handleOpenAdvisorDatePicker}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "5.5px 12px",
+                      borderRadius: 7,
+                      background: "#ffffff",
+                      border: "1px solid #cbd5e1",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: "#0f172a",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <CalendarIcon size={12} color="#2563eb" />
+                    <span>{formatFriendlyDate(selectedAdvisorDateKey)}</span>
+                    <ChevronDown size={12} color="#64748b" />
+                  </button>
+                  <input
+                    ref={advisorDateInputRef}
+                    type="date"
+                    min={todayDateKey}
+                    max={effectiveMaxAdvisorDateKey}
+                    value={selectedAdvisorDateKey}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        handleAdvisorSelectDate(e.target.value);
+                      }
+                    }}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: "100%",
+                      opacity: 0,
+                      pointerEvents: "none",
+                    }}
+                    tabIndex={-1}
+                    aria-hidden="true"
+                  />
+                </div>
 
                 <button
                   type="button"
-                  onClick={handleNextDay}
-                  disabled={!canGoNext}
+                  onClick={handleAdvisorNextDay}
+                  disabled={!canAdvisorGoNext}
+                  title={!canAdvisorGoNext ? "End of semester instruction reached (Oct 31, 2026)" : "Next Day"}
                   style={{
                     padding: "5.5px 10px",
                     borderRadius: 7,
-                    border: `1px solid ${canGoNext ? "#cbd5e1" : "#e2e8f0"}`,
-                    background: canGoNext ? "#ffffff" : "#f1f5f9",
-                    color: canGoNext ? "#0f172a" : "#94a3b8",
+                    border: `1px solid ${canAdvisorGoNext ? "#cbd5e1" : "#e2e8f0"}`,
+                    background: canAdvisorGoNext ? "#ffffff" : "#f1f5f9",
+                    color: canAdvisorGoNext ? "#0f172a" : "#94a3b8",
                     fontSize: 12,
                     fontWeight: 600,
-                    cursor: canGoNext ? "pointer" : "not-allowed",
+                    cursor: canAdvisorGoNext ? "pointer" : "not-allowed",
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 4,
@@ -5197,10 +5344,10 @@ export default function AttendanceTracker() {
                   <ChevronRight size={13} />
                 </button>
 
-                {!isSelectedToday && (
+                {!isAdvisorSelectedToday && (
                   <button
                     type="button"
-                    onClick={() => handleSelectDate(todayDateKey)}
+                    onClick={() => handleAdvisorSelectDate(todayDateKey)}
                     style={{
                       padding: "5.5px 10px",
                       borderRadius: 7,
@@ -5303,7 +5450,7 @@ export default function AttendanceTracker() {
                         </span>
                       </div>
                       <div style={{ fontSize: isMobile ? 14 : 15, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.2px" }}>
-                        Today's Priority: {dailyAdvisorAnalysis.topPriority.cleanName} ({dailyAdvisorAnalysis.topPriority.curSubPct.toFixed(1)}%)
+                        {isAdvisorSelectedToday ? "Today's Priority" : `${advisorDayName}'s Priority`}: {dailyAdvisorAnalysis.topPriority.cleanName} ({dailyAdvisorAnalysis.topPriority.curSubPct.toFixed(1)}%)
                       </div>
                       <p style={{ fontSize: isMobile ? 12 : 12.5, color: "#475569", margin: "4px 0 0 0", lineHeight: 1.5 }}>
                         {dailyAdvisorAnalysis.topPriority.adviceText}
@@ -5315,7 +5462,7 @@ export default function AttendanceTracker() {
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", alignSelf: isMobile ? "flex-start" : "center" }}>
                     <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "6px 11px", textAlign: "center" }}>
                       <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>{dailyAdvisorAnalysis.totalClasses}</div>
-                      <div style={{ fontSize: 9.5, color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Classes Today</div>
+                      <div style={{ fontSize: 9.5, color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Classes {isAdvisorSelectedToday ? "Today" : "Scheduled"}</div>
                     </div>
                     <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "6px 11px", textAlign: "center" }}>
                       <div style={{ fontSize: 13, fontWeight: 800, color: "#16a34a" }}>{dailyAdvisorAnalysis.safeCount}</div>
@@ -5351,14 +5498,24 @@ export default function AttendanceTracker() {
                   <CalendarCheck size={20} color="#64748b" />
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
-                  {isSelectedSunday
+                  {isAdvisorSunday
                     ? "Sunday · No Classes Scheduled"
-                    : isSelectedHoliday
-                    ? `Official Holiday · ${selectedHolidayInfo?.title || "Holiday"}`
-                    : `No Classes Scheduled for ${selectedDayName}`}
+                    : isAdvisorHoliday
+                    ? `Official Holiday · ${advisorHolidayInfo?.title || "Holiday"}`
+                    : isAdvisorExam
+                    ? "Examinations · Regular Classes Suspended"
+                    : isAdvisorOutsideSession
+                    ? "Outside Instructional Session · Semester Completed"
+                    : `No Classes Scheduled for ${advisorDayName}`}
                 </div>
-                <div style={{ fontSize: 12.5, color: "#64748b", maxWidth: 440 }}>
-                  Enjoy your day! No lectures, labs, or tutorials are conducted today. Your attendance percentages remain unchanged.
+                <div style={{ fontSize: 12.5, color: "#64748b", maxWidth: 460, lineHeight: 1.5 }}>
+                  {isAdvisorSunday || isAdvisorHoliday
+                    ? `Enjoy your day! No lectures, labs, or tutorials are scheduled for ${formatFriendlyDate(selectedAdvisorDateKey)}. Your attendance records remain unchanged.`
+                    : isAdvisorExam
+                    ? "University examinations are scheduled on this date. Regular timetable classes are paused."
+                    : isAdvisorOutsideSession
+                    ? "The semester instruction period concluded on October 31, 2026."
+                    : `There are no scheduled lectures, tutorials, or labs for Section ${selectedSection} on ${advisorDayName}.`}
                 </div>
               </div>
             ) : (
@@ -5466,68 +5623,126 @@ export default function AttendanceTracker() {
                         {/* Attend Box */}
                         <div
                           style={{
-                            background: "#f0fdf4",
-                            border: "1px solid #bbf7d0",
+                            background: item.isAbsent ? "#f8fafc" : "#f0fdf4",
+                            border: item.isPresent ? "1.5px solid #16a34a" : item.isAbsent ? "1px dashed #cbd5e1" : "1px solid #bbf7d0",
                             borderRadius: 10,
                             padding: "9px 11px",
                             display: "flex",
                             flexDirection: "column",
                             gap: 2,
+                            opacity: item.isAbsent ? 0.55 : 1,
+                            transition: "all 0.15s ease",
                           }}
                         >
-                          <div style={{ fontSize: 10.5, fontWeight: 800, color: "#15803d", textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", gap: 4 }}>
-                            <CheckCircle2 size={12} color="#16a34a" />
-                            <span>If Attended (+1)</span>
+                          <div style={{ fontSize: 10.5, fontWeight: 800, color: item.isAbsent ? "#94a3b8" : "#15803d", textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span style={{ display: "flex", alignItems: "center", gap: 4, textDecoration: item.isAbsent ? "line-through" : "none" }}>
+                              <CheckCircle2 size={12} color={item.isAbsent ? "#94a3b8" : "#16a34a"} />
+                              <span>{item.isPresent ? "Attended (+1)" : "If Attended (+1)"}</span>
+                            </span>
+                            {item.isPresent ? (
+                              <span style={{ background: "#16a34a", color: "#ffffff", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 800 }}>✓ LOGGED</span>
+                            ) : item.isAbsent ? (
+                              <span style={{ background: "#e2e8f0", color: "#64748b", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>Missed</span>
+                            ) : null}
                           </div>
-                          <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginTop: 1 }}>
-                            <span style={{ fontSize: 16, fontWeight: 800, color: "#15803d" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "baseline",
+                              gap: 5,
+                              marginTop: 1,
+                              textDecoration: item.isAbsent ? "line-through" : "none",
+                              textDecorationColor: "#16a34a",
+                              textDecorationThickness: "2px",
+                            }}
+                          >
+                            <span style={{ fontSize: 16, fontWeight: 800, color: item.isAbsent ? "#94a3b8" : "#15803d" }}>
                               {item.attendSubPct.toFixed(1)}%
                             </span>
-                            <span style={{ fontSize: 10.5, fontWeight: 700, color: "#16a34a" }}>
+                            <span style={{ fontSize: 10.5, fontWeight: 700, color: item.isAbsent ? "#94a3b8" : "#16a34a" }}>
                               +{item.attendSubDelta.toFixed(1)}%
                             </span>
                           </div>
-                          <div style={{ fontSize: 10.5, color: "#166534", marginTop: 2, lineHeight: 1.35 }}>
-                            {item.curSubDel === 0
+                          <div
+                            style={{
+                              fontSize: 10.5,
+                              color: item.isAbsent ? "#94a3b8" : "#166534",
+                              marginTop: 2,
+                              lineHeight: 1.35,
+                              textDecoration: item.isAbsent ? "line-through" : "none",
+                            }}
+                          >
+                            {item.isAbsent
+                              ? `Missed +${item.attendSubDelta.toFixed(1)}% boost`
+                              : item.baseSubDel === 0
                               ? "Starts with 100%"
-                              : item.curSubPct < item.target && item.attendSubPct >= item.target
-                              ? "🎉 Crosses into Safe Zone!"
-                              : item.curSubPct < item.target
-                              ? `${item.postAttendClassesNeeded} more needed`
-                              : `Buffer: ${item.postAttendSafeBunks} safe bunks`}
+                              : item.baseSubPct < item.target && item.attendSubPct >= item.target
+                              ? (item.isPresent ? "🎉 Reached Safe Zone!" : "🎉 Crosses into Safe Zone!")
+                              : item.attendSubPct >= item.target
+                              ? `Buffer: ${item.postAttendSafeBunks} safe bunks`
+                              : `${item.postAttendClassesNeeded} more needed`}
                           </div>
                         </div>
 
                         {/* Miss Box */}
                         <div
                           style={{
-                            background: "#fff1f2",
-                            border: "1px solid #fecaca",
+                            background: item.isPresent ? "#f8fafc" : "#fff1f2",
+                            border: item.isAbsent ? "1.5px solid #dc2626" : item.isPresent ? "1px dashed #cbd5e1" : "1px solid #fecaca",
                             borderRadius: 10,
                             padding: "9px 11px",
                             display: "flex",
                             flexDirection: "column",
                             gap: 2,
+                            opacity: item.isPresent ? 0.55 : 1,
+                            transition: "all 0.15s ease",
                           }}
                         >
-                          <div style={{ fontSize: 10.5, fontWeight: 800, color: "#b91c1c", textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", gap: 4 }}>
-                            <XCircle size={12} color="#dc2626" />
-                            <span>If Missed (+0)</span>
+                          <div style={{ fontSize: 10.5, fontWeight: 800, color: item.isPresent ? "#94a3b8" : "#b91c1c", textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span style={{ display: "flex", alignItems: "center", gap: 4, textDecoration: item.isPresent ? "line-through" : "none" }}>
+                              <XCircle size={12} color={item.isPresent ? "#94a3b8" : "#dc2626"} />
+                              <span>{item.isAbsent ? "Missed (+0)" : "If Missed (+0)"}</span>
+                            </span>
+                            {item.isAbsent ? (
+                              <span style={{ background: "#dc2626", color: "#ffffff", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 800 }}>✗ LOGGED</span>
+                            ) : item.isPresent ? (
+                              <span style={{ background: "#e2e8f0", color: "#64748b", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>Cancelled</span>
+                            ) : null}
                           </div>
-                          <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginTop: 1 }}>
-                            <span style={{ fontSize: 16, fontWeight: 800, color: "#b91c1c" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "baseline",
+                              gap: 5,
+                              marginTop: 1,
+                              textDecoration: item.isPresent ? "line-through" : "none",
+                              textDecorationColor: "#dc2626",
+                              textDecorationThickness: "2px",
+                            }}
+                          >
+                            <span style={{ fontSize: 16, fontWeight: 800, color: item.isPresent ? "#94a3b8" : "#b91c1c" }}>
                               {item.missSubPct.toFixed(1)}%
                             </span>
-                            <span style={{ fontSize: 10.5, fontWeight: 700, color: "#dc2626" }}>
+                            <span style={{ fontSize: 10.5, fontWeight: 700, color: item.isPresent ? "#94a3b8" : "#dc2626" }}>
                               {item.missSubDelta.toFixed(1)}%
                             </span>
                           </div>
-                          <div style={{ fontSize: 10.5, color: "#991b1b", marginTop: 2, lineHeight: 1.35 }}>
-                            {item.curSubDel === 0
+                          <div
+                            style={{
+                              fontSize: 10.5,
+                              color: item.isPresent ? "#94a3b8" : "#991b1b",
+                              marginTop: 2,
+                              lineHeight: 1.35,
+                              textDecoration: item.isPresent ? "line-through" : "none",
+                            }}
+                          >
+                            {item.isPresent
+                              ? `Avoided ${item.missSubDelta.toFixed(1)}% penalty`
+                              : item.baseSubDel === 0
                               ? "Drops to 0%"
-                              : item.curSubPct >= item.target && item.missSubPct < item.target
-                              ? "⚠️ Drops into Shortage!"
-                              : item.curSubPct < item.target
+                              : item.baseSubPct >= item.target && item.missSubPct < item.target
+                              ? (item.isAbsent ? "⚠️ Dropped into Shortage!" : "⚠️ Drops into Shortage!")
+                              : item.missSubPct < item.target
                               ? `Backlog: ${item.postMissClassesNeeded} needed`
                               : `Buffer drops to ${item.postMissSafeBunks} bunks`}
                           </div>
@@ -5546,68 +5761,96 @@ export default function AttendanceTracker() {
                           gap: 3,
                         }}
                       >
-                        <div style={{ fontSize: 10.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", gap: 5 }}>
-                          <Globe size={11} color="#2563eb" />
-                          <span>Semester Overall Impact (Current: {item.curOverallPct.toFixed(1)}%)</span>
+                        <div style={{ fontSize: 10.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                            <Globe size={11} color="#2563eb" />
+                            <span>Semester Overall Impact (Current: {item.curOverallPct.toFixed(1)}%)</span>
+                          </span>
+                          {item.isPresent ? (
+                            <span style={{ background: "#dcfce7", color: "#15803d", padding: "1px 6px", borderRadius: 4, fontSize: 9.5, fontWeight: 800 }}>ATTENDED TODAY</span>
+                          ) : item.isAbsent ? (
+                            <span style={{ background: "#fee2e2", color: "#b91c1c", padding: "1px 6px", borderRadius: 4, fontSize: 9.5, fontWeight: 800 }}>MISSED TODAY</span>
+                          ) : null}
                         </div>
                         <div style={{ fontSize: 11, color: "#334155", lineHeight: 1.45 }}>
-                          <div>
-                            • <strong>If Attended:</strong> Overall rises to <strong style={{ color: "#15803d" }}>{item.attendOverallPct.toFixed(2)}%</strong> ({item.attendOverallDelta >= 0 ? `+${item.attendOverallDelta.toFixed(2)}%` : `${item.attendOverallDelta.toFixed(2)}%`})
+                          <div style={{ textDecoration: item.isAbsent ? "line-through" : "none", opacity: item.isAbsent ? 0.5 : 1 }}>
+                            • <strong>{item.isPresent ? "Attended Outcome:" : "If Attended:"}</strong> Overall {item.isPresent ? "reached" : "rises to"} <strong style={{ color: "#15803d" }}>{item.attendOverallPct.toFixed(2)}%</strong> ({item.attendOverallDelta >= 0 ? `+${item.attendOverallDelta.toFixed(2)}%` : `${item.attendOverallDelta.toFixed(2)}%`})
                           </div>
-                          <div>
-                            • <strong>If Missed:</strong> Overall drops to <strong style={{ color: "#b91c1c" }}>{item.missOverallPct.toFixed(2)}%</strong> ({item.missOverallDelta.toFixed(2)}%)
+                          <div style={{ textDecoration: item.isPresent ? "line-through" : "none", opacity: item.isPresent ? 0.5 : 1 }}>
+                            • <strong>{item.isAbsent ? "Missed Outcome:" : "If Missed:"}</strong> Overall {item.isAbsent ? "fell to" : "drops to"} <strong style={{ color: "#b91c1c" }}>{item.missOverallPct.toFixed(2)}%</strong> ({item.missOverallDelta.toFixed(2)}%)
                           </div>
                         </div>
                       </div>
 
-                      {/* Fast Check-In Action Row */}
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, paddingTop: 2 }}>
-                        <button
-                          type="button"
-                          onClick={() => handleMarkDailyAttendance(item.period, "present")}
-                          style={{
-                            height: 32,
-                            borderRadius: 7,
-                            border: item.isPresent ? "1px solid #047857" : "1px solid #bbf7d0",
-                            background: item.isPresent ? "#059669" : "#ffffff",
-                            color: item.isPresent ? "#ffffff" : "#059669",
-                            fontSize: 11.5,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 4,
-                            transition: "all 0.15s ease",
-                          }}
-                        >
-                          <CheckCircle2 size={12} color={item.isPresent ? "#ffffff" : "#059669"} />
-                          <span>{item.isPresent ? "Attended" : "Mark Present"}</span>
-                        </button>
+                      {/* Fast Check-In Action Row (For Today: Quick Check-in | For Future: Upcoming Schedule Pill) */}
+                      {isAdvisorSelectedToday ? (
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, paddingTop: 2 }}>
+                          <button
+                            type="button"
+                            onClick={() => handleMarkDailyAttendance(item.period, "present", todayDateKey)}
+                            style={{
+                              height: 32,
+                              borderRadius: 7,
+                              border: item.isPresent ? "1px solid #047857" : "1px solid #bbf7d0",
+                              background: item.isPresent ? "#059669" : "#ffffff",
+                              color: item.isPresent ? "#ffffff" : "#059669",
+                              fontSize: 11.5,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 4,
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            <CheckCircle2 size={12} color={item.isPresent ? "#ffffff" : "#059669"} />
+                            <span>{item.isPresent ? "Attended" : "Mark Present"}</span>
+                          </button>
 
-                        <button
-                          type="button"
-                          onClick={() => handleMarkDailyAttendance(item.period, "absent")}
+                          <button
+                            type="button"
+                            onClick={() => handleMarkDailyAttendance(item.period, "absent", todayDateKey)}
+                            style={{
+                              height: 32,
+                              borderRadius: 7,
+                              border: item.isAbsent ? "1px solid #b91c1c" : "1px solid #fecaca",
+                              background: item.isAbsent ? "#dc2626" : "#ffffff",
+                              color: item.isAbsent ? "#ffffff" : "#dc2626",
+                              fontSize: 11.5,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 4,
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            <XCircle size={12} color={item.isAbsent ? "#ffffff" : "#dc2626"} />
+                            <span>{item.isAbsent ? "Missed" : "Mark Absent"}</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div
                           style={{
-                            height: 32,
+                            padding: "6.5px 10px",
                             borderRadius: 7,
-                            border: item.isAbsent ? "1px solid #b91c1c" : "1px solid #fecaca",
-                            background: item.isAbsent ? "#dc2626" : "#ffffff",
-                            color: item.isAbsent ? "#ffffff" : "#dc2626",
-                            fontSize: 11.5,
-                            fontWeight: 700,
-                            cursor: "pointer",
+                            background: "#f8fafc",
+                            border: "1px dashed #cbd5e1",
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: "#64748b",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            gap: 4,
-                            transition: "all 0.15s ease",
+                            gap: 5,
                           }}
                         >
-                          <XCircle size={12} color={item.isAbsent ? "#ffffff" : "#dc2626"} />
-                          <span>{item.isAbsent ? "Missed" : "Mark Absent"}</span>
-                        </button>
-                      </div>
+                          <CalendarIcon size={11} color="#64748b" />
+                          <span>Upcoming Class · Check-in opens on {formatFriendlyDate(selectedAdvisorDateKey)}</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
