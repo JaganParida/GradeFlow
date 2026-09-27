@@ -325,29 +325,48 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
     }
   };
 
-  // Format countdown or expiration date
+  // In-memory 1-second reactive ticker for real-time countdowns without network calls
+  const [nowTick, setNowTick] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowTick(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Format countdown or expiration date down to the exact second
   const formatExpiration = (blockedUntil) => {
     if (!blockedUntil) return "Permanent / Indefinite";
     const target = new Date(blockedUntil);
-    const now = new Date();
-    const diffMs = target.getTime() - now.getTime();
-    if (diffMs <= 0) return "Expired (Pending Auto-Refresh)";
+    const diffMs = target.getTime() - nowTick;
+    if (diffMs <= 0) return "Auto-Unlocked Just Now";
 
     const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
     const hours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
     const mins = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000));
+    const secs = Math.floor((diffMs % (60 * 1000)) / 1000);
 
     let timeStr = "";
     if (days > 0) timeStr += `${days}d `;
-    if (hours > 0 || days > 0) timeStr += `${hours}h `;
-    timeStr += `${mins}m left`;
+    if (hours > 0) timeStr += `${hours}h `;
+    if (days === 0 && hours === 0) {
+      if (mins > 0) {
+        timeStr += `${mins}m ${secs}s left`;
+      } else {
+        timeStr += `${secs}s left`;
+      }
+    } else {
+      timeStr += `${mins}m left`;
+    }
 
+    const now = new Date(nowTick);
     const isToday = target.toDateString() === now.toDateString();
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
     const isTomorrow = target.toDateString() === tomorrow.toDateString();
 
-    const time12h = target.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true });
+    const time12h = target.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true });
     const dateLabel = isToday ? "Today" : isTomorrow ? "Tomorrow" : target.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
 
     return `${timeStr} (${dateLabel}, ${time12h})`;
@@ -365,7 +384,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
     if (blockType !== "temporary") {
       return { text: "Indefinite / Permanent (Until manually unblocked by admin)", isNear: false, target: null };
     }
-    const now = new Date();
+    const now = new Date(nowTick);
     let target = null;
     if (tempMode === "custom") {
       if (!customUntilDate) return { text: "Select a date & time above", isNear: false, target: null };
@@ -383,18 +402,27 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
     const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
     const hours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
     const mins = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000));
+    const secs = Math.floor((diffMs % (60 * 1000)) / 1000);
 
     let relativeStr = "";
     if (days > 0) relativeStr += `${days}d `;
-    if (hours > 0 || days > 0) relativeStr += `${hours}h `;
-    relativeStr += `${mins}m`;
+    if (hours > 0) relativeStr += `${hours}h `;
+    if (days === 0 && hours === 0) {
+      if (mins > 0) {
+        relativeStr += `${mins}m ${secs}s`;
+      } else {
+        relativeStr += `${secs}s`;
+      }
+    } else {
+      relativeStr += `${mins}m`;
+    }
 
     const isToday = target.toDateString() === now.toDateString();
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
     const isTomorrow = target.toDateString() === tomorrow.toDateString();
 
-    const time12h = target.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true });
+    const time12h = target.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true });
     const dateLabel = isToday ? "Today" : isTomorrow ? "Tomorrow" : target.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
 
     return {
