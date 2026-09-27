@@ -1100,6 +1100,8 @@ async function getAdminBootstrapData(adminUser) {
         visitCount: vr.visitCount || 1,
         weeklyVisitCount: vr.weeklyVisitCount || Math.min(vr.visitCount || 1, s.visitsThisWeek || 1),
         mostActiveTimeSlot: vr.mostActiveTimeSlot || s.mostActiveTimeSlot || "General",
+        peakTimeSpentSeconds: vr.peakTimeSpentSeconds || vr.durationSeconds || 0,
+        lastVisitedAt: vr.lastVisitedAt || s.lastActiveAt || new Date(),
       }));
       if (vRoutes.length === 0 && (s.currentRoute || s.lastActiveRoute || s.mostVisitedRoute)) {
         const pRoute = s.currentRoute || s.lastActiveRoute || "/";
@@ -1110,6 +1112,8 @@ async function getAdminBootstrapData(adminUser) {
           visitCount: s.totalPageViews || 1,
           weeklyVisitCount: s.visitsThisWeek || 1,
           mostActiveTimeSlot: s.mostActiveTimeSlot || "General",
+          peakTimeSpentSeconds: s.timeSpentCurrentRoute || s.totalTimeSpentSeconds || 45,
+          lastVisitedAt: s.lastActiveAt || new Date(),
         });
         if (s.mostVisitedRoute && s.mostVisitedRoute !== pRoute) {
           vRoutes.push({
@@ -1119,6 +1123,8 @@ async function getAdminBootstrapData(adminUser) {
             visitCount: s.mostVisitedCount || 1,
             weeklyVisitCount: Math.max(1, Math.round((s.visitsThisWeek || 1) * 0.6)),
             mostActiveTimeSlot: s.mostActiveTimeSlot || "General",
+            peakTimeSpentSeconds: s.mostTimeSpentSeconds || Math.round((s.totalTimeSpentSeconds || 0) * 0.6),
+            lastVisitedAt: s.lastActiveAt || new Date(),
           });
         }
       }

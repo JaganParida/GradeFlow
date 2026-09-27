@@ -163,7 +163,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
     return `${h}h ${remM > 0 ? `${remM}m` : ""}`.trim();
   };
 
-  // Helper: Format last active date into human-friendly time (e.g. "Just now", "4m ago", "Today, 8:15 PM")
+  // Helper: Format last active date into human-friendly time with guaranteed 12-hour AM/PM
   const formatLastActive = (dateStr) => {
     if (!dateStr) return "Recently";
     const d = new Date(dateStr);
@@ -171,21 +171,48 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
     const now = new Date();
     const diffSecs = Math.floor((now - d) / 1000);
 
-    if (diffSecs < 60) return "Just now";
-    if (diffSecs < 3600) return `${Math.floor(diffSecs / 60)}m ago`;
-    if (diffSecs < 86400) {
-      const timeStr = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    if (diffSecs >= 0 && diffSecs < 60) return "Just now";
+    if (diffSecs >= 60 && diffSecs < 3600) return `${Math.floor(diffSecs / 60)}m ago`;
+
+    const timeStr = d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    const isToday =
+      d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear();
+
+    if (isToday) {
       return `Today, ${timeStr}`;
     }
-    return d.toLocaleDateString([], { month: "short", day: "numeric" }) + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday =
+      d.getDate() === yesterday.getDate() &&
+      d.getMonth() === yesterday.getMonth() &&
+      d.getFullYear() === yesterday.getFullYear();
+
+    if (isYesterday) {
+      return `Yesterday, ${timeStr}`;
+    }
+
+    const dateFormatted = d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+    return `${dateFormatted}, ${timeStr}`;
   };
 
-  // Helper: Safely format time without throwing RangeError on invalid dates
+  // Helper: Safely format time with 12-hour AM/PM
   const formatSafeTime = (dateVal, fallback = "Recently") => {
     if (!dateVal) return fallback;
     const d = new Date(dateVal);
     if (isNaN(d.getTime())) return fallback;
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
   };
 
   // ─── Filtered Active Students List (Strictly Excludes Admin & 230301120327) ──
@@ -937,12 +964,14 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                     background: "#ffffff",
                     border: "1.5px solid #cbd5e1",
                     borderRadius: 14,
-                    padding: isMobile ? "12px 10px" : "16px 18px",
+                    padding: isMobile ? "10px 8px" : "16px 18px",
                     boxShadow: "0 4px 14px rgba(15, 23, 42, 0.05)",
                     display: "flex",
                     flexDirection: "column",
-                    gap: 14,
+                    gap: isMobile ? 10 : 14,
                     marginTop: 6,
+                    width: "100%",
+                    boxSizing: "border-box",
                   }}
                 >
                   {/* Header Ribbon */}
@@ -1004,10 +1033,10 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                     style={{
                       display: "grid",
                       gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(180px, 1fr))",
-                      gap: 10,
+                      gap: isMobile ? 8 : 10,
                     }}
                   >
-                    <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: "10px 12px" }}>
+                    <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: isMobile ? "8px 9px" : "10px 12px" }}>
                       <div style={{ fontSize: 10.5, fontWeight: 750, color: "#0284c7", display: "flex", alignItems: "center", gap: 5 }}>
                         <Clock size={12} /> MOST ACTIVE TIME (WEBSITE)
                       </div>
@@ -1019,7 +1048,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                       </div>
                     </div>
 
-                    <div style={{ background: "#fdf4ff", border: "1px solid #f5d0fe", borderRadius: 10, padding: "10px 12px" }}>
+                    <div style={{ background: "#fdf4ff", border: "1px solid #f5d0fe", borderRadius: 10, padding: isMobile ? "8px 9px" : "10px 12px" }}>
                       <div style={{ fontSize: 10.5, fontWeight: 750, color: "#a21caf", display: "flex", alignItems: "center", gap: 5 }}>
                         <Calendar size={12} /> MOST ACTIVE DAY (WEBSITE)
                       </div>
@@ -1029,7 +1058,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                       <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>Peak day of week</div>
                     </div>
 
-                    <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 10, padding: "10px 12px" }}>
+                    <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 10, padding: isMobile ? "8px 9px" : "10px 12px" }}>
                       <div style={{ fontSize: 10.5, fontWeight: 750, color: "#047857", display: "flex", alignItems: "center", gap: 5 }}>
                         <TrendingUp size={12} /> VISITS PER DAY & WEEK
                       </div>
@@ -1039,7 +1068,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                       <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>Platform visit velocity</div>
                     </div>
 
-                    <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: "10px 12px" }}>
+                    <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: isMobile ? "8px 9px" : "10px 12px" }}>
                       <div style={{ fontSize: 10.5, fontWeight: 750, color: "#b45309", display: "flex", alignItems: "center", gap: 5 }}>
                         <Compass size={12} /> EXPLORED ROUTES
                       </div>
@@ -1081,7 +1110,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                       </div>
                     ) : isMobile ? (
                       /* Mobile Fluid Stacked Route Cards - Zero Horizontal Scroll */
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "10px 8px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: isMobile ? "8px 6px" : "10px 8px" }}>
                         {routesList.map((vr, rIdx) => {
                           const sharePercent =
                             totalSiteSecs > 0
@@ -1095,11 +1124,12 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                                 background: "#ffffff",
                                 border: "1px solid #e2e8f0",
                                 borderRadius: 10,
-                                padding: "10px 12px",
+                                padding: isMobile ? "10px 10px" : "10px 12px",
                                 display: "flex",
                                 flexDirection: "column",
                                 gap: 7,
                                 boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+                                boxSizing: "border-box",
                               }}
                             >
                               {/* Route Header */}
@@ -1143,24 +1173,58 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                               </div>
 
                               {/* Timing Meta: Peak Time & Last Active */}
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6, fontSize: 10.5, paddingTop: 6, borderTop: "1px dashed #f1f5f9" }}>
-                                <div>
-                                  <span style={{ color: "#64748b", display: "block" }}>Peak Active:</span>
-                                  <span style={{ color: "#15803d", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 3, marginTop: 1 }}>
-                                    <Clock size={10} color="#16a34a" />
-                                    {vr.mostActiveTimeSlot || st.mostActiveTimeSlot || "General"}
+                              <div
+                                style={{
+                                  display: "grid",
+                                  gridTemplateColumns: "1fr 1fr",
+                                  gap: 8,
+                                  fontSize: 10.5,
+                                  paddingTop: 6,
+                                  borderTop: "1px dashed #f1f5f9",
+                                  alignItems: "flex-start",
+                                }}
+                              >
+                                <div style={{ minWidth: 0 }}>
+                                  <span style={{ color: "#64748b", display: "block", fontSize: 10, fontWeight: 600 }}>
+                                    Peak Active:
                                   </span>
-                                  <span style={{ display: "block", color: "#059669", fontWeight: 600, fontSize: 10 }}>
+                                  <span
+                                    style={{
+                                      color: "#15803d",
+                                      fontWeight: 700,
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 3,
+                                      marginTop: 2,
+                                      fontSize: 11,
+                                      lineHeight: 1.3,
+                                      wordBreak: "break-word",
+                                    }}
+                                  >
+                                    <Clock size={11} color="#16a34a" style={{ flexShrink: 0 }} />
+                                    <span>{vr.mostActiveTimeSlot || st.mostActiveTimeSlot || "General"}</span>
+                                  </span>
+                                  <span style={{ display: "block", color: "#059669", fontWeight: 600, fontSize: 10, marginTop: 1 }}>
                                     Spent: {formatDuration(vr.peakTimeSpentSeconds || vr.durationSeconds || 0)}
                                   </span>
                                 </div>
-                                <div style={{ textAlign: "right" }}>
-                                  <span style={{ color: "#64748b", display: "block" }}>Last Active:</span>
-                                  <span style={{ color: "#334155", fontWeight: 700, display: "block", marginTop: 1 }}>
-                                    {formatLastActive(vr.lastVisitedAt || st.lastActiveAt)}
+
+                                <div style={{ minWidth: 0, textAlign: "right" }}>
+                                  <span style={{ color: "#64748b", display: "block", fontSize: 10, fontWeight: 600 }}>
+                                    Last Active:
                                   </span>
-                                  <span style={{ color: "#94a3b8", fontSize: 9.5 }}>
-                                    {formatSafeTime(vr.lastVisitedAt, "Recently")}
+                                  <span
+                                    style={{
+                                      color: "#0f172a",
+                                      fontWeight: 800,
+                                      display: "inline-block",
+                                      marginTop: 2,
+                                      fontSize: 11.5,
+                                      lineHeight: 1.35,
+                                      wordBreak: "break-word",
+                                    }}
+                                  >
+                                    {formatLastActive(vr.lastVisitedAt || st.lastActiveAt)}
                                   </span>
                                 </div>
                               </div>
@@ -1270,11 +1334,8 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                                   </td>
 
                                   <td style={{ padding: "10px 12px" }}>
-                                    <div style={{ color: "#334155", fontWeight: 600, fontSize: 11.5 }}>
+                                    <div style={{ color: "#1e293b", fontWeight: 700, fontSize: 12 }}>
                                       {formatLastActive(vr.lastVisitedAt || st.lastActiveAt)}
-                                    </div>
-                                    <div style={{ color: "#94a3b8", fontSize: 10 }}>
-                                      {formatSafeTime(vr.lastVisitedAt, "Recently")}
                                     </div>
                                   </td>
 
