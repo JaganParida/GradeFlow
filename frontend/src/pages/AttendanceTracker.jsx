@@ -58,6 +58,9 @@ import {
   ClipboardCheck,
   FileText,
   ExternalLink,
+  Compass,
+  Sparkles,
+  Globe,
 } from "lucide-react";
 import {
   ALL_SECTIONS,
@@ -488,6 +491,7 @@ export default function AttendanceTracker() {
   const LOCKED_TAB_IDS = useMemo(() => new Set([
     "checkin",
     "matrix",
+    "advisor",
     "studio_schedule",
     "studio_penalty",
     "studio_roadmap",
@@ -534,6 +538,7 @@ export default function AttendanceTracker() {
     }
     if (urlTabParam === "bunk" || urlTabParam === "bunk_analyzer" || urlTabParam === "planner" || urlTabParam === "future" || urlTabParam === "future_predictor") return "bunk_analyzer";
     if (urlTabParam === "matrix" || urlTabParam === "subjects" || urlTabParam === "subject_matrix") return "matrix";
+    if (urlTabParam === "advisor" || urlTabParam === "daily_advisor" || urlTabParam === "priority_advisor") return "advisor";
     if (urlTabParam === "checkin" || urlTabParam === "hub" || urlTabParam === "daily") return "checkin";
     return "studio_simulator";
   };
@@ -627,6 +632,7 @@ export default function AttendanceTracker() {
       const tabNames = {
         checkin: "Daily Attendance",
         matrix: "Subject-wise Attendance",
+        advisor: "Daily Attendance Advisor",
         studio_schedule: "Target with Schedule",
         studio_penalty: "Miss Impact between Target",
         studio_roadmap: "Miss Classes After Target",
@@ -1213,6 +1219,7 @@ export default function AttendanceTracker() {
       const tabNames = {
         checkin: "Daily Attendance",
         matrix: "Subject-wise Attendance",
+        advisor: "Daily Attendance Advisor",
         studio_schedule: "Target with Schedule",
         studio_penalty: "Miss Impact between Target",
         studio_roadmap: "Miss Classes After Target",
@@ -1973,6 +1980,171 @@ export default function AttendanceTracker() {
     }, 60);
   };
 
+  // ─── Daily Attendance Advisor Engine (Schedule & Class Impact Studio) ───
+  const dailyAdvisorAnalysis = useMemo(() => {
+    if (!selectedDayClasses || selectedDayClasses.length === 0) {
+      return { classes: [], topPriority: null, safeCount: 0, criticalCount: 0, totalClasses: 0 };
+    }
+
+    const activeDateLogs = allDailyLogs[selectedCheckInDateKey] || {};
+    const target = Number(targetGoal) || 75;
+
+    const list = selectedDayClasses.map((period) => {
+      const cleanName = period.cleanName || period.subject || "";
+      const subCode = resolveSubjectCode(period, studentData);
+      const sub =
+        allSectionSubjects.find((s) => isSameSubject(s, cleanName)) ||
+        savedSubjects.find((s) => isSameSubject(s, cleanName));
+
+      let curSubAtt = 0;
+      let curSubDel = 0;
+      if (sub) {
+        (sub.components || []).forEach((c) => {
+          curSubAtt += Number(c.attended) || 0;
+          curSubDel += Number(c.delivered) || 0;
+        });
+      }
+
+      const curSubPct = curSubDel > 0 ? (curSubAtt / curSubDel) * 100 : 0;
+
+      // 1. If this class is Attended (+1 attended, +1 delivered)
+      const attendSubAtt = curSubAtt + 1;
+      const attendSubDel = curSubDel + 1;
+      const attendSubPct = (attendSubAtt / attendSubDel) * 100;
+      const attendSubDelta = attendSubPct - curSubPct;
+
+      // 2. If this class is Missed (0 attended, +1 delivered)
+      const missSubAtt = curSubAtt;
+      const missSubDel = curSubDel + 1;
+      const missSubPct = (missSubAtt / missSubDel) * 100;
+      const missSubDelta = missSubPct - curSubPct;
+
+      // 3. Overall Semester Attendance Impact (Across all semester subjects)
+      const curOverallAtt = overallAggregate.totalAttended;
+      const curOverallDel = overallAggregate.totalDelivered;
+      const curOverallPct = overallAggregate.percentage;
+
+      // If Attended:
+      const attendOverallAtt = curOverallAtt + 1;
+      const attendOverallDel = curOverallDel + 1;
+      const attendOverallPct = attendOverallDel > 0 ? (attendOverallAtt / attendOverallDel) * 100 : 0;
+      const attendOverallDelta = attendOverallPct - curOverallPct;
+
+      // If Missed:
+      const missOverallAtt = curOverallAtt;
+      const missOverallDel = curOverallDel + 1;
+      const missOverallPct = missOverallDel > 0 ? (missOverallAtt / missOverallDel) * 100 : 0;
+      const missOverallDelta = missOverallPct - curOverallPct;
+
+      // Safe Bunks / Classes Needed for this subject currently
+      let currentSafeBunks = 0;
+      let currentClassesNeeded = 0;
+      if (curSubDel > 0) {
+        if (curSubPct >= target) {
+          currentSafeBunks = Math.floor((100 * curSubAtt - target * curSubDel) / target);
+        } else {
+          currentClassesNeeded = Math.ceil((target * curSubDel - 100 * curSubAtt) / (100 - target));
+        }
+      }
+
+      // Safe Bunks / Classes Needed after Attending
+      let postAttendSafeBunks = 0;
+      let postAttendClassesNeeded = 0;
+      if (attendSubPct >= target) {
+        postAttendSafeBunks = Math.floor((100 * attendSubAtt - target * attendSubDel) / target);
+      } else {
+        postAttendClassesNeeded = Math.ceil((target * attendSubDel - 100 * attendSubAtt) / (100 - target));
+      }
+
+      // Safe Bunks / Classes Needed after Missing
+      let postMissSafeBunks = 0;
+      let postMissClassesNeeded = 0;
+      if (missSubPct >= target) {
+        postMissSafeBunks = Math.floor((100 * missSubAtt - target * missSubDel) / target);
+      } else {
+        postMissClassesNeeded = Math.ceil((target * missSubDel - 100 * missSubAtt) / (100 - target));
+      }
+
+      // Priority Scoring for the Morning Action Card
+      let priorityScore = 0;
+      let urgencyType = "maintain_buffer"; // "safe_opportunity" | "boundary_warning" | "critical_recovery" | "maintain_buffer"
+      let adviceText = "";
+
+      if (curSubDel === 0) {
+        priorityScore = 15;
+        urgencyType = "maintain_buffer";
+        adviceText = `First lecture of the semester! Attend to start off strong with a 100% record.`;
+      } else if (curSubPct < target && attendSubPct >= target) {
+        priorityScore = 1000 + (attendSubPct - curSubPct);
+        urgencyType = "safe_opportunity";
+        adviceText = `Attending today's lecture will boost ${cleanName} from ${curSubPct.toFixed(1)}% to ${attendSubPct.toFixed(1)}% and cross into the Safe Zone (≥${target}%)!`;
+      } else if (curSubPct >= target && missSubPct < target) {
+        priorityScore = 800 + (target - missSubPct);
+        urgencyType = "boundary_warning";
+        adviceText = `Missing today's lecture will drop ${cleanName} to ${missSubPct.toFixed(1)}% into Danger Zone (<${target}%). Must attend!`;
+      } else if (curSubPct < target) {
+        priorityScore = 500 + (target - curSubPct);
+        urgencyType = "critical_recovery";
+        adviceText = `Currently in Shortage (${curSubPct.toFixed(1)}%). Attending yields +${attendSubDelta.toFixed(1)}% and cuts your recovery backlog!`;
+      } else {
+        priorityScore = 100 - Math.min(50, currentSafeBunks);
+        urgencyType = "maintain_buffer";
+        adviceText = `In Safe Zone (${curSubPct.toFixed(1)}%) with ${currentSafeBunks} safe bunk(s). Attending strengthens your cushion!`;
+      }
+
+      const status = activeDateLogs[period.slotIndex]; // "present" | "absent" | undefined
+
+      return {
+        period,
+        cleanName,
+        subCode,
+        curSubAtt,
+        curSubDel,
+        curSubPct,
+        target,
+        attendSubAtt,
+        attendSubDel,
+        attendSubPct,
+        attendSubDelta,
+        missSubAtt,
+        missSubDel,
+        missSubPct,
+        missSubDelta,
+        curOverallPct,
+        attendOverallPct,
+        attendOverallDelta,
+        missOverallPct,
+        missOverallDelta,
+        currentSafeBunks,
+        currentClassesNeeded,
+        postAttendSafeBunks,
+        postAttendClassesNeeded,
+        postMissSafeBunks,
+        postMissClassesNeeded,
+        priorityScore,
+        urgencyType,
+        adviceText,
+        status,
+        isPresent: status === "present",
+        isAbsent: status === "absent",
+      };
+    });
+
+    const sorted = [...list].sort((a, b) => b.priorityScore - a.priorityScore);
+    const topPriority = sorted.length > 0 ? sorted[0] : null;
+
+    const safeCount = list.filter((item) => item.curSubDel === 0 || item.curSubPct >= item.target).length;
+    const criticalCount = list.filter((item) => item.curSubDel > 0 && item.curSubPct < item.target).length;
+
+    return {
+      classes: list,
+      topPriority,
+      safeCount,
+      criticalCount,
+      totalClasses: list.length,
+    };
+  }, [selectedDayClasses, allSectionSubjects, savedSubjects, studentData, targetGoal, overallAggregate, allDailyLogs, selectedCheckInDateKey]);
+
   const handleOpenSubjectInSchedule = (sub) => {
     if (isTabLocked("studio_schedule")) {
       handleLockedTabAttempt("Target with Schedule");
@@ -2142,6 +2314,15 @@ export default function AttendanceTracker() {
       badge: isTabLocked("matrix") ? "Locked" : `${allSectionSubjects.length} Subs`,
       desc: "Detailed attendance % across all semester subjects",
       isLocked: isTabLocked("matrix"),
+    },
+    {
+      id: "advisor",
+      label: "Daily Attendance Advisor",
+      shortLabel: "Daily Advisor",
+      icon: <Compass size={16} />,
+      badge: isTabLocked("advisor") ? "Locked" : "Schedule Impact",
+      desc: "Today's routine & instant class-by-class attend vs miss impact",
+      isLocked: isTabLocked("advisor"),
     },
     {
       id: "studio_simulator",
@@ -4003,6 +4184,103 @@ export default function AttendanceTracker() {
                 </div>
               </div>
 
+              {/* 🎯 Morning Priority Action Card (Daily Hub Banner) */}
+              {hasSavedAttendance && dailyAdvisorAnalysis.topPriority && (
+                <div
+                  style={{
+                    background: "#ffffff",
+                    border: "1.5px solid #e2e8f0",
+                    borderRadius: 12,
+                    padding: isMobile ? "12px 14px" : "13px 18px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    flexWrap: "wrap",
+                    boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+                    position: "relative",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: 3,
+                      background: "linear-gradient(90deg, #2563eb 0%, #0ea5e9 100%)",
+                    }}
+                  />
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flex: 1, minWidth: 260 }}>
+                    <div
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 8,
+                        background: "#eff6ff",
+                        border: "1px solid #bfdbfe",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        marginTop: 1,
+                      }}
+                    >
+                      <Target size={16} color="#2563eb" />
+                    </div>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                          Daily Priority Advisor
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: 700,
+                            background: "#f1f5f9",
+                            color: "#475569",
+                            padding: "1px 6px",
+                            borderRadius: 4,
+                          }}
+                        >
+                          Morning Action
+                        </span>
+                      </div>
+                      <div style={{ fontSize: isMobile ? 12 : 12.5, color: "#0f172a", lineHeight: 1.45 }}>
+                        <strong>Today's Priority: {dailyAdvisorAnalysis.topPriority.cleanName} ({dailyAdvisorAnalysis.topPriority.curSubPct.toFixed(1)}%)</strong> — {dailyAdvisorAnalysis.topPriority.adviceText}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleTabClick("advisor")}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      background: "#0f172a",
+                      color: "#ffffff",
+                      padding: "6.5px 12px",
+                      borderRadius: 7,
+                      fontSize: 11,
+                      fontWeight: 750,
+                      border: "none",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      boxShadow: "0 1px 2px rgba(15, 23, 42, 0.1)",
+                      transition: "background 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "#1e293b"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "#0f172a"; }}
+                  >
+                    <Compass size={12} />
+                    <span>View Full Advisor</span>
+                    <ArrowRight size={11} />
+                  </button>
+                </div>
+              )}
+
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={selectedCheckInDateKey}
@@ -4797,6 +5075,544 @@ export default function AttendanceTracker() {
                 </div>
               )}
             </div>
+          </motion.div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════
+            TAB: DAILY ATTENDANCE ADVISOR (MORNING ACTION & SCHEDULE IMPACT STUDIO)
+        ═══════════════════════════════════════════════════════════════ */}
+        {activeTab === "advisor" && (
+          <motion.div
+            key="advisor"
+            initial={activeTabMotion.initial}
+            animate={activeTabMotion.animate}
+            exit={activeTabMotion.exit}
+            transition={activeTabMotion.transition}
+            style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 16, width: "100%" }}
+          >
+            {/* Header & Date Controls */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                flexWrap: "wrap",
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
+                padding: isMobile ? "12px 14px" : "14px 18px",
+                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+              }}
+            >
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <div
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 8,
+                      background: "#eff6ff",
+                      border: "1px solid #bfdbfe",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Compass size={15} color="#2563eb" />
+                  </div>
+                  <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.2px" }}>
+                    Daily Attendance Advisor
+                  </h3>
+                </div>
+                <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 3 }}>
+                  Section {selectedSection} Routine · See exact attend vs miss consequence for every scheduled class
+                </div>
+              </div>
+
+              {/* Date Controls */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={handlePrevDay}
+                  disabled={!canGoPrev}
+                  style={{
+                    padding: "5.5px 10px",
+                    borderRadius: 7,
+                    border: `1px solid ${canGoPrev ? "#cbd5e1" : "#e2e8f0"}`,
+                    background: canGoPrev ? "#ffffff" : "#f1f5f9",
+                    color: canGoPrev ? "#0f172a" : "#94a3b8",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: canGoPrev ? "pointer" : "not-allowed",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <ChevronLeft size={13} />
+                  <span>Prev</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleOpenCheckInDatePicker}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "5.5px 12px",
+                    borderRadius: 7,
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: "#0f172a",
+                    cursor: "pointer",
+                  }}
+                >
+                  <CalendarIcon size={12} color="#2563eb" />
+                  <span>{formatFriendlyDate(selectedCheckInDateKey)}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleNextDay}
+                  disabled={!canGoNext}
+                  style={{
+                    padding: "5.5px 10px",
+                    borderRadius: 7,
+                    border: `1px solid ${canGoNext ? "#cbd5e1" : "#e2e8f0"}`,
+                    background: canGoNext ? "#ffffff" : "#f1f5f9",
+                    color: canGoNext ? "#0f172a" : "#94a3b8",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: canGoNext ? "pointer" : "not-allowed",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <span>Next</span>
+                  <ChevronRight size={13} />
+                </button>
+
+                {!isSelectedToday && (
+                  <button
+                    type="button"
+                    onClick={() => handleSelectDate(todayDateKey)}
+                    style={{
+                      padding: "5.5px 10px",
+                      borderRadius: 7,
+                      border: "1px solid #bfdbfe",
+                      background: "#eff6ff",
+                      color: "#1d4ed8",
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Today
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 🎯 MORNING ACTION CARD (Daily Priority Advisor) */}
+            {dailyAdvisorAnalysis.topPriority ? (
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "1.5px solid #e2e8f0",
+                  borderRadius: 14,
+                  padding: isMobile ? "14px 16px" : "18px 22px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                  boxShadow: "0 2px 6px rgba(15, 23, 42, 0.04)",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 3,
+                    background: "linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #0ea5e9 100%)",
+                  }}
+                />
+
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 11, flex: 1, minWidth: 260 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background: "#eff6ff",
+                        border: "1px solid #bfdbfe",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        marginTop: 1,
+                      }}
+                    >
+                      <Target size={18} color="#2563eb" />
+                    </div>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 3 }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                          Daily Priority Advisor
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            background:
+                              dailyAdvisorAnalysis.topPriority.urgencyType === "safe_opportunity"
+                                ? "#dcfce7"
+                                : dailyAdvisorAnalysis.topPriority.urgencyType === "boundary_warning"
+                                ? "#fef3c7"
+                                : dailyAdvisorAnalysis.topPriority.urgencyType === "critical_recovery"
+                                ? "#fee2e2"
+                                : "#f1f5f9",
+                            color:
+                              dailyAdvisorAnalysis.topPriority.urgencyType === "safe_opportunity"
+                                ? "#15803d"
+                                : dailyAdvisorAnalysis.topPriority.urgencyType === "boundary_warning"
+                                ? "#b45309"
+                                : dailyAdvisorAnalysis.topPriority.urgencyType === "critical_recovery"
+                                ? "#b91c1c"
+                                : "#475569",
+                            padding: "2px 7px",
+                            borderRadius: 5,
+                            border: "1px solid rgba(0,0,0,0.06)",
+                          }}
+                        >
+                          {dailyAdvisorAnalysis.topPriority.urgencyType === "safe_opportunity"
+                            ? "Safe Zone Opportunity"
+                            : dailyAdvisorAnalysis.topPriority.urgencyType === "boundary_warning"
+                            ? "Critical Boundary"
+                            : dailyAdvisorAnalysis.topPriority.urgencyType === "critical_recovery"
+                            ? "High Urgency"
+                            : "Safe Buffer"}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: isMobile ? 14 : 15, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.2px" }}>
+                        Today's Priority: {dailyAdvisorAnalysis.topPriority.cleanName} ({dailyAdvisorAnalysis.topPriority.curSubPct.toFixed(1)}%)
+                      </div>
+                      <p style={{ fontSize: isMobile ? 12 : 12.5, color: "#475569", margin: "4px 0 0 0", lineHeight: 1.5 }}>
+                        {dailyAdvisorAnalysis.topPriority.adviceText}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Summary Metric Pills */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", alignSelf: isMobile ? "flex-start" : "center" }}>
+                    <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "6px 11px", textAlign: "center" }}>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>{dailyAdvisorAnalysis.totalClasses}</div>
+                      <div style={{ fontSize: 9.5, color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Classes Today</div>
+                    </div>
+                    <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "6px 11px", textAlign: "center" }}>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: "#16a34a" }}>{dailyAdvisorAnalysis.safeCount}</div>
+                      <div style={{ fontSize: 9.5, color: "#15803d", fontWeight: 700, textTransform: "uppercase" }}>Safe (≥{targetGoal}%)</div>
+                    </div>
+                    {dailyAdvisorAnalysis.criticalCount > 0 && (
+                      <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 11px", textAlign: "center" }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: "#dc2626" }}>{dailyAdvisorAnalysis.criticalCount}</div>
+                        <div style={{ fontSize: 9.5, color: "#b91c1c", fontWeight: 700, textTransform: "uppercase" }}>Shortage</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {/* CLASS SCHEDULE IMPACT LIST */}
+            {dailyAdvisorAnalysis.classes.length === 0 ? (
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 14,
+                  padding: "40px 20px",
+                  textAlign: "center",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <CalendarCheck size={20} color="#64748b" />
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
+                  {isSelectedSunday
+                    ? "Sunday · No Classes Scheduled"
+                    : isSelectedHoliday
+                    ? `Official Holiday · ${selectedHolidayInfo?.title || "Holiday"}`
+                    : `No Classes Scheduled for ${selectedDayName}`}
+                </div>
+                <div style={{ fontSize: 12.5, color: "#64748b", maxWidth: 440 }}>
+                  Enjoy your day! No lectures, labs, or tutorials are conducted today. Your attendance percentages remain unchanged.
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(340px, 1fr))",
+                  gap: 14,
+                }}
+              >
+                {dailyAdvisorAnalysis.classes.map((item) => {
+                  const isSafe = item.curSubDel === 0 || item.curSubPct >= item.target;
+
+                  return (
+                    <div
+                      key={`advisor-${item.period.slotIndex}`}
+                      style={{
+                        background: "#ffffff",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 14,
+                        padding: isMobile ? "14px 14px" : "16px 18px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 11,
+                        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {/* Card Top: Slot timing + Component badge */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 800,
+                              background: "#f1f5f9",
+                              color: "#0f172a",
+                              padding: "2px 7px",
+                              borderRadius: 5,
+                            }}
+                          >
+                            P{item.period.slotIndex + 1}
+                          </span>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b", fontFamily: "'DM Sans', monospace" }}>
+                            {item.period.slot?.startTime} - {item.period.slot?.endTime}
+                          </span>
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                          {item.status && (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                background: item.isPresent ? "#dcfce7" : "#fee2e2",
+                                color: item.isPresent ? "#15803d" : "#b91c1c",
+                                padding: "2px 6px",
+                                borderRadius: 4,
+                                border: `1px solid ${item.isPresent ? "#bbf7d0" : "#fecaca"}`,
+                              }}
+                            >
+                              {item.isPresent ? "✓ Attended" : "✕ Missed"}
+                            </span>
+                          )}
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 800,
+                              background: item.period.type === "PR" ? "#faf5ff" : item.period.type === "TUT" ? "#fffbeb" : "#f1f5f9",
+                              color: item.period.type === "PR" ? "#7c3aed" : item.period.type === "TUT" ? "#b45309" : "#475569",
+                              padding: "2px 6px",
+                              borderRadius: 4,
+                              border: `1px solid ${item.period.type === "PR" ? "#ddd6fe" : item.period.type === "TUT" ? "#fde68a" : "#e2e8f0"}`,
+                            }}
+                          >
+                            {item.period.type || "PP"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Subject Name & Current Standing */}
+                      <div>
+                        <div style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", lineHeight: 1.35 }}>
+                          {item.cleanName}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+                          {item.subCode && (
+                            <span style={{ fontSize: 10.5, fontFamily: "'DM Sans', monospace", fontWeight: 700, color: "#475569", background: "#f8fafc", border: "1px solid #e2e8f0", padding: "1.5px 6px", borderRadius: 4 }}>
+                              {item.subCode}
+                            </span>
+                          )}
+                          <span style={{ fontSize: 11, fontWeight: 700, color: isSafe ? "#16a34a" : "#dc2626" }}>
+                            Current: {item.curSubDel > 0 ? `${item.curSubAtt}/${item.curSubDel} (${item.curSubPct.toFixed(1)}%)` : "No prior classes"}
+                          </span>
+                          <span style={{ fontSize: 10.5, color: "#64748b" }}>
+                            {isSafe
+                              ? `· ${item.currentSafeBunks} safe bunk(s)`
+                              : `· ${item.currentClassesNeeded} needed to hit ${item.target}%`}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 2-Column Impact Grid: If Attended vs If Missed for this Subject */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        {/* Attend Box */}
+                        <div
+                          style={{
+                            background: "#f0fdf4",
+                            border: "1px solid #bbf7d0",
+                            borderRadius: 10,
+                            padding: "9px 11px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 2,
+                          }}
+                        >
+                          <div style={{ fontSize: 10.5, fontWeight: 800, color: "#15803d", textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", gap: 4 }}>
+                            <CheckCircle2 size={12} color="#16a34a" />
+                            <span>If Attended (+1)</span>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginTop: 1 }}>
+                            <span style={{ fontSize: 16, fontWeight: 800, color: "#15803d" }}>
+                              {item.attendSubPct.toFixed(1)}%
+                            </span>
+                            <span style={{ fontSize: 10.5, fontWeight: 700, color: "#16a34a" }}>
+                              +{item.attendSubDelta.toFixed(1)}%
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 10.5, color: "#166534", marginTop: 2, lineHeight: 1.35 }}>
+                            {item.curSubDel === 0
+                              ? "Starts with 100%"
+                              : item.curSubPct < item.target && item.attendSubPct >= item.target
+                              ? "🎉 Crosses into Safe Zone!"
+                              : item.curSubPct < item.target
+                              ? `${item.postAttendClassesNeeded} more needed`
+                              : `Buffer: ${item.postAttendSafeBunks} safe bunks`}
+                          </div>
+                        </div>
+
+                        {/* Miss Box */}
+                        <div
+                          style={{
+                            background: "#fff1f2",
+                            border: "1px solid #fecaca",
+                            borderRadius: 10,
+                            padding: "9px 11px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 2,
+                          }}
+                        >
+                          <div style={{ fontSize: 10.5, fontWeight: 800, color: "#b91c1c", textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", gap: 4 }}>
+                            <XCircle size={12} color="#dc2626" />
+                            <span>If Missed (+0)</span>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "baseline", gap: 5, marginTop: 1 }}>
+                            <span style={{ fontSize: 16, fontWeight: 800, color: "#b91c1c" }}>
+                              {item.missSubPct.toFixed(1)}%
+                            </span>
+                            <span style={{ fontSize: 10.5, fontWeight: 700, color: "#dc2626" }}>
+                              {item.missSubDelta.toFixed(1)}%
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 10.5, color: "#991b1b", marginTop: 2, lineHeight: 1.35 }}>
+                            {item.curSubDel === 0
+                              ? "Drops to 0%"
+                              : item.curSubPct >= item.target && item.missSubPct < item.target
+                              ? "⚠️ Drops into Shortage!"
+                              : item.curSubPct < item.target
+                              ? `Backlog: ${item.postMissClassesNeeded} needed`
+                              : `Buffer drops to ${item.postMissSafeBunks} bunks`}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Semester Overall Impact Row (The requested exact overall calculation) */}
+                      <div
+                        style={{
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 8,
+                          padding: "8px 10px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 3,
+                        }}
+                      >
+                        <div style={{ fontSize: 10.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", gap: 5 }}>
+                          <Globe size={11} color="#2563eb" />
+                          <span>Semester Overall Impact (Current: {item.curOverallPct.toFixed(1)}%)</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: "#334155", lineHeight: 1.45 }}>
+                          <div>
+                            • <strong>If Attended:</strong> Overall rises to <strong style={{ color: "#15803d" }}>{item.attendOverallPct.toFixed(2)}%</strong> ({item.attendOverallDelta >= 0 ? `+${item.attendOverallDelta.toFixed(2)}%` : `${item.attendOverallDelta.toFixed(2)}%`})
+                          </div>
+                          <div>
+                            • <strong>If Missed:</strong> Overall drops to <strong style={{ color: "#b91c1c" }}>{item.missOverallPct.toFixed(2)}%</strong> ({item.missOverallDelta.toFixed(2)}%)
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Fast Check-In Action Row */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, paddingTop: 2 }}>
+                        <button
+                          type="button"
+                          onClick={() => handleMarkDailyAttendance(item.period, "present")}
+                          style={{
+                            height: 32,
+                            borderRadius: 7,
+                            border: item.isPresent ? "1px solid #047857" : "1px solid #bbf7d0",
+                            background: item.isPresent ? "#059669" : "#ffffff",
+                            color: item.isPresent ? "#ffffff" : "#059669",
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 4,
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          <CheckCircle2 size={12} color={item.isPresent ? "#ffffff" : "#059669"} />
+                          <span>{item.isPresent ? "Attended" : "Mark Present"}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleMarkDailyAttendance(item.period, "absent")}
+                          style={{
+                            height: 32,
+                            borderRadius: 7,
+                            border: item.isAbsent ? "1px solid #b91c1c" : "1px solid #fecaca",
+                            background: item.isAbsent ? "#dc2626" : "#ffffff",
+                            color: item.isAbsent ? "#ffffff" : "#dc2626",
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 4,
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          <XCircle size={12} color={item.isAbsent ? "#ffffff" : "#dc2626"} />
+                          <span>{item.isAbsent ? "Missed" : "Mark Absent"}</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </motion.div>
         )}
 
