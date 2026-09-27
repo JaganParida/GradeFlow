@@ -2608,11 +2608,26 @@ export default function Navbar() {
                 letterSpacing: "-0.3px",
               }}
             >
-              Session Transferred
+              {sessionRevokedNotice?.includes("Suspended") || sessionRevokedNotice?.includes("suspended") || sessionRevokedNotice?.includes("not found")
+                ? "Portal Access Restricted"
+                : "Session Transferred"}
             </h4>
-            <p style={{ fontSize: 13.5, color: "#64748b", margin: "0 0 20px", lineHeight: 1.5 }}>
-              {sessionRevokedNotice}
-            </p>
+            <div style={{ fontSize: 13.5, color: "#64748b", margin: "0 0 20px", lineHeight: 1.5 }}>
+              {String(sessionRevokedNotice || "")
+                .split("\n")
+                .map((line, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      fontWeight: idx === 0 && line.includes("Student not found") ? 800 : 500,
+                      color: idx === 0 && line.includes("Student not found") ? "#991b1b" : "#475569",
+                      marginTop: idx > 0 ? 4 : 0,
+                    }}
+                  >
+                    {line}
+                  </div>
+                ))}
+            </div>
             <div style={{ display: "flex", gap: 10 }}>
               <button
                 type="button"

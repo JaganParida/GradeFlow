@@ -113,10 +113,11 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
 
   // Block Form State
   const [blockType, setBlockType] = useState("temporary"); // 'temporary' | 'permanent'
-  const [durationDays, setDurationDays] = useState(3);
-  const [durationHours, setDurationHours] = useState(0);
+  const [tempMode, setTempMode] = useState("preset"); // 'preset' | 'custom'
+  const [durationDays, setDurationDays] = useState(0);
+  const [durationHours, setDurationHours] = useState(2);
+  const [durationMinutes, setDurationMinutes] = useState(0);
   const [customUntilDate, setCustomUntilDate] = useState("");
-  const [useCustomDate, setUseCustomDate] = useState(false);
   const [reason, setReason] = useState("");
 
   // Directory of Blocked Students
@@ -239,11 +240,33 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
       };
 
       if (blockType === "temporary") {
-        if (useCustomDate && customUntilDate) {
-          payload.customUntilDate = customUntilDate;
+        if (tempMode === "custom") {
+          if (!customUntilDate) {
+            setErrorMsg("Please select an expiration date and time.");
+            setActionLoading(false);
+            return;
+          }
+          const target = new Date(customUntilDate);
+          if (isNaN(target.getTime()) || target <= new Date()) {
+            setErrorMsg("Custom expiration date must be a valid future date and time.");
+            setActionLoading(false);
+            return;
+          }
+          // Convert to ISO string so timezone is preserved accurately on Vercel/Node runtime
+          payload.customUntilDate = target.toISOString();
         } else {
-          payload.durationDays = Number(durationDays) || 0;
-          payload.durationHours = Number(durationHours) || 0;
+          const days = Number(durationDays) || 0;
+          const hours = Number(durationHours) || 0;
+          const mins = Number(durationMinutes) || 0;
+          const totalMs = (days * 24 * 60 + hours * 60 + mins) * 60 * 1000;
+          if (totalMs <= 0) {
+            setErrorMsg("Temporary block duration must be at least 1 minute.");
+            setActionLoading(false);
+            return;
+          }
+          payload.durationDays = days;
+          payload.durationHours = hours;
+          payload.durationMinutes = mins;
         }
       }
 
@@ -311,7 +334,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
     if (diffMs <= 0) return "Expired (Pending Auto-Refresh)";
 
     const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
-    const hours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 1000));
+    const hours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
     const mins = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000));
 
     let timeStr = "";
@@ -319,7 +342,67 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
     if (hours > 0 || days > 0) timeStr += `${hours}h `;
     timeStr += `${mins}m left`;
 
-    return `${timeStr} (${target.toLocaleDateString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })})`;
+    const isToday = target.toDateString() === now.toDateString();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const isTomorrow = target.toDateString() === tomorrow.toDateString();
+
+    const time12h = target.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true });
+    const dateLabel = isToday ? "Today" : isTomorrow ? "Tomorrow" : target.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+
+    return `${timeStr} (${dateLabel}, ${time12h})`;
+  };
+
+  // Convert JS Date to input datetime-local value (YYYY-MM-DDTHH:mm) in local browser time
+  const toLocalDatetimeValue = (date) => {
+    const d = new Date(date);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  // Live computed unlock preview for the admin UI
+  const getComputedUnlockPreview = () => {
+    if (blockType !== "temporary") {
+      return { text: "Indefinite / Permanent (Until manually unblocked by admin)", isNear: false, target: null };
+    }
+    const now = new Date();
+    let target = null;
+    if (tempMode === "custom") {
+      if (!customUntilDate) return { text: "Select a date & time above", isNear: false, target: null };
+      target = new Date(customUntilDate);
+    } else {
+      const totalMinutes = (Number(durationDays) || 0) * 1440 + (Number(durationHours) || 0) * 60 + (Number(durationMinutes) || 0);
+      if (totalMinutes <= 0) return { text: "Duration must be at least 1 minute", isNear: false, target: null };
+      target = new Date(now.getTime() + totalMinutes * 60 * 1000);
+    }
+
+    if (!target || isNaN(target.getTime())) return { text: "Invalid date format", isNear: false, target: null };
+    const diffMs = target.getTime() - now.getTime();
+    if (diffMs <= 0) return { text: "Selected time is in the past! Please choose a future time.", isNear: false, isError: true, target: null };
+
+    const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+    const hours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+    const mins = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000));
+
+    let relativeStr = "";
+    if (days > 0) relativeStr += `${days}d `;
+    if (hours > 0 || days > 0) relativeStr += `${hours}h `;
+    relativeStr += `${mins}m`;
+
+    const isToday = target.toDateString() === now.toDateString();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const isTomorrow = target.toDateString() === tomorrow.toDateString();
+
+    const time12h = target.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true });
+    const dateLabel = isToday ? "Today" : isTomorrow ? "Tomorrow" : target.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+
+    return {
+      text: `${dateLabel}, ${time12h} (in ~${relativeStr})`,
+      target,
+      isNear: diffMs < 3600000,
+      isToday,
+    };
   };
 
   // Quick preset reason tags
@@ -1258,7 +1341,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                   const meta = resolveStudentMeta(acc);
                   return (
                     <option key={acc.regNo} value={acc.regNo}>
-                      {acc.regNo} — {acc.studentName} ({meta.branch} • Sec {meta.section}) {acc.isBlocked ? "⛔ BLOCKED" : ""} {acc.isCurrentlyLoggedIn ? "• Online" : ""}
+                      {acc.regNo} — {acc.studentName} ({meta.branch} • Sec {meta.section}) {acc.isBlocked ? "[SUSPENDED]" : ""} {acc.isCurrentlyLoggedIn ? "• Online" : ""}
                     </option>
                   );
                 })}
@@ -1576,92 +1659,330 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                         padding: isMob ? "12px 10px" : "14px 16px",
                         display: "flex",
                         flexDirection: "column",
-                        gap: 10,
+                        gap: 12,
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
-                        <span style={{ fontSize: 11.5, fontWeight: 800, color: "#9a3412", display: "flex", alignItems: "center", gap: 5 }}>
-                          <CalendarClock size={14} />
-                          <span>Quick Presets:</span>
-                        </span>
+                      {/* Mode Toggle: Quick Presets vs Specific Date & Time */}
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: 6,
+                          background: "#f8fafc",
+                          padding: 4,
+                          borderRadius: 9,
+                          border: "1px solid #e2e8f0",
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setTempMode("preset")}
+                          style={{
+                            padding: "7px 10px",
+                            borderRadius: 7,
+                            border: "none",
+                            background: tempMode === "preset" ? "#ffffff" : "transparent",
+                            color: tempMode === "preset" ? "#c2410c" : "#64748b",
+                            fontWeight: 800,
+                            fontSize: isMob ? 11.5 : 12,
+                            cursor: "pointer",
+                            boxShadow: tempMode === "preset" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 5,
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          <Clock size={13} />
+                          <span>Quick Duration</span>
+                        </button>
 
-                        <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                          {[1, 2, 3, 7, 15, 30].map((d) => (
-                            <button
-                              key={d}
-                              type="button"
-                              onClick={() => {
-                                setDurationDays(d);
-                                setDurationHours(0);
-                                setUseCustomDate(false);
-                              }}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTempMode("custom");
+                            if (!customUntilDate) {
+                              setCustomUntilDate(toLocalDatetimeValue(new Date(Date.now() + 60 * 60000)));
+                            }
+                          }}
+                          style={{
+                            padding: "7px 10px",
+                            borderRadius: 7,
+                            border: "none",
+                            background: tempMode === "custom" ? "#ffffff" : "transparent",
+                            color: tempMode === "custom" ? "#c2410c" : "#64748b",
+                            fontWeight: 800,
+                            fontSize: isMob ? 11.5 : 12,
+                            cursor: "pointer",
+                            boxShadow: tempMode === "custom" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 5,
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          <Calendar size={13} />
+                          <span>Specific Date & Time</span>
+                        </button>
+                      </div>
+
+                      {/* MODE 1: Quick Preset Duration */}
+                      {tempMode === "preset" && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                          <div>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: "#9a3412", display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }}>
+                              <CalendarClock size={13} />
+                              <span>Select Quick Duration Preset:</span>
+                            </span>
+
+                            {/* Short Time Presets (Today / Same-day) */}
+                            <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 6 }}>
+                              {[
+                                { label: "15m", d: 0, h: 0, m: 15 },
+                                { label: "30m", d: 0, h: 0, m: 30 },
+                                { label: "1h", d: 0, h: 1, m: 0 },
+                                { label: "2h", d: 0, h: 2, m: 0 },
+                                { label: "4h", d: 0, h: 4, m: 0 },
+                                { label: "12h", d: 0, h: 12, m: 0 },
+                              ].map((p) => {
+                                const isSelected = durationDays === p.d && durationHours === p.h && durationMinutes === p.m;
+                                return (
+                                  <button
+                                    key={p.label}
+                                    type="button"
+                                    onClick={() => {
+                                      setDurationDays(p.d);
+                                      setDurationHours(p.h);
+                                      setDurationMinutes(p.m);
+                                    }}
+                                    style={{
+                                      padding: "4px 9px",
+                                      borderRadius: 6,
+                                      border: isSelected ? "1.5px solid #ea580c" : "1px solid #cbd5e1",
+                                      background: isSelected ? "#ffedd5" : "#ffffff",
+                                      color: isSelected ? "#c2410c" : "#475569",
+                                      fontSize: 11,
+                                      fontWeight: 800,
+                                      cursor: "pointer",
+                                      transition: "all 0.1s ease",
+                                    }}
+                                  >
+                                    {p.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {/* Multi-Day Presets */}
+                            <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                              {[
+                                { label: "1 Day", d: 1, h: 0, m: 0 },
+                                { label: "2 Days", d: 2, h: 0, m: 0 },
+                                { label: "3 Days", d: 3, h: 0, m: 0 },
+                                { label: "7 Days", d: 7, h: 0, m: 0 },
+                                { label: "15 Days", d: 15, h: 0, m: 0 },
+                                { label: "30 Days", d: 30, h: 0, m: 0 },
+                              ].map((p) => {
+                                const isSelected = durationDays === p.d && durationHours === p.h && durationMinutes === p.m;
+                                return (
+                                  <button
+                                    key={p.label}
+                                    type="button"
+                                    onClick={() => {
+                                      setDurationDays(p.d);
+                                      setDurationHours(p.h);
+                                      setDurationMinutes(p.m);
+                                    }}
+                                    style={{
+                                      padding: "4px 9px",
+                                      borderRadius: 6,
+                                      border: isSelected ? "1.5px solid #ea580c" : "1px solid #cbd5e1",
+                                      background: isSelected ? "#ffedd5" : "#ffffff",
+                                      color: isSelected ? "#c2410c" : "#475569",
+                                      fontSize: 11,
+                                      fontWeight: 700,
+                                      cursor: "pointer",
+                                      transition: "all 0.1s ease",
+                                    }}
+                                  >
+                                    {p.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Fine-tune duration inputs */}
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 4 }}>
+                            <div>
+                              <label style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Days</label>
+                              <input
+                                type="number"
+                                min="0"
+                                max="365"
+                                value={durationDays}
+                                onChange={(e) => setDurationDays(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                                style={{
+                                  width: "100%",
+                                  padding: "7px 8px",
+                                  borderRadius: 8,
+                                  border: "1.5px solid #cbd5e1",
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  boxSizing: "border-box",
+                                  marginTop: 3,
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Hours</label>
+                              <input
+                                type="number"
+                                min="0"
+                                max="23"
+                                value={durationHours}
+                                onChange={(e) => setDurationHours(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                                style={{
+                                  width: "100%",
+                                  padding: "7px 8px",
+                                  borderRadius: 8,
+                                  border: "1.5px solid #cbd5e1",
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  boxSizing: "border-box",
+                                  marginTop: 3,
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Minutes</label>
+                              <input
+                                type="number"
+                                min="0"
+                                max="59"
+                                value={durationMinutes}
+                                onChange={(e) => setDurationMinutes(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                                style={{
+                                  width: "100%",
+                                  padding: "7px 8px",
+                                  borderRadius: 8,
+                                  border: "1.5px solid #cbd5e1",
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  boxSizing: "border-box",
+                                  marginTop: 3,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* MODE 2: Specific Date & Time Input */}
+                      {tempMode === "custom" && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          <div>
+                            <label style={{ fontSize: 11, fontWeight: 700, color: "#475569", display: "block", marginBottom: 3 }}>
+                              Exact Auto-Unlock Date & Time (Your Local Time):
+                            </label>
+                            <input
+                              type="datetime-local"
+                              min={toLocalDatetimeValue(new Date())}
+                              value={customUntilDate}
+                              onChange={(e) => setCustomUntilDate(e.target.value)}
                               style={{
-                                padding: "3px 8px",
-                                borderRadius: 6,
-                                border: durationDays === d && !useCustomDate ? "1.5px solid #ea580c" : "1px solid #cbd5e1",
-                                background: durationDays === d && !useCustomDate ? "#ffedd5" : "#ffffff",
-                                color: durationDays === d && !useCustomDate ? "#c2410c" : "#475569",
-                                fontSize: 11,
+                                width: "100%",
+                                padding: "8px 10px",
+                                borderRadius: 8,
+                                border: "1.5px solid #ea580c",
+                                fontSize: 13,
                                 fontWeight: 700,
-                                cursor: "pointer",
-                                transition: "all 0.1s ease",
+                                boxSizing: "border-box",
+                                background: "#fff7ed",
+                                color: "#0f172a",
+                                outline: "none",
                               }}
-                            >
-                              {d}d
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                            />
+                          </div>
 
-                      {/* Manual days & custom date input */}
-                      <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr" : "1fr 1fr", gap: 10 }}>
-                        <div>
-                          <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>Duration in Days</label>
-                          <input
-                            type="number"
-                            min="0"
-                            max="365"
-                            value={durationDays}
-                            onChange={(e) => {
-                              setDurationDays(Math.max(0, parseInt(e.target.value, 10) || 0));
-                              setUseCustomDate(false);
-                            }}
-                            style={{
-                              width: "100%",
-                              padding: "8px 10px",
-                              borderRadius: 8,
-                              border: "1.5px solid #cbd5e1",
-                              fontSize: 13,
-                              fontWeight: 600,
-                              boxSizing: "border-box",
-                              marginTop: 3,
-                            }}
-                          />
+                          {/* Quick Shortcut Buttons for Datetime Picker */}
+                          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
+                            <span style={{ fontSize: 10.5, fontWeight: 700, color: "#9a3412" }}>
+                              Set To:
+                            </span>
+                            {[
+                              { label: "+15m", fn: () => new Date(Date.now() + 15 * 60000) },
+                              { label: "+30m", fn: () => new Date(Date.now() + 30 * 60000) },
+                              { label: "+1h", fn: () => new Date(Date.now() + 60 * 60000) },
+                              { label: "+2h", fn: () => new Date(Date.now() + 120 * 60000) },
+                              {
+                                label: "Tonight 11:59 PM",
+                                fn: () => {
+                                  const t = new Date();
+                                  t.setHours(23, 59, 0, 0);
+                                  return t;
+                                },
+                              },
+                              {
+                                label: "Tomorrow 9:00 AM",
+                                fn: () => {
+                                  const t = new Date();
+                                  t.setDate(t.getDate() + 1);
+                                  t.setHours(9, 0, 0, 0);
+                                  return t;
+                                },
+                              },
+                            ].map((sc) => (
+                              <button
+                                key={sc.label}
+                                type="button"
+                                onClick={() => setCustomUntilDate(toLocalDatetimeValue(sc.fn()))}
+                                style={{
+                                  padding: "2px 7px",
+                                  borderRadius: 5,
+                                  border: "1px solid #fed7aa",
+                                  background: "#ffffff",
+                                  color: "#c2410c",
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  transition: "all 0.1s ease",
+                                }}
+                              >
+                                {sc.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
+                      )}
 
-                        <div>
-                          <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>Or Custom Expiration Date & Time</label>
-                          <input
-                            type="datetime-local"
-                            value={customUntilDate}
-                            onChange={(e) => {
-                              setCustomUntilDate(e.target.value);
-                              setUseCustomDate(true);
-                            }}
+                      {/* Dynamic Live Auto-Unlock Preview Box */}
+                      {(() => {
+                        const preview = getComputedUnlockPreview();
+                        return (
+                          <div
                             style={{
-                              width: "100%",
-                              padding: "8px 10px",
-                              borderRadius: 8,
-                              border: useCustomDate ? "1.5px solid #ea580c" : "1.5px solid #cbd5e1",
+                              background: preview.isError ? "#fef2f2" : "#f0fdf4",
+                              border: preview.isError ? "1.5px solid #fecaca" : "1.5px solid #bbf7d0",
+                              borderRadius: 10,
+                              padding: "9px 12px",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
                               fontSize: 12,
-                              fontWeight: 600,
-                              boxSizing: "border-box",
-                              marginTop: 3,
-                              background: useCustomDate ? "#fff7ed" : "#ffffff",
+                              color: preview.isError ? "#991b1b" : "#15803d",
+                              fontWeight: 700,
                             }}
-                          />
-                        </div>
-                      </div>
+                          >
+                            <Clock size={15} style={{ flexShrink: 0 }} />
+                            <span>
+                              <strong>Scheduled Unlock:</strong> {preview.text}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
 
@@ -1722,12 +2043,11 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                       type="button"
                       disabled={actionLoading}
                       onClick={() => {
+                        const preview = getComputedUnlockPreview();
                         const durationText =
                           blockType === "permanent"
                             ? "permanently"
-                            : useCustomDate && customUntilDate
-                            ? `temporarily until ${new Date(customUntilDate).toLocaleString()}`
-                            : `temporarily for ${durationDays} days`;
+                            : `temporarily until ${preview.text}`;
 
                         setConfirmModal({
                           isOpen: true,

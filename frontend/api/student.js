@@ -495,9 +495,10 @@ module.exports = async function handler(req, res) {
       if (studentAccount && Student.isStudentBlocked(studentAccount)) {
         await StudentSession.updateMany({ regNo: decodedStudent.regNo }, { $set: { isActive: false } });
         return res.status(403).json({
-          message: "Your portal access has been suspended by the administration.",
+          message: `Student not found\n(Suspended by admin: ${studentAccount.blockedReason || "Portal access suspended by administration"})`,
           code: "ACCOUNT_SUSPENDED",
           isBlocked: true,
+          blockedReason: studentAccount.blockedReason || "Portal access suspended by administration",
         });
       }
 

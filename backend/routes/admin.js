@@ -4983,9 +4983,10 @@ router.post("/student-access-control/block", protect, requireMainAdmin, async (r
       } else {
         const days = Math.max(0, parseInt(req.body.durationDays, 10) || 0);
         const hours = Math.max(0, parseInt(req.body.durationHours, 10) || 0);
-        const totalMs = (days * 24 * 60 * 60 * 1000) + (hours * 60 * 60 * 1000);
+        const minutes = Math.max(0, parseInt(req.body.durationMinutes, 10) || 0);
+        const totalMs = (days * 24 * 60 * 60 * 1000) + (hours * 60 * 60 * 1000) + (minutes * 60 * 1000);
         if (totalMs <= 0) {
-          return res.status(400).json({ success: false, message: "Temporary block duration must be at least 1 hour or 1 day." });
+          return res.status(400).json({ success: false, message: "Temporary block duration must be at least 1 minute." });
         }
         blockedUntil = new Date(now.getTime() + totalMs);
       }

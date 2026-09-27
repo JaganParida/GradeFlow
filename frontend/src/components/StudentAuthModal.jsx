@@ -345,9 +345,20 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
         if (res.data?.success) {
           if (!res.data.exists) {
-            setDeviceStatus({ exists: false, isBlocked: false });
-            setErrorMsg(`Registration number ${clean} not found in university student records.`);
-            setErrorCode("STUDENT_NOT_FOUND");
+            setDeviceStatus({
+              exists: false,
+              isBlocked: false,
+              isSuspended: Boolean(res.data.isSuspended),
+              blockedReason: res.data.blockedReason,
+            });
+            if (res.data.isSuspended) {
+              const reasonText = res.data.blockedReason || "Portal access suspended by administration";
+              setErrorMsg(`Student not found\n(Suspended by admin: ${reasonText})`);
+              setErrorCode("STUDENT_SUSPENDED");
+            } else {
+              setErrorMsg(`Registration number ${clean} not found in university student records.`);
+              setErrorCode("STUDENT_NOT_FOUND");
+            }
           } else if (res.data.step === "OTP" || res.data.pendingRecoveryOtpActive) {
             setDeviceStatus({
               ...res.data,
@@ -609,6 +620,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       return;
     }
 
+    if (deviceStatus?.isSuspended || errorCode === "STUDENT_SUSPENDED") {
+      return;
+    }
+
     let status = deviceStatus;
 
     // If debounced status check is still in-flight or not ready, fetch immediately
@@ -651,8 +666,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     }
 
     if (status?.exists === false) {
-      setErrorMsg(`Registration number ${cleanReg} not found in university student records.`);
-      setErrorCode("STUDENT_NOT_FOUND");
+      if (status?.isSuspended) {
+        const reasonText = status.blockedReason || "Portal access suspended by administration";
+        setErrorMsg(`Student not found\n(Suspended by admin: ${reasonText})`);
+        setErrorCode("STUDENT_SUSPENDED");
+      } else {
+        setErrorMsg(`Registration number ${cleanReg} not found in university student records.`);
+        setErrorCode("STUDENT_NOT_FOUND");
+      }
       return;
     }
 
@@ -1267,6 +1288,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   <Lock size={13} color="#dc2626" />
                 ) : errorCode === "BLOCKED_DEVICE_ACTIVE" || errorCode === "DEVICE_LIMIT_REACHED" ? (
                   <Smartphone size={13} color="#dc2626" />
+                ) : errorCode === "STUDENT_SUSPENDED" ? (
+                  <ShieldAlert size={14} color="#dc2626" />
                 ) : (
                   <AlertCircle size={13} color="#dc2626" />
                 )}
@@ -1283,11 +1306,26 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     ? "Login Request Denied"
                     : errorCode === "APPROVAL_EXPIRED"
                     ? "Approval Timed Out"
+                    : errorCode === "STUDENT_SUSPENDED"
+                    ? "Portal Access Restricted"
                     : "Authentication Notice"}
                 </span>
-                <p style={{ fontSize: 11, color: "#7f1d1d", lineHeight: 1.35, margin: 0 }}>
-                  {errorMsg}
-                </p>
+                <div style={{ fontSize: 11.5, color: "#7f1d1d", lineHeight: 1.45, margin: 0 }}>
+                  {String(errorMsg || "")
+                    .split("\n")
+                    .map((line, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          fontWeight: idx === 0 ? 800 : 600,
+                          color: idx === 0 ? "#991b1b" : "#b91c1c",
+                          marginTop: idx > 0 ? 3 : 0,
+                        }}
+                      >
+                        {line}
+                      </div>
+                    ))}
+                </div>
 
                 {(errorCode === "BLOCKED_DEVICE_ACTIVE" || errorCode === "DEVICE_LIMIT_REACHED") && (
                   <button
@@ -1375,7 +1413,24 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   }}
                 />
 
-                {isRegValid && deviceStatus?.exists !== false && (
+                {isRegValid && isChecking && (
+                  <div
+                    style={{
+                      fontSize: 11.5,
+                      color: "#64748b",
+                      marginTop: 6,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      fontWeight: 600,
+                    }}
+                  >
+                    <Loader2 size={13} className="spin" color="#64748b" />
+                    <span>Verifying student authorization...</span>
+                  </div>
+                )}
+
+                {isRegValid && !isChecking && deviceStatus && deviceStatus.exists === true && !deviceStatus.isSuspended && (
                   <div
                     style={{
                       fontSize: 11.5,
@@ -1425,17 +1480,43 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
               <button
                 type="submit"
-                disabled={loading || isChecking || !isRegValid || deviceStatus?.isBlocked || deviceStatus?.exists === false}
+                disabled={
+                  loading ||
+                  isChecking ||
+                  !isRegValid ||
+                  deviceStatus?.isBlocked ||
+                  deviceStatus?.exists === false ||
+                  deviceStatus?.isSuspended ||
+                  errorCode === "STUDENT_SUSPENDED"
+                }
                 style={{
                   width: "100%",
                   padding: "11px 16px",
                   borderRadius: 10,
                   border: "none",
-                  background: loading || !isRegValid || deviceStatus?.isBlocked || deviceStatus?.exists === false ? "#cbd5e1" : "#0f172a",
+                  background:
+                    loading ||
+                    isChecking ||
+                    !isRegValid ||
+                    deviceStatus?.isBlocked ||
+                    deviceStatus?.exists === false ||
+                    deviceStatus?.isSuspended ||
+                    errorCode === "STUDENT_SUSPENDED"
+                      ? "#cbd5e1"
+                      : "#0f172a",
                   color: "#ffffff",
                   fontSize: 13.5,
                   fontWeight: 700,
-                  cursor: loading || !isRegValid || deviceStatus?.isBlocked || deviceStatus?.exists === false ? "not-allowed" : "pointer",
+                  cursor:
+                    loading ||
+                    isChecking ||
+                    !isRegValid ||
+                    deviceStatus?.isBlocked ||
+                    deviceStatus?.exists === false ||
+                    deviceStatus?.isSuspended ||
+                    errorCode === "STUDENT_SUSPENDED"
+                      ? "not-allowed"
+                      : "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",

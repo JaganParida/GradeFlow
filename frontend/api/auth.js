@@ -514,7 +514,12 @@ module.exports = async function handler(req, res) {
 
       const studentAccount = await Student.findOne({ regNo: rawReg });
       if (studentAccount && Student.isStudentBlocked(studentAccount)) {
-        return res.json({ success: true, exists: false });
+        return res.json({
+          success: true,
+          exists: false,
+          isSuspended: true,
+          blockedReason: studentAccount.blockedReason || "Portal access suspended by administration",
+        });
       }
       const hasPassword = Boolean(studentAccount && studentAccount.passwordHash);
       const failedPasswordAttempts = studentAccount ? studentAccount.failedPasswordAttempts || 0 : 0;
@@ -928,8 +933,10 @@ module.exports = async function handler(req, res) {
       let studentAccount = await Student.findOne({ regNo: rawReg });
       if (studentAccount && Student.isStudentBlocked(studentAccount)) {
         return res.status(404).json({
-          message: "No student records found for this registration number. Please check and try again.",
+          message: `Student not found\n(Suspended by admin: ${studentAccount.blockedReason || "Portal access suspended by administration"})`,
           code: "STUDENT_NOT_FOUND",
+          isSuspended: true,
+          blockedReason: studentAccount.blockedReason || "Portal access suspended by administration",
         });
       }
       const hasPassword = Boolean(studentAccount && studentAccount.passwordHash);
@@ -1199,8 +1206,10 @@ module.exports = async function handler(req, res) {
       if (studentAccount && Student.isStudentBlocked(studentAccount)) {
         return res.status(404).json({
           success: false,
-          message: "No student records found for this registration number.",
+          message: `Student not found\n(Suspended by admin: ${studentAccount.blockedReason || "Portal access suspended by administration"})`,
           code: "STUDENT_NOT_FOUND",
+          isSuspended: true,
+          blockedReason: studentAccount.blockedReason || "Portal access suspended by administration",
         });
       }
 
@@ -1523,8 +1532,10 @@ module.exports = async function handler(req, res) {
       if (studentAccount && Student.isStudentBlocked(studentAccount)) {
         return res.status(404).json({
           success: false,
-          message: "No student records found.",
+          message: `Student not found\n(Suspended by admin: ${studentAccount.blockedReason || "Portal access suspended by administration"})`,
           code: "STUDENT_NOT_FOUND",
+          isSuspended: true,
+          blockedReason: studentAccount.blockedReason || "Portal access suspended by administration",
         });
       }
 
