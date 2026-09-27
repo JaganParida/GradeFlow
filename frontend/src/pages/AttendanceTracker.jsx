@@ -5556,35 +5556,43 @@ export default function AttendanceTracker() {
                     Section {selectedSection} Routine
                   </span>
                 </div>
-                <p style={{ fontSize: 12.5, color: "#475569", margin: "4px 0 0 0", lineHeight: 1.45, fontWeight: 500 }}>
-                  Click on any class card to see how attending or skipping affects your semester percentage.
-                </p>
-                <div style={{ fontSize: 11, color: "#64748b", marginTop: 3, display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-                  <span>Simulation only — this does not mark daily attendance.</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedDateKey(todayDateKey);
-                      setActiveTab("daily");
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      padding: 0,
-                      color: "#0f172a",
-                      fontWeight: 700,
-                      textDecoration: "underline",
-                      cursor: "pointer",
-                      fontSize: 11,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 3,
-                    }}
-                  >
-                    Mark Attendance in Daily Attendance <ArrowRight size={10} />
-                  </button>
-                </div>
+                {dailyAdvisorAnalysis.classes.length > 0 ? (
+                  <>
+                    <p style={{ fontSize: 12.5, color: "#475569", margin: "4px 0 0 0", lineHeight: 1.45, fontWeight: 500 }}>
+                      Click on any class card to see how attending or skipping affects your semester percentage.
+                    </p>
+                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 3, display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+                      <span>Simulation only — this does not mark daily attendance.</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedDateKey(todayDateKey);
+                          setActiveTab("daily");
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          padding: 0,
+                          color: "#0f172a",
+                          fontWeight: 700,
+                          textDecoration: "underline",
+                          cursor: "pointer",
+                          fontSize: 11,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 3,
+                        }}
+                      >
+                        Mark Attendance in Daily Attendance <ArrowRight size={10} />
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <p style={{ fontSize: 12.5, color: "#64748b", margin: "4px 0 0 0", lineHeight: 1.45, fontWeight: 500 }}>
+                    {formatFriendlyDate(selectedAdvisorDateKey)} · Schedule & Routine Overview
+                  </p>
+                )}
               </div>
 
               {/* Date Controls (Strictly bounded: todayDateKey -> lastDateOfInstruction) */}
