@@ -4539,86 +4539,44 @@ export default function AttendanceTracker() {
                 </div>
               </div>
 
-              {/* Morning Priority Action Card (Daily Hub Banner) */}
-              {hasSavedAttendance && (
+              {/* Quick-Action Daily Attendance Advisor Banner (Shifted to Top, Only One) */}
+              {hasSavedAttendance && selectedDayClasses.length > 0 && (
                 <div
                   style={{
+                    padding: isMobile ? "12px 14px" : "12px 18px",
+                    borderRadius: 10,
                     background: "#ffffff",
-                    border: "1.5px solid #e2e8f0",
-                    borderRadius: 12,
-                    padding: isMobile ? "12px 14px" : "13px 18px",
+                    border: "1px solid #e2e8f0",
                     display: "flex",
-                    alignItems: "center",
+                    flexDirection: isMobile ? "column" : "row",
+                    alignItems: isMobile ? "stretch" : "center",
                     justifyContent: "space-between",
-                    gap: 12,
-                    flexWrap: "wrap",
-                    boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
-                    position: "relative",
-                    overflow: "hidden",
+                    gap: 10,
+                    boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+                    width: "100%",
+                    boxSizing: "border-box",
                   }}
                 >
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: 3,
-                      background: "linear-gradient(90deg, #2563eb 0%, #0ea5e9 100%)",
-                    }}
-                  />
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flex: 1, minWidth: isMobile ? "100%" : 280 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
                     <div
                       style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 8,
-                        background: "#eff6ff",
-                        border: "1px solid #bfdbfe",
+                        width: 28,
+                        height: 28,
+                        borderRadius: 7,
+                        background: "#f1f5f9",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         flexShrink: 0,
-                        marginTop: 1,
                       }}
                     >
-                      <AdvisorIcon size={17} color="#2563eb" />
+                      <AdvisorIcon size={14} color="#0f172a" />
                     </div>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                          Daily Attendance Advisor
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 9.5,
-                            fontWeight: 700,
-                            background: "#f1f5f9",
-                            color: "#475569",
-                            padding: "1px 6px",
-                            borderRadius: 4,
-                          }}
-                        >
-                          Live Impact Preview
-                        </span>
-                      </div>
-                      <div style={{ fontSize: isMobile ? 12 : 12.5, color: "#0f172a", lineHeight: 1.45 }}>
-                        {todayAdvisorAnalysis?.topPriority ? (
-                          <>
-                            <strong>Today's Priority: {todayAdvisorAnalysis.topPriority.cleanName} ({todayAdvisorAnalysis.topPriority.curSubPct.toFixed(1)}%)</strong> — {todayAdvisorAnalysis.topPriority.adviceText}
-                          </>
-                        ) : todayAdvisorAnalysis?.totalClasses > 0 ? (
-                          <>
-                            <strong>Today's Impact Preview:</strong> See how attending or missing each class today changes your subject & semester percentage.
-                          </>
-                        ) : (
-                          <>
-                            <strong>Daily Attendance Advisor:</strong> Check your attendance projections and plan your upcoming semester schedule.
-                          </>
-                        )}
-                      </div>
-                    </div>
+                    <span style={{ fontSize: isMobile ? 12 : 12.5, fontWeight: 600, color: "#334155" }}>
+                      Preview your semester % change if you attend or miss today's classes
+                    </span>
                   </div>
+
                   <button
                     type="button"
                     onClick={handleRedirectToTodayAdvisor}
@@ -4752,46 +4710,6 @@ export default function AttendanceTracker() {
                           ? `${selectedCalendarStatus?.message || "Class instruction is not active outside the semester boundaries (July 6, 2026 - October 31, 2026)."}`
                           : `There are no scheduled lectures, tutorials, or labs on ${selectedDayName} for Section ${selectedSection}.`}
                       </div>
-
-                      {hasSavedAttendance && (
-                        <div style={{ marginTop: 4 }}>
-                          <button
-                            type="button"
-                            onClick={handleRedirectToTodayAdvisor}
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: 7.5,
-                              background: "#000000",
-                              color: "#ffffff",
-                              padding: isMobile ? "9.5px 16px" : "8px 18px",
-                              borderRadius: 8,
-                              fontSize: isMobile ? 12 : 12.5,
-                              fontWeight: 700,
-                              border: "1px solid rgba(255, 255, 255, 0.22)",
-                              cursor: "pointer",
-                              whiteSpace: "nowrap",
-                              boxShadow: "0 2px 5px rgba(0, 0, 0, 0.22)",
-                              transition: "all 0.16s ease",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = "#18181b";
-                              e.currentTarget.style.transform = "translateY(-1px)";
-                              e.currentTarget.style.boxShadow = "0 4px 10px rgba(0, 0, 0, 0.35)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = "#000000";
-                              e.currentTarget.style.transform = "translateY(0)";
-                              e.currentTarget.style.boxShadow = "0 2px 5px rgba(0, 0, 0, 0.22)";
-                            }}
-                          >
-                            <AdvisorIcon size={14} color="#ffffff" />
-                            <span style={{ color: "#ffffff" }}>Check your today attendance effect</span>
-                            <ArrowRight size={13} color="#ffffff" />
-                          </button>
-                        </div>
-                      )}
                     </div>
                   ) : (
                     <>
@@ -5043,81 +4961,6 @@ export default function AttendanceTracker() {
                         );
                       })}
                     </div>
-
-                    {/* Bottom Quick-Action Advisor Banner */}
-                    {hasSavedAttendance && (
-                      <div
-                        style={{
-                          marginTop: 14,
-                          padding: isMobile ? "12px 14px" : "12px 18px",
-                          borderRadius: 10,
-                          background: "#ffffff",
-                          border: "1px solid #e2e8f0",
-                          display: "flex",
-                          flexDirection: isMobile ? "column" : "row",
-                          alignItems: isMobile ? "stretch" : "center",
-                          justifyContent: "space-between",
-                          gap: 10,
-                          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                          <div
-                            style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: 7,
-                              background: "#f1f5f9",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              flexShrink: 0,
-                            }}
-                          >
-                            <AdvisorIcon size={14} color="#0f172a" />
-                          </div>
-                          <span style={{ fontSize: isMobile ? 12 : 12.5, fontWeight: 600, color: "#334155" }}>
-                            Preview your semester % change if you attend or miss today's classes
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleRedirectToTodayAdvisor}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 7.5,
-                            background: "#000000",
-                            color: "#ffffff",
-                            padding: isMobile ? "9.5px 16px" : "8px 18px",
-                            borderRadius: 8,
-                            fontSize: isMobile ? 12 : 12.5,
-                            fontWeight: 700,
-                            border: "1px solid rgba(255, 255, 255, 0.22)",
-                            cursor: "pointer",
-                            whiteSpace: "nowrap",
-                            boxShadow: "0 2px 5px rgba(0, 0, 0, 0.22)",
-                            transition: "all 0.16s ease",
-                            width: isMobile ? "100%" : "auto",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "#18181b";
-                            e.currentTarget.style.transform = "translateY(-1px)";
-                            e.currentTarget.style.boxShadow = "0 4px 10px rgba(0, 0, 0, 0.35)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "#000000";
-                            e.currentTarget.style.transform = "translateY(0)";
-                            e.currentTarget.style.boxShadow = "0 2px 5px rgba(0, 0, 0, 0.22)";
-                          }}
-                        >
-                          <AdvisorIcon size={14} color="#ffffff" />
-                          <span style={{ color: "#ffffff" }}>Check your today attendance effect</span>
-                          <ArrowRight size={13} color="#ffffff" />
-                        </button>
-                      </div>
-                    )}
                   </>
                 )}
                 </motion.div>
