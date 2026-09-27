@@ -5507,23 +5507,23 @@ export default function AttendanceTracker() {
             transition={activeTabMotion.transition}
             style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 16, width: "100%" }}
           >
-            {/* Header & Date Controls */}
+            {/* Unified Clean Header & Date Controls */}
             <div
               style={{
                 display: "flex",
-                alignItems: "center",
+                alignItems: isMobile ? "flex-start" : "center",
                 justifyContent: "space-between",
                 gap: 12,
-                flexWrap: "wrap",
+                flexDirection: isMobile ? "column" : "row",
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
                 borderRadius: 14,
-                padding: isMobile ? "12px 14px" : "14px 18px",
+                padding: isMobile ? "14px" : "16px 20px",
                 boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
               }}
             >
               <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <div
                     style={{
                       width: 28,
@@ -5534,28 +5534,69 @@ export default function AttendanceTracker() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      flexShrink: 0,
                     }}
                   >
                     <AdvisorIcon size={15} color="#0f172a" />
                   </div>
-                  <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.2px" }}>
+                  <h3 style={{ fontSize: isMobile ? 16 : 17.5, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.2px" }}>
                     Daily Attendance Advisor
                   </h3>
+                  <span
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      color: "#64748b",
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      padding: "1.5px 7px",
+                      borderRadius: 5,
+                    }}
+                  >
+                    Section {selectedSection} Routine
+                  </span>
                 </div>
-                <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 3 }}>
-                  Section {selectedSection} Routine · {isAdvisorSelectedToday ? "Today's Schedule & Consequence Analysis" : `Forecast for ${formatFriendlyDate(selectedAdvisorDateKey)}`}
+                <p style={{ fontSize: 12.5, color: "#475569", margin: "4px 0 0 0", lineHeight: 1.45, fontWeight: 500 }}>
+                  Click on any class card to see how attending or skipping affects your semester percentage.
+                </p>
+                <div style={{ fontSize: 11, color: "#64748b", marginTop: 3, display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+                  <span>Simulation only — this does not mark daily attendance.</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedDateKey(todayDateKey);
+                      setActiveTab("daily");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      color: "#0f172a",
+                      fontWeight: 700,
+                      textDecoration: "underline",
+                      cursor: "pointer",
+                      fontSize: 11,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 3,
+                    }}
+                  >
+                    Mark Attendance in Daily Attendance <ArrowRight size={10} />
+                  </button>
                 </div>
               </div>
 
               {/* Date Controls (Strictly bounded: todayDateKey -> lastDateOfInstruction) */}
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", alignSelf: isMobile ? "stretch" : "center" }}>
                 <button
                   type="button"
                   onClick={handleAdvisorPrevDay}
                   disabled={!canAdvisorGoPrev}
                   title={!canAdvisorGoPrev ? "Past dates are not available in Advisor (Today is minimum)" : "Previous Day"}
                   style={{
-                    padding: "5.5px 10px",
+                    flex: isMobile ? 1 : "initial",
+                    padding: "6px 10px",
                     borderRadius: 7,
                     border: `1px solid ${canAdvisorGoPrev ? "#cbd5e1" : "#e2e8f0"}`,
                     background: canAdvisorGoPrev ? "#ffffff" : "#f1f5f9",
@@ -5565,6 +5606,7 @@ export default function AttendanceTracker() {
                     cursor: canAdvisorGoPrev ? "pointer" : "not-allowed",
                     display: "inline-flex",
                     alignItems: "center",
+                    justifyContent: "center",
                     gap: 4,
                   }}
                 >
@@ -5572,15 +5614,17 @@ export default function AttendanceTracker() {
                   <span>Prev</span>
                 </button>
 
-                <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+                <div style={{ position: "relative", display: "inline-flex", alignItems: "center", flex: isMobile ? 2 : "initial" }}>
                   <button
                     type="button"
                     onClick={handleOpenAdvisorDatePicker}
                     style={{
+                      width: "100%",
                       display: "inline-flex",
                       alignItems: "center",
+                      justifyContent: "center",
                       gap: 6,
-                      padding: "5.5px 12px",
+                      padding: "6px 12px",
                       borderRadius: 7,
                       background: "#ffffff",
                       border: "1px solid #cbd5e1",
@@ -5625,7 +5669,8 @@ export default function AttendanceTracker() {
                   disabled={!canAdvisorGoNext}
                   title={!canAdvisorGoNext ? "End of semester instruction reached (Oct 31, 2026)" : "Next Day"}
                   style={{
-                    padding: "5.5px 10px",
+                    flex: isMobile ? 1 : "initial",
+                    padding: "6px 10px",
                     borderRadius: 7,
                     border: `1px solid ${canAdvisorGoNext ? "#cbd5e1" : "#e2e8f0"}`,
                     background: canAdvisorGoNext ? "#ffffff" : "#f1f5f9",
@@ -5635,6 +5680,7 @@ export default function AttendanceTracker() {
                     cursor: canAdvisorGoNext ? "pointer" : "not-allowed",
                     display: "inline-flex",
                     alignItems: "center",
+                    justifyContent: "center",
                     gap: 4,
                   }}
                 >
@@ -5647,7 +5693,7 @@ export default function AttendanceTracker() {
                     type="button"
                     onClick={() => handleAdvisorSelectDate(todayDateKey)}
                     style={{
-                      padding: "5.5px 11px",
+                      padding: "6px 12px",
                       borderRadius: 7,
                       border: "1px solid #cbd5e1",
                       background: "#f8fafc",
@@ -5668,89 +5714,6 @@ export default function AttendanceTracker() {
                   </button>
                 )}
               </div>
-            </div>
-
-            {/* Daily Attendance Clarification & Redirect Banner */}
-            <div
-              style={{
-                padding: isMobile ? "12px 14px" : "12px 16px",
-                borderRadius: 12,
-                background: "#ffffff",
-                border: "1px solid #e2e8f0",
-                display: "flex",
-                flexDirection: isMobile ? "column" : "row",
-                alignItems: isMobile ? "flex-start" : "center",
-                justifyContent: "space-between",
-                gap: 12,
-                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
-                boxSizing: "border-box",
-                width: "100%",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div
-                  style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: 8,
-                    background: "#f1f5f9",
-                    border: "1px solid #e2e8f0",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  <Info size={15} color="#0f172a" />
-                </div>
-                <div>
-                  <div style={{ fontSize: isMobile ? 12.5 : 13, fontWeight: 700, color: "#0f172a" }}>
-                    Attendance is not marked here · Simulation Only
-                  </div>
-                  <div style={{ fontSize: isMobile ? 11 : 11.5, color: "#64748b", marginTop: 2 }}>
-                    This page previews your semester percentage impact. To mark your actual attendance, use the Daily Attendance page.
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedDateKey(todayDateKey);
-                  setActiveTab("daily");
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6.5,
-                  background: "#000000",
-                  color: "#ffffff",
-                  padding: isMobile ? "9px 14px" : "7.5px 14px",
-                  borderRadius: 8,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  border: "1px solid #000000",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  boxShadow: "0 2px 5px rgba(0, 0, 0, 0.15)",
-                  transition: "all 0.15s ease",
-                  width: isMobile ? "100%" : "auto",
-                  alignSelf: isMobile ? "stretch" : "center",
-                  flexShrink: 0,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#18181b";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "#000000";
-                }}
-              >
-                <ClipboardCheck size={13.5} color="#ffffff" />
-                <span>Mark Attendance in Daily Attendance</span>
-                <ArrowRight size={12.5} color="#ffffff" />
-              </button>
             </div>
 
             {/* ADVISOR SCHEDULE CONTENT */}
@@ -5796,75 +5759,65 @@ export default function AttendanceTracker() {
               <div
                 style={{
                   background: "#ffffff",
-                  border: "1.5px solid #e2e8f0",
+                  border: "1px solid #e2e8f0",
                   borderRadius: 14,
-                  padding: isMobile ? "16px 14px" : "22px 24px",
+                  padding: isMobile ? "16px 14px" : "20px 22px",
                   boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
                   display: "flex",
                   flexDirection: "column",
-                  gap: 16,
+                  gap: 14,
                   boxSizing: "border-box",
                   width: "100%",
                   minWidth: 0,
                 }}
               >
-                {/* Header with Title, Understanding Description & Quick Buttons */}
+                {/* Simulator Action Strip: Schedule Tag & Quick Attend All / Miss All */}
                 <div
                   style={{
                     display: "flex",
-                    alignItems: isMobile ? "flex-start" : "center",
+                    alignItems: "center",
                     justifyContent: "space-between",
-                    flexDirection: isMobile ? "column" : "row",
-                    gap: 12,
-                    paddingBottom: 14,
-                    borderBottom: "1px solid #f1f5f9",
+                    flexWrap: "wrap",
+                    gap: 10,
                   }}
                 >
-                  <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-                      <span
-                        style={{
-                          fontSize: 10.5,
-                          fontWeight: 800,
-                          color: "#0f172a",
-                          background: "#f1f5f9",
-                          border: "1px solid #e2e8f0",
-                          padding: "2px 8px",
-                          borderRadius: 5,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.4px",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
-                      >
-                        <Calculator size={11} color="#0f172a" /> Live Attendance Planner
-                      </span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>
-                        {isAdvisorSelectedToday ? "Today's Schedule" : `${advisorDayName} Schedule`} · {advisorSimulationResult.totalScheduled} {advisorSimulationResult.totalScheduled === 1 ? "Class" : "Classes"}
-                      </span>
-                    </div>
-                    <h3 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.3px" }}>
-                      Overall Semester Attendance Simulator
-                    </h3>
-                    <p style={{ fontSize: 12.5, color: "#475569", margin: 0, lineHeight: 1.45, fontWeight: 500 }}>
-                      Click on any class card to see your effect on overall semester attendance.
-                    </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 800,
+                        color: "#0f172a",
+                        background: "#f1f5f9",
+                        border: "1px solid #e2e8f0",
+                        padding: "2px 8px",
+                        borderRadius: 5,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.4px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                      }}
+                    >
+                      <Calculator size={11} color="#0f172a" /> Live Simulator
+                    </span>
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b" }}>
+                      {isAdvisorSelectedToday ? "Today's Schedule" : `${advisorDayName} Schedule`} · {advisorSimulationResult.totalScheduled} {advisorSimulationResult.totalScheduled === 1 ? "Class" : "Classes"}
+                    </span>
                   </div>
 
                   {/* Quick Selection Buttons */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", width: isMobile ? "100%" : "auto" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, width: isMobile ? "100%" : "auto" }}>
                     <button
                       type="button"
                       onClick={() => handleSetAllAdvisorPeriods(true)}
                       style={{
                         flex: isMobile ? 1 : "initial",
-                        padding: "7px 13px",
-                        borderRadius: 8,
+                        padding: "6px 12px",
+                        borderRadius: 7,
                         border: "1px solid #cbd5e1",
                         background: "#ffffff",
                         color: "#0f172a",
-                        fontSize: 12,
+                        fontSize: 11.5,
                         fontWeight: 700,
                         cursor: "pointer",
                         display: "inline-flex",
@@ -5874,7 +5827,7 @@ export default function AttendanceTracker() {
                         transition: "all 0.15s ease",
                       }}
                     >
-                      <CheckCircle2 size={13} color="#16a34a" />
+                      <CheckCircle2 size={12} color="#16a34a" />
                       <span>Attend All ({advisorSimulationResult.totalScheduled})</span>
                     </button>
                     <button
@@ -5882,12 +5835,12 @@ export default function AttendanceTracker() {
                       onClick={() => handleSetAllAdvisorPeriods(false)}
                       style={{
                         flex: isMobile ? 1 : "initial",
-                        padding: "7px 13px",
-                        borderRadius: 8,
+                        padding: "6px 12px",
+                        borderRadius: 7,
                         border: "1px solid #e2e8f0",
                         background: "#f8fafc",
                         color: "#64748b",
-                        fontSize: 12,
+                        fontSize: 11.5,
                         fontWeight: 700,
                         cursor: "pointer",
                         display: "inline-flex",
@@ -5897,19 +5850,19 @@ export default function AttendanceTracker() {
                         transition: "all 0.15s ease",
                       }}
                     >
-                      <XCircle size={13} color="#dc2626" />
+                      <XCircle size={12} color="#dc2626" />
                       <span>Miss All (0)</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Clean, Non-Colorful Projected Attendance Banner */}
+                {/* Clean Projected Attendance Banner */}
                 <div
                   style={{
-                    background: "#ffffff",
+                    background: "#f8fafc",
                     border: "1px solid #e2e8f0",
                     borderRadius: 12,
-                    padding: isMobile ? "14px 14px" : "18px 20px",
+                    padding: isMobile ? "14px 14px" : "16px 20px",
                     display: "flex",
                     flexDirection: isMobile ? "column" : "row",
                     alignItems: isMobile ? "flex-start" : "center",
@@ -5925,7 +5878,7 @@ export default function AttendanceTracker() {
                       Projected Semester Overall Attendance
                     </div>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: isMobile ? 28 : 34, fontWeight: 900, color: "#0f172a", letterSpacing: "-1px", lineHeight: 1 }}>
+                      <span style={{ fontSize: isMobile ? 26 : 32, fontWeight: 900, color: "#0f172a", letterSpacing: "-1px", lineHeight: 1 }}>
                         {advisorSimulationResult.simOverallPct.toFixed(2)}%
                       </span>
                       <span
@@ -5935,7 +5888,7 @@ export default function AttendanceTracker() {
                           gap: 4,
                           fontSize: 12,
                           fontWeight: 800,
-                          padding: "2.5px 8px",
+                          padding: "2px 7px",
                           borderRadius: 6,
                           background: advisorSimulationResult.simOverallDelta >= 0 ? "#ecfdf5" : "#fef2f2",
                           color: advisorSimulationResult.simOverallDelta >= 0 ? "#047857" : "#b91c1c",
@@ -5944,12 +5897,12 @@ export default function AttendanceTracker() {
                       >
                         {advisorSimulationResult.simOverallDelta >= 0 ? (
                           <>
-                            <TrendingUp size={13} strokeWidth={2.5} />
+                            <TrendingUp size={12} strokeWidth={2.5} />
                             <span>+{advisorSimulationResult.simOverallDelta.toFixed(2)}%</span>
                           </>
                         ) : (
                           <>
-                            <TrendingDown size={13} strokeWidth={2.5} />
+                            <TrendingDown size={12} strokeWidth={2.5} />
                             <span>{advisorSimulationResult.simOverallDelta.toFixed(2)}%</span>
                           </>
                         )}
@@ -5966,7 +5919,7 @@ export default function AttendanceTracker() {
                   {/* Right: Target & Safe Buffer Status */}
                   <div
                     style={{
-                      background: "#f8fafc",
+                      background: "#ffffff",
                       border: "1px solid #e2e8f0",
                       borderRadius: 10,
                       padding: "12px 16px",
@@ -5983,19 +5936,19 @@ export default function AttendanceTracker() {
                           display: "inline-flex",
                           alignItems: "center",
                           gap: 5,
-                          fontSize: 12,
+                          fontSize: 11.5,
                           fontWeight: 800,
                           color: advisorSimulationResult.isSimSafe ? "#047857" : "#b91c1c",
                         }}
                       >
-                        {advisorSimulationResult.isSimSafe ? <ShieldCheck size={15} /> : <ShieldAlert size={15} />}
+                        {advisorSimulationResult.isSimSafe ? <ShieldCheck size={14} /> : <ShieldAlert size={14} />}
                         {advisorSimulationResult.isSimSafe ? `Safe Zone (≥${advisorSimulationResult.target}%)` : `Shortage Warning (<${advisorSimulationResult.target}%)`}
                       </span>
                       <span style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b" }}>
                         {advisorSimulationResult.simulatedAttCount}/{advisorSimulationResult.totalScheduled} Attending
                       </span>
                     </div>
-                    <p style={{ fontSize: 11.5, color: "#475569", margin: 0, lineHeight: 1.45 }}>
+                    <p style={{ fontSize: 11, color: "#475569", margin: 0, lineHeight: 1.45 }}>
                       {advisorSimulationResult.isSimSafe
                         ? `With this selection, you can safely miss up to ${advisorSimulationResult.simSafeBunks} class${advisorSimulationResult.simSafeBunks === 1 ? "" : "es"} without falling below ${advisorSimulationResult.target}%.`
                         : `With this selection, you will need to attend ${advisorSimulationResult.simClassesNeeded} consecutive class${advisorSimulationResult.simClassesNeeded === 1 ? "" : "es"} to reach ${advisorSimulationResult.target}%.`}
@@ -6006,8 +5959,8 @@ export default function AttendanceTracker() {
                 {/* Class Cards Grid with Connected Daily Attendance Logic */}
                 <div>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: 6 }}>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: "0.4px" }}>
-                      Click on any card to toggle attendance ({advisorSimulationResult.simulatedAttCount} of {advisorSimulationResult.totalScheduled} Attending)
+                    <span style={{ fontSize: 11.5, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                      Click on any card to see effect ({advisorSimulationResult.simulatedAttCount} of {advisorSimulationResult.totalScheduled} Attending)
                     </span>
                   </div>
 
@@ -6050,25 +6003,24 @@ export default function AttendanceTracker() {
                                 ? "#f8fafc"
                                 : "#ffffff",
                               border: isMarked
-                                ? "1px dashed #cbd5e1"
+                                ? "1px solid #cbd5e1"
                                 : isAttending
-                                ? "1.5px solid #10b981"
-                                : "1.5px solid #f87171",
+                                ? "1.5px solid #0f172a"
+                                : "1.5px solid #e2e8f0",
                               borderRadius: 10,
                               padding: "12px 14px",
-                              cursor: isMarked ? "default" : "pointer",
+                              cursor: isMarked ? "not-allowed" : "pointer",
                               userSelect: "none",
                               display: "flex",
                               flexDirection: "column",
-                              gap: 7,
-                              opacity: isMarked ? 0.62 : 1,
-                              filter: isMarked ? "grayscale(0.15)" : "none",
+                              gap: 8,
+                              opacity: isMarked ? 0.65 : 1,
+                              filter: isMarked ? "blur(0.45px)" : "none",
                               boxShadow: isMarked
                                 ? "none"
-                                : isAttending
-                                ? "0 1px 3px rgba(16, 185, 129, 0.08)"
-                                : "0 1px 3px rgba(248, 113, 113, 0.08)",
+                                : "0 1px 3px rgba(15, 23, 42, 0.04)",
                               transition: "all 0.15s ease",
+                              position: "relative",
                             }}
                           >
                             {/* Period & Time + Status Pill */}
@@ -6097,70 +6049,70 @@ export default function AttendanceTracker() {
                               {isMarkedPresent ? (
                                 <span
                                   style={{
-                                    fontSize: 10,
+                                    fontSize: 9.5,
                                     fontWeight: 700,
                                     background: "#ecfdf5",
                                     color: "#047857",
                                     border: "1px solid #a7f3d0",
-                                    padding: "2px 7px",
-                                    borderRadius: 5,
+                                    padding: "2px 6px",
+                                    borderRadius: 4,
                                     display: "inline-flex",
                                     alignItems: "center",
-                                    gap: 3.5,
+                                    gap: 3,
                                   }}
                                 >
-                                  <Check size={11} strokeWidth={2.5} /> Marked Present
+                                  <Check size={10} strokeWidth={2.5} /> Marked Present
                                 </span>
                               ) : isMarkedAbsent ? (
                                 <span
                                   style={{
-                                    fontSize: 10,
+                                    fontSize: 9.5,
                                     fontWeight: 700,
                                     background: "#fef2f2",
                                     color: "#b91c1c",
                                     border: "1px solid #fecaca",
-                                    padding: "2px 7px",
-                                    borderRadius: 5,
+                                    padding: "2px 6px",
+                                    borderRadius: 4,
                                     display: "inline-flex",
                                     alignItems: "center",
-                                    gap: 3.5,
+                                    gap: 3,
                                   }}
                                 >
-                                  <X size={11} strokeWidth={2.5} /> Marked Absent
+                                  <X size={10} strokeWidth={2.5} /> Marked Absent
                                 </span>
                               ) : isAttending ? (
                                 <span
                                   style={{
-                                    fontSize: 10,
+                                    fontSize: 9.5,
                                     fontWeight: 700,
-                                    background: "#f0fdf4",
-                                    color: "#15803d",
-                                    border: "1px solid #bbf7d0",
-                                    padding: "2px 7px",
-                                    borderRadius: 5,
+                                    background: "#f1f5f9",
+                                    color: "#0f172a",
+                                    border: "1px solid #cbd5e1",
+                                    padding: "2px 6px",
+                                    borderRadius: 4,
                                     display: "inline-flex",
                                     alignItems: "center",
-                                    gap: 3.5,
+                                    gap: 3,
                                   }}
                                 >
-                                  <Check size={11} strokeWidth={2.5} /> Attending (+1)
+                                  <Check size={10} strokeWidth={2.5} /> Attending (+1)
                                 </span>
                               ) : (
                                 <span
                                   style={{
-                                    fontSize: 10,
+                                    fontSize: 9.5,
                                     fontWeight: 700,
-                                    background: "#fef2f2",
-                                    color: "#b91c1c",
-                                    border: "1px solid #fecaca",
-                                    padding: "2px 7px",
-                                    borderRadius: 5,
+                                    background: "#f8fafc",
+                                    color: "#64748b",
+                                    border: "1px solid #e2e8f0",
+                                    padding: "2px 6px",
+                                    borderRadius: 4,
                                     display: "inline-flex",
                                     alignItems: "center",
-                                    gap: 3.5,
+                                    gap: 3,
                                   }}
                                 >
-                                  <X size={11} strokeWidth={2.5} /> Missing (+0)
+                                  <X size={10} strokeWidth={2.5} /> Skipping (+0)
                                 </span>
                               )}
                             </div>
@@ -6188,6 +6140,17 @@ export default function AttendanceTracker() {
                                 </span>
                               )}
                             </div>
+
+                            {/* Small Locked note if marked */}
+                            {isMarked ? (
+                              <div style={{ fontSize: 9.5, color: "#94a3b8", fontStyle: "italic", marginTop: 2, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                                🔒 Marked in Daily Attendance (Check in/out locked)
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: 9.5, color: "#94a3b8", marginTop: 2 }}>
+                                Click card to toggle attending or skipping
+                              </div>
+                            )}
                           </div>
                         );
                       })}
