@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   User,
+  MapPin,
   Search,
   ArrowRight,
   Building,
@@ -147,6 +148,38 @@ const tabTransitionVariants = {
     },
   },
 };
+
+// Professional Predictive Attendance Advisor SVG Icon (Modern Smart Guidance Beacon)
+const AdvisorIcon = ({ size = 16, color = "currentColor", style = {}, className = "" }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{ display: "inline-block", verticalAlign: "middle", flexShrink: 0, ...style }}
+    className={className}
+  >
+    {/* Outer guide ring */}
+    <circle cx="12" cy="12" r="9.5" stroke={color} strokeWidth="1.75" strokeLinecap="round" />
+    {/* Micro cardinal orientation markers */}
+    <line x1="12" y1="2.5" x2="12" y2="4.75" stroke={color} strokeWidth="1.75" strokeLinecap="round" />
+    <line x1="12" y1="19.25" x2="12" y2="21.5" stroke={color} strokeWidth="1.75" strokeLinecap="round" />
+    <line x1="2.5" y1="12" x2="4.75" y2="12" stroke={color} strokeWidth="1.75" strokeLinecap="round" />
+    <line x1="19.25" y1="12" x2="21.5" y2="12" stroke={color} strokeWidth="1.75" strokeLinecap="round" />
+    {/* Smart advisor faceted star & guidance beacon */}
+    <path
+      d="M12 5.5L14.75 11.25L20.5 12L14.75 12.75L12 18.5L9.25 12.75L3.5 12L9.25 11.25L12 5.5Z"
+      stroke={color}
+      strokeWidth="1.5"
+      strokeLinejoin="round"
+      fill={color}
+      fillOpacity="0.2"
+    />
+    {/* Internal precision focal core */}
+    <circle cx="12" cy="12" r="1.5" fill={color} />
+  </svg>
+);
 
 export default function AttendanceTracker() {
   const { studentId: urlParam } = useParams();
@@ -2100,6 +2133,7 @@ export default function AttendanceTracker() {
         const timingRange = startTime && endTime ? `${startTime} - ${endTime}` : "";
         const periodLabels = periods.map((p) => `P${p.slotIndex + 1}`).join(", ");
         const rooms = [...new Set(periods.map((p) => p.slot?.room || p.room).filter(Boolean))];
+        const faculties = [...new Set(periods.map((p) => p.faculty || p.teacher).filter(Boolean))];
         const types = [...new Set(periods.map((p) => p.type).filter(Boolean))];
 
         // Logs status for this subject's classes on dateKey
@@ -2244,6 +2278,7 @@ export default function AttendanceTracker() {
           timingRange,
           periodLabels,
           rooms,
+          faculties,
           types,
           curSubAtt,
           curSubDel,
@@ -2511,7 +2546,7 @@ export default function AttendanceTracker() {
       id: "advisor",
       label: "Daily Attendance Advisor",
       shortLabel: "Daily Advisor",
-      icon: <Compass size={16} />,
+      icon: <AdvisorIcon size={16} />,
       badge: isTabLocked("advisor") ? "Locked" : "Schedule Impact",
       desc: "Today's routine & instant class-by-class attend vs miss impact",
       isLocked: isTabLocked("advisor"),
@@ -4376,7 +4411,7 @@ export default function AttendanceTracker() {
                 </div>
               </div>
 
-              {/* 🎯 Morning Priority Action Card (Daily Hub Banner) */}
+              {/* Morning Priority Action Card (Daily Hub Banner) */}
               {hasSavedAttendance && (
                 <div
                   style={{
@@ -4419,7 +4454,7 @@ export default function AttendanceTracker() {
                         marginTop: 1,
                       }}
                     >
-                      <Compass size={17} color="#2563eb" />
+                      <AdvisorIcon size={17} color="#2563eb" />
                     </div>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 }}>
@@ -4463,34 +4498,34 @@ export default function AttendanceTracker() {
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: 7,
-                      background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+                      gap: 7.5,
+                      background: "#000000",
                       color: "#ffffff",
-                      padding: isMobile ? "9px 14px" : "8px 16px",
+                      padding: isMobile ? "9.5px 16px" : "8px 18px",
                       borderRadius: 8,
                       fontSize: isMobile ? 12 : 12.5,
                       fontWeight: 700,
-                      border: "1px solid rgba(255, 255, 255, 0.12)",
+                      border: "1px solid rgba(255, 255, 255, 0.22)",
                       cursor: "pointer",
                       whiteSpace: "nowrap",
-                      boxShadow: "0 2px 4px rgba(15, 23, 42, 0.1)",
-                      transition: "all 0.18s ease",
+                      boxShadow: "0 2px 5px rgba(0, 0, 0, 0.22)",
+                      transition: "all 0.16s ease",
                       width: isMobile ? "100%" : "auto",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "linear-gradient(135deg, #1e293b 0%, #334155 100%)";
+                      e.currentTarget.style.background = "#18181b";
                       e.currentTarget.style.transform = "translateY(-1px)";
-                      e.currentTarget.style.boxShadow = "0 4px 8px rgba(15, 23, 42, 0.18)";
+                      e.currentTarget.style.boxShadow = "0 4px 10px rgba(0, 0, 0, 0.35)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)";
+                      e.currentTarget.style.background = "#000000";
                       e.currentTarget.style.transform = "translateY(0)";
-                      e.currentTarget.style.boxShadow = "0 2px 4px rgba(15, 23, 42, 0.1)";
+                      e.currentTarget.style.boxShadow = "0 2px 5px rgba(0, 0, 0, 0.22)";
                     }}
                   >
-                    <Compass size={13} color="#93c5fd" />
-                    <span>Check your today attendance effect</span>
-                    <ArrowRight size={12} color="#93c5fd" />
+                    <AdvisorIcon size={14} color="#ffffff" />
+                    <span style={{ color: "#ffffff" }}>Check your today attendance effect</span>
+                    <ArrowRight size={13} color="#ffffff" />
                   </button>
                 </div>
               )}
@@ -4589,11 +4624,52 @@ export default function AttendanceTracker() {
                           ? `${selectedCalendarStatus?.message || "Class instruction is not active outside the semester boundaries (July 6, 2026 - October 31, 2026)."}`
                           : `There are no scheduled lectures, tutorials, or labs on ${selectedDayName} for Section ${selectedSection}.`}
                       </div>
+
+                      {hasSavedAttendance && (
+                        <div style={{ marginTop: 4 }}>
+                          <button
+                            type="button"
+                            onClick={handleRedirectToTodayAdvisor}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 7.5,
+                              background: "#000000",
+                              color: "#ffffff",
+                              padding: isMobile ? "9.5px 16px" : "8px 18px",
+                              borderRadius: 8,
+                              fontSize: isMobile ? 12 : 12.5,
+                              fontWeight: 700,
+                              border: "1px solid rgba(255, 255, 255, 0.22)",
+                              cursor: "pointer",
+                              whiteSpace: "nowrap",
+                              boxShadow: "0 2px 5px rgba(0, 0, 0, 0.22)",
+                              transition: "all 0.16s ease",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = "#18181b";
+                              e.currentTarget.style.transform = "translateY(-1px)";
+                              e.currentTarget.style.boxShadow = "0 4px 10px rgba(0, 0, 0, 0.35)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = "#000000";
+                              e.currentTarget.style.transform = "translateY(0)";
+                              e.currentTarget.style.boxShadow = "0 2px 5px rgba(0, 0, 0, 0.22)";
+                            }}
+                          >
+                            <AdvisorIcon size={14} color="#ffffff" />
+                            <span style={{ color: "#ffffff" }}>Check your today attendance effect</span>
+                            <ArrowRight size={13} color="#ffffff" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : (
-                    <div
-                      style={{
-                        display: "grid",
+                    <>
+                      <div
+                        style={{
+                          display: "grid",
                         gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(290px, 1fr))",
                         gap: 12,
                       }}
@@ -4689,29 +4765,73 @@ export default function AttendanceTracker() {
                                 </div>
                               </div>
 
-                              {/* Subject Title and Code */}
+                              {/* Subject Title, Code, Room Number, & Teacher Name */}
                               <div style={{ marginTop: 8 }}>
                                 <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", lineHeight: 1.35 }}>
                                   {period.cleanName}
                                 </div>
-                                {subCode && (
-                                  <span
-                                    style={{
-                                      fontSize: 10.5,
-                                      fontFamily: "'DM Sans', monospace",
-                                      fontWeight: 700,
-                                      color: "#475569",
-                                      background: isPresent || isAbsent ? "#ffffff" : "#f8fafc",
-                                      border: "1px solid #e2e8f0",
-                                      padding: "1.5px 6px",
-                                      borderRadius: 4,
-                                      display: "inline-block",
-                                      marginTop: 4,
-                                    }}
-                                  >
-                                    {subCode}
-                                  </span>
-                                )}
+                                <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginTop: 5 }}>
+                                  {subCode && (
+                                    <span
+                                      style={{
+                                        fontSize: 10.5,
+                                        fontFamily: "'DM Sans', monospace",
+                                        fontWeight: 700,
+                                        color: "#475569",
+                                        background: isPresent || isAbsent ? "#ffffff" : "#f8fafc",
+                                        border: "1px solid #e2e8f0",
+                                        padding: "1.5px 6px",
+                                        borderRadius: 4,
+                                        display: "inline-block",
+                                      }}
+                                    >
+                                      {subCode}
+                                    </span>
+                                  )}
+                                  {(period.room || period.slot?.room) && (
+                                    <span
+                                      style={{
+                                        fontSize: 10.5,
+                                        fontWeight: 600,
+                                        color: "#475569",
+                                        background: isPresent || isAbsent ? "#ffffff" : "#f8fafc",
+                                        border: "1px solid #e2e8f0",
+                                        padding: "1.5px 6px",
+                                        borderRadius: 4,
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 3.5,
+                                      }}
+                                      title={`Classroom: ${period.room || period.slot?.room}`}
+                                    >
+                                      <MapPin size={10.5} color="#64748b" />
+                                      <span>Room {period.room || period.slot?.room}</span>
+                                    </span>
+                                  )}
+                                  {(period.faculty || period.teacher) && (
+                                    <span
+                                      style={{
+                                        fontSize: 10.5,
+                                        fontWeight: 600,
+                                        color: "#475569",
+                                        background: isPresent || isAbsent ? "#ffffff" : "#f8fafc",
+                                        border: "1px solid #e2e8f0",
+                                        padding: "1.5px 6px",
+                                        borderRadius: 4,
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 3.5,
+                                        maxWidth: "100%",
+                                      }}
+                                      title={`Faculty: ${period.faculty || period.teacher}`}
+                                    >
+                                      <User size={10.5} color="#64748b" />
+                                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                        {period.faculty || period.teacher}
+                                      </span>
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
 
@@ -4795,7 +4915,83 @@ export default function AttendanceTracker() {
                         );
                       })}
                     </div>
-                  )}
+
+                    {/* Bottom Quick-Action Advisor Banner */}
+                    {hasSavedAttendance && (
+                      <div
+                        style={{
+                          marginTop: 14,
+                          padding: isMobile ? "12px 14px" : "12px 18px",
+                          borderRadius: 10,
+                          background: "#ffffff",
+                          border: "1px solid #e2e8f0",
+                          display: "flex",
+                          flexDirection: isMobile ? "column" : "row",
+                          alignItems: isMobile ? "stretch" : "center",
+                          justifyContent: "space-between",
+                          gap: 10,
+                          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                          <div
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: 7,
+                              background: "#f1f5f9",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <AdvisorIcon size={14} color="#0f172a" />
+                          </div>
+                          <span style={{ fontSize: isMobile ? 12 : 12.5, fontWeight: 600, color: "#334155" }}>
+                            Preview your semester % change if you attend or miss today's classes
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRedirectToTodayAdvisor}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 7.5,
+                            background: "#000000",
+                            color: "#ffffff",
+                            padding: isMobile ? "9.5px 16px" : "8px 18px",
+                            borderRadius: 8,
+                            fontSize: isMobile ? 12 : 12.5,
+                            fontWeight: 700,
+                            border: "1px solid rgba(255, 255, 255, 0.22)",
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                            boxShadow: "0 2px 5px rgba(0, 0, 0, 0.22)",
+                            transition: "all 0.16s ease",
+                            width: isMobile ? "100%" : "auto",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#18181b";
+                            e.currentTarget.style.transform = "translateY(-1px)";
+                            e.currentTarget.style.boxShadow = "0 4px 10px rgba(0, 0, 0, 0.35)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "#000000";
+                            e.currentTarget.style.transform = "translateY(0)";
+                            e.currentTarget.style.boxShadow = "0 2px 5px rgba(0, 0, 0, 0.22)";
+                          }}
+                        >
+                          <AdvisorIcon size={14} color="#ffffff" />
+                          <span style={{ color: "#ffffff" }}>Check your today attendance effect</span>
+                          <ArrowRight size={13} color="#ffffff" />
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
                 </motion.div>
               </AnimatePresence>
             </div>
@@ -5334,7 +5530,7 @@ export default function AttendanceTracker() {
                       justifyContent: "center",
                     }}
                   >
-                    <Compass size={15} color="#2563eb" />
+                    <AdvisorIcon size={15} color="#2563eb" />
                   </div>
                   <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.2px" }}>
                     Daily Attendance Advisor
@@ -5461,7 +5657,7 @@ export default function AttendanceTracker() {
               </div>
             </div>
 
-            {/* 🎯 MORNING ACTION CARD (Daily Priority Advisor) */}
+            {/* MORNING ACTION CARD (Daily Priority Advisor) */}
             {dailyAdvisorAnalysis.topPriority ? (
               <div
                 style={{
@@ -5504,7 +5700,7 @@ export default function AttendanceTracker() {
                         marginTop: 1,
                       }}
                     >
-                      <Target size={18} color="#2563eb" />
+                      <AdvisorIcon size={18} color="#2563eb" />
                     </div>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 3 }}>
@@ -5676,12 +5872,12 @@ export default function AttendanceTracker() {
                         {/* Status / Logged Badge + Target Safe Pill */}
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           {item.isAllPresent ? (
-                            <span style={{ fontSize: 10.5, fontWeight: 800, background: "#dcfce7", color: "#15803d", border: "1px solid #bbf7d0", padding: "2px 7px", borderRadius: 6 }}>
-                              ✓ Logged
+                            <span style={{ fontSize: 10.5, fontWeight: 800, background: "#dcfce7", color: "#15803d", border: "1px solid #bbf7d0", padding: "2px 7px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 3.5 }}>
+                              <Check size={11} strokeWidth={2.5} /> <span>Logged</span>
                             </span>
                           ) : item.isAllAbsent ? (
-                            <span style={{ fontSize: 10.5, fontWeight: 800, background: "#fee2e2", color: "#b91c1c", border: "1px solid #fecaca", padding: "2px 7px", borderRadius: 6 }}>
-                              ✕ Missed
+                            <span style={{ fontSize: 10.5, fontWeight: 800, background: "#fee2e2", color: "#b91c1c", border: "1px solid #fecaca", padding: "2px 7px", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 3.5 }}>
+                              <X size={11} strokeWidth={2.5} /> <span>Missed</span>
                             </span>
                           ) : item.isPartiallyMarked ? (
                             <span style={{ fontSize: 10.5, fontWeight: 700, background: "#fef3c7", color: "#b45309", border: "1px solid #fde68a", padding: "2px 7px", borderRadius: 6 }}>
@@ -5716,7 +5912,16 @@ export default function AttendanceTracker() {
                               {item.subCode}
                             </span>
                           )}
-                          {item.rooms.length > 0 && <span>Room {item.rooms.join(", ")}</span>}
+                          {item.rooms.length > 0 && (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 3.5 }}>
+                              <MapPin size={10.5} color="#64748b" /> Room {item.rooms.join(", ")}
+                            </span>
+                          )}
+                          {item.faculties?.length > 0 && (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 3.5 }}>
+                              <User size={10.5} color="#64748b" /> {item.faculties.join(", ")}
+                            </span>
+                          )}
                           {item.types.length > 0 && <span>({item.types.join(", ")})</span>}
                           <span style={{ color: "#cbd5e1" }}>•</span>
                           <span style={{ fontWeight: 600, color: "#475569" }}>
@@ -5765,7 +5970,9 @@ export default function AttendanceTracker() {
                               <span>{item.isAllPresent ? "Attended Today" : `If Attend (+${item.classCount})`}</span>
                             </span>
                             {item.isAllPresent ? (
-                              <span style={{ background: "#16a34a", color: "#ffffff", padding: "1px 6px", borderRadius: 4, fontSize: 9.5, fontWeight: 800 }}>✓ LOGGED</span>
+                              <span style={{ background: "#16a34a", color: "#ffffff", padding: "1.5px 6px", borderRadius: 4, fontSize: 9.5, fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3.5 }}>
+                                <Check size={10} strokeWidth={3} /> LOGGED
+                              </span>
                             ) : item.isAllAbsent ? (
                               <span style={{ background: "#e2e8f0", color: "#64748b", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>Cancelled</span>
                             ) : null}
@@ -5864,7 +6071,9 @@ export default function AttendanceTracker() {
                               <span>{item.isAllAbsent ? "Missed Today" : `If Miss (+0)`}</span>
                             </span>
                             {item.isAllAbsent ? (
-                              <span style={{ background: "#dc2626", color: "#ffffff", padding: "1px 6px", borderRadius: 4, fontSize: 9.5, fontWeight: 800 }}>✗ LOGGED</span>
+                              <span style={{ background: "#dc2626", color: "#ffffff", padding: "1.5px 6px", borderRadius: 4, fontSize: 9.5, fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3.5 }}>
+                                <X size={10} strokeWidth={3} /> LOGGED
+                              </span>
                             ) : item.isAllPresent ? (
                               <span style={{ background: "#e2e8f0", color: "#64748b", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>Cancelled</span>
                             ) : null}
@@ -7438,9 +7647,9 @@ export default function AttendanceTracker() {
                   width: "100%",
                   padding: "9px 14px",
                   borderRadius: 8,
-                  background: "#0f172a",
+                  background: "#000000",
                   color: "#ffffff",
-                  border: "none",
+                  border: "1px solid rgba(255, 255, 255, 0.22)",
                   fontSize: 12,
                   fontWeight: 700,
                   cursor: "pointer",
@@ -7448,22 +7657,22 @@ export default function AttendanceTracker() {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 7,
-                  boxShadow: "0 1px 3px rgba(15, 23, 42, 0.12)",
+                  boxShadow: "0 2px 5px rgba(0, 0, 0, 0.22)",
                   transition: "all 0.15s ease",
                   marginTop: 2,
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#1e293b";
+                  e.currentTarget.style.background = "#18181b";
                   e.currentTarget.style.transform = "translateY(-1px)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "#0f172a";
+                  e.currentTarget.style.background = "#000000";
                   e.currentTarget.style.transform = "translateY(0)";
                 }}
               >
-                <CalendarCheck size={14} color="#38bdf8" />
-                <span>View Target Date &amp; Schedule Breakdown</span>
-                <ArrowRight size={13} color="#94a3b8" />
+                <CalendarCheck size={14} color="#ffffff" />
+                <span style={{ color: "#ffffff" }}>View Target Date &amp; Schedule Breakdown</span>
+                <ArrowRight size={13} color="#ffffff" />
               </button>
             </div>
           </div>
