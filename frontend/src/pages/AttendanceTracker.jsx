@@ -6025,26 +6025,22 @@ export default function AttendanceTracker() {
                               }
                             }}
                             style={{
-                              background: isMarked
-                                ? "#f8fafc"
-                                : "#ffffff",
+                              background: "#ffffff",
                               border: isMarked
-                                ? "1px solid #cbd5e1"
+                                ? "1.5px solid #cbd5e1"
                                 : isAttending
                                 ? "1.5px solid #0f172a"
                                 : "1.5px solid #e2e8f0",
                               borderRadius: 10,
                               padding: "12px 14px",
-                              cursor: isMarked ? "not-allowed" : "pointer",
+                              cursor: isMarked ? "default" : "pointer",
                               userSelect: "none",
                               display: "flex",
                               flexDirection: "column",
                               gap: 8,
-                              opacity: isMarked ? 0.65 : 1,
-                              filter: isMarked ? "blur(0.45px)" : "none",
-                              boxShadow: isMarked
-                                ? "none"
-                                : "0 1px 3px rgba(15, 23, 42, 0.04)",
+                              opacity: 1,
+                              filter: "none",
+                              boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
                               transition: "all 0.15s ease",
                               position: "relative",
                             }}
@@ -6159,8 +6155,9 @@ export default function AttendanceTracker() {
 
                             {/* Small Locked note if marked */}
                             {isMarked ? (
-                              <div style={{ fontSize: 9.5, color: "#94a3b8", fontStyle: "italic", marginTop: 2, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                                🔒 Marked in Daily Attendance (Check in/out locked)
+                              <div style={{ fontSize: 9.5, color: "#64748b", marginTop: 2, display: "inline-flex", alignItems: "center", gap: 3.5, fontWeight: 500 }}>
+                                <Lock size={10} color="#64748b" />
+                                <span>Marked in Daily Attendance (Check in/out locked)</span>
                               </div>
                             ) : (
                               <div style={{ fontSize: 9.5, color: "#94a3b8", marginTop: 2 }}>
