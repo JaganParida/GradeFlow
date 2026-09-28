@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { getAdminCache, setAdminCache, onAdminCacheDirty, AdminCacheScopes } from "../utils/adminRealtimeCache";
+import { getAdminCache, setAdminCache, onAdminCacheDirty, invalidateAdminCache, AdminCacheScopes } from "../utils/adminRealtimeCache";
 import {
   Users,
   Search,
