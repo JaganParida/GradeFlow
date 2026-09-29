@@ -628,6 +628,13 @@ export default function AttendanceTracker() {
   const [simulateMissCount, setSimulateMissCount] = useState(0);
   const [simulateAttendCount, setSimulateAttendCount] = useState(0);
 
+  // Check if currently active editor subject has 0 conducted classes (0 by 0)
+  const isCurrentActiveZeroByZero = useMemo(() => {
+    if (!componentInputs || componentInputs.length === 0) return true;
+    const totalDelivered = componentInputs.reduce((sum, c) => sum + (Number(c.delivered) || 0), 0);
+    return totalDelivered <= 0;
+  }, [componentInputs]);
+
   // Saved Subjects (In-Memory React State, synced direct to MongoDB Atlas)
   const [savedSubjects, setSavedSubjects] = useState(() => {
     return Array.isArray(studentData?.attendance?.savedSubjects)
@@ -648,15 +655,95 @@ export default function AttendanceTracker() {
   const allDailyLogsRef = useRef(allDailyLogs);
   allDailyLogsRef.current = allDailyLogs;
 
-  // Check if student has actual non-zero saved attendance data in DB
+  // Complete List of Section Subjects with Detected Components & Saved Overrides (Strict Section Timetable Scoped)
+  const allSectionSubjects = useMemo(() => {
+    const map = new Map();
+
+    sectionCatalog.forEach((catItem) => {
+      // Robust match with saved subjects by name, clean base name, code, or aliases
+      const saved = savedSubjects.find((s) => isSameSubject(s, catItem));
+      const savedComps = saved?.components || [];
+
+      const detectedTypes =
+        catItem.components && catItem.components.length > 0 ? catItem.components : ["PP"];
+
+      const components = detectedTypes.map((type) => {
+        const found = savedComps.find((c) => c.type.toUpperCase() === type.toUpperCase());
+        return found || { type, attended: 0, delivered: 0 };
+      });
+
+      savedComps.forEach((c) => {
+        if (!detectedTypes.some((t) => t.toUpperCase() === c.type.toUpperCase())) {
+          components.push(c);
+        }
+      });
+
+      const resolvedCode =
+        catItem.code || saved?.code || resolveSubjectCode({ subject: catItem.subjectName }, studentData) || "";
+
+      map.set(catItem.subjectName, {
+        subjectName: catItem.subjectName,
+        code: resolvedCode,
+        components,
+        classesPerWeek: catItem.classesPerWeek,
+        weeklyOccurrences: catItem.weeklyOccurrences,
+        isSaved: Boolean(saved),
+      });
+    });
+
+    return Array.from(map.values());
+  }, [sectionCatalog, savedSubjects, studentData]);
+
+  // Check if student has actual non-zero saved attendance data for ALL routine subjects
   const hasSavedAttendance = useMemo(() => {
+    if (allSectionSubjects.length > 0) {
+      return (
+        savedSubjects.length > 0 &&
+        allSectionSubjects.every(
+          (sub) =>
+            sub.isSaved &&
+            (sub.components || []).some((c) => (Number(c.delivered) || 0) > 0)
+        )
+      );
+    }
     return (
       savedSubjects.length > 0 &&
-      savedSubjects.some((s) =>
+      savedSubjects.every((s) =>
         (s.components || []).some((c) => (Number(c.delivered) || 0) > 0)
       )
     );
-  }, [savedSubjects]);
+  }, [allSectionSubjects, savedSubjects]);
+
+  // Detailed Setup Progress: tracks which routine subjects are filled (>0 delivered) vs still 0/0
+  const setupProgress = useMemo(() => {
+    const list = allSectionSubjects.length > 0 ? allSectionSubjects : savedSubjects;
+    if (list.length === 0) {
+      return { total: 0, filled: 0, unfilled: 0, filledList: [], unfilledList: [], percent: 0 };
+    }
+
+    const filledList = [];
+    const unfilledList = [];
+
+    list.forEach((sub) => {
+      const isFilled =
+        sub.isSaved &&
+        (sub.components || []).some((c) => (Number(c.delivered) || 0) > 0);
+      if (isFilled) {
+        filledList.push(sub);
+      } else {
+        unfilledList.push(sub);
+      }
+    });
+
+    return {
+      total: list.length,
+      filled: filledList.length,
+      unfilled: unfilledList.length,
+      filledList,
+      unfilledList,
+      percent: list.length > 0 ? Math.round((filledList.length / list.length) * 100) : 0,
+    };
+  }, [allSectionSubjects, savedSubjects]);
 
   const LOCKED_TAB_IDS = useMemo(() => new Set([
     "checkin",
@@ -1012,10 +1099,15 @@ export default function AttendanceTracker() {
       });
     }
 
+    // Filter out 0/0 subjects so they never get saved to database
+    const validFormatted = formatted.filter((s) =>
+      (s.components || []).some((c) => (Number(c.delivered) || 0) > 0)
+    );
+
     // Smart merge: Update matched subjects with latest attendance counts and keep any existing subjects
     // so previous data and records are completely preserved
     const mergedSaved = [...savedSubjects];
-    formatted.forEach((newSub) => {
+    validFormatted.forEach((newSub) => {
       const existingIdx = mergedSaved.findIndex((s) => isSameSubject(s, newSub));
       if (existingIdx !== -1) {
         mergedSaved[existingIdx] = {
@@ -1382,10 +1474,6 @@ export default function AttendanceTracker() {
   // Safety auto-redirect to Edit & What-If if current tab is locked and student has no attendance saved
   useEffect(() => {
     if (!pageLoading && !hasSavedAttendance && LOCKED_TAB_IDS.has(activeTab)) {
-      // If studentData has attendance, wait until state resolves rather than false-locking
-      if (studentData?.attendance && Array.isArray(studentData.attendance.savedSubjects) && studentData.attendance.savedSubjects.length > 0) {
-        return;
-      }
       const tabNames = {
         checkin: "Daily Attendance",
         matrix: "Subject-wise Attendance",
@@ -1407,7 +1495,7 @@ export default function AttendanceTracker() {
         { replace: true }
       );
     }
-  }, [pageLoading, hasSavedAttendance, activeTab, LOCKED_TAB_IDS, studentData]);
+  }, [pageLoading, hasSavedAttendance, activeTab, LOCKED_TAB_IDS]);
 
   // Synchronize componentInputs whenever savedSubjects loads or updates from MongoDB Atlas
   useEffect(() => {
@@ -1781,6 +1869,12 @@ export default function AttendanceTracker() {
       delivered: Math.max(0, parseInt(c.delivered, 10) || 0),
     }));
 
+    // Strictly disallow saving 0 by 0 subjects to cloud / MongoDB
+    const totalDelivered = cleanComps.reduce((sum, c) => sum + (Number(c.delivered) || 0), 0);
+    if (totalDelivered <= 0) {
+      return;
+    }
+
     const updatedList = [
       ...filtered,
       {
@@ -1808,44 +1902,6 @@ export default function AttendanceTracker() {
     syncAttendanceToDb(updatedList, allDailyLogsRef.current || allDailyLogs, targetGoal);
   }
 
-  // Complete List of Section Subjects with Detected Components & Saved Overrides (Strict Section Timetable Scoped)
-  const allSectionSubjects = useMemo(() => {
-    const map = new Map();
-
-    sectionCatalog.forEach((catItem) => {
-      // Robust match with saved subjects by name, clean base name, code, or aliases
-      const saved = savedSubjects.find((s) => isSameSubject(s, catItem));
-      const savedComps = saved?.components || [];
-
-      const detectedTypes =
-        catItem.components && catItem.components.length > 0 ? catItem.components : ["PP"];
-
-      const components = detectedTypes.map((type) => {
-        const found = savedComps.find((c) => c.type.toUpperCase() === type.toUpperCase());
-        return found || { type, attended: 0, delivered: 0 };
-      });
-
-      savedComps.forEach((c) => {
-        if (!detectedTypes.some((t) => t.toUpperCase() === c.type.toUpperCase())) {
-          components.push(c);
-        }
-      });
-
-      const resolvedCode =
-        catItem.code || saved?.code || resolveSubjectCode({ subject: catItem.subjectName }, studentData) || "";
-
-      map.set(catItem.subjectName, {
-        subjectName: catItem.subjectName,
-        code: resolvedCode,
-        components,
-        classesPerWeek: catItem.classesPerWeek,
-        weeklyOccurrences: catItem.weeklyOccurrences,
-        isSaved: Boolean(saved),
-      });
-    });
-
-    return Array.from(map.values());
-  }, [sectionCatalog, savedSubjects, studentData]);
 
   // Default tab routing: Keep default tab "checkin" unless specified via URL parameter
   useEffect(() => {
@@ -3474,90 +3530,124 @@ export default function AttendanceTracker() {
                         </div>
                       </div>
 
-                      {/* Row 2: Target Goal Segmented Control (or Mobile Onboarding Guide for new students) */}
                       {!hasSavedAttendance ? (
-                        <div
-                          style={{
-                            background: "#ffffff",
-                            border: "1.5px solid #e2e8f0",
-                            borderRadius: 12,
-                            padding: "12px 14px",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 10,
-                            width: "100%",
-                            boxSizing: "border-box",
-                            boxShadow: "0 1px 4px rgba(15, 23, 42, 0.05)",
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}>
-                            <div
-                              style={{
-                                width: 24,
-                                height: 24,
-                                borderRadius: 7,
-                                background: "#eff6ff",
-                                border: "1px solid #dbeafe",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                flexShrink: 0,
-                                marginTop: 1,
-                              }}
-                            >
-                              <Zap size={13} color="#2563eb" />
-                            </div>
-                            <div style={{ fontSize: 11.5, color: "#334155", lineHeight: 1.5 }}>
-                              <strong style={{ color: "#0f172a" }}>One-Time Setup (Save to Cloud):</strong> You only need to import your attendance once! After confirming and saving to cloud, you never have to upload screenshots again.
-                            </div>
-                          </div>
-
+                        setupProgress.filled === 0 ? (
                           <div
                             style={{
-                              background: "#f8fafc",
-                              border: "1px solid #e2e8f0",
-                              borderRadius: 8,
-                              padding: "9px 11px",
+                              background: "#ffffff",
+                              border: "1.5px solid #e2e8f0",
+                              borderRadius: 12,
+                              padding: "12px 14px",
                               display: "flex",
-                              alignItems: "flex-start",
-                              gap: 7,
+                              flexDirection: "column",
+                              gap: 10,
+                              width: "100%",
+                              boxSizing: "border-box",
+                              boxShadow: "0 1px 4px rgba(15, 23, 42, 0.05)",
                             }}
                           >
-                            <Info size={13} color="#2563eb" style={{ marginTop: 2, flexShrink: 0 }} />
-                            <div style={{ fontSize: 11, color: "#334155", lineHeight: 1.5 }}>
-                              <strong style={{ color: "#0f172a" }}>Taking Screenshot Mid-Day?</strong> If your ERP portal attendance was updated up to earlier classes and you still have classes left today, open <strong>Daily Attendance</strong> and mark <strong>Present</strong> or <strong>Absent</strong> for today's remaining classes. If all classes for today are already finished and included in the screenshot, simply start marking from <strong>Tomorrow / Next Day in Daily Attendance</strong>!
+                            <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}>
+                              <div
+                                style={{
+                                  width: 24,
+                                  height: 24,
+                                  borderRadius: 7,
+                                  background: "#eff6ff",
+                                  border: "1px solid #dbeafe",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  flexShrink: 0,
+                                  marginTop: 1,
+                                }}
+                              >
+                                <Zap size={13} color="#2563eb" />
+                              </div>
+                              <div style={{ fontSize: 11.5, color: "#334155", lineHeight: 1.5 }}>
+                                <strong style={{ color: "#0f172a" }}>One-Time Setup (Save to Cloud):</strong> You only need to import your attendance once! After confirming and saving to cloud, you never have to upload screenshots again.
+                              </div>
                             </div>
-                          </div>
 
-                          <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 2 }}>
-                            <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, lineHeight: 1.4 }}>
-                              For setup guide, follow the details guide below or refer to this PDF guide:
-                            </div>
-                            <a
-                              href="/GradeFlow_Attendance_Setup_Guide.pdf"
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <div
                               style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 6,
-                                background: "#0f172a",
-                                color: "#ffffff",
-                                padding: "6.5px 13px",
-                                borderRadius: 7,
-                                fontSize: 11,
-                                fontWeight: 750,
-                                textDecoration: "none",
-                                width: "fit-content",
-                                boxShadow: "0 1px 2px rgba(15, 23, 42, 0.1)",
+                                background: "#f8fafc",
+                                border: "1px solid #e2e8f0",
+                                borderRadius: 8,
+                                padding: "9px 11px",
+                                display: "flex",
+                                alignItems: "flex-start",
+                                gap: 7,
                               }}
                             >
-                              <FileText size={12} />
-                              <span>Official PDF Setup Guide</span>
-                              <ExternalLink size={10} style={{ opacity: 0.8 }} />
-                            </a>
+                              <Info size={13} color="#2563eb" style={{ marginTop: 2, flexShrink: 0 }} />
+                              <div style={{ fontSize: 11, color: "#334155", lineHeight: 1.5 }}>
+                                <strong style={{ color: "#0f172a" }}>Taking Screenshot Mid-Day?</strong> If your ERP portal attendance was updated up to earlier classes and you still have classes left today, open <strong>Daily Attendance</strong> and mark <strong>Present</strong> or <strong>Absent</strong> for today's remaining classes. If all classes for today are already finished and included in the screenshot, simply start marking from <strong>Tomorrow / Next Day in Daily Attendance</strong>!
+                              </div>
+                            </div>
+
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 2 }}>
+                              <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, lineHeight: 1.4 }}>
+                                For setup guide, follow the details guide below or refer to this PDF guide:
+                              </div>
+                              <a
+                                href="/GradeFlow_Attendance_Setup_Guide.pdf"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  background: "#0f172a",
+                                  color: "#ffffff",
+                                  padding: "6.5px 13px",
+                                  borderRadius: 7,
+                                  fontSize: 11,
+                                  fontWeight: 750,
+                                  textDecoration: "none",
+                                  width: "fit-content",
+                                  boxShadow: "0 1px 2px rgba(15, 23, 42, 0.1)",
+                                }}
+                              >
+                                <FileText size={12} />
+                                <span>Official PDF Setup Guide</span>
+                                <ExternalLink size={10} style={{ opacity: 0.8 }} />
+                              </a>
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          <div
+                            style={{
+                              background: "#ffffff",
+                              border: "1px solid #e2e8f0",
+                              borderRadius: 12,
+                              padding: "11px 13px",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 8,
+                              width: "100%",
+                              boxSizing: "border-box",
+                              boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                                <Activity size={14} color="#0f172a" />
+                                <span style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>
+                                  Setup Progress ({setupProgress.filled}/{setupProgress.total})
+                                </span>
+                              </div>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>
+                                {setupProgress.unfilled} left (0/0)
+                              </span>
+                            </div>
+                            <div style={{ width: "100%", height: 5, background: "#f1f5f9", borderRadius: 999, overflow: "hidden", border: "1px solid #e2e8f0" }}>
+                              <div style={{ width: `${setupProgress.percent}%`, height: "100%", background: "#0f172a", borderRadius: 999 }} />
+                            </div>
+                            <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.35 }}>
+                              Fill remaining {setupProgress.unfilled} {setupProgress.unfilled === 1 ? "subject" : "subjects"} in Edit & What-If to unlock full attendance features.
+                            </div>
+                          </div>
+                        )
                       ) : (
                         <div
                           style={{
@@ -3754,143 +3844,260 @@ export default function AttendanceTracker() {
               {/* 4 Hero Stat Cards (or Onboarding Guide Banner for new students): Always visible on Desktop; On Mobile visible on default Daily Hub (checkin) */}
               {(!isMobile || activeTab === "checkin") && (
                 !hasSavedAttendance ? (
-                  /* Executive Onboarding Guide Banner (Desktop / Laptop View) */
-                  <div
-                    style={{
-                      background: "#ffffff",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 14,
-                      padding: isMobile ? "14px 16px" : "18px 24px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 12,
-                      width: "100%",
-                      boxSizing: "border-box",
-                      boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02)",
-                      position: "relative",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {/* Top Decorative Stripe */}
+                  setupProgress.filled === 0 ? (
+                    /* Executive Onboarding Guide Banner (Desktop / Laptop View) */
                     <div
                       style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: 3,
-                        background: "linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #0ea5e9 100%)",
-                      }}
-                    />
-
-                    {/* Top Row: One-Time Setup Info + Action Button */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        justifyContent: "space-between",
-                        gap: 16,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flex: 1, minWidth: 260 }}>
-                        <div
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 10,
-                            background: "#eff6ff",
-                            border: "1px solid #dbeafe",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                            marginTop: 1,
-                          }}
-                        >
-                          <Zap size={18} color="#2563eb" strokeWidth={2.2} />
-                        </div>
-                        <div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 3 }}>
-                            <span style={{ fontSize: isMobile ? 13.5 : 15, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.2px" }}>
-                              One-Time Setup (Save to Cloud)
-                            </span>
-                            <span
-                              style={{
-                                fontSize: 10,
-                                fontWeight: 700,
-                                background: "#f1f5f9",
-                                color: "#475569",
-                                padding: "2.5px 8px",
-                                borderRadius: 6,
-                                border: "1px solid #e2e8f0",
-                                textTransform: "uppercase",
-                                letterSpacing: "0.5px",
-                              }}
-                            >
-                              Initial Sync Required
-                            </span>
-                          </div>
-                          <p style={{ fontSize: isMobile ? 12 : 12.5, color: "#475569", margin: 0, lineHeight: 1.5 }}>
-                            You only need to import your attendance once! After confirming and saving to cloud, you never have to upload screenshots again.
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Right Action: PDF Guide Link */}
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: isMobile ? "flex-start" : "flex-end", gap: 6, flexShrink: 0 }}>
-                        <span style={{ fontSize: 11.5, color: "#64748b", fontWeight: 600, textAlign: isMobile ? "left" : "right", maxWidth: 290, lineHeight: 1.35 }}>
-                          For setup guide, follow the details guide below or refer to this PDF guide:
-                        </span>
-                        <a
-                          href="/GradeFlow_Attendance_Setup_Guide.pdf"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 7,
-                            background: "#0f172a",
-                            color: "#ffffff",
-                            padding: "8px 16px",
-                            borderRadius: 8,
-                            fontSize: 12,
-                            fontWeight: 750,
-                            textDecoration: "none",
-                            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.12)",
-                            transition: "background 0.15s ease",
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = "#1e293b"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = "#0f172a"; }}
-                        >
-                          <FileText size={14} />
-                          <span>Official PDF Setup Guide</span>
-                          <ExternalLink size={12} style={{ opacity: 0.8 }} />
-                        </a>
-                      </div>
-                    </div>
-
-                    {/* Divider */}
-                    <div style={{ borderTop: "1px solid #e2e8f0", margin: "2px 0" }} />
-
-                    {/* Bottom Row: Mid-Day Class Notice */}
-                    <div
-                      style={{
-                        background: "#f8fafc",
+                        background: "#ffffff",
                         border: "1px solid #e2e8f0",
-                        borderRadius: 10,
-                        padding: "10px 14px",
+                        borderRadius: 14,
+                        padding: isMobile ? "14px 16px" : "18px 24px",
                         display: "flex",
-                        alignItems: "flex-start",
-                        gap: 9,
+                        flexDirection: "column",
+                        gap: 12,
+                        width: "100%",
+                        boxSizing: "border-box",
+                        boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02)",
+                        position: "relative",
+                        overflow: "hidden",
                       }}
                     >
-                      <Info size={15} color="#2563eb" style={{ marginTop: 2, flexShrink: 0 }} />
-                      <div style={{ fontSize: isMobile ? 11.5 : 12, color: "#334155", lineHeight: 1.55 }}>
-                        <strong style={{ color: "#0f172a" }}>Taking Screenshot Mid-Day?</strong> If your ERP portal attendance was updated up to earlier classes and you still have classes left today, open <strong>Daily Attendance</strong> and mark <strong>Present</strong> or <strong>Absent</strong> for today's remaining classes. If all classes for today are already finished and included in the screenshot, simply start marking from <strong>Tomorrow / Next Day in Daily Attendance</strong>!
+                      {/* Top Decorative Stripe */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: 3,
+                          background: "linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #0ea5e9 100%)",
+                        }}
+                      />
+
+                      {/* Top Row: One-Time Setup Info + Action Button */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          justifyContent: "space-between",
+                          gap: 16,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flex: 1, minWidth: 260 }}>
+                          <div
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 10,
+                              background: "#eff6ff",
+                              border: "1px solid #dbeafe",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                              marginTop: 1,
+                            }}
+                          >
+                            <Zap size={18} color="#2563eb" strokeWidth={2.2} />
+                          </div>
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 3 }}>
+                              <span style={{ fontSize: isMobile ? 13.5 : 15, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.2px" }}>
+                                One-Time Setup (Save to Cloud)
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  background: "#f1f5f9",
+                                  color: "#475569",
+                                  padding: "2.5px 8px",
+                                  borderRadius: 6,
+                                  border: "1px solid #e2e8f0",
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.5px",
+                                }}
+                              >
+                                Initial Sync Required
+                              </span>
+                            </div>
+                            <p style={{ fontSize: isMobile ? 12 : 12.5, color: "#475569", margin: 0, lineHeight: 1.5 }}>
+                              You only need to import your attendance once! After confirming and saving to cloud, you never have to upload screenshots again.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Right Action: PDF Guide Link */}
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: isMobile ? "flex-start" : "flex-end", gap: 6, flexShrink: 0 }}>
+                          <span style={{ fontSize: 11.5, color: "#64748b", fontWeight: 600, textAlign: isMobile ? "left" : "right", maxWidth: 290, lineHeight: 1.35 }}>
+                            For setup guide, follow the details guide below or refer to this PDF guide:
+                          </span>
+                          <a
+                            href="/GradeFlow_Attendance_Setup_Guide.pdf"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 7,
+                              background: "#0f172a",
+                              color: "#ffffff",
+                              padding: "8px 16px",
+                              borderRadius: 8,
+                              fontSize: 12,
+                              fontWeight: 750,
+                              textDecoration: "none",
+                              boxShadow: "0 1px 3px rgba(15, 23, 42, 0.12)",
+                              transition: "background 0.15s ease",
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = "#1e293b"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = "#0f172a"; }}
+                          >
+                            <FileText size={14} />
+                            <span>Official PDF Setup Guide</span>
+                            <ExternalLink size={12} style={{ opacity: 0.8 }} />
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Divider */}
+                      <div style={{ borderTop: "1px solid #e2e8f0", margin: "2px 0" }} />
+
+                      {/* Bottom Row: Mid-Day Class Notice */}
+                      <div
+                        style={{
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 10,
+                          padding: "10px 14px",
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 9,
+                        }}
+                      >
+                        <Info size={15} color="#2563eb" style={{ marginTop: 2, flexShrink: 0 }} />
+                        <div style={{ fontSize: isMobile ? 11.5 : 12, color: "#334155", lineHeight: 1.55 }}>
+                          <strong style={{ color: "#0f172a" }}>Taking Screenshot Mid-Day?</strong> If your ERP portal attendance was updated up to earlier classes and you still have classes left today, open <strong>Daily Attendance</strong> and mark <strong>Present</strong> or <strong>Absent</strong> for today's remaining classes. If all classes for today are already finished and included in the screenshot, simply start marking from <strong>Tomorrow / Next Day in Daily Attendance</strong>!
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    /* Clean Setup Progress Tracker Banner (Desktop / Laptop View) */
+                    <div
+                      style={{
+                        background: "#ffffff",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 14,
+                        padding: "16px 20px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 12,
+                        width: "100%",
+                        boxSizing: "border-box",
+                        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div
+                            style={{
+                              width: 34,
+                              height: 34,
+                              borderRadius: 9,
+                              background: "#0f172a",
+                              color: "#ffffff",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Activity size={17} />
+                          </div>
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                              <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.2px" }}>
+                                Setup in Progress: {setupProgress.filled} of {setupProgress.total} Subjects Filled
+                              </h4>
+                              <span
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  background: "#f1f5f9",
+                                  color: "#475569",
+                                  padding: "2px 7px",
+                                  borderRadius: 5,
+                                  border: "1px solid #e2e8f0",
+                                }}
+                              >
+                                {setupProgress.unfilled} Remaining (0/0)
+                              </span>
+                            </div>
+                            <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0", lineHeight: 1.4 }}>
+                              {setupProgress.unfilled} {setupProgress.unfilled === 1 ? "subject is" : "subjects are"} still 0/0 in Subject-wise Attendance. Fill all routine subjects to unlock full features.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveTab("studio_simulator");
+                              handleStudioSectionChange("simulator");
+                            }}
+                            style={{
+                              padding: "7px 14px",
+                              borderRadius: 8,
+                              border: "none",
+                              background: "#0f172a",
+                              color: "#ffffff",
+                              fontSize: 12,
+                              fontWeight: 750,
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
+                          >
+                            <Sliders size={13} />
+                            <span>Continue Setup in Editor</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleOpenScreenshotModal}
+                            style={{
+                              padding: "7px 14px",
+                              borderRadius: 8,
+                              border: "1px solid #e2e8f0",
+                              background: "#f8fafc",
+                              color: "#334155",
+                              fontSize: 12,
+                              fontWeight: 750,
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
+                          >
+                            <CloudUpload size={13} />
+                            <span>Auto-Import with Screenshot</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11.5, fontWeight: 700, color: "#475569", marginBottom: 5 }}>
+                          <span>Overall Setup Completion</span>
+                          <span>{setupProgress.percent}% ({setupProgress.filled}/{setupProgress.total} completed)</span>
+                        </div>
+                        <div style={{ width: "100%", height: 6, background: "#f1f5f9", borderRadius: 999, overflow: "hidden", border: "1px solid #e2e8f0" }}>
+                          <div style={{ width: `${setupProgress.percent}%`, height: "100%", background: "#0f172a", borderRadius: 999, transition: "width 0.3s ease" }} />
+                        </div>
+                      </div>
+                    </div>
+                  )
                 ) : (
                   <div
                     style={{
@@ -6283,7 +6490,8 @@ export default function AttendanceTracker() {
                 Rendered ONLY in "Edit & What-If" (simulator) for new students with no saved attendance
             ═══════════════════════════════════════════════════════════════ */}
             {currentStudioSection === "simulator" && !hasSavedAttendance && (
-              <div
+              setupProgress.filled === 0 ? (
+                <div
                 style={{
                   background: "#ffffff",
                   border: "1px solid #e2e8f0",
@@ -6686,7 +6894,7 @@ export default function AttendanceTracker() {
                       }}
                     >
                       <CheckCircle2 size={14} color="#16a34a" style={{ flexShrink: 0 }} />
-                      <span>Daily check-ins & bunk calculators unlock as soon as you save!</span>
+                      <span>Daily check-ins & calculators unlock once all your routine subjects are set!</span>
                     </div>
                   </div>
                 </div>
@@ -6723,11 +6931,228 @@ export default function AttendanceTracker() {
                   </div>
                   <div style={{ flex: 1 }}>
                     <strong style={{ color: "#0f172a" }}>Unlock Full Attendance Suite:</strong>{" "}
-                    Once you add & save attendance for at least 1 subject (via screenshot or manual entry), all other features —{" "}
-                    <strong>Daily Attendance</strong>, <strong>Target with Schedule</strong>, <strong>Miss Impact between Target</strong>, <strong>Miss Classes After Target</strong>, and <strong>Future Predictor</strong> — will automatically unlock and activate!
+                    Set all your subjects using auto import (or manual entry), all other features —{" "}
+                    <strong>Daily Attendance</strong>, <strong>Subject-wise Attendance</strong>, <strong>Daily Attendance Calculator</strong>, <strong>Target with Schedule</strong>, <strong>Miss Impact between Target</strong>, <strong>Miss Classes After Target</strong>, and <strong>Future Predictor</strong> — will automatically unlock and activate!
                   </div>
                 </div>
               </div>
+            ) : (
+                /* Setup Progress Tracker for Partially-Filled Attendance */
+                <div
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 14,
+                    padding: isMobile ? "16px 14px" : "18px 22px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 14,
+                    boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+                  }}
+                >
+                  {/* Top Bar: Title + Badges + Auto-Import Action */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: isMobile ? "flex-start" : "center",
+                      flexDirection: isMobile ? "column" : "row",
+                      gap: 12,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: 9,
+                          background: "#0f172a",
+                          color: "#ffffff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Activity size={17} />
+                      </div>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <h3
+                            style={{
+                              fontSize: isMobile ? 15.5 : 17,
+                              fontWeight: 800,
+                              color: "#0f172a",
+                              margin: 0,
+                              letterSpacing: "-0.2px",
+                            }}
+                          >
+                            Setup Progress: {setupProgress.filled} of {setupProgress.total} Subjects Filled
+                          </h3>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              background: "#f1f5f9",
+                              color: "#475569",
+                              padding: "2px 8px",
+                              borderRadius: 6,
+                              border: "1px solid #e2e8f0",
+                            }}
+                          >
+                            {setupProgress.unfilled} Remaining (0/0)
+                          </span>
+                        </div>
+                        <p style={{ fontSize: 12, color: "#64748b", margin: "3px 0 0 0", lineHeight: 1.45 }}>
+                          All routine subjects must be saved with attended & conducted counts to unlock full features.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenScreenshotModal}
+                      style={{
+                        padding: isMobile ? "8px 12px" : "8px 14px",
+                        borderRadius: 8,
+                        border: "1px solid #cbd5e1",
+                        background: "#f8fafc",
+                        color: "#0f172a",
+                        fontSize: 12,
+                        fontWeight: 750,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        alignSelf: isMobile ? "stretch" : "auto",
+                        justifyContent: "center",
+                        transition: "all 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "#f1f5f9"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "#f8fafc"; }}
+                    >
+                      <CloudUpload size={14} color="#475569" />
+                      <span>Auto-Import Remaining with Screenshot</span>
+                    </button>
+                  </div>
+
+                  {/* Clean Minimal Progress Bar */}
+                  <div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        color: "#475569",
+                        marginBottom: 6,
+                      }}
+                    >
+                      <span>Completion</span>
+                      <span>{setupProgress.percent}% ({setupProgress.filled}/{setupProgress.total} subjects saved)</span>
+                    </div>
+                    <div
+                      style={{
+                        width: "100%",
+                        height: 6,
+                        background: "#f1f5f9",
+                        borderRadius: 999,
+                        overflow: "hidden",
+                        border: "1px solid #e2e8f0",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${setupProgress.percent}%`,
+                          height: "100%",
+                          background: "#0f172a",
+                          borderRadius: 999,
+                          transition: "width 0.3s ease",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Interactive Remaining Subjects Chips */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: "#475569" }}>
+                      Click any remaining subject below to enter its attended & conducted classes:
+                    </span>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                      {setupProgress.unfilledList.map((sub) => {
+                        const isSelected = isSameSubject(sub, selectedSubjectName);
+                        return (
+                          <button
+                            key={sub.subjectName}
+                            type="button"
+                            onClick={() => {
+                              const catMatch = sectionCatalog.find((c) => isSameSubject(c, sub));
+                              if (catMatch) {
+                                selectSubjectFromCatalog(catMatch);
+                              } else {
+                                setSelectedSubjectName(sub.subjectName);
+                                setComponentInputs(sub.components || [{ type: "PP", attended: 0, delivered: 0 }]);
+                              }
+                            }}
+                            style={{
+                              padding: "6px 11px",
+                              borderRadius: 8,
+                              border: isSelected ? "1.5px solid #0f172a" : "1px dashed #cbd5e1",
+                              background: isSelected ? "#0f172a" : "#f8fafc",
+                              color: isSelected ? "#ffffff" : "#334155",
+                              fontSize: 11.5,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            <span style={{ maxWidth: isMobile ? 160 : 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {sub.subjectName}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 800,
+                                padding: "1px 5px",
+                                borderRadius: 4,
+                                background: isSelected ? "rgba(255,255,255,0.2)" : "#f1f5f9",
+                                color: isSelected ? "#ffffff" : "#64748b",
+                              }}
+                            >
+                              0/0
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Clean Info Strip */}
+                  <div
+                    style={{
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 9,
+                      padding: "8px 12px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      fontSize: 11.5,
+                      color: "#475569",
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    <Lock size={12} color="#64748b" style={{ flexShrink: 0 }} />
+                    <span>
+                      Locked tabs (<strong>Daily Attendance</strong>, <strong>Subject-wise Attendance</strong>, <strong>Daily Attendance Calculator</strong>, <strong>Target with Schedule</strong>, <strong>Future Predictor</strong>) will automatically unlock as soon as the remaining {setupProgress.unfilled} {setupProgress.unfilled === 1 ? "subject is" : "subjects are"} saved with delivered classes.
+                    </span>
+                  </div>
+                </div>
+              )
             )}
 
               
@@ -7218,28 +7643,50 @@ export default function AttendanceTracker() {
               <button
                 type="button"
                 onClick={handleSaveActiveSubject}
-                disabled={!isVerifiedDisclaimerChecked}
+                disabled={!isVerifiedDisclaimerChecked || isCurrentActiveZeroByZero}
                 style={{
                   flex: 1,
                   padding: isMobile ? "10px 14px" : "13px 20px",
                   borderRadius: 12,
                   border: "none",
-                  background: isVerifiedDisclaimerChecked ? "linear-gradient(135deg, #059669 0%, #047857 100%)" : "#cbd5e1",
-                  color: isVerifiedDisclaimerChecked ? "#ffffff" : "#64748b",
+                  background: isVerifiedDisclaimerChecked && !isCurrentActiveZeroByZero
+                    ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
+                    : "#e2e8f0",
+                  color: isVerifiedDisclaimerChecked && !isCurrentActiveZeroByZero ? "#ffffff" : "#94a3b8",
                   fontSize: isMobile ? 13 : 14.5,
                   fontWeight: 800,
-                  cursor: "pointer",
+                  cursor: isVerifiedDisclaimerChecked && !isCurrentActiveZeroByZero ? "pointer" : "not-allowed",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 8,
-                  boxShadow: "0 4px 12px rgba(5, 150, 105, 0.25)",
+                  boxShadow: isVerifiedDisclaimerChecked && !isCurrentActiveZeroByZero ? "0 4px 12px rgba(5, 150, 105, 0.25)" : "none",
                   transition: "all 0.15s ease",
                 }}
               >
                 <Save size={isMobile ? 14 : 16} />
                 <span>Save to Semester Dashboard</span>
               </button>
+
+              {isCurrentActiveZeroByZero && (
+                <div
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px dashed #cbd5e1",
+                    borderRadius: 9,
+                    padding: "7px 11px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 7,
+                    fontSize: 11.5,
+                    color: "#64748b",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  <AlertTriangle size={13} color="#94a3b8" style={{ flexShrink: 0 }} />
+                  <span>0/0 subject cannot be saved. Enter your attended & conducted classes above.</span>
+                </div>
+              )}
 
               {saveSuccessAlert && (
                 <div
@@ -7839,12 +8286,13 @@ export default function AttendanceTracker() {
                     minWidth: 0,
                   }}
                 >
-                  Save attendance for at least 1 subject to unlock{" "}
+                  Set all your subjects using auto import to unlock{" "}
                   <strong style={{ color: "#fbbf24", fontWeight: 700 }}>
                     {typeof lockedTabNotice === "object" && lockedTabNotice?.tabName
                       ? lockedTabNotice.tabName
                       : typeof lockedTabNotice === "string"
                       ? lockedTabNotice
+                          .replace(/^Set all your subjects using auto import to unlock /, "")
                           .replace(/^Save attendance for at least 1 subject to unlock /, "")
                           .replace(/\.$/, "")
                       : "this module"}
