@@ -5225,7 +5225,7 @@ export default function AttendanceTracker() {
                         exit={{ opacity: 0, scale: 0.96 }}
                         transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                         key={sub.subjectName || idx}
-                        onClick={() => handleOpenSubjectInEdit(sub)}
+                        onClick={() => handleOpenSubjectInSchedule(sub)}
                         style={{
                           background: isRecoveryAndHighlighted
                             ? (isUnattainable ? "#fff1f2" : "#fffbeb")
