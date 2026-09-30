@@ -3531,125 +3531,81 @@ export default function AttendanceTracker() {
                       </div>
 
                       {!hasSavedAttendance ? (
-                        activeTab !== "studio_simulator" && !isStudioTab ? (
-                          setupProgress.filled === 0 ? (
+                        <div
+                          style={{
+                            background: "#faf5ff",
+                            border: "1.5px solid #ddd6fe",
+                            borderRadius: 12,
+                            padding: "11px 13px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 9,
+                            width: "100%",
+                            boxSizing: "border-box",
+                            boxShadow: "0 1px 3px rgba(124, 58, 237, 0.05)",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                             <div
                               style={{
-                                background: "#ffffff",
-                                border: "1.5px solid #e2e8f0",
-                                borderRadius: 12,
-                                padding: "12px 14px",
+                                width: 22,
+                                height: 22,
+                                borderRadius: 6,
+                                background: "#ede9fe",
                                 display: "flex",
-                                flexDirection: "column",
-                                gap: 10,
-                                width: "100%",
-                                boxSizing: "border-box",
-                                boxShadow: "0 1px 4px rgba(15, 23, 42, 0.05)",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                                marginTop: 1,
                               }}
                             >
-                              <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}>
-                                <div
-                                  style={{
-                                    width: 24,
-                                    height: 24,
-                                    borderRadius: 7,
-                                    background: "#eff6ff",
-                                    border: "1px solid #dbeafe",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    flexShrink: 0,
-                                    marginTop: 1,
-                                  }}
-                                >
-                                  <Zap size={13} color="#2563eb" />
-                                </div>
-                                <div style={{ fontSize: 11.5, color: "#334155", lineHeight: 1.5 }}>
-                                  <strong style={{ color: "#0f172a" }}>One-Time Setup (Save to Cloud):</strong> You only need to import your attendance once! After confirming and saving to cloud, you never have to upload screenshots again.
-                                </div>
-                              </div>
-
-                              <div
-                                style={{
-                                  background: "#f8fafc",
-                                  border: "1px solid #e2e8f0",
-                                  borderRadius: 8,
-                                  padding: "9px 11px",
-                                  display: "flex",
-                                  alignItems: "flex-start",
-                                  gap: 7,
-                                }}
-                              >
-                                <Info size={13} color="#2563eb" style={{ marginTop: 2, flexShrink: 0 }} />
-                                <div style={{ fontSize: 11, color: "#334155", lineHeight: 1.5 }}>
-                                  <strong style={{ color: "#0f172a" }}>Taking Screenshot Mid-Day?</strong> If your ERP portal attendance was updated up to earlier classes and you still have classes left today, open <strong>Daily Attendance</strong> and mark <strong>Present</strong> or <strong>Absent</strong> for today's remaining classes. If all classes for today are already finished and included in the screenshot, simply start marking from <strong>Tomorrow / Next Day in Daily Attendance</strong>!
-                                </div>
-                              </div>
-
-                              <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 2 }}>
-                                <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, lineHeight: 1.4 }}>
-                                  For setup guide, follow the details guide below or refer to this PDF guide:
-                                </div>
-                                <a
-                                  href="/GradeFlow_Attendance_Setup_Guide.pdf"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: 6,
-                                    background: "#0f172a",
-                                    color: "#ffffff",
-                                    padding: "6.5px 13px",
-                                    borderRadius: 7,
-                                    fontSize: 11,
-                                    fontWeight: 750,
-                                    textDecoration: "none",
-                                    width: "fit-content",
-                                    boxShadow: "0 1px 2px rgba(15, 23, 42, 0.1)",
-                                  }}
-                                >
-                                  <FileText size={12} />
-                                  <span>Official PDF Setup Guide</span>
-                                  <ExternalLink size={10} style={{ opacity: 0.8 }} />
-                                </a>
-                              </div>
+                              <Zap size={13} color="#7c3aed" />
                             </div>
-                          ) : (
-                            <div
+                            <div style={{ fontSize: 11.5, color: "#3b0764", lineHeight: 1.45 }}>
+                              <strong style={{ color: "#6d28d9" }}>One-Time Setup (Save to Cloud):</strong> You only need to import your attendance once! After confirming and saving to cloud, you never have to upload screenshots again.
+                            </div>
+                          </div>
+
+                          <div
+                            style={{
+                              borderTop: "1px dashed #c4b5fd",
+                              paddingTop: 8,
+                              fontSize: 11,
+                              color: "#4338ca",
+                              lineHeight: 1.45,
+                            }}
+                          >
+                            <strong style={{ color: "#3730a3" }}>Taking Screenshot Mid-Day?</strong> If your ERP portal attendance was updated up to earlier classes and you still have classes left today, open <strong>Daily Attendance</strong> and mark <strong>Present</strong> or <strong>Absent</strong> for today's remaining classes. If all classes for today are already finished and included in the screenshot, simply start marking from <strong>Tomorrow / Next Day in Daily Attendance</strong>!
+                          </div>
+
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6, paddingTop: 3 }}>
+                            <a
+                              href="/GradeFlow_Attendance_Setup_Guide.pdf"
+                              target="_blank"
+                              rel="noopener noreferrer"
                               style={{
-                                background: "#ffffff",
-                                border: "1px solid #e2e8f0",
-                                borderRadius: 12,
-                                padding: "11px 13px",
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: 8,
-                                width: "100%",
-                                boxSizing: "border-box",
-                                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                                background: "#0f172a",
+                                color: "#ffffff",
+                                padding: "6.5px 12px",
+                                borderRadius: 7,
+                                fontSize: 11,
+                                fontWeight: 750,
+                                textDecoration: "none",
+                                boxShadow: "0 1px 2px rgba(15, 23, 42, 0.1)",
                               }}
                             >
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                                  <Activity size={14} color="#0f172a" />
-                                  <span style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>
-                                    Setup Progress ({setupProgress.filled}/{setupProgress.total})
-                                  </span>
-                                </div>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>
-                                  {setupProgress.unfilled} left (0/0)
-                                </span>
-                              </div>
-                              <div style={{ width: "100%", height: 5, background: "#f1f5f9", borderRadius: 999, overflow: "hidden", border: "1px solid #e2e8f0" }}>
-                                <div style={{ width: `${setupProgress.percent}%`, height: "100%", background: "#0f172a", borderRadius: 999 }} />
-                              </div>
-                              <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.35 }}>
-                                Fill remaining {setupProgress.unfilled} {setupProgress.unfilled === 1 ? "subject" : "subjects"} in Edit & What-If to unlock full attendance features.
-                              </div>
-                            </div>
-                          )
-                        ) : null
+                              <FileText size={12} />
+                              <span>Official PDF Setup Guide</span>
+                              <ExternalLink size={10} style={{ opacity: 0.8 }} />
+                            </a>
+                            <span style={{ fontSize: 9.5, color: "#7c3aed", fontWeight: 600 }}>
+                              docs/GradeFlow_Attendance_Setup_Guide.pdf
+                            </span>
+                          </div>
+                        </div>
                       ) : (
                         <div
                           style={{
@@ -3846,263 +3802,144 @@ export default function AttendanceTracker() {
               {/* 4 Hero Stat Cards (or Onboarding Guide Banner for new students): Always visible on Desktop; On Mobile visible on default Daily Hub (checkin) */}
               {(!isMobile || activeTab === "checkin") && (
                 !hasSavedAttendance ? (
-                  activeTab !== "studio_simulator" && !isStudioTab ? (
-                    setupProgress.filled === 0 ? (
-                    /* Executive Onboarding Guide Banner (Desktop / Laptop View) */
+                  /* Executive Onboarding Guide Banner (Desktop / Laptop View) */
+                  <div
+                    style={{
+                      background: "#faf5ff",
+                      border: "1.5px solid #ddd6fe",
+                      borderRadius: 14,
+                      padding: isMobile ? "14px 14px" : "18px 22px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 12,
+                      width: "100%",
+                      boxSizing: "border-box",
+                      boxShadow: "0 2px 6px rgba(124, 58, 237, 0.05)",
+                      position: "relative",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {/* Top Decorative Stripe */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: 3,
+                        background: "linear-gradient(90deg, #7c3aed 0%, #6366f1 50%, #10b981 100%)",
+                      }}
+                    />
+
+                    {/* Top Row: One-Time Setup Info + Action Button */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        justifyContent: "space-between",
+                        gap: 16,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flex: 1, minWidth: 260 }}>
+                        <div
+                          style={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: 9,
+                            background: "#ede9fe",
+                            border: "1px solid #ddd6fe",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                            marginTop: 1,
+                          }}
+                        >
+                          <Zap size={18} color="#7c3aed" strokeWidth={2.2} />
+                        </div>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 3 }}>
+                            <span style={{ fontSize: isMobile ? 13 : 14.5, fontWeight: 800, color: "#4c1d95", letterSpacing: "-0.2px" }}>
+                              One-Time Setup (Save to Cloud)
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                background: "#ede9fe",
+                                color: "#6d28d9",
+                                padding: "2px 7px",
+                                borderRadius: 5,
+                                border: "1px solid #ddd6fe",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.5px",
+                              }}
+                            >
+                              Initial Sync Required
+                            </span>
+                          </div>
+                          <p style={{ fontSize: isMobile ? 12 : 12.5, color: "#3b0764", margin: 0, lineHeight: 1.5 }}>
+                            You only need to import your attendance once! After confirming and saving to cloud, you never have to upload screenshots again.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Right Action: PDF Guide Link */}
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: isMobile ? "flex-start" : "flex-end", gap: 4, flexShrink: 0 }}>
+                        <a
+                          href="/GradeFlow_Attendance_Setup_Guide.pdf"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 7,
+                            background: "#0f172a",
+                            color: "#ffffff",
+                            padding: "8px 16px",
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontWeight: 750,
+                            textDecoration: "none",
+                            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.12)",
+                            transition: "background 0.15s ease",
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = "#1e293b"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = "#0f172a"; }}
+                        >
+                          <FileText size={14} />
+                          <span>Official PDF Setup Guide</span>
+                          <ExternalLink size={12} style={{ opacity: 0.8 }} />
+                        </a>
+                        <span style={{ fontSize: 10, color: "#7c3aed", fontWeight: 600 }}>
+                          docs/GradeFlow_Attendance_Setup_Guide.pdf
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div style={{ borderTop: "1px dashed #c4b5fd", margin: "2px 0" }} />
+
+                    {/* Bottom Row: Mid-Day Class Notice */}
                     <div
                       style={{
                         background: "#ffffff",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: 14,
-                        padding: isMobile ? "14px 16px" : "18px 24px",
+                        border: "1px solid #ede9fe",
+                        borderRadius: 9,
+                        padding: "9px 13px",
                         display: "flex",
-                        flexDirection: "column",
-                        gap: 12,
-                        width: "100%",
-                        boxSizing: "border-box",
-                        boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02)",
-                        position: "relative",
-                        overflow: "hidden",
+                        alignItems: "flex-start",
+                        gap: 9,
                       }}
                     >
-                      {/* Top Decorative Stripe */}
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          height: 3,
-                          background: "linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #0ea5e9 100%)",
-                        }}
-                      />
-
-                      {/* Top Row: One-Time Setup Info + Action Button */}
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "flex-start",
-                          justifyContent: "space-between",
-                          gap: 16,
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flex: 1, minWidth: 260 }}>
-                          <div
-                            style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 10,
-                              background: "#eff6ff",
-                              border: "1px solid #dbeafe",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              flexShrink: 0,
-                              marginTop: 1,
-                            }}
-                          >
-                            <Zap size={18} color="#2563eb" strokeWidth={2.2} />
-                          </div>
-                          <div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 3 }}>
-                              <span style={{ fontSize: isMobile ? 13.5 : 15, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.2px" }}>
-                                One-Time Setup (Save to Cloud)
-                              </span>
-                              <span
-                                style={{
-                                  fontSize: 10,
-                                  fontWeight: 700,
-                                  background: "#f1f5f9",
-                                  color: "#475569",
-                                  padding: "2.5px 8px",
-                                  borderRadius: 6,
-                                  border: "1px solid #e2e8f0",
-                                  textTransform: "uppercase",
-                                  letterSpacing: "0.5px",
-                                }}
-                              >
-                                Initial Sync Required
-                              </span>
-                            </div>
-                            <p style={{ fontSize: isMobile ? 12 : 12.5, color: "#475569", margin: 0, lineHeight: 1.5 }}>
-                              You only need to import your attendance once! After confirming and saving to cloud, you never have to upload screenshots again.
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Right Action: PDF Guide Link */}
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: isMobile ? "flex-start" : "flex-end", gap: 6, flexShrink: 0 }}>
-                          <span style={{ fontSize: 11.5, color: "#64748b", fontWeight: 600, textAlign: isMobile ? "left" : "right", maxWidth: 290, lineHeight: 1.35 }}>
-                            For setup guide, follow the details guide below or refer to this PDF guide:
-                          </span>
-                          <a
-                            href="/GradeFlow_Attendance_Setup_Guide.pdf"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 7,
-                              background: "#0f172a",
-                              color: "#ffffff",
-                              padding: "8px 16px",
-                              borderRadius: 8,
-                              fontSize: 12,
-                              fontWeight: 750,
-                              textDecoration: "none",
-                              boxShadow: "0 1px 3px rgba(15, 23, 42, 0.12)",
-                              transition: "background 0.15s ease",
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = "#1e293b"; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = "#0f172a"; }}
-                          >
-                            <FileText size={14} />
-                            <span>Official PDF Setup Guide</span>
-                            <ExternalLink size={12} style={{ opacity: 0.8 }} />
-                          </a>
-                        </div>
-                      </div>
-
-                      {/* Divider */}
-                      <div style={{ borderTop: "1px solid #e2e8f0", margin: "2px 0" }} />
-
-                      {/* Bottom Row: Mid-Day Class Notice */}
-                      <div
-                        style={{
-                          background: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 10,
-                          padding: "10px 14px",
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: 9,
-                        }}
-                      >
-                        <Info size={15} color="#2563eb" style={{ marginTop: 2, flexShrink: 0 }} />
-                        <div style={{ fontSize: isMobile ? 11.5 : 12, color: "#334155", lineHeight: 1.55 }}>
-                          <strong style={{ color: "#0f172a" }}>Taking Screenshot Mid-Day?</strong> If your ERP portal attendance was updated up to earlier classes and you still have classes left today, open <strong>Daily Attendance</strong> and mark <strong>Present</strong> or <strong>Absent</strong> for today's remaining classes. If all classes for today are already finished and included in the screenshot, simply start marking from <strong>Tomorrow / Next Day in Daily Attendance</strong>!
-                        </div>
+                      <Info size={15} color="#7c3aed" style={{ marginTop: 2, flexShrink: 0 }} />
+                      <div style={{ fontSize: isMobile ? 11.5 : 12, color: "#4c1d95", lineHeight: 1.5 }}>
+                        <strong style={{ color: "#3730a3" }}>Taking Screenshot Mid-Day?</strong> If your ERP portal attendance was updated up to earlier classes and you still have classes left today, open <strong>Daily Attendance</strong> and mark <strong>Present</strong> or <strong>Absent</strong> for today's remaining classes. If all classes for today are already finished and included in the screenshot, simply start marking from <strong>Tomorrow / Next Day in Daily Attendance</strong>!
                       </div>
                     </div>
-                  ) : (
-                    /* Clean Setup Progress Tracker Banner (Desktop / Laptop View) */
-                    <div
-                      style={{
-                        background: "#ffffff",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: 14,
-                        padding: "16px 20px",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 12,
-                        width: "100%",
-                        boxSizing: "border-box",
-                        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div
-                            style={{
-                              width: 34,
-                              height: 34,
-                              borderRadius: 9,
-                              background: "#0f172a",
-                              color: "#ffffff",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              flexShrink: 0,
-                            }}
-                          >
-                            <Activity size={17} />
-                          </div>
-                          <div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                              <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.2px" }}>
-                                Setup in Progress: {setupProgress.filled} of {setupProgress.total} Subjects Filled
-                              </h4>
-                              <span
-                                style={{
-                                  fontSize: 10.5,
-                                  fontWeight: 700,
-                                  background: "#f1f5f9",
-                                  color: "#475569",
-                                  padding: "2px 7px",
-                                  borderRadius: 5,
-                                  border: "1px solid #e2e8f0",
-                                }}
-                              >
-                                {setupProgress.unfilled} Remaining (0/0)
-                              </span>
-                            </div>
-                            <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0", lineHeight: 1.4 }}>
-                              {setupProgress.unfilled} {setupProgress.unfilled === 1 ? "subject is" : "subjects are"} still 0/0 in Subject-wise Attendance. Fill all routine subjects to unlock full features.
-                            </p>
-                          </div>
-                        </div>
-
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveTab("studio_simulator");
-                              handleStudioSectionChange("simulator");
-                            }}
-                            style={{
-                              padding: "7px 14px",
-                              borderRadius: 8,
-                              border: "none",
-                              background: "#0f172a",
-                              color: "#ffffff",
-                              fontSize: 12,
-                              fontWeight: 750,
-                              cursor: "pointer",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 6,
-                            }}
-                          >
-                            <Sliders size={13} />
-                            <span>Continue Setup in Editor</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleOpenScreenshotModal}
-                            style={{
-                              padding: "7px 14px",
-                              borderRadius: 8,
-                              border: "1px solid #e2e8f0",
-                              background: "#f8fafc",
-                              color: "#334155",
-                              fontSize: 12,
-                              fontWeight: 750,
-                              cursor: "pointer",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 6,
-                            }}
-                          >
-                            <CloudUpload size={13} />
-                            <span>Auto-Import with Screenshot</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11.5, fontWeight: 700, color: "#475569", marginBottom: 5 }}>
-                          <span>Overall Setup Completion</span>
-                          <span>{setupProgress.percent}% ({setupProgress.filled}/{setupProgress.total} completed)</span>
-                        </div>
-                        <div style={{ width: "100%", height: 6, background: "#f1f5f9", borderRadius: 999, overflow: "hidden", border: "1px solid #e2e8f0" }}>
-                          <div style={{ width: `${setupProgress.percent}%`, height: "100%", background: "#0f172a", borderRadius: 999, transition: "width 0.3s ease" }} />
-                        </div>
-                      </div>
-                    </div>
-                  )
-                ) : null
-              ) : (
+                  </div>
+                ) : (
                   <div
                     style={{
                       display: "grid",
