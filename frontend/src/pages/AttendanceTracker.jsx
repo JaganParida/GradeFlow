@@ -6430,52 +6430,6 @@ export default function AttendanceTracker() {
                       </p>
                     </div>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={handleOpenScreenshotModal}
-                    style={{
-                      width: isMobile ? "100%" : "auto",
-                      padding: isMobile ? "10px 14px" : "9px 18px",
-                      borderRadius: 9,
-                      border: "none",
-                      background: scanStatus.isLimitReached
-                        ? "#64748b"
-                        : "#0f172a",
-                      color: "#ffffff",
-                      fontSize: isMobile ? 12.5 : 13.5,
-                      fontWeight: 750,
-                      cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
-                      opacity: scanStatus.isLimitReached ? 0.65 : 1,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 7,
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                      transition: "background 0.15s ease",
-                      flexShrink: 0,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!scanStatus.isLimitReached) e.currentTarget.style.background = "#1e293b";
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!scanStatus.isLimitReached) e.currentTarget.style.background = "#0f172a";
-                    }}
-                  >
-                    <Camera size={15} style={{ flexShrink: 0 }} />
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {scanStatus.isExempt
-                        ? (isMobile ? "Auto-Import Screenshot" : "Auto-Import via Screenshot")
-                        : scanStatus.isLimitReached
-                        ? "Daily Limit Reached (0/2)"
-                        : isMobile
-                        ? `Auto-Import (${scanStatus.remaining}/${scanStatus.max} left)`
-                        : `Auto-Import Screenshot (${scanStatus.remaining}/${scanStatus.max} left)`}
-                    </span>
-                  </button>
                 </div>
 
                 {/* 2 Path Cards Grid */}
