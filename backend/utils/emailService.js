@@ -192,6 +192,61 @@ async function sendTopperEmailNotification({
 }
 
 /**
+ * Sends a personalized Attendance Setup Reminder Email to a student.
+ */
+async function sendAttendanceReminderEmailNotification({
+  to,
+  studentName = "Student",
+  regNo = "",
+  batch = "2023",
+  branch = "CSE",
+  section = "",
+}) {
+  const {
+    generateAttendanceReminderEmailHtml,
+    generateAttendanceReminderEmailText,
+  } = require("./attendanceReminderEmailTemplate");
+
+  const recipientEmail = String(to || "").trim().toLowerCase();
+
+  if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+    throw new Error(`Invalid recipient email address: "${to}"`);
+  }
+
+  const emailPayload = {
+    studentName,
+    regNo,
+    batch,
+    branch,
+    section,
+    developerWhatsapp: process.env.DEVELOPER_WHATSAPP || "919124540575",
+    frontendUrl: process.env.FRONTEND_URL || "https://grade-flow-six.vercel.app/",
+  };
+
+  const html = generateAttendanceReminderEmailHtml(emailPayload);
+  const text = generateAttendanceReminderEmailText(emailPayload);
+
+  const subject = `GradeFlow Attendance Setup Pending: Smart Tracker & Safe Bunk Calculator`;
+  const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
+
+  const mailOptions = {
+    from: `"GradeFlow - Attendance Assistant" <${senderEmail}>`,
+    replyTo: senderEmail,
+    to: recipientEmail,
+    subject,
+    text,
+    html,
+  };
+
+  const info = await sendMailWithRetry(mailOptions);
+  return {
+    success: true,
+    messageId: info.messageId,
+    recipient: recipientEmail,
+  };
+}
+
+/**
  * Sends a 6-digit OTP verification code to student's centurion email.
  */
 async function sendOtpEmail({
@@ -609,6 +664,7 @@ module.exports = {
   sendAdminOtpEmail,
   sendSubAdminOtpEmail,
   sendSubAdminWelcomeEmail,
+  sendAttendanceReminderEmailNotification,
 };
 
 

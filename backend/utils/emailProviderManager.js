@@ -139,13 +139,12 @@ function getBrevo1Transporter() {
     port,
     secure,
     auth: { user: emailUser, pass: emailPass },
-    family: 4, // Force IPv4 to avoid cloud container IPv6 socket hangs
     pool: true,
     maxConnections: 5,
     maxMessages: 100,
-    connectionTimeout: 6000,
-    greetingTimeout: 4000,
-    socketTimeout: 10000,
+    connectionTimeout: 15000,
+    greetingTimeout: 12000,
+    socketTimeout: 20000,
   });
 
   return cachedBrevo1Transporter;
@@ -173,13 +172,12 @@ function getBrevo2Transporter() {
     port,
     secure,
     auth: { user: emailUser, pass: emailPass },
-    family: 4,
     pool: true,
     maxConnections: 5,
     maxMessages: 100,
-    connectionTimeout: 6000,
-    greetingTimeout: 4000,
-    socketTimeout: 10000,
+    connectionTimeout: 15000,
+    greetingTimeout: 12000,
+    socketTimeout: 20000,
   });
 
   return cachedBrevo2Transporter;
