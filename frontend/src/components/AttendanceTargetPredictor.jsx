@@ -183,6 +183,19 @@ export default function AttendanceTargetPredictor({
   const recoverySessions = missPenaltyData?.recoverySessions || [];
   const visibleRecoverySessions = showAllRecoveryDates ? recoverySessions : (recoverySessions.length <= 15 ? recoverySessions : recoverySessions.slice(0, 15));
 
+  // Card 4: Attainability status & semester max potential helpers
+  const activeAttainabilityProj = isPenaltyView ? missPenaltyData?.delayedProjection : baseProjection;
+  const isTargetAttainable = isPenaltyView
+    ? (activeAttainabilityProj ? Boolean(activeAttainabilityProj.isAttainable) : isCurrentlySafe)
+    : (activeAttainabilityProj ? Boolean(activeAttainabilityProj.isAttainable) : isCurrentlySafe);
+  const maxAttainablePct = isPenaltyView
+    ? (activeAttainabilityProj?.maxAttainablePercentage || currentPct)
+    : (activeAttainabilityProj?.maxAttainablePercentage || currentPct);
+  const totalSemClassesLeft = activeAttainabilityProj?.totalRemainingSemClasses ?? 0;
+  const neededClassesForTarget = isPenaltyView
+    ? (missPenaltyData?.newNeeded ?? 0)
+    : (activeCalculation?.classesNeeded || 0);
+
   return (
     <div
       style={{
@@ -808,36 +821,39 @@ export default function AttendanceTargetPredictor({
                 style={{
                   fontSize: isMobile ? 16 : 18,
                   fontWeight: 800,
-                  color: isPenaltyView
-                    ? (missPenaltyData?.delayedProjection?.isAttainable ? "#059669" : "#dc2626")
-                    : (baseProjection?.isAttainable ? "#059669" : "#dc2626"),
+                  color: isTargetAttainable ? "#059669" : "#dc2626",
                   lineHeight: 1.2,
                 }}
               >
-                {isPenaltyView ? (
-                  missPenaltyData?.delayedProjection?.isAttainable ? (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      Attainable <CheckCircle2 size={14} color="#059669" />
-                    </span>
-                  ) : (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      Critical <AlertTriangle size={14} color="#dc2626" />
-                    </span>
-                  )
+                {isTargetAttainable ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    Attainable ({targetGoal}%) <CheckCircle2 size={14} color="#059669" />
+                  </span>
                 ) : (
-                  baseProjection?.isAttainable ? (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      Attainable <CheckCircle2 size={14} color="#059669" />
-                    </span>
-                  ) : (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      Critical <AlertTriangle size={14} color="#dc2626" />
-                    </span>
-                  )
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    Beyond {targetGoal}% <AlertTriangle size={14} color="#dc2626" />
+                  </span>
                 )}
               </div>
-              <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.3 }}>
-                Max: {isPenaltyView ? (missPenaltyData?.delayedProjection?.maxAttainablePercentage || currentPct) : (baseProjection?.maxAttainablePercentage || currentPct)}% (31 Oct)
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <div style={{ fontSize: 11, color: isTargetAttainable ? (neededClassesForTarget > 0 ? "#1d4ed8" : "#16a34a") : "#dc2626", fontWeight: 700, lineHeight: 1.3 }}>
+                  {totalSemClassesLeft > 0 ? (
+                    isTargetAttainable ? (
+                      neededClassesForTarget > 0
+                        ? `Need ${neededClassesForTarget} of ${totalSemClassesLeft} left for ${targetGoal}%`
+                        : `Target ${targetGoal}% safe (0 extra needed)`
+                    ) : (
+                      `Needs ${neededClassesForTarget} (only ${totalSemClassesLeft} left)`
+                    )
+                  ) : (
+                    `Target: ${targetGoal}%`
+                  )}
+                </div>
+                <div style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600, lineHeight: 1.2 }}>
+                  {totalSemClassesLeft > 0
+                    ? `Max: ${maxAttainablePct}% (all ${totalSemClassesLeft} by 31 Oct)`
+                    : `Max: ${maxAttainablePct}% (31 Oct)`}
+                </div>
               </div>
             </div>
           </>
