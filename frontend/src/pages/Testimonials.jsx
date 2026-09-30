@@ -30,6 +30,7 @@ import {
   Trash2,
   Eye,
   EyeOff,
+  RefreshCw,
 } from "lucide-react";
 import { validateFeedbackComment } from "../utils/feedbackValidator";
 
