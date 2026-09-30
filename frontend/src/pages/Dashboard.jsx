@@ -12,6 +12,7 @@ import GradeSheet from "../components/GradeSheet";
 import BasketDashboard from "../components/BasketDashboard";
 import TargetPredictor from "../components/TargetPredictor";
 import ModernMobileSubNav from "../components/ModernMobileSubNav";
+import { isLateralEntryStudent } from "../utils/basketLogic";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -1089,6 +1090,8 @@ export default function Dashboard() {
     },
   ].filter(Boolean);
 
+  const isLateral = isLateralEntryStudent(studentData || results, regNo);
+
   const navMenuItems = [
     { id: "result", label: "Semester Result", icon: <FileText size={17} />, desc: "SGPA, Grades & Official Ledger" },
     { id: "internal", label: "Internal Marks", icon: <FileEdit size={17} />, desc: "Continuous Evaluation & Lab Marks" },
@@ -1204,6 +1207,25 @@ export default function Dashboard() {
                     >
                       {regNo}
                     </span>
+                    {isLateral && (
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 750,
+                          background: "#fef3c7",
+                          color: "#b45309",
+                          border: "1px solid #fde68a",
+                          padding: "1.5px 6.5px",
+                          borderRadius: 5,
+                          letterSpacing: "0.2px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 3,
+                        }}
+                      >
+                        Lateral Entry
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1717,9 +1739,11 @@ export default function Dashboard() {
               ? results.reduce((sum, r) => sum + calculateSemesterMetrics(r.subjects, r.semester).creditsCleared, 0)
               : (studentData.creditsCleared || 0);
 
-            const totalCreditsGoal = results.length > 0
-              ? results.reduce((sum, r) => sum + calculateSemesterMetrics(r.subjects, r.semester).totalCredits, 0)
-              : (studentData.totalCredits || 160);
+            const totalCreditsGoal = (isLateral && dynamicBranch === "CSE")
+              ? 120
+              : (results.length > 0
+                ? results.reduce((sum, r) => sum + calculateSemesterMetrics(r.subjects, r.semester).totalCredits, 0)
+                : (studentData.totalCredits || 160));
 
             return (
               <div
@@ -2063,7 +2087,7 @@ export default function Dashboard() {
                         letterSpacing: "0.2px",
                       }}
                     >
-                      Goal 160
+                      {isLateral && dynamicBranch === "CSE" ? "Goal 120" : `Goal ${totalCreditsGoal}`}
                     </span>
                   </div>
 
@@ -2094,14 +2118,14 @@ export default function Dashboard() {
                       textOverflow: "ellipsis",
                     }}
                   >
-                    {isMobile ? `${totalCreditsCleared} of 160 credits` : "Degree requirement"}
+                    {isMobile ? `${totalCreditsCleared} of ${totalCreditsGoal} credits` : "Degree requirement"}
                   </span>
 
                   <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "#f1f5f9" }}>
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{
-                        width: `${Math.min(100, Math.max(0, (totalCreditsCleared / 160) * 100))}%`,
+                        width: `${Math.min(100, Math.max(0, (totalCreditsCleared / totalCreditsGoal) * 100))}%`,
                       }}
                       transition={{ duration: 0.9, ease: "easeOut" }}
                       style={{ height: "100%", background: "#0284c7" }}

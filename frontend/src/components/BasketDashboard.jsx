@@ -1,6 +1,9 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import {
   categorizeBaskets,
+  BASKET_TARGETS,
+  LATERAL_ENTRY_CSE_BASKET_TARGETS,
+  isLateralEntryStudent,
   BASKET_1_SYLLABUS,
   BASKET_2_SYLLABUS,
   BASKET_3_SYLLABUS,
@@ -109,11 +112,31 @@ export default function BasketDashboard({ results, studentData }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const baskets = useMemo(() => categorizeBaskets(results), [results]);
+  const studentBranch = String(studentData?.branch || "")
+    .trim()
+    .toUpperCase();
+  const isCSE =
+    !studentBranch ||
+    studentBranch === "CSE" ||
+    studentBranch.includes("COMPUTER") ||
+    studentBranch.includes("CSE");
+
+  const isLateral = useMemo(
+    () => isLateralEntryStudent(studentData || results, studentData?.regNo),
+    [studentData, results]
+  );
+
+  const baskets = useMemo(
+    () => categorizeBaskets(results, isLateral, isCSE),
+    [results, isLateral, isCSE]
+  );
   const inferredDomain = useMemo(
     () => inferStudentDomainTrack(baskets.B5.subjects, BASKET_5_DOMAINS_DATA),
     [baskets.B5.subjects],
   );
+
+  const targets = (isLateral && isCSE) ? LATERAL_ENTRY_CSE_BASKET_TARGETS : BASKET_TARGETS;
+  const targetTotal = targets.Total;
 
   const totalEarned =
     baskets.B1.credits +
@@ -121,7 +144,6 @@ export default function BasketDashboard({ results, studentData }) {
     baskets.B3.credits +
     baskets.B4.credits +
     baskets.B5.credits;
-  const targetTotal = 160;
   const completionPercentage = Math.round(
     Math.min(100, (totalEarned / targetTotal) * 100),
   );
@@ -151,10 +173,11 @@ export default function BasketDashboard({ results, studentData }) {
     }
   };
 
-  const renderSubjectRow = (sub, idx, isPending = false, showType = false) => {
+  const renderSubjectRow = (sub, idx, isPending = false, showType = false, isBasketComplete = false) => {
     const isBacklog =
       !isPending && ["F", "R", "M", "S", "I"].includes(sub.grade);
     const isPassed = !isPending && !isBacklog;
+    const isLEExempt = isPending && isLateral && isBasketComplete;
     const gradeStyle = isPending
       ? { bg: "#f1f5f9", text: "#64748b", border: "#cbd5e1" }
       : GRADE_COLORS[sub.grade] || {
@@ -208,13 +231,13 @@ export default function BasketDashboard({ results, studentData }) {
                   borderRadius: 5,
                   fontSize: 10,
                   fontWeight: 700,
-                  background: "#f1f5f9",
-                  border: "1px solid #e2e8f0",
-                  color: "#64748b",
+                  background: isLEExempt ? "#eff6ff" : "#f1f5f9",
+                  border: `1px solid ${isLEExempt ? "#bfdbfe" : "#e2e8f0"}`,
+                  color: isLEExempt ? "#2563eb" : "#64748b",
                   flexShrink: 0,
                 }}
               >
-                PENDING
+                {isLEExempt ? "EXEMPT (LE)" : "PENDING"}
               </span>
             ) : (
               <span
@@ -413,13 +436,13 @@ export default function BasketDashboard({ results, studentData }) {
                 borderRadius: 6,
                 fontSize: 11,
                 fontWeight: 700,
-                background: "#f1f5f9",
-                border: "1px solid #e2e8f0",
-                color: "#64748b",
+                background: isLEExempt ? "#eff6ff" : "#f1f5f9",
+                border: `1px solid ${isLEExempt ? "#bfdbfe" : "#e2e8f0"}`,
+                color: isLEExempt ? "#2563eb" : "#64748b",
                 letterSpacing: "0.4px",
               }}
             >
-              PENDING
+              {isLEExempt ? "EXEMPT (LE)" : "PENDING"}
             </span>
           ) : (
             <span
@@ -561,7 +584,7 @@ export default function BasketDashboard({ results, studentData }) {
                 false,
                 true,
               );
-            return renderSubjectRow(syllabusSub, idx, true, true);
+            return renderSubjectRow(syllabusSub, idx, true, true, data.credits >= data.target);
           })}
           {data.subjects
             .filter(
@@ -621,6 +644,7 @@ export default function BasketDashboard({ results, studentData }) {
               idx,
               true,
               true,
+              data.credits >= data.target,
             );
           })}
           {b4ExtraSubjects.length > 0 && (
@@ -890,17 +914,83 @@ export default function BasketDashboard({ results, studentData }) {
     }
   };
 
-  const studentBranch = String(studentData?.branch || "")
-    .trim()
-    .toUpperCase();
-  const isCSE =
-    studentBranch === "CSE" ||
-    studentBranch.includes("COMPUTER") ||
-    studentBranch.includes("CSE");
   const [isBranchNoticeExpanded, setIsBranchNoticeExpanded] = useState(true);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* ── LATERAL ENTRY CURRICULUM NOTICE & BADGE ── */}
+      {isLateral && (
+        <div
+          style={{
+            background: "#fffbeb",
+            border: "1.5px solid #fde68a",
+            borderRadius: 14,
+            padding: "14px 18px",
+            display: "flex",
+            alignItems: isMobile ? "flex-start" : "center",
+            justifyContent: "space-between",
+            flexDirection: isMobile ? "column" : "row",
+            gap: 12,
+            boxShadow: "0 2px 8px rgba(217, 119, 6, 0.04)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            {studentData?.regNo && (
+              <span
+                style={{
+                  fontFamily: "'Space Mono', monospace",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: "#78350f",
+                  background: "#fef3c7",
+                  border: "1px solid #fde68a",
+                  padding: "2px 8px",
+                  borderRadius: 6,
+                }}
+              >
+                {studentData.regNo}
+              </span>
+            )}
+            <span
+              style={{
+                background: "#fef3c7",
+                color: "#b45309",
+                border: "1px solid #fde68a",
+                fontSize: 11,
+                fontWeight: 800,
+                padding: "3px 9px",
+                borderRadius: 6,
+                letterSpacing: "0.2px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              Lateral Entry
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#92400e" }}>
+              · 3-Year Degree Track (Semesters 3 to 8)
+            </span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: "#92400e",
+                background: "#fef3c7",
+                padding: "3px 10px",
+                borderRadius: 6,
+                border: "1px solid #fde68a",
+                fontFamily: "'Space Mono', monospace",
+              }}
+            >
+              {isCSE ? "120 Credits Required (B1:6, B2:9, B3:25, B4:48, B5:32)" : "Lateral Entry Track"}
+            </span>
+          </div>
+        </div>
+      )}
       {/* ── BRANCH SYLLABUS STRUCTURE NOTICE (Non-CSE Branches) ── */}
       {!isCSE && (
         <div

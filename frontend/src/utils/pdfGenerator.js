@@ -7,7 +7,8 @@ import {
   COMMON_BASKET_5_SYLLABUS,
   ADDITIONAL_BASKET_5_SUBJECTS,
   BASKET_5_SKILL_COURSES,
-  isMatch
+  isMatch,
+  isLateralEntryStudent
 } from "./basketLogic";
 
 export const getSubjectBasket = (s) => {
@@ -62,6 +63,7 @@ export const generateBasketPDF = async (studentData) => {
         const addedSubCodes = new Set();
         
         const isCSE = studentData ? (!studentData.branch || studentData.branch.toUpperCase() === "CSE") : true;
+        const isLateral = isLateralEntryStudent(studentData);
 
         if (studentData && studentData.results) {
             studentData.results.forEach(semData => {
@@ -103,7 +105,7 @@ export const generateBasketPDF = async (studentData) => {
             pageDoc.text(`SESSION   2023 - 2027`, 230, 26); // Hardcoded session for now as per image
             
             pageDoc.text(`NAME OF STUDENT: ${studentData.studentName || ""}`, 8, 33);
-            pageDoc.text(`REGISTRATION NO- ${studentData.regNo || ""}`, 148, 33, { align: "center" });
+            pageDoc.text(`REGISTRATION NO- ${studentData.regNo || ""}${isLateral ? " (LATERAL ENTRY)" : ""}`, 148, 33, { align: "center" });
             pageDoc.text(`BRANCH: ${studentData.branch || "CSE"}`, 289, 33, { align: "right" });
             
             // Light blue background behind student details
@@ -215,7 +217,7 @@ export const generateBasketPDF = async (studentData) => {
                 cumTotalsObj.gt += totB.gt;
             }
 
-            const showCum = isCSE || (semA <= 2 && semB <= 2);
+            const showCum = isCSE || (isLateral ? (semA <= 4 && semB <= 4) : (semA <= 2 && semB <= 2));
             if (isYearEmpty || !showCum) {
                 rows.push([
                     "", "", "", "", "", "", "", "", "", // Left side blank
@@ -261,16 +263,28 @@ export const generateBasketPDF = async (studentData) => {
             });
         };
     
-        // PAGE 1
-        drawPageHeader(doc);
-        buildTable(1, 2, 41, "1st Year Total Credits");
-        buildTable(3, 4, doc.lastAutoTable.finalY + 5, "1st & 2nd Year Total Credits");
-        
-        // PAGE 2
-        doc.addPage();
-        drawPageHeader(doc);
-        buildTable(5, 6, 41, "1st, 2nd & 3rd year Total Credits");
-        buildTable(7, 8, doc.lastAutoTable.finalY + 5, "1st, 2nd, 3rd & 4th year Total Credits");
+        if (isLateral) {
+            // PAGE 1: 2nd Year (Sem 3 & 4) & 3rd Year (Sem 5 & 6)
+            drawPageHeader(doc);
+            buildTable(3, 4, 41, "2nd Year Total Credits (Sem 3 & 4)");
+            buildTable(5, 6, doc.lastAutoTable.finalY + 5, "2nd & 3rd Year Total Credits (Sem 3–6)");
+            
+            // PAGE 2: 4th Year (Sem 7 & 8)
+            doc.addPage();
+            drawPageHeader(doc);
+            buildTable(7, 8, 41, "Total Degree Credits (Sem 3–8)");
+        } else {
+            // PAGE 1: 1st Year (Sem 1 & 2) & 2nd Year (Sem 3 & 4)
+            drawPageHeader(doc);
+            buildTable(1, 2, 41, "1st Year Total Credits");
+            buildTable(3, 4, doc.lastAutoTable.finalY + 5, "1st & 2nd Year Total Credits");
+            
+            // PAGE 2: 3rd Year (Sem 5 & 6) & 4th Year (Sem 7 & 8)
+            doc.addPage();
+            drawPageHeader(doc);
+            buildTable(5, 6, 41, "1st, 2nd & 3rd year Total Credits");
+            buildTable(7, 8, doc.lastAutoTable.finalY + 5, "1st, 2nd, 3rd & 4th year Total Credits");
+        }
         
         doc.save(`${studentData.studentName}_Credit_Grade_Sheet.pdf`);
     } catch (e) {

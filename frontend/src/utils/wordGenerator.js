@@ -1,5 +1,6 @@
 import { saveAs } from "file-saver";
 import { getSubjectBasket } from "./pdfGenerator";
+import { isLateralEntryStudent } from "./basketLogic";
 
 export const generateBasketWord = async (studentData) => {
     try {
@@ -8,6 +9,7 @@ export const generateBasketWord = async (studentData) => {
         const addedSubCodes = new Set();
         
         const isCSE = studentData ? (!studentData.branch || studentData.branch.toUpperCase() === "CSE") : true;
+        const isLateral = isLateralEntryStudent(studentData);
 
         if (studentData && studentData.results) {
             studentData.results.forEach(semData => {
@@ -115,7 +117,7 @@ export const generateBasketWord = async (studentData) => {
                         new TableCell({
                             width: { size: 34, type: WidthType.PERCENTAGE },
                             borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-                            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `REGISTRATION NO- ${studentData.regNo || ""}`, bold: true, size: 18, font: "Arial" })] })],
+                            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `REGISTRATION NO- ${studentData.regNo || ""}${isLateral ? " (LATERAL ENTRY)" : ""}`, bold: true, size: 18, font: "Arial" })] })],
                         }),
                         new TableCell({
                             width: { size: 33, type: WidthType.PERCENTAGE },
@@ -295,7 +297,7 @@ export const generateBasketWord = async (studentData) => {
                 cumTotalsObj.gt += totB.gt;
             }
 
-            const showCum = isCSE || (semA <= 2 && semB <= 2);
+            const showCum = isCSE || (isLateral ? (semA <= 4 && semB <= 4) : (semA <= 2 && semB <= 2));
             if (isYearEmpty || !showCum) {
                 tableRows.push(
                     new TableRow({
@@ -327,13 +329,22 @@ export const generateBasketWord = async (studentData) => {
             );
         };
 
-        buildTable(1, 2, "1st Year Total Credits");
-        buildTable(3, 4, "1st & 2nd Year Total Credits");
-        
-        children.push(new Paragraph({ text: "", pageBreakBefore: true }));
+        if (isLateral) {
+            buildTable(3, 4, "2nd Year Total Credits (Sem 3 & 4)");
+            buildTable(5, 6, "2nd & 3rd Year Total Credits (Sem 3–6)");
+            
+            children.push(new Paragraph({ text: "", pageBreakBefore: true }));
 
-        buildTable(5, 6, "1st, 2nd & 3rd year Total Credits");
-        buildTable(7, 8, "1st, 2nd, 3rd & 4th year Total Credits");
+            buildTable(7, 8, "Total Degree Credits (Sem 3–8)");
+        } else {
+            buildTable(1, 2, "1st Year Total Credits");
+            buildTable(3, 4, "1st & 2nd Year Total Credits");
+            
+            children.push(new Paragraph({ text: "", pageBreakBefore: true }));
+
+            buildTable(5, 6, "1st, 2nd & 3rd year Total Credits");
+            buildTable(7, 8, "1st, 2nd, 3rd & 4th year Total Credits");
+        }
 
         const doc = new Document({
             sections: [{

@@ -7,6 +7,72 @@ export const BASKET_TARGETS = {
   Total: 160
 };
 
+export const LATERAL_ENTRY_CSE_BASKET_TARGETS = {
+  B1: 6,
+  B2: 9,
+  B3: 25,
+  B4: 48,
+  B5: 32,
+  Total: 120
+};
+
+/**
+ * Determines whether a student is a Lateral Entry (LE) student.
+ * Works across all batches (2021, 2022, 2023, 2024, etc.).
+ *
+ * Checks:
+ * 1. If results exist: Student has NO Sem 1 and NO Sem 2 results, and has Sem 3 or higher.
+ * 2. If regNo exists: Matches CUTM LE numbering formats (e.g. 9th digit is '1', e.g. 2303011215xx, 2203011214xx).
+ */
+export function isLateralEntryStudent(studentDataOrResults, regNo) {
+  let results = [];
+  let reg = regNo;
+
+  if (Array.isArray(studentDataOrResults)) {
+    results = studentDataOrResults;
+  } else if (studentDataOrResults && typeof studentDataOrResults === "object") {
+    results = studentDataOrResults.results || [];
+    reg = reg || studentDataOrResults.regNo;
+  }
+
+  // Check 1: Check semester results presence
+  if (Array.isArray(results) && results.length > 0) {
+    const sems = results
+      .map((r) => Number(r.semester))
+      .filter((n) => !isNaN(n));
+    const hasSem1 = sems.includes(1);
+    const hasSem2 = sems.includes(2);
+    const hasSem3OrHigher = sems.some((s) => s >= 3);
+
+    if (!hasSem1 && !hasSem2 && hasSem3OrHigher) {
+      return true;
+    }
+    // If student explicitly has Sem 1 or Sem 2 results, they are regular entry
+    if (hasSem1 || hasSem2) {
+      return false;
+    }
+  }
+
+  // Check 2: Registration number regex for CUTM Lateral Entry
+  // Regular CSE: 230301120xxx | LE CSE: 230301121xxx
+  // Regular ME: 230301160xxx | LE ME: 230301161xxx
+  if (reg) {
+    const clean = String(reg).trim();
+    if (/^\d{2}0301\d{2}1\d{3}$/.test(clean)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function getBasketTargets(isLateral = false, isCSE = true) {
+  if (isLateral && isCSE) {
+    return LATERAL_ENTRY_CSE_BASKET_TARGETS;
+  }
+  return BASKET_TARGETS;
+}
+
 // Returns { b1: [], b2: [], b3: [], b4: [], b5: [] }
 
 export const isMatch = (sub, syllabusSub) => {
@@ -41,13 +107,14 @@ export const isMatch = (sub, syllabusSub) => {
 };
 
 // Returns { b1: [], b2: [], b3: [], b4: [], b5: [] }
-export function categorizeBaskets(results) {
+export function categorizeBaskets(results, isLateral = false, isCSE = true) {
+  const targets = (isLateral && isCSE) ? LATERAL_ENTRY_CSE_BASKET_TARGETS : BASKET_TARGETS;
   const baskets = {
-    B1: { credits: 0, subjects: [], target: BASKET_TARGETS.B1 },
-    B2: { credits: 0, subjects: [], target: BASKET_TARGETS.B2 },
-    B3: { credits: 0, subjects: [], target: BASKET_TARGETS.B3 },
-    B4: { credits: 0, subjects: [], target: BASKET_TARGETS.B4 },
-    B5: { credits: 0, subjects: [], target: BASKET_TARGETS.B5 },
+    B1: { credits: 0, subjects: [], target: targets.B1 },
+    B2: { credits: 0, subjects: [], target: targets.B2 },
+    B3: { credits: 0, subjects: [], target: targets.B3 },
+    B4: { credits: 0, subjects: [], target: targets.B4 },
+    B5: { credits: 0, subjects: [], target: targets.B5 },
     EX: { credits: 0, subjects: [], target: 0 },
   };
 

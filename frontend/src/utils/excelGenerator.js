@@ -1,5 +1,6 @@
 import { saveAs } from "file-saver";
 import { getSubjectBasket } from "./pdfGenerator";
+import { isLateralEntryStudent } from "./basketLogic";
 
 export const generateBasketExcel = async (studentData) => {
     try {
@@ -8,6 +9,7 @@ export const generateBasketExcel = async (studentData) => {
         const addedSubCodes = new Set();
         
         const isCSE = studentData ? (!studentData.branch || studentData.branch.toUpperCase() === "CSE") : true;
+        const isLateral = isLateralEntryStudent(studentData);
 
         if (studentData && studentData.results) {
             studentData.results.forEach(semData => {
@@ -107,7 +109,7 @@ export const generateBasketExcel = async (studentData) => {
         
         sheet.getRow(6).height = 18;
         mergeAndStyle(6, 1, 6, `NAME OF STUDENT: ${studentData.studentName ? studentData.studentName.toUpperCase() : ""}`, fontBold, alignLeft);
-        mergeAndStyle(6, 7, 12, `REGISTRATION NO- ${studentData.regNo || ""}`, fontBold, alignCenter);
+        mergeAndStyle(6, 7, 12, `REGISTRATION NO- ${studentData.regNo || ""}${isLateral ? " (LATERAL ENTRY)" : ""}`, fontBold, alignCenter);
         mergeAndStyle(6, 13, 18, `BRANCH: ${studentData.branch || "CSE"}`, fontBold, alignRight);
         
         // Blank blue separator row (Row 7)
@@ -267,7 +269,7 @@ export const generateBasketExcel = async (studentData) => {
                 cell.alignment = alignCenter;
             }
             
-            const showCum = isCSE || (semA <= 2 && semB <= 2);
+            const showCum = isCSE || (isLateral ? (semA <= 4 && semB <= 4) : (semA <= 2 && semB <= 2));
             const isYearEmpty = subsA.length === 0 && subsB.length === 0;
 
             if (showCum) {
@@ -317,10 +319,16 @@ export const generateBasketExcel = async (studentData) => {
             currentRow++;
         };
 
-        buildYearBlock(1, 2, "1st Year Total Credits");
-        buildYearBlock(3, 4, "1st & 2nd Year Total Credits");
-        buildYearBlock(5, 6, "1st, 2nd & 3rd year Total Credits");
-        buildYearBlock(7, 8, "1st, 2nd, 3rd & 4th year Total Credits");
+        if (isLateral) {
+            buildYearBlock(3, 4, "2nd Year Total Credits (Sem 3 & 4)");
+            buildYearBlock(5, 6, "2nd & 3rd Year Total Credits (Sem 3–6)");
+            buildYearBlock(7, 8, "Total Degree Credits (Sem 3–8)");
+        } else {
+            buildYearBlock(1, 2, "1st Year Total Credits");
+            buildYearBlock(3, 4, "1st & 2nd Year Total Credits");
+            buildYearBlock(5, 6, "1st, 2nd & 3rd year Total Credits");
+            buildYearBlock(7, 8, "1st, 2nd, 3rd & 4th year Total Credits");
+        }
         
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
