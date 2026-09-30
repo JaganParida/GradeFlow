@@ -7,6 +7,7 @@ const StudentRouteActivity = require("./_lib/models/StudentRouteActivity");
 const VercelQuotaMetric = require("./_lib/models/VercelQuotaMetric");
 const LiveVisitor = require("./_lib/models/LiveVisitor");
 const { applyCors } = require("./_lib/cors");
+const { publishAdminRealtimeEvent } = require("./_lib/ablyService");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 
@@ -920,6 +921,18 @@ module.exports = async function handler(req, res) {
       }
 
       await studentActivity.save().catch((err) => console.warn("Save activity warning:", err.message));
+
+      // Realtime zero-polling invalidation to admin dashboard via Ably
+      publishAdminRealtimeEvent("traffic-updated", {
+        regNo: cleanReg,
+        route: normRoute,
+        timestamp: Date.now(),
+      }).catch(() => {});
+
+      publishAdminRealtimeEvent("admin-cache-invalidate", {
+        scope: "traffic",
+        timestamp: Date.now(),
+      }).catch(() => {});
 
       return res.json({
         success: true,

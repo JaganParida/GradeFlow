@@ -612,6 +612,13 @@ export function AppProvider({ children }) {
     unsubs.push(
       subscribeAdminChannel("admin-control", "attendance-updated", () => {
         invalidateAdminCache(AdminCacheScopes.ATTENDANCE);
+        invalidateAdminCache(AdminCacheScopes.TRAFFIC);
+      })
+    );
+
+    unsubs.push(
+      subscribeAdminChannel("admin-control", "traffic-updated", () => {
+        invalidateAdminCache(AdminCacheScopes.TRAFFIC);
       })
     );
 

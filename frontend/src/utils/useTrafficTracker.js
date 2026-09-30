@@ -72,7 +72,19 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
     try {
       storedRegNo = localStorage.getItem("gf_student_reg");
     } catch {}
-    const raw = studentSession?.regNo || studentData?.regNo || storedRegNo;
+    let raw = studentSession?.regNo || studentData?.regNo || storedRegNo;
+
+    // Direct path detection: /attendance/:id, /dashboard/:id, /timetable/:id, /analytics/:id
+    if (!raw && location.pathname) {
+      const parts = location.pathname.split("/").filter(Boolean);
+      if (parts.length >= 2 && ["attendance", "dashboard", "timetable", "analytics"].includes(parts[0])) {
+        const candidate = parts[1];
+        if (/^\d{12}$/.test(candidate)) {
+          raw = candidate;
+        }
+      }
+    }
+
     return raw ? String(raw).toUpperCase().trim() : null;
   };
 
@@ -99,16 +111,16 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
 
     if (routeBufferRef.current.length === 0) return;
 
-    // 2. Micro-session filter: Skip bounce sessions under 10 seconds total duration
+    // 2. Micro-session filter: Skip bounce sessions under 5 seconds total duration
     const totalAccumulatedSecs = routeBufferRef.current.reduce((acc, r) => acc + (r.durationSeconds || 0), 0);
-    if (totalAccumulatedSecs < 10) return;
+    if (totalAccumulatedSecs < 5) return;
 
-    // 3. Cooldown Guard for periodic in-session flushes (minimum 5 minutes cooldown)
+    // 3. Cooldown Guard for periodic in-session flushes (minimum 3 minutes cooldown)
     if (!isBeacon) {
       try {
         const lastFlushStr = sessionStorage.getItem("gf_last_traffic_flush");
         const lastFlushTime = lastFlushStr ? parseInt(lastFlushStr, 10) : 0;
-        if (now - lastFlushTime < 5 * 60 * 1000) {
+        if (now - lastFlushTime < 3 * 60 * 1000) {
           return;
         }
       } catch {}
@@ -193,18 +205,16 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
       flushRouteBuffer(true);
     };
 
-    // Debounced tab switch: Do NOT fire beacon on casual tab switches/minimizes.
-    // Only flush if >= 5 minutes elapsed AND student accumulated >= 60s of active engagement.
+    // Reliable Mobile App Switch / Minimize Flush:
+    // If student was actively engaged for at least 5 seconds, flush accumulated route immediately
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
         const now = Date.now();
-        let lastFlushTime = 0;
-        try {
-          const lastFlushStr = sessionStorage.getItem("gf_last_traffic_flush");
-          lastFlushTime = lastFlushStr ? parseInt(lastFlushStr, 10) : 0;
-        } catch {}
-        const totalSecs = routeBufferRef.current.reduce((acc, r) => acc + (r.durationSeconds || 0), 0);
-        if (now - lastFlushTime >= 5 * 60 * 1000 && totalSecs >= 60) {
+        const activeDuration = Math.round((now - routeStartTimeRef.current) / 1000);
+        const bufferedDuration = routeBufferRef.current.reduce((acc, r) => acc + (r.durationSeconds || 0), 0);
+        const totalEngagementSecs = activeDuration + bufferedDuration;
+
+        if (totalEngagementSecs >= 5) {
           flushRouteBuffer(true);
         }
       }

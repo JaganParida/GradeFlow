@@ -16,6 +16,7 @@ const VercelQuotaMetric = require("../models/VercelQuotaMetric");
 const PageAnalytics = require("../models/PageAnalytics");
 const LiveVisitor = require("../models/LiveVisitor");
 const TrafficQueueConfig = require("../models/TrafficQueueConfig");
+const { publishAdminRealtimeEvent } = require("../utils/ablyService");
 
 function getIstHour() {
   const now = new Date();
@@ -73,7 +74,12 @@ router.post("/page-view", async (req, res) => {
       os = "Unknown",
       browser = "Unknown",
       isAdmin = false,
+      isBatch = false,
+      routes = [],
+      currentRoute: explicitCurrentRoute = null,
     } = req.body;
+
+    const effectiveRoute = explicitCurrentRoute || route || "/";
 
     const clientToken = token || regNo;
     if (!clientToken) {
@@ -199,7 +205,28 @@ router.post("/page-view", async (req, res) => {
           studentActivity.hourlyActivity[istHour] = (studentActivity.hourlyActivity[istHour] || 0) + 1;
           studentActivity.mostActiveTimeSlot = calculatePeakTimeSlot(studentActivity.hourlyActivity);
 
-          if (previousRoute && validDuration >= 5) {
+          if (isBatch && Array.isArray(routes) && routes.length > 0) {
+            for (const item of routes) {
+              const itemRoute = item.route || "/";
+              const itemDuration = Math.max(0, parseInt(item.durationSeconds, 10) || 0);
+              studentActivity.totalTimeSpentSeconds = (studentActivity.totalTimeSpentSeconds || 0) + itemDuration;
+
+              const existingRoute = studentActivity.visitedRoutes.find((r) => r.route === itemRoute);
+              if (existingRoute) {
+                existingRoute.durationSeconds = (existingRoute.durationSeconds || 0) + itemDuration;
+                existingRoute.visitCount = (existingRoute.visitCount || 0) + 1;
+                existingRoute.lastVisitedAt = new Date();
+              } else {
+                studentActivity.visitedRoutes.push({
+                  route: itemRoute,
+                  pageTitle: itemRoute,
+                  durationSeconds: itemDuration,
+                  visitCount: 1,
+                  lastVisitedAt: new Date(),
+                });
+              }
+            }
+          } else if (previousRoute && validDuration >= 5) {
             studentActivity.totalTimeSpentSeconds = (studentActivity.totalTimeSpentSeconds || 0) + validDuration;
             const existingRoute = studentActivity.visitedRoutes.find((r) => r.route === previousRoute);
             if (existingRoute) {
@@ -231,6 +258,17 @@ router.post("/page-view", async (req, res) => {
           }
         }
         await studentActivity.save();
+
+        publishAdminRealtimeEvent("traffic-updated", {
+          regNo: cleanReg,
+          route,
+          timestamp: Date.now(),
+        }).catch(() => {});
+
+        publishAdminRealtimeEvent("admin-cache-invalidate", {
+          scope: "traffic",
+          timestamp: Date.now(),
+        }).catch(() => {});
       } catch (err) {
         console.warn("StudentRouteActivity backend save warning:", err.message);
       }

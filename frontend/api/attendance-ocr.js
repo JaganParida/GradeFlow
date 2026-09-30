@@ -7,6 +7,7 @@ const Student = require("./_lib/models/Student");
 const SemesterResult = require("./_lib/models/SemesterResult");
 const AttendanceScanLog = require("./_lib/models/AttendanceScanLog");
 const { publishAdminRealtimeEvent } = require("./_lib/ablyService");
+const { recordStudentRouteActivity } = require("./_lib/routeActivityHelper");
 const { isSessionValid, isAdminSessionValid } = require("./_lib/sessionManager");
 const { applyCors } = require("./_lib/cors");
 
@@ -376,6 +377,15 @@ OUTPUT FORMAT (JSON Schema):
                     isReset: false,
                   });
                   publishAdminRealtimeEvent("cache-dirty", { scope: "attendance" }).catch(() => {});
+
+                  // Seamlessly record StudentRouteActivity for Route Intelligence (Zero-Polling)
+                  recordStudentRouteActivity({
+                    regNo: cleanRegNo,
+                    route: "/attendance",
+                    pageTitle: "Attendance Tracker & Calculator",
+                    userAgent: req.headers["user-agent"] || "",
+                    ip: req.headers["x-forwarded-for"] || req.connection?.remoteAddress || "",
+                  }).catch(() => {});
                 } catch (logErr) {
                   console.warn("[OCR Logger] Failed to save AttendanceScanLog:", logErr.message);
                 }

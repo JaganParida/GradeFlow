@@ -10,6 +10,7 @@ const { requireStudentOrAdmin } = require("../middleware/auth");
 const { studentSearchLimiter } = require("../middleware/rateLimiters");
 const { globalDbQueue } = require("../utils/dbProtection");
 const { publishStudentRealtimeEvent, publishAdminRealtimeEvent } = require("../utils/ablyService");
+const { recordStudentRouteActivity } = require("../utils/routeActivityHelper");
 const {
   calculateBacklogs,
   calculateCGPA,
@@ -386,6 +387,15 @@ router.post("/:regNo/attendance", validateRegNo, requireStudentOrAdmin, async (r
         : {},
       lastSyncedAt: updatedAttendance.lastSyncedAt,
     };
+
+    // Seamlessly touch and record StudentRouteActivity for Route Intelligence (Zero-Polling)
+    recordStudentRouteActivity({
+      regNo: cleanReg,
+      route: "/attendance",
+      pageTitle: "Attendance Tracker & Calculator",
+      userAgent: req.headers["user-agent"] || "",
+      ip: req.ip || "",
+    }).catch(() => {});
 
     try {
       await Promise.allSettled([

@@ -13,6 +13,7 @@ const { validateFeedbackComment } = require("./_lib/feedbackValidator");
 const { isSessionValid, touchSession, isAdminSessionValid } = require("./_lib/sessionManager");
 const { globalDbQueue } = require("./_lib/dbProtection");
 const { publishAdminRealtimeEvent, publishStudentRealtimeEvent } = require("./_lib/ablyService");
+const { recordStudentRouteActivity } = require("./_lib/routeActivityHelper");
 const {
   calculateBacklogs,
   calculateCGPA,
@@ -629,6 +630,15 @@ module.exports = async function handler(req, res) {
 
         // Invalidate server-side profile memoization cache so subsequent profile reads get fresh attendance
         profileMemoCache.delete(cleanRegNo);
+
+        // Seamlessly touch and record StudentRouteActivity for Route Intelligence (Zero-Polling)
+        recordStudentRouteActivity({
+          regNo: cleanRegNo,
+          route: "/attendance",
+          pageTitle: "Attendance Tracker & Calculator",
+          userAgent: req.headers["user-agent"] || "",
+          ip: req.headers["x-forwarded-for"] || req.connection?.remoteAddress || "",
+        }).catch(() => {});
 
         const attendanceData = {
           regNo: updatedAttendance.regNo,
