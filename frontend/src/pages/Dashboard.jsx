@@ -1739,11 +1739,11 @@ export default function Dashboard() {
               ? results.reduce((sum, r) => sum + calculateSemesterMetrics(r.subjects, r.semester).creditsCleared, 0)
               : (studentData.creditsCleared || 0);
 
-            const totalCreditsGoal = (isLateral && dynamicBranch === "CSE")
-              ? 120
-              : (results.length > 0
-                ? results.reduce((sum, r) => sum + calculateSemesterMetrics(r.subjects, r.semester).totalCredits, 0)
-                : (studentData.totalCredits || 160));
+            const totalCreditsOffered = results.length > 0
+              ? results.reduce((sum, r) => sum + calculateSemesterMetrics(r.subjects, r.semester).totalCredits, 0)
+              : (studentData.totalCredits || totalCreditsCleared);
+
+            const degreeGoal = isLateral ? 120 : 160;
 
             return (
               <div
@@ -2087,7 +2087,7 @@ export default function Dashboard() {
                         letterSpacing: "0.2px",
                       }}
                     >
-                      {isLateral && dynamicBranch === "CSE" ? "Goal 120" : `Goal ${totalCreditsGoal}`}
+                      Goal {degreeGoal}
                     </span>
                   </div>
 
@@ -2104,28 +2104,30 @@ export default function Dashboard() {
                       {totalCreditsCleared}
                     </span>
                     <span style={{ fontSize: isMobile ? 10.5 : 11.5, color: "#94a3b8", fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>
-                      /{totalCreditsGoal}
+                      /{totalCreditsOffered}
                     </span>
                   </div>
 
                   <span
                     style={{
                       fontSize: isMobile ? 10 : 11,
-                      color: "#64748b",
-                      fontWeight: 500,
+                      color: totalCreditsCleared < totalCreditsOffered ? "#dc2626" : "#64748b",
+                      fontWeight: totalCreditsCleared < totalCreditsOffered ? 700 : 500,
                       whiteSpace: "nowrap",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                     }}
                   >
-                    {isMobile ? `${totalCreditsCleared} of ${totalCreditsGoal} credits` : "Degree requirement"}
+                    {totalCreditsCleared < totalCreditsOffered
+                      ? `${totalCreditsOffered - totalCreditsCleared} back credit${(totalCreditsOffered - totalCreditsCleared) > 1 ? "s" : ""}`
+                      : (isMobile ? "All cleared so far" : "All cleared so far")}
                   </span>
 
                   <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "#f1f5f9" }}>
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{
-                        width: `${Math.min(100, Math.max(0, (totalCreditsCleared / totalCreditsGoal) * 100))}%`,
+                        width: `${Math.min(100, Math.max(0, (totalCreditsCleared / degreeGoal) * 100))}%`,
                       }}
                       transition={{ duration: 0.9, ease: "easeOut" }}
                       style={{ height: "100%", background: "#0284c7" }}
