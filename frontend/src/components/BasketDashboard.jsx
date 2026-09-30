@@ -237,7 +237,7 @@ export default function BasketDashboard({ results, studentData }) {
                   flexShrink: 0,
                 }}
               >
-                {isLEExempt ? "EXEMPT (LE)" : "PENDING"}
+                {isLEExempt ? "OPTIONAL" : "PENDING"}
               </span>
             ) : (
               <span
@@ -442,7 +442,7 @@ export default function BasketDashboard({ results, studentData }) {
                 letterSpacing: "0.4px",
               }}
             >
-              {isLEExempt ? "EXEMPT (LE)" : "PENDING"}
+              {isLEExempt ? "OPTIONAL" : "PENDING"}
             </span>
           ) : (
             <span
