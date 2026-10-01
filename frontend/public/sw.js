@@ -11,7 +11,7 @@
  * 4. Immediate activation via skipWaiting() and clients.claim().
  */
 
-const CACHE_NAME = 'gf-offline-v2';
+const CACHE_NAME = 'gf-offline-v3';
 const OFFLINE_URL = '/offline.html';
 
 
@@ -19,6 +19,8 @@ const PRECACHE_ASSETS = [
   OFFLINE_URL,
   '/webisteLogo.png',
   '/favicon.svg',
+  '/favicon-32x32.png',
+  '/favicon.ico',
 ];
 
 // Pre-cache the standalone fallback screen on install
