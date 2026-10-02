@@ -3551,3 +3551,24 @@ html {
   scrollbar-width: none;
 }
 
+/* ── Mobile Fixed Bottom Navigation Bar (Instagram / YouTube style) ── */
+@media (min-width: 769px) {
+  .gf-mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .gf-mobile-bottom-nav {
+    display: flex !important;
+  }
+
+  body.gf-has-bottom-nav {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  body.gf-has-bottom-nav .gf-mobile-toggle {
+    display: none !important;
+  }
+}
+
