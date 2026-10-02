@@ -71,7 +71,7 @@ import { TimetableSkeleton } from "../components/LoadingSpinner";
 
 const TIMETABLE_VIEW_MODES = [
   { id: "day", label: "Daily Routine", icon: <Clock size={16} />, desc: "Today's scheduled classes, timings & venues" },
-  { id: "week", label: "Weekly Matrix", icon: <Grid size={16} />, desc: "Complete Monday to Saturday timetable matrix" },
+  { id: "week", label: "Weekly Schedule", icon: <Grid size={16} />, desc: "Complete Monday to Saturday timetable schedule" },
   { id: "academic", label: "Academic Calendar", icon: <CalendarIcon size={16} />, desc: "University semester timeline & exam milestones" },
   { id: "holidays", label: "Holidays & Offs", icon: <Sun size={16} />, desc: "Official university holidays & vacation list" },
 ];
@@ -199,7 +199,7 @@ export default function Timetable() {
   const [canScrollDayLeft, setCanScrollDayLeft] = useState(false);
   const [canScrollDayRight, setCanScrollDayRight] = useState(true);
 
-  // Weekly Matrix Mobile Day Tabs Scroll Controls
+  // Weekly Schedule Mobile Day Tabs Scroll Controls
   const weekMobileDayRef = useRef(null);
   const [canScrollWeekDayLeft, setCanScrollWeekDayLeft] = useState(false);
   const [canScrollWeekDayRight, setCanScrollWeekDayRight] = useState(true);
@@ -650,7 +650,7 @@ export default function Timetable() {
     return is2023CSEBatch(studentData, currentRegNo);
   }, [isNonCSEStudent, adminToken, currentRegNo, studentData]);
 
-  // Non-CSE students should NEVER show Daily Routine, Weekly Matrix, or Section
+  // Non-CSE students should NEVER show Daily Routine, Weekly Schedule, or Section
   const canShowRoutineAndSection = useMemo(() => {
     if (isNonCSEStudent) return false;
     if (adminToken) return true;
@@ -1053,7 +1053,7 @@ export default function Timetable() {
                       }}
                     >
                       <Grid size={14} />
-                      <span>Weekly Matrix</span>
+                      <span>Weekly Schedule</span>
                     </button>
                   </>
                 )}
@@ -1161,7 +1161,7 @@ export default function Timetable() {
           >
             <Info size={18} color="#2563eb" style={{ flexShrink: 0 }} />
             <div style={{ fontSize: isMobile ? 12 : 13, color: "#1e40af", lineHeight: 1.45 }}>
-              <strong>Department Notice:</strong> Daily Class Routine &amp; Weekly Matrix are currently configured for Computer Science &amp; Engineering (CSE). Your branch ({studentData?.branch || studentSession?.branch || "General"}) has full access to the official <strong>Academic Calendar</strong> and <strong>University Holidays</strong> below.
+              <strong>Department Notice:</strong> Daily Class Routine &amp; Weekly Schedule are currently configured for Computer Science &amp; Engineering (CSE). Your branch ({studentData?.branch || studentSession?.branch || "General"}) has full access to the official <strong>Academic Calendar</strong> and <strong>University Holidays</strong> below.
             </div>
           </div>
         )}
@@ -2014,7 +2014,7 @@ export default function Timetable() {
         )}
 
         {/* ═══════════════════════════════════════════════════════════════
-            MODE 2: WEEKLY TIMETABLE MATRIX (100% Full Width On Desktop)
+            MODE 2: WEEKLY TIMETABLE SCHEDULE (100% Full Width On Desktop)
         ═══════════════════════════════════════════════════════════════ */}
         {viewMode === "week" && canShowRoutineAndSection && (
           <motion.div
@@ -2051,10 +2051,10 @@ export default function Timetable() {
               <div>
                 <h4 style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
                   <Grid size={15} color="#2563eb" />
-                  Weekly Routine Matrix · Section {selectedSection}
+                  Weekly Routine Schedule · Section {selectedSection}
                 </h4>
                 <p style={{ fontSize: 11.5, color: "#64748b", margin: "2px 0 0 0" }}>
-                  Full 6-day (Monday to Saturday) period matrix fitted across your viewport.
+                  Full 6-day (Monday to Saturday) period schedule fitted across your viewport.
                 </p>
               </div>
 
@@ -3352,7 +3352,7 @@ export default function Timetable() {
       </AnimatePresence>
 
     {/* ═══════════════════════════════════════════════════════════════
-        CLASS DETAIL POPUP MODAL (For Matrix Click on Desktop & Mobile)
+        CLASS DETAIL POPUP MODAL (For Schedule Click on Desktop & Mobile)
     ═══════════════════════════════════════════════════════════════ */}
     {typeof document !== "undefined" &&
       createPortal(

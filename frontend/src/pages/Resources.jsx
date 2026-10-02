@@ -479,7 +479,7 @@ export default function Resources() {
     >
       {/* Modern Interactive Mobile Sub-Navigation */}
       {isMobile && (
-        <div style={{ padding: "0 10px", maxWidth: 1380, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
+        <div style={{ padding: "10px 10px 0 10px", maxWidth: 1380, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
           <ModernMobileSubNav
             items={ALL_RESOURCE_TABS}
             activeTab={activeTab}

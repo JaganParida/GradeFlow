@@ -175,13 +175,13 @@ export function PublicPageSkeleton() {
       <div
         style={{
           background: "#ffffff",
-          border: "1px solid #cbd5e1",
-          borderRadius: 20,
+          border: "1px solid #e2e8f0",
+          borderRadius: 14,
           padding: "36px 32px",
           display: "flex",
           flexDirection: "column",
           gap: 18,
-          boxShadow: "0 2px 12px rgba(15,23,42,0.03)",
+          boxShadow: "none",
         }}
       >
         <SkeletonBlock w="120px" h="24px" r="999px" />
@@ -215,76 +215,163 @@ export function ResourcesSkeleton() {
     >
       <main
         className="gf-resources-skeleton-wrap"
-        style={{ ...fullPageStyle, maxWidth: 1280, padding: "32px 24px 64px" }}
+        style={{
+          maxWidth: 1380,
+          margin: "0 auto",
+          padding: "24px 24px 70px",
+          display: "grid",
+          gridTemplateColumns: "270px minmax(0, 1fr)",
+          gap: 28,
+          alignItems: "start",
+          boxSizing: "border-box",
+          width: "100%",
+        }}
         aria-label="Loading resources"
         aria-busy="true"
       >
-      <div
-        style={{
-          background: "#ffffff",
-          border: "1px solid #cbd5e1",
-          borderRadius: 18,
-          padding: "20px 24px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 16,
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <SkeletonBlock w="240px" h="28px" r="8px" />
-          <SkeletonBlock w="160px" h="14px" r="4px" />
-        </div>
-        <SkeletonBlock w="280px" h="44px" r="10px" />
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "260px minmax(0, 1fr)", gap: 22 }} className="gf-route-skeleton-resources">
-        {/* Sidebar Categories */}
-        <div
+        {/* Left Sidebar Category Skeleton */}
+        <aside
           style={{
-            background: "#ffffff",
-            border: "1px solid #cbd5e1",
-            borderRadius: 16,
-            padding: 16,
             display: "flex",
             flexDirection: "column",
-            gap: 8,
+            gap: 16,
+            width: "100%",
+            boxSizing: "border-box",
           }}
         >
-          <SkeletonBlock w="100px" h="14px" r="4px" style={{ marginBottom: 4 }} />
-          {Array(6).fill(0).map((_, i) => (
-            <SkeletonBlock key={i} w="100%" h="40px" r="8px" />
-          ))}
-        </div>
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
+              padding: "24px 16px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+              boxSizing: "border-box",
+            }}
+          >
+            {/* Group 1: Academic Tools */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <SkeletonBlock w="90px" h="11px" r="3px" style={{ marginBottom: 4 }} />
+              <SkeletonBlock w="100%" h="36px" r="8px" />
+              <SkeletonBlock w="100%" h="36px" r="8px" />
+              <SkeletonBlock w="100%" h="36px" r="8px" />
+              <SkeletonBlock w="100%" h="36px" r="8px" />
+            </div>
 
-        {/* Resources Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
-          {Array.from({ length: 6 }, (_, index) => (
+            {/* Group 2: Reference & Help */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 6, borderTop: "1px solid #f1f5f9" }}>
+              <SkeletonBlock w="100px" h="11px" r="3px" style={{ marginBottom: 4 }} />
+              <SkeletonBlock w="100%" h="36px" r="8px" />
+              <SkeletonBlock w="100%" h="36px" r="8px" />
+              <SkeletonBlock w="100%" h="36px" r="8px" />
+            </div>
+          </div>
+
+          {/* Promo Card */}
+          <div
+            style={{
+              background: "#f0f4ff",
+              border: "1px solid #dbeafe",
+              borderRadius: 14,
+              padding: "18px 14px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <SkeletonBlock w="140px" h="14px" r="4px" />
+            <SkeletonBlock w="180px" h="10px" r="3px" />
+            <SkeletonBlock w="40px" h="40px" r="10px" />
+            <SkeletonBlock w="100%" h="34px" r="8px" />
+          </div>
+        </aside>
+
+        {/* Right Main Content Area Skeleton */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 20, width: "100%", minWidth: 0 }}>
+          {/* Header Title (Clean Unboxed Canvas) */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <SkeletonBlock w="320px" h="28px" r="6px" />
+            <SkeletonBlock w="200px" h="14px" r="4px" />
+          </div>
+
+          {/* 2 Formula Cards Side by Side */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 18 }}>
+            {/* SGPA Card */}
             <div
-              key={index}
               style={{
                 background: "#ffffff",
-                border: "1px solid #cbd5e1",
-                borderRadius: 16,
-                padding: 18,
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
+                padding: "22px 24px",
                 display: "flex",
                 flexDirection: "column",
-                gap: 12,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                gap: 14,
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <SkeletonBlock w="36px" h="36px" r="10px" />
-                <SkeletonBlock w="60px" h="22px" r="6px" />
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <SkeletonBlock w="34px" h="34px" r="9px" />
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <SkeletonBlock w="60px" h="16px" r="4px" />
+                  <SkeletonBlock w="140px" h="12px" r="3px" />
+                </div>
               </div>
-              <SkeletonBlock w="85%" h="18px" r="5px" />
-              <SkeletonBlock w="60%" h="13px" r="4px" />
-              <SkeletonBlock w="100%" h="36px" r="8px" style={{ marginTop: 4 }} />
+              <SkeletonBlock w="100%" h="68px" r="10px" />
+              <SkeletonBlock w="100%" h="38px" r="8px" />
             </div>
-          ))}
+
+            {/* CGPA Card */}
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
+                padding: "22px 24px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 14,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <SkeletonBlock w="34px" h="34px" r="9px" />
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <SkeletonBlock w="60px" h="16px" r="4px" />
+                  <SkeletonBlock w="150px" h="12px" r="3px" />
+                </div>
+              </div>
+              <SkeletonBlock w="100%" h="68px" r="10px" />
+              <SkeletonBlock w="100%" h="38px" r="8px" />
+            </div>
+          </div>
+
+          {/* Reference Table Card */}
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
+              padding: "20px 22px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <SkeletonBlock w="180px" h="18px" r="5px" />
+              <SkeletonBlock w="80px" h="24px" r="6px" />
+            </div>
+            <SkeletonBlock w="100%" h="40px" r="8px" />
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {Array(4)
+                .fill(0)
+                .map((_, i) => (
+                  <SkeletonBlock key={i} w="100%" h="44px" r="8px" />
+                ))}
+            </div>
+          </div>
         </div>
-      </div>
       </main>
     </div>
   );
@@ -691,7 +778,20 @@ export function DashboardSkeleton() {
         }}
       >
       {/* ── Left Profile Card Sidebar Skeleton ── */}
-      <div className="gf-dashboard-skeleton-sidebar">
+      <div
+        className="gf-dashboard-skeleton-sidebar"
+        style={{
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: 14,
+          padding: "16px 14px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 13,
+          boxSizing: "border-box",
+          width: "100%",
+        }}
+      >
         {/* Student Avatar + Name + Reg No */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <SkeletonBlock w="42px" h="42px" r="12px" />
@@ -733,27 +833,27 @@ export function DashboardSkeleton() {
 
       {/* ── Right / Main Content Area Skeleton ── */}
       <div className="gf-dashboard-skeleton-main">
-        {/* Top Header Row & Badges */}
+        {/* Top Header Canvas (Unboxed directly on canvas) */}
         <div
           style={{
-            background: "#ffffff",
-            border: "1px solid #cbd5e1",
-            borderRadius: 16,
-            padding: "14px 16px",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             flexWrap: "wrap",
-            gap: 10,
+            gap: 12,
+            paddingBottom: 2,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <SkeletonBlock w="160px" h="22px" r="6px" />
-            <SkeletonBlock w="60px" h="24px" r="6px" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <SkeletonBlock w="14px" h="14px" r="3px" />
+              <SkeletonBlock w="160px" h="12px" r="4px" />
+            </div>
+            <SkeletonBlock w="280px" h="28px" r="6px" />
           </div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <SkeletonBlock w="110px" h="26px" r="999px" />
-            <SkeletonBlock w="130px" h="26px" r="999px" />
+          <div style={{ display: "flex", gap: 8 }}>
+            <SkeletonBlock w="110px" h="36px" r="9px" />
+            <SkeletonBlock w="100px" h="36px" r="9px" />
           </div>
         </div>
 
@@ -763,13 +863,13 @@ export function DashboardSkeleton() {
           <div
             style={{
               background: "#ffffff",
-              border: "1px solid #cbd5e1",
-              borderRadius: 16,
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
               padding: "16px 18px",
               display: "flex",
               flexDirection: "column",
               gap: 8,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+              boxShadow: "none",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -784,13 +884,13 @@ export function DashboardSkeleton() {
           <div
             style={{
               background: "#ffffff",
-              border: "1px solid #cbd5e1",
-              borderRadius: 16,
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
               padding: "16px 18px",
               display: "flex",
               flexDirection: "column",
               gap: 8,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+              boxShadow: "none",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -813,13 +913,13 @@ export function DashboardSkeleton() {
         <div
           style={{
             background: "#ffffff",
-            border: "1px solid #cbd5e1",
-            borderRadius: 16,
+            border: "1px solid #e2e8f0",
+            borderRadius: 14,
             padding: "18px 20px",
             display: "flex",
             flexDirection: "column",
             gap: 12,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            boxShadow: "none",
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -851,13 +951,13 @@ export function ReportCardSkeleton() {
     <div
       style={{
         background: "#ffffff",
-        border: "1px solid #cbd5e1",
-        borderRadius: 20,
-        padding: 22,
+        border: "1px solid #e2e8f0",
+        borderRadius: 14,
+        padding: 20,
         display: "flex",
         flexDirection: "column",
         gap: 16,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+        boxShadow: "none",
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -937,143 +1037,145 @@ export function AnalyticsSkeleton() {
           padding: "24px 20px 60px",
           display: "flex",
           flexDirection: "column",
-          gap: 22,
+          gap: 18,
           width: "100%",
           boxSizing: "border-box",
           fontFamily: "'DM Sans', sans-serif",
         }}
       >
-      {/* Top Banner Card */}
-      <div
-        style={{
-          background: "#ffffff",
-          border: "1px solid #cbd5e1",
-          borderRadius: 18,
-          padding: "20px 24px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 16,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <SkeletonBlock w="150px" h="14px" r="4px" />
-          <SkeletonBlock w="260px" h="28px" r="8px" />
+        {/* Top Header Canvas (Unboxed directly on canvas) */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
+          {/* Top Row: Back button + Category Tag */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <SkeletonBlock w="140px" h="28px" r="8px" />
+            <SkeletonBlock w="105px" h="24px" r="20px" />
+          </div>
+
+          {/* Section Title & Subtitle */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <SkeletonBlock w="220px" h="28px" r="6px" />
+            <SkeletonBlock w="380px" h="14px" r="4px" />
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <SkeletonBlock w="130px" h="40px" r="10px" />
-          <SkeletonBlock w="110px" h="40px" r="10px" />
-        </div>
-      </div>
 
-      {/* Tab Pills */}
-      <div style={{ display: "flex", gap: 10, overflowX: "hidden" }}>
-        {Array(4)
-          .fill(0)
-          .map((_, i) => (
-            <SkeletonBlock key={i} w="130px" h="38px" r="10px" style={{ flexShrink: 0 }} />
-          ))}
-      </div>
-
-      {/* 4 Metric KPI Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
-        {Array(4)
-          .fill(0)
-          .map((_, i) => (
-            <div
-              key={i}
-              style={{
-                background: "#ffffff",
-                border: "1px solid #cbd5e1",
-                borderRadius: 16,
-                padding: "18px 20px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 8,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <SkeletonBlock w="90px" h="12px" r="4px" />
-                <SkeletonBlock w="28px" h="28px" r="8px" />
-              </div>
-              <SkeletonBlock w="70px" h="28px" r="6px" />
-              <SkeletonBlock w="120px" h="11px" r="3px" />
-            </div>
-          ))}
-      </div>
-
-      {/* 2 Large Chart Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 18 }}>
-        {/* Progression Line Chart */}
+        {/* Desktop Segmented Sub-Nav Tab Switcher */}
         <div
           style={{
-            background: "#ffffff",
-            border: "1px solid #cbd5e1",
-            borderRadius: 18,
-            padding: "20px 22px",
+            background: "#f1f5f9",
+            border: "1px solid #e2e8f0",
+            borderRadius: 12,
+            padding: 4,
             display: "flex",
-            flexDirection: "column",
-            gap: 16,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            gap: 4,
+            overflowX: "hidden",
+            width: "100%",
+            boxSizing: "border-box",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <SkeletonBlock w="180px" h="20px" r="6px" />
-            <SkeletonBlock w="80px" h="24px" r="6px" />
-          </div>
-          <SkeletonBlock w="100%" h="260px" r="12px" />
-        </div>
-
-        {/* Grade Distribution Bar/Pie Chart */}
-        <div
-          style={{
-            background: "#ffffff",
-            border: "1px solid #cbd5e1",
-            borderRadius: 18,
-            padding: "20px 22px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <SkeletonBlock w="190px" h="20px" r="6px" />
-            <SkeletonBlock w="70px" h="24px" r="6px" />
-          </div>
-          <SkeletonBlock w="100%" h="260px" r="12px" />
-        </div>
-      </div>
-
-      {/* Subject Performance Breakdown Table Card */}
-      <div
-        style={{
-          background: "#ffffff",
-          border: "1px solid #cbd5e1",
-          borderRadius: 18,
-          padding: "20px 22px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 14,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <SkeletonBlock w="220px" h="20px" r="6px" />
-          <SkeletonBlock w="100px" h="30px" r="8px" />
-        </div>
-        <SkeletonBlock w="100%" h="40px" r="8px" />
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {Array(5)
             .fill(0)
             .map((_, i) => (
-              <SkeletonBlock key={i} w="100%" h="48px" r="8px" />
+              <SkeletonBlock key={i} w="170px" h="38px" r="9px" style={{ flexShrink: 0, flex: 1 }} />
             ))}
         </div>
-      </div>
+
+        {/* Academic Health Index Hero Banner (First Element in Overview) */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: 14,
+            padding: "18px 22px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 16,
+            boxShadow: "none",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <SkeletonBlock w="52px" h="52px" r="50%" />
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <SkeletonBlock w="160px" h="20px" r="5px" />
+              <SkeletonBlock w="110px" h="12px" r="4px" />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <SkeletonBlock w="120px" h="34px" r="8px" />
+            <SkeletonBlock w="100px" h="34px" r="8px" />
+          </div>
+        </div>
+
+        {/* 2 Large Chart Cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 18 }}>
+          {/* Progression Line Chart */}
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
+              padding: "20px 22px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+              boxShadow: "none",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <SkeletonBlock w="180px" h="20px" r="6px" />
+              <SkeletonBlock w="80px" h="24px" r="6px" />
+            </div>
+            <SkeletonBlock w="100%" h="260px" r="10px" />
+          </div>
+
+          {/* Grade Distribution Bar/Pie Chart */}
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
+              padding: "20px 22px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+              boxShadow: "none",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <SkeletonBlock w="190px" h="20px" r="6px" />
+              <SkeletonBlock w="70px" h="24px" r="6px" />
+            </div>
+            <SkeletonBlock w="100%" h="260px" r="10px" />
+          </div>
+        </div>
+
+        {/* Subject Performance Breakdown Table Card */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: 14,
+            padding: "20px 22px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 14,
+            boxShadow: "none",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <SkeletonBlock w="220px" h="20px" r="6px" />
+            <SkeletonBlock w="100px" h="30px" r="8px" />
+          </div>
+          <SkeletonBlock w="100%" h="40px" r="8px" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {Array(5)
+              .fill(0)
+              .map((_, i) => (
+                <SkeletonBlock key={i} w="100%" h="48px" r="8px" />
+              ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1084,64 +1186,88 @@ export function LeaderboardSkeleton({ isFullPage = false }) {
   const content = (
     <>
       {isFullPage && (
-        <div
-          style={{
-            background: "#ffffff",
-            border: "1px solid #cbd5e1",
-            borderRadius: 16,
-            padding: "20px 22px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 4px 14px rgba(15,23,42,0.03)",
-            display: "flex",
-            flexDirection: "column",
-            gap: 14,
-            width: "100%",
-            boxSizing: "border-box",
-          }}
-        >
-          {/* Top Row: Title + SGPA/CGPA Switcher */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <>
+          {/* Header (Clean Canvas Layout - Unboxed) */}
+          <header
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 12,
+              width: "100%",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div
                 style={{
-                  width: 36,
-                  height: 36,
+                  width: 44,
+                  height: 44,
                   borderRadius: 10,
                   background: "#eff6ff",
                   border: "1px solid #bfdbfe",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  flexShrink: 0,
                 }}
               >
-                <SkeletonBlock w="18px" h="18px" r="4px" />
+                <SkeletonBlock w="20px" h="20px" r="4px" />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <SkeletonBlock w="180px" h="22px" r="6px" />
-                <SkeletonBlock w="140px" h="12px" r="4px" />
+                <SkeletonBlock w="180px" h="11px" r="3px" />
+                <SkeletonBlock w="240px" h="26px" r="6px" />
               </div>
             </div>
+
             {/* Segmented Switcher Pill */}
-            <div style={{ display: "flex", gap: 4, background: "#f1f5f9", padding: 3, borderRadius: 10 }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 4,
+                background: "#f1f5f9",
+                border: "1px solid #e2e8f0",
+                padding: 3,
+                borderRadius: 10,
+              }}
+            >
               <SkeletonBlock w="75px" h="32px" r="7px" />
               <SkeletonBlock w="75px" h="32px" r="7px" />
             </div>
-          </div>
+          </header>
 
-          {/* Search Bar + Branch/Batch Dropdowns */}
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <SkeletonBlock w="320px" h="40px" r="10px" style={{ flex: 1, minWidth: 200 }} />
-            <SkeletonBlock w="120px" h="40px" r="10px" />
-            <SkeletonBlock w="120px" h="40px" r="10px" />
-            <SkeletonBlock w="80px" h="40px" r="10px" />
-          </div>
+          {/* Filter Toolbar Card */}
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
+              padding: "16px 18px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+          >
+            {/* Search Bar + Branch/Batch Dropdowns */}
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <SkeletonBlock w="320px" h="40px" r="10px" style={{ flex: 1, minWidth: 200 }} />
+              <SkeletonBlock w="120px" h="40px" r="10px" />
+              <SkeletonBlock w="120px" h="40px" r="10px" />
+              <SkeletonBlock w="80px" h="40px" r="10px" />
+            </div>
 
-          {/* Semester Selector Tabs */}
-          <div style={{ display: "flex", gap: 8, overflowX: "hidden" }}>
-            {Array(8).fill(0).map((_, i) => (
-              <SkeletonBlock key={i} w="65px" h="34px" r="8px" style={{ flexShrink: 0 }} />
-            ))}
+            {/* Semester Selector Tabs */}
+            <div style={{ display: "flex", gap: 8, overflowX: "hidden" }}>
+              {Array(8)
+                .fill(0)
+                .map((_, i) => (
+                  <SkeletonBlock key={i} w="65px" h="34px" r="8px" style={{ flexShrink: 0 }} />
+                ))}
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Top 3 Podium Cards */}
@@ -1151,9 +1277,9 @@ export function LeaderboardSkeleton({ isFullPage = false }) {
           style={{
             background: "#ffffff",
             border: "1.5px solid #fde68a",
-            borderRadius: 16,
+            borderRadius: 14,
             padding: "16px 18px",
-            boxShadow: "0 4px 14px rgba(245, 158, 11, 0.08)",
+            boxShadow: "none",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -1192,10 +1318,10 @@ export function LeaderboardSkeleton({ isFullPage = false }) {
         <div
           style={{
             background: "#ffffff",
-            border: "1.5px solid #cbd5e1",
-            borderRadius: 16,
+            border: "1.5px solid #e2e8f0",
+            borderRadius: 14,
             padding: "16px 18px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+            boxShadow: "none",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -1210,7 +1336,7 @@ export function LeaderboardSkeleton({ isFullPage = false }) {
                 height: 44,
                 borderRadius: 10,
                 background: "#f1f5f9",
-                border: "1.5px solid #cbd5e1",
+                border: "1.5px solid #e2e8f0",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -1235,9 +1361,9 @@ export function LeaderboardSkeleton({ isFullPage = false }) {
           style={{
             background: "#ffffff",
             border: "1.5px solid #fed7aa",
-            borderRadius: 16,
+            borderRadius: 14,
             padding: "16px 18px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+            boxShadow: "none",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -1277,10 +1403,10 @@ export function LeaderboardSkeleton({ isFullPage = false }) {
       <div
         style={{
           background: "#ffffff",
-          border: "1px solid #cbd5e1",
-          borderRadius: 16,
+          border: "1px solid #e2e8f0",
+          borderRadius: 14,
           overflow: "hidden",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+          boxShadow: "none",
           boxSizing: "border-box",
         }}
       >
@@ -1288,7 +1414,7 @@ export function LeaderboardSkeleton({ isFullPage = false }) {
         <div
           style={{
             background: "#f8fafc",
-            borderBottom: "1px solid #cbd5e1",
+            borderBottom: "1px solid #e2e8f0",
             padding: "12px 18px",
             display: "flex",
             justifyContent: "space-between",
@@ -1401,13 +1527,13 @@ export function SectionToppersSkeleton() {
               key={i}
               style={{
                 background: "#ffffff",
-                border: "1px solid #cbd5e1",
+                border: "1px solid #e2e8f0",
                 borderRadius: 14,
                 padding: "16px",
                 display: "flex",
                 flexDirection: "column",
                 gap: 10,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                boxShadow: "none",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1428,7 +1554,7 @@ export function SectionToppersSkeleton() {
       <div
         style={{
           background: "#ffffff",
-          border: "1px solid #cbd5e1",
+          border: "1px solid #e2e8f0",
           borderRadius: 14,
           padding: 12,
           display: "flex",
@@ -1459,8 +1585,8 @@ export function BacklogTrackerSkeleton() {
               key={i}
               style={{
                 background: "#ffffff",
-                border: "1px solid #cbd5e1",
-                borderRadius: 12,
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
                 padding: "14px",
                 display: "flex",
                 flexDirection: "column",
@@ -1477,7 +1603,7 @@ export function BacklogTrackerSkeleton() {
       <div
         style={{
           background: "#ffffff",
-          border: "1px solid #cbd5e1",
+          border: "1px solid #e2e8f0",
           borderRadius: 14,
           padding: 12,
           display: "flex",
@@ -1508,12 +1634,12 @@ export function AdminStatsSkeleton() {
               className="gf-admin-stats-skel-card"
               style={{
                 background: "#ffffff",
-                border: "1px solid #cbd5e1",
-                borderRadius: 16,
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
-                boxShadow: "0 2px 8px rgba(15, 23, 42, 0.02)",
+                boxShadow: "none",
                 boxSizing: "border-box",
                 minWidth: 0,
                 overflow: "hidden",
@@ -1577,13 +1703,13 @@ export function AdminFeedbackSkeleton() {
             key={i}
             style={{
               background: "#ffffff",
-              border: "1px solid #cbd5e1",
-              borderRadius: 16,
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
               padding: 18,
               display: "flex",
               flexDirection: "column",
               gap: 12,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+              boxShadow: "none",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1763,13 +1889,13 @@ export function TestimonialsSkeleton({ isFullPage = false }) {
         <div
           style={{
             background: "#ffffff",
-            border: "1px solid #cbd5e1",
-            borderRadius: 20,
+            border: "1px solid #e2e8f0",
+            borderRadius: 14,
             padding: "24px 28px",
             display: "flex",
             flexDirection: "column",
             gap: 18,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            boxShadow: "none",
             boxSizing: "border-box",
             width: "100%",
           }}
@@ -1811,13 +1937,13 @@ export function TestimonialsSkeleton({ isFullPage = false }) {
               key={i}
               style={{
                 background: "#ffffff",
-                border: "1px solid #cbd5e1",
-                borderRadius: 16,
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
                 padding: 18,
                 display: "flex",
                 flexDirection: "column",
                 gap: 12,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                boxShadow: "none",
               }}
             >
               {/* Header: Avatar + Name + Rating */}
@@ -2066,7 +2192,27 @@ export function AttendanceSkeleton() {
             </div>
           </div>
 
-          {/* Modern Mobile Sub-Nav Module Switcher (Mobile Only) */}
+          {/* Academic Overview Header Canvas (Unboxed on canvas) */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", width: "100%" }}>
+            {/* Title & Section Tag */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <SkeletonBlock w="220px" h="22px" r="5px" />
+              <SkeletonBlock w="140px" h="13px" r="4px" />
+            </div>
+
+            {/* Desktop Header Controls: Target Switcher + Auto-Import CTA */}
+            <div className="gf-attendance-skeleton-desktop-header-right">
+              <SkeletonBlock w="235px" h="36px" r="10px" />
+              <SkeletonBlock w="185px" h="36px" r="9px" style={{ background: "#0f172a" }} />
+            </div>
+          </div>
+
+          {/* Mobile Header Controls: Full-width Target Switcher */}
+          <div className="gf-attendance-skeleton-mobile-header-target">
+            <SkeletonBlock w="100%" h="36px" r="10px" />
+          </div>
+
+          {/* Modern Mobile Sub-Nav Module Switcher (Mobile Only - positioned cleanly below header) */}
           <div className="gf-attendance-skeleton-mobile-nav">
             <div
               style={{
@@ -2096,28 +2242,6 @@ export function AttendanceSkeleton() {
               <SkeletonBlock w="115px" h="34px" r="999px" style={{ flexShrink: 0, background: "#ffffff", border: "1px solid #e2e8f0" }} />
               <SkeletonBlock w="105px" h="34px" r="999px" style={{ flexShrink: 0, background: "#ffffff", border: "1px solid #e2e8f0" }} />
               <SkeletonBlock w="135px" h="34px" r="999px" style={{ flexShrink: 0, background: "#ffffff", border: "1px solid #e2e8f0" }} />
-            </div>
-          </div>
-
-          {/* Academic Overview Header Card */}
-          <div className="gf-attendance-skeleton-card">
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-              {/* Title & Section Tag */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <SkeletonBlock w="200px" h="21px" r="5px" />
-                <SkeletonBlock w="130px" h="13px" r="4px" />
-              </div>
-
-              {/* Desktop Header Controls: Target Switcher + Auto-Import CTA */}
-              <div className="gf-attendance-skeleton-desktop-header-right">
-                <SkeletonBlock w="235px" h="36px" r="10px" />
-                <SkeletonBlock w="185px" h="36px" r="9px" style={{ background: "#0f172a" }} />
-              </div>
-            </div>
-
-            {/* Mobile Header Controls: Full-width Target Switcher */}
-            <div className="gf-attendance-skeleton-mobile-header-target" style={{ marginTop: 10 }}>
-              <SkeletonBlock w="100%" h="36px" r="10px" />
             </div>
           </div>
 
@@ -2291,88 +2415,106 @@ export function TimetableSkeleton() {
           fontFamily: "'DM Sans', sans-serif",
         }}
       >
-      {/* Top Header Card Skeleton */}
-      <div
-        style={{
-          background: "#ffffff",
-          border: "1px solid #cbd5e1",
-          borderRadius: 20,
-          padding: 24,
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-        }}
-      >
+        {/* Header Canvas (Unboxed directly on canvas) */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <SkeletonBlock w="52px" h="52px" r="14px" />
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <SkeletonBlock w="200px" h="22px" r="6px" />
-              <SkeletonBlock w="130px" h="14px" r="4px" />
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <SkeletonBlock w="44px" h="44px" r="10px" />
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <SkeletonBlock w="200px" h="12px" r="4px" />
+              <SkeletonBlock w="280px" h="24px" r="6px" />
             </div>
           </div>
-          <div style={{ display: "flex", gap: 8, overflow: "hidden" }}>
-            {Array(4)
-              .fill(0)
-              .map((_, i) => (
-                <SkeletonBlock key={i} w="90px" h="38px" r="10px" />
-              ))}
+          {/* Section dropdown / login button */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <SkeletonBlock w="100px" h="36px" r="8px" />
           </div>
         </div>
 
-        {/* Section Pills */}
-        <div style={{ display: "flex", gap: 8, overflow: "hidden", marginTop: 4 }}>
+        {/* Section Pills Row (Sec: A B C D ...) */}
+        <div
+          style={{
+            background: "#f8fafc",
+            border: "1px solid #e2e8f0",
+            borderRadius: 10,
+            padding: "6px 8px",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            overflowX: "hidden",
+            width: "100%",
+            boxSizing: "border-box",
+          }}
+        >
+          <SkeletonBlock w="35px" h="20px" r="4px" style={{ flexShrink: 0 }} />
           {Array(8)
             .fill(0)
             .map((_, i) => (
-              <SkeletonBlock key={i} w="75px" h="34px" r="8px" style={{ flexShrink: 0 }} />
+              <SkeletonBlock key={i} w="44px" h="26px" r="7px" style={{ flexShrink: 0 }} />
             ))}
         </div>
-      </div>
 
-      {/* Day Selector Pills */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8 }}>
-        {Array(6)
-          .fill(0)
-          .map((_, i) => (
-            <SkeletonBlock key={i} h="64px" r="12px" />
-          ))}
-      </div>
+        {/* Segmented View Mode Switcher Pills (Daily Routine, Weekly Schedule, Academic Calendar, Holidays & Offs) */}
+        <div
+          style={{
+            background: "#f1f5f9",
+            border: "1px solid #e2e8f0",
+            borderRadius: 10,
+            padding: 3,
+            display: "inline-flex",
+            gap: 4,
+            width: "fit-content",
+            maxWidth: "100%",
+            overflowX: "hidden",
+          }}
+        >
+          <SkeletonBlock w="120px" h="32px" r="8px" />
+          <SkeletonBlock w="135px" h="32px" r="8px" />
+          <SkeletonBlock w="140px" h="32px" r="8px" />
+          <SkeletonBlock w="125px" h="32px" r="8px" />
+        </div>
 
-      {/* Routine Schedule Cards */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {Array(6)
-          .fill(0)
-          .map((_, i) => (
-            <div
-              key={i}
-              style={{
-                background: "#ffffff",
-                border: "1px solid #cbd5e1",
-                borderRadius: 14,
-                padding: "16px 20px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 14,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 0 }}>
-                <SkeletonBlock w="36px" h="36px" r="8px" style={{ flexShrink: 0 }} />
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0 }}>
-                  <SkeletonBlock w="50%" h="16px" r="4px" />
-                  <SkeletonBlock w="35%" h="12px" r="4px" />
+        {/* Day Selector Pills */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8 }}>
+          {Array(6)
+            .fill(0)
+            .map((_, i) => (
+              <SkeletonBlock key={i} h="64px" r="12px" />
+            ))}
+        </div>
+
+        {/* Routine Schedule Cards */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {Array(6)
+            .fill(0)
+            .map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 14,
+                  padding: "16px 20px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 14,
+                  boxShadow: "none",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 0 }}>
+                  <SkeletonBlock w="36px" h="36px" r="8px" style={{ flexShrink: 0 }} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0 }}>
+                    <SkeletonBlock w="50%" h="16px" r="4px" />
+                    <SkeletonBlock w="35%" h="12px" r="4px" />
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+                  <SkeletonBlock w="110px" h="28px" r="6px" />
+                  <SkeletonBlock w="60px" h="24px" r="6px" />
                 </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-                <SkeletonBlock w="110px" h="28px" r="6px" />
-                <SkeletonBlock w="60px" h="24px" r="6px" />
-              </div>
-            </div>
-          ))}
-      </div>
+            ))}
+        </div>
       </div>
     </div>
   );
