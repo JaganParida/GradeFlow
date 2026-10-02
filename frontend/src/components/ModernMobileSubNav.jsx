@@ -201,13 +201,13 @@ export default function ModernMobileSubNav({
 
   return (
     <>
-      {/* Invisible static layout anchor for precise scroll targeting */}
+      {/* Invisible static layout anchor for precise scroll targeting (absolute so it never creates ghost flexbox gaps) */}
       <div
         id="gf-mobile-subnav-anchor"
         style={{
-          position: "relative",
+          position: "absolute",
           height: 0,
-          width: "100%",
+          width: 0,
           margin: 0,
           padding: 0,
           border: "none",
@@ -221,12 +221,12 @@ export default function ModernMobileSubNav({
         id="gf-mobile-subnav"
         style={{
           position: "sticky",
-          top: 58,
+          top: 60,
           zIndex: 900,
           background: "transparent",
           transform: "translateZ(0)",
           WebkitTransform: "translateZ(0)",
-          padding: "1px 0 3px 0",
+          padding: "0 0 2px 0",
           width: "100%",
           boxShadow: "none",
         }}
@@ -258,9 +258,10 @@ export default function ModernMobileSubNav({
               justifyContent: "space-between",
               gap: 8,
               minWidth: 0,
+              width: "100%",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0, flex: 1 }}>
               <div
                 style={{
                   width: 22,
@@ -284,7 +285,7 @@ export default function ModernMobileSubNav({
 
               <span
                 style={{
-                  fontSize: 13.5,
+                  fontSize: "clamp(12px, 3.4vw, 13.5px)",
                   fontWeight: 800,
                   color: "#0f172a",
                   overflow: "hidden",
@@ -292,6 +293,8 @@ export default function ModernMobileSubNav({
                   whiteSpace: "nowrap",
                   letterSpacing: "-0.2px",
                   lineHeight: 1.2,
+                  flex: 1,
+                  minWidth: 0,
                 }}
               >
                 {activeItem.label}
@@ -308,6 +311,7 @@ export default function ModernMobileSubNav({
                   borderRadius: 999,
                   flexShrink: 0,
                   lineHeight: 1.2,
+                  whiteSpace: "nowrap",
                 }}
               >
                 {currentIndex + 1} of {items.length}
@@ -326,6 +330,7 @@ export default function ModernMobileSubNav({
                 flexShrink: 0,
                 textTransform: "uppercase",
                 letterSpacing: "0.3px",
+                whiteSpace: "nowrap",
               }}
             >
               Active Subtab

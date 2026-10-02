@@ -1121,7 +1121,7 @@ export default function Dashboard() {
           padding: isMobile ? "12px 10px" : "24px 32px",
           display: "grid",
           gridTemplateColumns: isMobile ? "1fr" : "280px minmax(0, 1fr)",
-          gap: isMobile ? 14 : 24,
+          gap: isMobile ? 10 : 24,
           alignItems: "start",
           boxSizing: "border-box",
           width: "100%",

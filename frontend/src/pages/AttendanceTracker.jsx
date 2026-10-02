@@ -3493,22 +3493,22 @@ export default function AttendanceTracker() {
                     /* Mobile: Attendance Intelligence + Section Badge + Auto-Import + Target Selector */
                     <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
                       {/* Row 1: Title & Section (Full width so Attendance Intelligence never wraps) */}
-                      <div>
+                      <div style={{ minWidth: 0, width: "100%" }}>
                         <h1
                           style={{
-                            fontSize: 20,
+                            fontSize: "clamp(18px, 4.8vw, 22px)",
                             fontWeight: 850,
                             color: "#0f172a",
                             margin: 0,
                             letterSpacing: "-0.4px",
-                            lineHeight: 1.2,
-                            whiteSpace: "nowrap",
+                            lineHeight: 1.25,
+                            wordBreak: "break-word",
                           }}
                         >
                           Attendance Intelligence
                         </h1>
-                        <div style={{ fontSize: 11.5, fontWeight: 700, color: "#059669", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
-                          <Activity size={12} />
+                        <div style={{ fontSize: 11.5, fontWeight: 700, color: "#059669", marginTop: 2, display: "flex", alignItems: "center", gap: 5 }}>
+                          <Activity size={12} style={{ flexShrink: 0 }} />
                           <span>Section {selectedSection} Routine</span>
                         </div>
                       </div>
@@ -5554,8 +5554,8 @@ export default function AttendanceTracker() {
                 boxShadow: "none",
               }}
             >
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 8, flexWrap: "wrap", minWidth: 0 }}>
                   <div
                     style={{
                       width: 28,
@@ -5567,11 +5567,12 @@ export default function AttendanceTracker() {
                       alignItems: "center",
                       justifyContent: "center",
                       flexShrink: 0,
+                      marginTop: isMobile ? 1 : 0,
                     }}
                   >
                     <AdvisorIcon size={15} color="#0f172a" />
                   </div>
-                  <h3 style={{ fontSize: isMobile ? 16 : 17.5, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.2px" }}>
+                  <h3 style={{ fontSize: isMobile ? "clamp(15px, 4.2vw, 17.5px)" : 17.5, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.2px", wordBreak: "break-word" }}>
                     Daily Attendance Calculator
                   </h3>
                   <span
@@ -6344,7 +6345,7 @@ export default function AttendanceTracker() {
                     gap: 12,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 12, minWidth: 0, flex: 1 }}>
                     <div
                       style={{
                         width: isMobile ? 38 : 42,
@@ -6356,11 +6357,12 @@ export default function AttendanceTracker() {
                         alignItems: "center",
                         justifyContent: "center",
                         flexShrink: 0,
+                        marginTop: isMobile ? 2 : 0,
                       }}
                     >
                       <ClipboardCheck size={isMobile ? 18 : 20} strokeWidth={2.2} />
                     </div>
-                    <div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         <h3
                           style={{
@@ -6731,7 +6733,7 @@ export default function AttendanceTracker() {
                       gap: 12,
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 10, minWidth: 0, flex: 1 }}>
                       <div
                         style={{
                           width: 34,
@@ -6743,11 +6745,12 @@ export default function AttendanceTracker() {
                           alignItems: "center",
                           justifyContent: "center",
                           flexShrink: 0,
+                          marginTop: isMobile ? 2 : 0,
                         }}
                       >
                         <Activity size={17} />
                       </div>
-                      <div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                           <h3
                             style={{

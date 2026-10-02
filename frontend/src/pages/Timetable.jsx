@@ -738,7 +738,7 @@ export default function Timetable() {
             }}
           >
             {/* Left: Branding & Section Title */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 10 : 12, minWidth: 0, flex: 1 }}>
               <div
                 style={{
                   width: isMobile ? 38 : 44,
@@ -751,13 +751,14 @@ export default function Timetable() {
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
+                  marginTop: isMobile ? 2 : 0,
                   boxShadow: "none",
                 }}
               >
                 <Clock size={isMobile ? 20 : 22} />
               </div>
 
-              <div>
+              <div style={{ minWidth: 0, flex: 1 }}>
                 <div
                   style={{
                     display: "flex",
@@ -768,19 +769,21 @@ export default function Timetable() {
                     fontWeight: 800,
                     textTransform: "uppercase",
                     letterSpacing: "0.5px",
+                    flexWrap: "wrap",
                   }}
                 >
-                  <Building size={12} />
+                  <Building size={12} style={{ flexShrink: 0 }} />
                   <span>Centurion University · {canShowRoutineAndSection ? "B.Tech 7th Semester" : "Academic Calendar"}</span>
                 </div>
                 <h1
                   style={{
-                    fontSize: isMobile ? 19 : 25,
+                    fontSize: isMobile ? "clamp(16.5px, 4.4vw, 20px)" : 25,
                     fontWeight: 850,
                     color: "#0f172a",
                     margin: "2px 0 0 0",
                     letterSpacing: "-0.4px",
                     lineHeight: 1.25,
+                    wordBreak: "break-word",
                   }}
                 >
                   {canShowRoutineAndSection
@@ -2048,10 +2051,10 @@ export default function Timetable() {
                 gap: 10,
               }}
             >
-              <div>
-                <h4 style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                  <Grid size={15} color="#2563eb" />
-                  Weekly Routine Schedule · Section {selectedSection}
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <h4 style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                  <Grid size={15} color="#2563eb" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}>Weekly Routine Schedule · Section {selectedSection}</span>
                 </h4>
                 <p style={{ fontSize: 11.5, color: "#64748b", margin: "2px 0 0 0" }}>
                   Full 6-day (Monday to Saturday) period schedule fitted across your viewport.
@@ -2456,12 +2459,12 @@ export default function Timetable() {
                 boxShadow: "none",
               }}
             >
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#7c3aed", fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  <GraduationCap size={14} />
-                  <span>Centurion University of Technology and Management, Odisha</span>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 6, color: "#7c3aed", fontSize: 11.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  <GraduationCap size={14} style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}>Centurion University of Technology and Management, Odisha</span>
                 </div>
-                <h3 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "#0f172a", margin: "2px 0 0 0" }}>
+                <h3 style={{ fontSize: isMobile ? "clamp(15px, 4vw, 17.5px)" : 18, fontWeight: 800, color: "#0f172a", margin: "2px 0 0 0", wordBreak: "break-word" }}>
                   Academic Calendar 2026–27 (UG & PG — School of Engineering)
                 </h3>
               </div>
@@ -2518,7 +2521,7 @@ export default function Timetable() {
                     gap: 8,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 10, minWidth: 0, flex: 1 }}>
                     <div
                       style={{
                         width: 32,
@@ -2531,12 +2534,14 @@ export default function Timetable() {
                         justifyContent: "center",
                         fontSize: 12,
                         fontWeight: 900,
+                        flexShrink: 0,
+                        marginTop: isMobile ? 2 : 0,
                       }}
                     >
                       ODD
                     </div>
-                    <div>
-                      <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0, wordBreak: "break-word" }}>
                         {activeAcademicCalendar.oddSemester.title} Activities
                       </h4>
                       <div style={{ fontSize: 11.5, color: "#64748b" }}>
@@ -2661,7 +2666,7 @@ export default function Timetable() {
                     gap: 8,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 10, minWidth: 0, flex: 1 }}>
                     <div
                       style={{
                         width: 32,
@@ -2674,12 +2679,14 @@ export default function Timetable() {
                         justifyContent: "center",
                         fontSize: 12,
                         fontWeight: 900,
+                        flexShrink: 0,
+                        marginTop: isMobile ? 2 : 0,
                       }}
                     >
                       EVEN
                     </div>
-                    <div>
-                      <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0, wordBreak: "break-word" }}>
                         {activeAcademicCalendar.evenSemester.title} Activities
                       </h4>
                       <div style={{ fontSize: 11.5, color: "#64748b" }}>
@@ -2967,10 +2974,10 @@ export default function Timetable() {
                 boxShadow: "none",
               }}
             >
-              <div>
-                <h4 style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
-                  <CalendarIcon size={15} color="#dc2626" />
-                  CUTM Academic Session 2026–27 Holiday List
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <h4 style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "flex-start", gap: 7 }}>
+                  <CalendarIcon size={15} color="#dc2626" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}>CUTM Academic Session 2026–27 Holiday List</span>
                 </h4>
                 <p style={{ fontSize: 11.5, color: "#64748b", margin: "2px 0 0 0" }}>
                   Official university holidays, observation days, and 2nd Saturday non-instructional breaks.

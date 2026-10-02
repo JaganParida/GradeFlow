@@ -514,7 +514,7 @@ export default function Leaderboard() {
           }}
         >
           {/* Top Row: Title + SGPA/CGPA Toggle */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 12, minWidth: 0, flex: 1 }}>
             <div
               style={{
                 width: isMobile ? 38 : 44,
@@ -527,11 +527,12 @@ export default function Leaderboard() {
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
+                marginTop: isMobile ? 2 : 0,
               }}
             >
               <Trophy size={isMobile ? 18 : 22} />
             </div>
-            <div>
+            <div style={{ minWidth: 0, flex: 1 }}>
               <div
                 style={{
                   fontSize: 11,
@@ -545,12 +546,13 @@ export default function Leaderboard() {
               </div>
               <h1
                 style={{
-                  fontSize: isMobile ? 20 : 26,
+                  fontSize: isMobile ? "clamp(18px, 4.8vw, 22px)" : 26,
                   fontWeight: 850,
                   color: "#0f172a",
                   margin: "1px 0 0 0",
                   letterSpacing: "-0.5px",
-                  lineHeight: 1.2,
+                  lineHeight: 1.25,
+                  wordBreak: "break-word",
                 }}
               >
                 Leaderboard &amp; Rankings
