@@ -695,7 +695,7 @@ export default function Timetable() {
           padding: isMobile ? "12px 10px 80px 10px" : "24px 24px 90px 24px",
           display: "flex",
           flexDirection: "column",
-          gap: 16,
+          gap: isMobile ? 8 : 16,
           boxSizing: "border-box",
           width: "100%",
         }}
@@ -707,7 +707,7 @@ export default function Timetable() {
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: isMobile ? 12 : 16,
+            gap: isMobile ? 8 : 14,
             width: "100%",
           }}
         >

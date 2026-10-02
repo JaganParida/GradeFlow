@@ -3470,20 +3470,6 @@ export default function AttendanceTracker() {
             </div>
           )}
 
-          {/* Modern Interactive Mobile Sub-Navigation */}
-          {isMobile && (
-            <ModernMobileSubNav
-              items={navMenuItems}
-              activeTab={activeTab}
-              onChange={(newTab, meta) => handleTabClick(newTab, meta)}
-              onLockedClick={(lockedItem) => handleLockedTabAttempt(lockedItem?.label || "this module")}
-              onResetClick={hasSavedAttendance ? handleResetAllAttendance : null}
-              title="Attendance Modules"
-              themeColor="#059669"
-              themeBg="#ecfdf5"
-            />
-          )}
-
           {/* Top Academic & Attendance Overview Header (Clean Canvas - Unboxed) */}
           <header
             style={{
@@ -3800,6 +3786,20 @@ export default function AttendanceTracker() {
                   )}
                 </div>
               </header>
+
+              {/* Modern Interactive Mobile Sub-Navigation (Rendered cleanly below header) */}
+              {isMobile && (
+                <ModernMobileSubNav
+                  items={navMenuItems}
+                  activeTab={activeTab}
+                  onChange={(newTab, meta) => handleTabClick(newTab, meta)}
+                  onLockedClick={(lockedItem) => handleLockedTabAttempt(lockedItem?.label || "this module")}
+                  onResetClick={hasSavedAttendance ? handleResetAllAttendance : null}
+                  title="Attendance Modules"
+                  themeColor="#059669"
+                  themeBg="#ecfdf5"
+                />
+              )}
 
               {/* 4 Hero Stat Cards (or Onboarding Guide Banner for new students): Always visible on Desktop; On Mobile visible on default Daily Hub (checkin) */}
               {(!isMobile || activeTab === "checkin") && (

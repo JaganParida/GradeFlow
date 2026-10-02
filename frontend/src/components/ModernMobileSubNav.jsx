@@ -226,7 +226,7 @@ export default function ModernMobileSubNav({
           background: "transparent",
           transform: "translateZ(0)",
           WebkitTransform: "translateZ(0)",
-          padding: "6px 0 8px 0",
+          padding: "1px 0 3px 0",
           width: "100%",
           boxShadow: "none",
         }}

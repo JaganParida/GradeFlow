@@ -838,14 +838,14 @@ export default function Analytics() {
         fontFamily: "'DM Sans', sans-serif",
       }}
     >
-      <div style={{ maxWidth: 1240, margin: "0 auto", display: "flex", flexDirection: "column", gap: isMobile ? 12 : 22 }}>
+      <div style={{ maxWidth: 1240, margin: "0 auto", display: "flex", flexDirection: "column", gap: isMobile ? 8 : 18 }}>
         
         {/* Top Header Canvas (Unboxed & Clean) */}
         <header
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: isMobile ? 12 : 16,
+            gap: isMobile ? 8 : 14,
             width: "100%",
           }}
         >
@@ -888,78 +888,23 @@ export default function Analytics() {
             </span>
           </div>
 
-          {/* Student Profile Info & Quick Metrics */}
-          <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: isMobile ? 10 : 16 }}>
-            <div>
-              <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 850, color: "#0f172a", margin: "0 0 3px 0", letterSpacing: "-0.5px", lineHeight: 1.2 }}>
-                {studentName}
-              </h1>
-              <p style={{ color: "#64748b", fontSize: isMobile ? 12 : 13.5, margin: 0, fontWeight: 500 }}>
-                Reg No: <strong style={{ color: "#0f172a", fontFamily: "'Space Mono', monospace" }}>{regNo}</strong> &nbsp;·&nbsp;
-                Branch: <strong style={{ color: "#0f172a" }}>{dynamicBranch}</strong>
-              </p>
-            </div>
-
-            {/* Quick Metrics (Clean, Sleek Badges) */}
-            <div
+          {/* Section Title & Subtitle (Clean Canvas - Unboxed) */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <h1
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                flexWrap: "wrap",
+                fontSize: isMobile ? 22 : 28,
+                fontWeight: 850,
+                color: "#0f172a",
+                margin: 0,
+                letterSpacing: "-0.5px",
+                lineHeight: 1.2,
               }}
             >
-              <div
-                style={{
-                  background: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 10,
-                  padding: isMobile ? "5px 10px" : "6px 14px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>CGPA</span>
-                <span style={{ fontSize: 14, fontWeight: 850, color: "#2563eb", fontFamily: "'Space Mono', monospace" }}>
-                  {cgpa}
-                </span>
-              </div>
-
-              <div
-                style={{
-                  background: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 10,
-                  padding: isMobile ? "5px 10px" : "6px 14px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>Latest SGPA</span>
-                <span style={{ fontSize: 14, fontWeight: 850, color: "#16a34a", fontFamily: "'Space Mono', monospace" }}>
-                  {latestSgpa?.toFixed(2)}
-                </span>
-              </div>
-
-              <div
-                style={{
-                  background: "#ffffff",
-                  border: `1px solid ${backlogs.length ? "#fecaca" : "#e2e8f0"}`,
-                  borderRadius: 10,
-                  padding: isMobile ? "5px 10px" : "6px 14px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <span style={{ fontSize: 11, fontWeight: 700, color: backlogs.length ? "#b91c1c" : "#64748b" }}>Status</span>
-                <span style={{ fontSize: 13, fontWeight: 850, color: backlogs.length ? "#dc2626" : "#16a34a" }}>
-                  {backlogs.length ? `${backlogs.length} Backlogs` : "Clear"}
-                </span>
-              </div>
-            </div>
+              Analytics Section
+            </h1>
+            <p style={{ color: "#64748b", fontSize: isMobile ? 12 : 13.5, margin: 0, fontWeight: 500 }}>
+              Comprehensive performance analytics, academic trajectory &amp; grade intelligence
+            </p>
           </div>
         </header>
 
@@ -1042,57 +987,106 @@ export default function Analytics() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 20 }}
+              style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 18 }}
             >
-              {/* 4 Core Academic Metric Cards (2x2 on Mobile, 4-col on Desktop) */}
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: isMobile ? 8 : 16 }}>
-                <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
+              {/* Core Academic Metric Panel (Unified Full-Width Surface - No Disjointed Floating Boxes) */}
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 14,
+                  overflow: "hidden",
+                  display: "grid",
+                  gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+                  boxShadow: "none",
+                }}
+              >
+                {/* 1. Cumulative CGPA */}
+                <div
+                  style={{
+                    padding: isMobile ? "12px 14px" : "18px 22px",
+                    borderRight: "1px solid #f1f5f9",
+                    borderBottom: isMobile ? "1px solid #f1f5f9" : "none",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  }}
+                >
                   <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Cumulative CGPA
                   </div>
-                  <div style={{ fontSize: isMobile ? 20 : 26, fontWeight: 900, color: "#2563eb", marginTop: 2, fontFamily: "'Space Mono', monospace" }}>
+                  <div style={{ fontSize: isMobile ? 22 : 28, fontWeight: 900, color: "#2563eb", marginTop: 4, fontFamily: "'Space Mono', monospace" }}>
                     {cgpa}
                   </div>
-                  <div style={{ fontSize: isMobile ? 10.5 : 12, color: "#64748b", marginTop: 2 }}>
+                  <div style={{ fontSize: isMobile ? 11 : 12, color: "#64748b", marginTop: 2, fontWeight: 500 }}>
                     Across {results.length} sems
                   </div>
                 </div>
 
-                <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
+                {/* 2. Latest SGPA */}
+                <div
+                  style={{
+                    padding: isMobile ? "12px 14px" : "18px 22px",
+                    borderRight: isMobile ? "none" : "1px solid #f1f5f9",
+                    borderBottom: isMobile ? "1px solid #f1f5f9" : "none",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  }}
+                >
                   <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Latest SGPA
                   </div>
-                  <div style={{ fontSize: isMobile ? 20 : 26, fontWeight: 900, color: "#0f172a", marginTop: 2, fontFamily: "'Space Mono', monospace" }}>
+                  <div style={{ fontSize: isMobile ? 22 : 28, fontWeight: 900, color: "#0f172a", marginTop: 4, fontFamily: "'Space Mono', monospace" }}>
                     {latestSgpa?.toFixed(2)}
                   </div>
-                  <div style={{ fontSize: isMobile ? 10.5 : 12, color: "#64748b", marginTop: 2 }}>
+                  <div style={{ fontSize: isMobile ? 11 : 12, color: "#64748b", marginTop: 2, fontWeight: 500 }}>
                     Semester {latestSemester} exam
                   </div>
                 </div>
 
-                <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
+                {/* 3. Earned Credits */}
+                <div
+                  style={{
+                    padding: isMobile ? "12px 14px" : "18px 22px",
+                    borderRight: "1px solid #f1f5f9",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  }}
+                >
                   <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Earned Credits
                   </div>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginTop: 2 }}>
-                    <span style={{ fontSize: isMobile ? 20 : 26, fontWeight: 900, color: "#0f172a", fontFamily: "'Space Mono', monospace" }}>
-                      {creditsCleared}
-                    </span>
-                    <span style={{ fontSize: isMobile ? 11 : 14, color: "#64748b", fontWeight: 700 }}>/ {totalCredits} Cr</span>
-                  </div>
-                  <div style={{ width: "100%", height: 5, background: "#e2e8f0", borderRadius: 4, marginTop: 6, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${Math.min((creditsCleared / 160) * 100, 100)}%`, background: "#2563eb", borderRadius: 4 }} />
+                  <div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginTop: 4 }}>
+                      <span style={{ fontSize: isMobile ? 22 : 28, fontWeight: 900, color: "#0f172a", fontFamily: "'Space Mono', monospace" }}>
+                        {creditsCleared}
+                      </span>
+                      <span style={{ fontSize: isMobile ? 11 : 13, color: "#64748b", fontWeight: 700 }}>/ {totalCredits} Cr</span>
+                    </div>
+                    <div style={{ width: "100%", height: 5, background: "#f1f5f9", borderRadius: 4, marginTop: 6, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${Math.min((creditsCleared / 160) * 100, 100)}%`, background: "#2563eb", borderRadius: 4 }} />
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
+                {/* 4. Academic Standing */}
+                <div
+                  style={{
+                    padding: isMobile ? "12px 14px" : "18px 22px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  }}
+                >
                   <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Academic Standing
                   </div>
-                  <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 900, color: backlogs.length ? "#dc2626" : "#15803d", marginTop: 2 }}>
+                  <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 900, color: backlogs.length ? "#dc2626" : "#15803d", marginTop: 4 }}>
                     {backlogs.length ? `${backlogs.length} Backlogs` : "All Clear"}
                   </div>
-                  <div style={{ fontSize: isMobile ? 10.5 : 12, color: "#64748b", marginTop: 2 }}>
+                  <div style={{ fontSize: isMobile ? 11 : 12, color: "#64748b", marginTop: 2, fontWeight: 500 }}>
                     {backlogs.length ? "Remedial exams" : "Zero backlogs"}
                   </div>
                 </div>
@@ -1227,7 +1221,7 @@ export default function Analytics() {
               </div>
 
               {/* Charts Row */}
-              <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 16, padding: isMobile ? "14px 14px" : "22px 24px", boxShadow: "none", display: "flex", flexDirection: "column" }}>
+              <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 14, padding: isMobile ? "14px 14px" : "22px 24px", boxShadow: "none", display: "flex", flexDirection: "column" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: isMobile ? 12 : 18 }}>
                   <div>
                     <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", display: "flex", alignItems: "center", gap: 6 }}>

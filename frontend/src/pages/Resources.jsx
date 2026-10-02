@@ -479,7 +479,7 @@ export default function Resources() {
     >
       {/* Modern Interactive Mobile Sub-Navigation */}
       {isMobile && (
-        <div style={{ padding: "6px 12px 0 12px" }}>
+        <div style={{ padding: "0 10px", maxWidth: 1380, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
           <ModernMobileSubNav
             items={ALL_RESOURCE_TABS}
             activeTab={activeTab}
@@ -496,10 +496,10 @@ export default function Resources() {
         style={{
           maxWidth: 1380,
           margin: "0 auto",
-          padding: isMobile ? "12px 10px 36px" : "24px 24px 70px",
+          padding: isMobile ? "8px 10px 36px" : "24px 24px 70px",
           display: "grid",
           gridTemplateColumns: isMobile ? "100%" : "270px minmax(0, 1fr)",
-          gap: isMobile ? 12 : 28,
+          gap: isMobile ? 10 : 28,
           alignItems: "start",
           width: "100%",
           boxSizing: "border-box",

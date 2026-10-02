@@ -1589,7 +1589,7 @@ export default function Dashboard() {
         {/* ══════════════════════════════════════════════════════════
             RIGHT MAIN WORKSPACE PANEL
         ══════════════════════════════════════════════════════════ */}
-        <main style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 20, minWidth: 0, width: "100%", boxSizing: "border-box" }}>
+        <main style={{ display: "flex", flexDirection: "column", gap: isMobile ? 8 : 20, minWidth: 0, width: "100%", boxSizing: "border-box" }}>
           {/* Modern Interactive Mobile Sub-Navigation */}
           {isMobile && (
             <ModernMobileSubNav

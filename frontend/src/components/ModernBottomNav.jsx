@@ -808,7 +808,7 @@ export default function ModernBottomNav() {
                         </div>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 750, color: "#0f172a" }}>
-                            Share Feedback &amp; Report Bugs
+                            Share Feedback
                           </div>
                           <div style={{ fontSize: 11.5, color: "#64748b", fontWeight: 500 }}>
                             Help us improve GradeFlow for your university
