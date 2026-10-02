@@ -227,8 +227,8 @@ export default function AboutDev() {
                 width: isMobile ? 220 : 290,
                 height: isMobile ? 220 : 290,
                 borderRadius: "50%",
-                background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
-                boxShadow: "0 20px 45px rgba(37, 99, 235, 0.14), 0 0 0 8px rgba(255, 255, 255, 0.9)",
+                boxShadow: "none",
+                border: "4px solid #ffffff",
                 overflow: "hidden",
                 zIndex: 2,
                 display: "flex",
@@ -269,7 +269,7 @@ export default function AboutDev() {
                 borderRadius: 14,
                 padding: "8px 12px",
                 border: "1px solid #e2e8f0",
-                boxShadow: "0 8px 20px rgba(15, 23, 42, 0.08)",
+                boxShadow: "none",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -292,7 +292,7 @@ export default function AboutDev() {
                 borderRadius: 14,
                 padding: "8px 12px",
                 border: "1px solid #e2e8f0",
-                boxShadow: "0 8px 20px rgba(15, 23, 42, 0.08)",
+                boxShadow: "none",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -316,7 +316,7 @@ export default function AboutDev() {
                 borderRadius: 16,
                 padding: isMobile ? "10px 14px" : "14px 18px",
                 border: "1px solid #e2e8f0",
-                boxShadow: "0 14px 30px rgba(15, 23, 42, 0.08)",
+                boxShadow: "none",
                 maxWidth: isMobile ? 180 : 220,
                 zIndex: 4,
               }}
@@ -338,10 +338,10 @@ export default function AboutDev() {
         <section
           style={{
             background: "#ffffff",
-            border: "1px solid #f1f5f9",
+            border: "1px solid #e2e8f0",
             borderRadius: 24,
             padding: isMobile ? "24px 18px" : "36px 36px",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.02)",
+            boxShadow: "none",
             display: "grid",
             gridTemplateColumns: isMobile ? "1fr" : "1.1fr 2.4fr",
             gap: isMobile ? 24 : 32,
@@ -396,18 +396,18 @@ export default function AboutDev() {
                   fontSize: 13.5,
                   fontWeight: 700,
                   fontFamily: "'DM Sans', sans-serif",
-                  boxShadow: "0 4px 14px rgba(37, 211, 102, 0.35)",
+                  boxShadow: "none",
                   width: isMobile ? "100%" : "fit-content",
                   boxSizing: "border-box",
                   transition: "all 0.2s ease",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "#1ebc59";
-                  e.currentTarget.style.boxShadow = "0 6px 18px rgba(37, 211, 102, 0.45)";
+                  e.currentTarget.style.boxShadow = "none";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "#25D366";
-                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(37, 211, 102, 0.35)";
+                  e.currentTarget.style.boxShadow = "none";
                 }}
               >
                 <WhatsAppIcon size={18} color="#ffffff" />
@@ -429,18 +429,18 @@ export default function AboutDev() {
                   fontSize: 13.5,
                   fontWeight: 700,
                   fontFamily: "'DM Sans', sans-serif",
-                  boxShadow: "0 4px 14px rgba(37, 99, 235, 0.35)",
+                  boxShadow: "none",
                   width: isMobile ? "100%" : "fit-content",
                   boxSizing: "border-box",
                   transition: "all 0.2s ease",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "#1d4ed8";
-                  e.currentTarget.style.boxShadow = "0 6px 18px rgba(37, 99, 235, 0.45)";
+                  e.currentTarget.style.boxShadow = "none";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "#2563eb";
-                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(37, 99, 235, 0.35)";
+                  e.currentTarget.style.boxShadow = "none";
                 }}
               >
                 <Mail size={18} color="#ffffff" />
@@ -467,25 +467,25 @@ export default function AboutDev() {
               style={{
                 textDecoration: "none",
                 background: "#ffffff",
-                border: "1px solid #f1f5f9",
+                border: "1px solid #e2e8f0",
                 borderRadius: 16,
                 padding: isMobile ? "14px 12px" : "18px 12px",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
                 gap: 12,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                boxShadow: "none",
                 transition: "all 0.2s ease",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "translateY(-3px)";
                 e.currentTarget.style.borderColor = "#cbd5e1";
-                e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.05)";
+                e.currentTarget.style.boxShadow = "none";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.borderColor = "#f1f5f9";
-                e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)";
+                e.currentTarget.style.borderColor = "#e2e8f0";
+                e.currentTarget.style.boxShadow = "none";
               }}
             >
               <div>
@@ -524,25 +524,25 @@ export default function AboutDev() {
               style={{
                 textDecoration: "none",
                 background: "#ffffff",
-                border: "1px solid #f1f5f9",
+                border: "1px solid #e2e8f0",
                 borderRadius: 16,
                 padding: isMobile ? "14px 12px" : "18px 12px",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
                 gap: 12,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                boxShadow: "none",
                 transition: "all 0.2s ease",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "translateY(-3px)";
                 e.currentTarget.style.borderColor = "#cbd5e1";
-                e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.05)";
+                e.currentTarget.style.boxShadow = "none";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.borderColor = "#f1f5f9";
-                e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)";
+                e.currentTarget.style.borderColor = "#e2e8f0";
+                e.currentTarget.style.boxShadow = "none";
               }}
             >
               <div>
@@ -581,25 +581,25 @@ export default function AboutDev() {
               style={{
                 textDecoration: "none",
                 background: "#ffffff",
-                border: "1px solid #f1f5f9",
+                border: "1px solid #e2e8f0",
                 borderRadius: 16,
                 padding: isMobile ? "14px 12px" : "18px 12px",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
                 gap: 12,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                boxShadow: "none",
                 transition: "all 0.2s ease",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "translateY(-3px)";
                 e.currentTarget.style.borderColor = "#cbd5e1";
-                e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.05)";
+                e.currentTarget.style.boxShadow = "none";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.borderColor = "#f1f5f9";
-                e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)";
+                e.currentTarget.style.borderColor = "#e2e8f0";
+                e.currentTarget.style.boxShadow = "none";
               }}
             >
               <div>
@@ -638,25 +638,25 @@ export default function AboutDev() {
               style={{
                 textDecoration: "none",
                 background: "#ffffff",
-                border: "1px solid #f1f5f9",
+                border: "1px solid #e2e8f0",
                 borderRadius: 16,
                 padding: isMobile ? "14px 12px" : "18px 12px",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
                 gap: 12,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                boxShadow: "none",
                 transition: "all 0.2s ease",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "translateY(-3px)";
                 e.currentTarget.style.borderColor = "#cbd5e1";
-                e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.05)";
+                e.currentTarget.style.boxShadow = "none";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.borderColor = "#f1f5f9";
-                e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)";
+                e.currentTarget.style.borderColor = "#e2e8f0";
+                e.currentTarget.style.boxShadow = "none";
               }}
             >
               <div>
@@ -694,7 +694,7 @@ export default function AboutDev() {
               style={{
                 textDecoration: "none",
                 background: "#ffffff",
-                border: "1px solid #f1f5f9",
+                border: "1px solid #e2e8f0",
                 borderRadius: 16,
                 padding: isMobile ? "14px 18px" : "18px 12px",
                 display: "flex",
@@ -702,19 +702,19 @@ export default function AboutDev() {
                 alignItems: isMobile ? "center" : "stretch",
                 justifyContent: "space-between",
                 gap: 12,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                boxShadow: "none",
                 gridColumn: isMobile ? "span 2" : "auto",
                 transition: "all 0.2s ease",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "translateY(-3px)";
                 e.currentTarget.style.borderColor = "#cbd5e1";
-                e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.05)";
+                e.currentTarget.style.boxShadow = "none";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.borderColor = "#f1f5f9";
-                e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)";
+                e.currentTarget.style.borderColor = "#e2e8f0";
+                e.currentTarget.style.boxShadow = "none";
               }}
             >
               <div

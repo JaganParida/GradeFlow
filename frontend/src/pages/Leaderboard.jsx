@@ -509,7 +509,7 @@ export default function Leaderboard() {
             border: "1px solid #cbd5e1",
             borderRadius: 16,
             padding: isMobile ? "16px 14px" : "20px 22px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 4px 14px rgba(15,23,42,0.03)",
+            boxShadow: "none",
             display: "flex",
             flexDirection: "column",
             gap: 14,
@@ -593,7 +593,7 @@ export default function Leaderboard() {
                   fontWeight: isSGPA ? 800 : 600,
                   cursor: loading ? "not-allowed" : "pointer",
                   opacity: loading ? 0.65 : 1,
-                  boxShadow: isSGPA ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
+                  boxShadow: "none",
                   transition: "all 0.15s ease",
                   fontFamily: "'DM Sans', sans-serif",
                 }}
@@ -619,7 +619,7 @@ export default function Leaderboard() {
                   fontWeight: !isSGPA ? 800 : 600,
                   cursor: loading ? "not-allowed" : "pointer",
                   opacity: loading ? 0.65 : 1,
-                  boxShadow: !isSGPA ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
+                  boxShadow: "none",
                   transition: "all 0.15s ease",
                   fontFamily: "'DM Sans', sans-serif",
                 }}
@@ -970,7 +970,7 @@ export default function Leaderboard() {
                 border: "2px solid #fde68a",
                 borderRadius: 14,
                 padding: "14px 16px",
-                boxShadow: "0 4px 14px rgba(245, 158, 11, 0.08)",
+                boxShadow: "none",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -1036,7 +1036,7 @@ export default function Leaderboard() {
                 border: "1.5px solid #cbd5e1",
                 borderRadius: 14,
                 padding: "14px 16px",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                boxShadow: "none",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -1102,7 +1102,7 @@ export default function Leaderboard() {
                 border: "1.5px solid #fed7aa",
                 borderRadius: 14,
                 padding: "14px 16px",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                boxShadow: "none",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -1216,7 +1216,7 @@ export default function Leaderboard() {
                       : "1px solid #e2e8f0",
                     borderRadius: 12,
                     padding: "12px 14px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                    boxShadow: "none",
                     display: "flex",
                     flexDirection: "column",
                     gap: 10,
@@ -1420,7 +1420,7 @@ export default function Leaderboard() {
                     fontSize: 13,
                     fontWeight: 700,
                     cursor: "pointer",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                    boxShadow: "none",
                   }}
                 >
                   {buttonText}
@@ -1436,7 +1436,7 @@ export default function Leaderboard() {
               background: "#ffffff",
               border: "1px solid #cbd5e1",
               borderRadius: 16,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 2px 6px rgba(15,23,42,0.02)",
+              boxShadow: "none",
               overflow: "hidden",
             }}
           >
@@ -1766,7 +1766,7 @@ export default function Leaderboard() {
                     fontSize: 12.5,
                     fontWeight: 700,
                     cursor: "pointer",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                    boxShadow: "none",
                     transition: "all 0.15s ease",
                   }}
                 >

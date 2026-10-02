@@ -289,6 +289,7 @@ export default function FeedbackModal() {
               background: "#ffffff",
               borderRadius: 14,
               border: "1px solid #e2e8f0",
+              boxShadow: "none",
               overflow: "hidden",
               zIndex: 10,
               fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",

@@ -809,7 +809,7 @@ export default function Testimonials() {
                   flexDirection: isSmallMobile ? "column" : "row",
                   alignItems: isSmallMobile ? "flex-start" : "center",
                   gap: isSmallMobile ? 4 : 10,
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                  boxShadow: "none",
                 }}
               >
                 <div
@@ -861,7 +861,7 @@ export default function Testimonials() {
                   flexDirection: isSmallMobile ? "column" : "row",
                   alignItems: isSmallMobile ? "flex-start" : "center",
                   gap: isSmallMobile ? 4 : 10,
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                  boxShadow: "none",
                 }}
               >
                 <div
@@ -917,7 +917,7 @@ export default function Testimonials() {
                   flexDirection: isSmallMobile ? "column" : "row",
                   alignItems: isSmallMobile ? "flex-start" : "center",
                   gap: isSmallMobile ? 4 : 10,
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                  boxShadow: "none",
                 }}
               >
                 <div
@@ -997,7 +997,7 @@ export default function Testimonials() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    boxShadow: "0 8px 20px rgba(37, 99, 235, 0.15)",
+                    boxShadow: "none",
                   }}
                 >
                   <Heart size={24} fill="#2563eb" color="#2563eb" />
@@ -1037,7 +1037,7 @@ export default function Testimonials() {
                     fontWeight: 800,
                     border: "none",
                     cursor: "pointer",
-                    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
+                    boxShadow: "none",
                     transition: "all 0.15s ease",
                   }}
                   onMouseEnter={(e) =>
@@ -1112,10 +1112,7 @@ export default function Testimonials() {
                     cursor: "pointer",
                     fontFamily: "'DM Sans', sans-serif",
                     transition: "all 0.15s ease",
-                    boxShadow:
-                      selectedCategory === cat
-                        ? "0 2px 8px rgba(37, 99, 235, 0.2)"
-                        : "0 1px 2px rgba(0,0,0,0.02)",
+                    boxShadow: "none",
                     whiteSpace: "nowrap",
                     flexShrink: 0,
                   }}
@@ -1143,7 +1140,7 @@ export default function Testimonials() {
                   color: "#334155",
                   cursor: "pointer",
                   fontFamily: "'DM Sans', sans-serif",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+                  boxShadow: "none",
                   whiteSpace: "nowrap",
                 }}
               >
@@ -1180,7 +1177,7 @@ export default function Testimonials() {
                         border: "1px solid #e2e8f0",
                         borderRadius: 12,
                         padding: 5,
-                        boxShadow: "0 10px 25px rgba(15, 23, 42, 0.12)",
+                        boxShadow: "none",
                         zIndex: 100,
                       }}
                     >
@@ -1392,7 +1389,7 @@ export default function Testimonials() {
                               : "1px solid #e2e8f0",
                           borderRadius: isSmallMobile ? 14 : 16,
                           padding: isSmallMobile ? "12px 12px" : "16px 16px",
-                          boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                          boxShadow: "none",
                           display: "flex",
                           flexDirection: "column",
                           justifyContent: "space-between",
@@ -1751,7 +1748,7 @@ export default function Testimonials() {
                       background: "#ffffff",
                       border: "1px solid #e2e8f0",
                       borderRadius: 14,
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+                      boxShadow: "none",
                       width: "100%",
                       maxWidth: "100%",
                       boxSizing: "border-box",
@@ -1887,7 +1884,7 @@ export default function Testimonials() {
                 border: "1px solid #e2e8f0",
                 borderRadius: isSmallMobile ? 16 : 18,
                 padding: isSmallMobile ? "14px 14px" : "20px 18px",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                boxShadow: "none",
                 boxSizing: "border-box",
               }}
             >
@@ -2658,7 +2655,7 @@ export default function Testimonials() {
                                 border: "1px solid #e2e8f0",
                                 borderRadius: 10,
                                 padding: 4,
-                                boxShadow: "0 10px 25px rgba(15, 23, 42, 0.1)",
+                                boxShadow: "none",
                                 zIndex: 100,
                               }}
                             >
@@ -2764,7 +2761,7 @@ export default function Testimonials() {
                         fontWeight: 800,
                         cursor: isSubmitting ? "not-allowed" : "pointer",
                         fontFamily: "'DM Sans', sans-serif",
-                        boxShadow: "0 3px 10px rgba(37, 99, 235, 0.2)",
+                        boxShadow: "none",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -2846,7 +2843,7 @@ export default function Testimonials() {
             alignItems: isMobile ? "flex-start" : "center",
             justifyContent: "space-between",
             gap: isSmallMobile ? 10 : 16,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+            boxShadow: "none",
             boxSizing: "border-box",
             width: "100%",
           }}
@@ -2911,7 +2908,7 @@ export default function Testimonials() {
               display: "flex",
               alignItems: "center",
               gap: 6,
-              boxShadow: "0 3px 10px rgba(37, 99, 235, 0.2)",
+              boxShadow: "none",
               width: isMobile ? "100%" : "auto",
               justifyContent: "center",
             }}
@@ -2956,7 +2953,7 @@ export default function Testimonials() {
                 width: "100%",
                 textAlign: "center",
                 border: "1px solid #e2e8f0",
-                boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
+                boxShadow: "none",
                 fontFamily: "'DM Sans', sans-serif",
               }}
             >
@@ -3044,7 +3041,7 @@ export default function Testimonials() {
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 6,
-                    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
+                    boxShadow: "none",
                     transition: "background 0.15s ease",
                   }}
                   onMouseEnter={(e) =>
@@ -3097,7 +3094,7 @@ export default function Testimonials() {
                 width: "100%",
                 textAlign: "center",
                 border: "1px solid #e2e8f0",
-                boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
+                boxShadow: "none",
                 fontFamily: "'DM Sans', sans-serif",
               }}
             >
@@ -3152,7 +3149,7 @@ export default function Testimonials() {
                   fontWeight: 700,
                   cursor: "pointer",
                   fontFamily: "inherit",
-                  boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
+                  boxShadow: "none",
                 }}
               >
                 Got It

@@ -528,10 +528,10 @@ export default function Resources() {
             <div
               style={{
                 background: "#ffffff",
-                border: "1px solid #f1f5f9",
+                border: "1px solid #e2e8f0",
                 borderRadius: 20,
                 padding: isMobile ? "20px 14px" : "28px 16px",
-                boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+                boxShadow: "none",
                 display: "flex",
                 flexDirection: "column",
                 gap: 18,
@@ -748,7 +748,7 @@ export default function Resources() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
+                  boxShadow: "none",
                 }}
               >
                 <GraduationCap size={22} />
@@ -766,7 +766,7 @@ export default function Resources() {
                   fontSize: 12,
                   fontWeight: 700,
                   cursor: "pointer",
-                  boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
+                  boxShadow: "none",
                 }}
               >
                 Go to Dashboard
@@ -792,10 +792,10 @@ export default function Resources() {
                 transition={{ duration: 0.22, ease: "easeInOut" }}
                 style={{
                   background: "#ffffff",
-                  border: "1px solid #f1f5f9",
+                  border: "1px solid #e2e8f0",
                   borderRadius: isMobile ? 16 : 20,
                   padding: isMobile ? "20px 14px" : "28px 28px",
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+                  boxShadow: "none",
                   display: "flex",
                   flexDirection: "column",
                   gap: isMobile ? 18 : 24,
@@ -830,10 +830,10 @@ export default function Resources() {
                   <div
                     style={{
                       background: "#ffffff",
-                      border: "1px solid #f1f5f9",
+                      border: "1px solid #e2e8f0",
                       borderRadius: 16,
                       padding: isMobile ? "14px 14px" : "24px 26px",
-                      boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
+                      boxShadow: "none",
                       display: "flex",
                       flexDirection: "column",
                       gap: isMobile ? 10 : 14,
@@ -916,10 +916,10 @@ export default function Resources() {
                   <div
                     style={{
                       background: "#ffffff",
-                      border: "1px solid #f1f5f9",
+                      border: "1px solid #e2e8f0",
                       borderRadius: 16,
                       padding: isMobile ? "14px 14px" : "24px 26px",
-                      boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
+                      boxShadow: "none",
                       display: "flex",
                       flexDirection: "column",
                       gap: isMobile ? 10 : 14,
@@ -1092,7 +1092,7 @@ export default function Resources() {
                       cursor: "pointer",
                       whiteSpace: "nowrap",
                       flexShrink: 0,
-                      boxShadow: "0 2px 8px rgba(21, 128, 61, 0.2)",
+                      boxShadow: "none",
                     }}
                   >
                     <span>Open Converter</span>
@@ -1116,7 +1116,7 @@ export default function Resources() {
                       border: "1px solid #e2e8f0",
                       borderRadius: isMobile ? 14 : 16,
                       padding: isMobile ? "16px 14px" : "22px 24px",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                      boxShadow: "none",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
@@ -1230,7 +1230,7 @@ export default function Resources() {
                       border: "1px solid #e2e8f0",
                       borderRadius: isMobile ? 14 : 16,
                       padding: isMobile ? "16px 14px" : "22px 24px",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                      boxShadow: "none",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
@@ -1330,7 +1330,7 @@ export default function Resources() {
                     border: "1px solid #e2e8f0",
                     borderRadius: isMobile ? 14 : 16,
                     padding: isMobile ? "16px 14px" : "22px 24px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                    boxShadow: "none",
                     display: "flex",
                     flexDirection: "column",
                     gap: 12,
@@ -1402,7 +1402,7 @@ export default function Resources() {
                     border: "1px solid #e2e8f0",
                     borderRadius: isMobile ? 14 : 16,
                     padding: isMobile ? "16px 14px" : "22px 24px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                    boxShadow: "none",
                     display: "flex",
                     flexDirection: "column",
                     gap: 12,
@@ -1603,7 +1603,7 @@ export default function Resources() {
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          boxShadow: "0 6px 16px rgba(37, 99, 235, 0.3)",
+                          boxShadow: "none",
                         }}
                       >
                         <GraduationCap size={28} />
@@ -1626,10 +1626,10 @@ export default function Resources() {
                 transition={{ duration: 0.22, ease: "easeInOut" }}
                 style={{
                   background: "#ffffff",
-                  border: "1px solid #f1f5f9",
+                  border: "1px solid #e2e8f0",
                   borderRadius: isMobile ? 16 : 20,
                   padding: isMobile ? "20px 14px" : "28px 28px",
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+                  boxShadow: "none",
                   display: "flex",
                   flexDirection: "column",
                   gap: isMobile ? 14 : 20,
@@ -1748,7 +1748,7 @@ export default function Resources() {
                           display: "flex",
                           flexDirection: "column",
                           gap: 8,
-                          boxShadow: "0 1px 4px rgba(0,0,0,0.02)",
+                          boxShadow: "none",
                           width: "100%",
                           boxSizing: "border-box",
                           overflow: "hidden",
@@ -1770,7 +1770,7 @@ export default function Resources() {
                                 fontWeight: 900,
                                 fontSize: 15,
                                 flexShrink: 0,
-                                boxShadow: `0 2px 5px ${g.color}20`,
+                                boxShadow: "none",
                               }}
                             >
                               {g.grade}
@@ -1986,7 +1986,7 @@ export default function Resources() {
                       cursor: "pointer",
                       whiteSpace: "nowrap",
                       flexShrink: 0,
-                      boxShadow: "0 2px 6px rgba(79, 70, 229, 0.25)",
+                      boxShadow: "none",
                       transition: "all 0.15s ease",
                       alignSelf: isMobile ? "stretch" : "center",
                       justifyContent: "center",
@@ -2011,10 +2011,10 @@ export default function Resources() {
                 transition={{ duration: 0.22, ease: "easeInOut" }}
                 style={{
                   background: "#ffffff",
-                  border: "1px solid #f1f5f9",
+                  border: "1px solid #e2e8f0",
                   borderRadius: isMobile ? 16 : 20,
                   padding: isMobile ? "20px 14px" : "28px 28px",
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+                  boxShadow: "none",
                   display: "flex",
                   flexDirection: "column",
                   gap: isMobile ? 16 : 20,
@@ -2280,7 +2280,7 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: isMobile ? 16 : 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0 }}
+                style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: isMobile ? 16 : 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "none", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0 }}
               >
                 <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
                   Unlockable Academic Badges
@@ -2343,10 +2343,10 @@ export default function Resources() {
                   transition={{ duration: 0.22, ease: "easeInOut" }}
                   style={{
                     background: "#ffffff",
-                    border: "1px solid #f1f5f9",
+                    border: "1px solid #e2e8f0",
                     borderRadius: isMobile ? 16 : 20,
                     padding: isMobile ? "20px 14px" : "28px 28px",
-                    boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+                    boxShadow: "none",
                     display: "flex",
                     flexDirection: "column",
                     width: "100%",
@@ -2464,7 +2464,7 @@ export default function Resources() {
                           transition: "all 0.15s ease",
                           background: convertDirection === "cgpa-to-pct" ? "#ffffff" : "transparent",
                           color: convertDirection === "cgpa-to-pct" ? "#2563eb" : "#64748b",
-                          boxShadow: convertDirection === "cgpa-to-pct" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+                          boxShadow: "none",
                         }}
                       >
                         CGPA → Percentage
@@ -2484,7 +2484,7 @@ export default function Resources() {
                           transition: "all 0.15s ease",
                           background: convertDirection === "pct-to-cgpa" ? "#ffffff" : "transparent",
                           color: convertDirection === "pct-to-cgpa" ? "#2563eb" : "#64748b",
-                          boxShadow: convertDirection === "pct-to-cgpa" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+                          boxShadow: "none",
                         }}
                       >
                         Percentage → CGPA
@@ -2862,7 +2862,7 @@ export default function Resources() {
                           borderRadius: 8,
                           fontSize: 12,
                           fontWeight: 700,
-                          boxShadow: "0 2px 6px rgba(21, 128, 61, 0.2)",
+                          boxShadow: "none",
                         }}
                       >
                         <span>View Official Circular PDF</span>
@@ -2983,7 +2983,7 @@ export default function Resources() {
                                 display: "flex",
                                 flexDirection: "column",
                                 gap: 6,
-                                boxShadow: isRowActive ? "0 3px 10px rgba(37,99,235,0.12)" : "0 1px 3px rgba(0,0,0,0.02)",
+                                boxShadow: "none",
                                 cursor: "pointer",
                                 transition: "all 0.15s ease",
                                 width: "100%",
@@ -3190,7 +3190,7 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: isMobile ? 16 : 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0 }}
+                style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: isMobile ? 16 : 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "none", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-start", flexDirection: isMobile ? "column" : "row", gap: 12, marginBottom: 16 }}>
                   <div>
@@ -3290,7 +3290,7 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: isMobile ? 16 : 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0 }}
+                style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: isMobile ? 16 : 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "none", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 20, flexDirection: isMobile ? "column" : "row", gap: 12 }}>
                   <div>
@@ -3411,7 +3411,7 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: isMobile ? 16 : 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0 }}
+                style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: isMobile ? 16 : 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "none", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 20, flexDirection: isMobile ? "column" : "row", gap: 12 }}>
                   <div>
@@ -3526,7 +3526,7 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: isMobile ? 16 : 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0 }}
+                style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: isMobile ? 16 : 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "none", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 20, flexDirection: isMobile ? "column" : "row", gap: 10 }}>
                   <div>
@@ -3599,7 +3599,7 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: isMobile ? 16 : 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0 }}
+                style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: isMobile ? 16 : 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "none", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0 }}
               >
                 <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>Frequently Asked Questions</h2>
                 <p style={{ fontSize: 13.5, color: "#64748b", margin: "0 0 20px 0" }}>Everything you need to know about Centurion University grading &amp; calculations.</p>

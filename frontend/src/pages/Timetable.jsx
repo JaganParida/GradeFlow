@@ -1101,7 +1101,7 @@ export default function Timetable() {
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 5,
-                        boxShadow: "0 1px 3px rgba(37, 99, 235, 0.2)",
+                        boxShadow: "none",
                       }}
                     >
                       <GraduationCap size={13} />
@@ -1147,7 +1147,7 @@ export default function Timetable() {
                         display: "flex",
                         alignItems: "center",
                         gap: 6,
-                        boxShadow: viewMode === "day" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+                        boxShadow: "none",
                         whiteSpace: "nowrap",
                         flexShrink: 0,
                         transition: "all 0.15s ease",
@@ -1172,7 +1172,7 @@ export default function Timetable() {
                         display: "flex",
                         alignItems: "center",
                         gap: 6,
-                        boxShadow: viewMode === "week" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+                        boxShadow: "none",
                         whiteSpace: "nowrap",
                         flexShrink: 0,
                         transition: "all 0.15s ease",
@@ -1199,7 +1199,7 @@ export default function Timetable() {
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
-                    boxShadow: viewMode === "academic" ? "0 1px 2px rgba(124,58,237,0.08)" : "none",
+                    boxShadow: "none",
                     whiteSpace: "nowrap",
                     flexShrink: 0,
                     transition: "all 0.15s ease",
@@ -1224,7 +1224,7 @@ export default function Timetable() {
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
-                    boxShadow: viewMode === "holidays" ? "0 1px 2px rgba(220,38,38,0.08)" : "none",
+                    boxShadow: "none",
                     whiteSpace: "nowrap",
                     flexShrink: 0,
                     transition: "all 0.15s ease",
@@ -3492,7 +3492,7 @@ export default function Timetable() {
                   padding: "24px 26px",
                   maxWidth: 440,
                   width: "100%",
-                  boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                  boxShadow: "none",
                   border: "1px solid #e2e8f0",
                 }}
               >

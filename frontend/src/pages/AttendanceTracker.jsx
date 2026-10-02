@@ -2898,7 +2898,7 @@ export default function AttendanceTracker() {
             borderRadius: 20,
             padding: isMobile ? "28px 20px" : "36px 32px",
             textAlign: "center",
-            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03)",
+            boxShadow: "none",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -3006,7 +3006,7 @@ export default function AttendanceTracker() {
                 fontSize: 13.5,
                 fontWeight: 700,
                 cursor: "pointer",
-                boxShadow: "0 2px 4px rgba(37, 99, 235, 0.2)",
+                boxShadow: "none",
                 transition: "all 0.15s ease",
               }}
             >
@@ -3094,7 +3094,7 @@ export default function AttendanceTracker() {
                 display: "flex",
                 flexDirection: "column",
                 gap: 13,
-                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02)",
+                boxShadow: "none",
               }}
             >
               {/* 1. Student Profile Header */}
@@ -3113,7 +3113,7 @@ export default function AttendanceTracker() {
                       fontSize: 16,
                       fontWeight: 800,
                       flexShrink: 0,
-                      boxShadow: "0 2px 6px rgba(15, 23, 42, 0.15)",
+                      boxShadow: "none",
                     }}
                   >
                     {activeStudentName ? activeStudentName.charAt(0).toUpperCase() : "A"}
@@ -3424,7 +3424,7 @@ export default function AttendanceTracker() {
                   background: scanStatus.isLimitReached ? "#475569" : "#0f172a",
                   color: "#ffffff",
                   cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
-                  boxShadow: "0 2px 6px rgba(15, 23, 42, 0.12)",
+                  boxShadow: "none",
                   transition: "all 0.15s ease",
                   boxSizing: "border-box",
                   fontFamily: "'DM Sans', sans-serif",
@@ -3542,7 +3542,7 @@ export default function AttendanceTracker() {
                             gap: 10,
                             width: "100%",
                             boxSizing: "border-box",
-                            boxShadow: "0 1px 4px rgba(15, 23, 42, 0.05)",
+                            boxShadow: "none",
                           }}
                         >
                           <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}>
@@ -3604,7 +3604,7 @@ export default function AttendanceTracker() {
                                 fontWeight: 750,
                                 textDecoration: "none",
                                 width: "fit-content",
-                                boxShadow: "0 1px 2px rgba(15, 23, 42, 0.1)",
+                                boxShadow: "none",
                               }}
                             >
                               <FileText size={12} />
@@ -3673,9 +3673,7 @@ export default function AttendanceTracker() {
                                     fontWeight: 700,
                                     cursor: "pointer",
                                     transition: "all 0.15s ease",
-                                    boxShadow: isSelected
-                                      ? "0 2px 4px rgba(15, 23, 42, 0.15)"
-                                      : "none",
+                                    boxShadow: "none",
                                     textAlign: "center",
                                     display: "flex",
                                     alignItems: "center",
@@ -3734,7 +3732,7 @@ export default function AttendanceTracker() {
                               cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
                               fontFamily: "'DM Sans', sans-serif",
                               transition: "all 0.15s ease",
-                              boxShadow: "0 2px 4px rgba(15, 23, 42, 0.08)",
+                              boxShadow: "none",
                             }}
                             onMouseEnter={(e) => {
                               if (!scanStatus.isLimitReached) {
@@ -3792,7 +3790,7 @@ export default function AttendanceTracker() {
                                   fontWeight: 700,
                                   cursor: "pointer",
                                   transition: "all 0.15s ease",
-                                  boxShadow: isSelected ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
+                                  boxShadow: "none",
                                 }}
                               >
                                 {goal}%
@@ -3821,7 +3819,7 @@ export default function AttendanceTracker() {
                       gap: 12,
                       width: "100%",
                       boxSizing: "border-box",
-                      boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02)",
+                      boxShadow: "none",
                       position: "relative",
                       overflow: "hidden",
                     }}
@@ -3912,7 +3910,7 @@ export default function AttendanceTracker() {
                             fontSize: 12,
                             fontWeight: 750,
                             textDecoration: "none",
-                            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.12)",
+                            boxShadow: "none",
                             transition: "background 0.15s ease",
                           }}
                           onMouseEnter={(e) => { e.currentTarget.style.background = "#1e293b"; }}
@@ -3966,7 +3964,7 @@ export default function AttendanceTracker() {
                     flexDirection: "column",
                     gap: 6,
                     position: "relative",
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)",
+                    boxShadow: "none",
                     transition: "all 0.2s ease",
                   }}
                 >
@@ -4007,7 +4005,7 @@ export default function AttendanceTracker() {
                     display: "flex",
                     flexDirection: "column",
                     gap: 6,
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)",
+                    boxShadow: "none",
                     transition: "all 0.2s ease",
                   }}
                 >
@@ -4066,11 +4064,7 @@ export default function AttendanceTracker() {
                     flexDirection: "column",
                     gap: 6,
                     cursor: (overallCalculation.classesNeeded > 0 || overallCalculation.safeBunks > 0) ? "pointer" : "default",
-                    boxShadow: isRecoveryHighlightActive
-                      ? "0 0 0 2px rgba(217, 119, 6, 0.25)"
-                      : isSafeMarginHighlightActive
-                      ? "0 0 0 2px rgba(22, 163, 74, 0.2)"
-                      : "0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)",
+                    boxShadow: "none",
                     transition: "all 0.2s ease",
                   }}
                   title={
@@ -4150,9 +4144,7 @@ export default function AttendanceTracker() {
                     flexDirection: "column",
                     gap: 6,
                     cursor: shortageCount > 0 ? "pointer" : "default",
-                    boxShadow: isShortageHighlightActive
-                      ? "0 0 0 2px rgba(234, 88, 12, 0.2)"
-                      : "0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)",
+                    boxShadow: "none",
                     transition: "all 0.2s ease",
                   }}
                   title={shortageCount > 0 ? "Click to highlight shortage subjects for 1 minute" : undefined}
@@ -4233,7 +4225,7 @@ export default function AttendanceTracker() {
                 display: "flex",
                 flexDirection: "column",
                 gap: 16,
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
+                boxShadow: "none",
                 overflow: "hidden",
               }}
             >
@@ -4266,7 +4258,7 @@ export default function AttendanceTracker() {
                       alignItems: "center",
                       justifyContent: "center",
                       flexShrink: 0,
-                      boxShadow: "0 2px 6px rgba(15, 23, 42, 0.12)",
+                      boxShadow: "none",
                     }}
                   >
                     <CalendarIcon size={18} />
@@ -4480,7 +4472,7 @@ export default function AttendanceTracker() {
                       alignItems: "center",
                       gap: 4,
                       transition: "all 0.15s ease",
-                      boxShadow: canGoPrev ? "0 1px 2px rgba(0,0,0,0.02)" : "none",
+                      boxShadow: "none",
                     }}
                     title={canGoPrev ? "Go to previous day" : `Initial tracking start date (${formatFriendlyDate(minTrackingDateKey)})`}
                   >
@@ -4505,7 +4497,7 @@ export default function AttendanceTracker() {
                       fontWeight: 700,
                       color: "#0f172a",
                       cursor: "pointer",
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+                      boxShadow: "none",
                       transition: "all 0.15s ease",
                       overflow: "hidden",
                     }}
@@ -4571,7 +4563,7 @@ export default function AttendanceTracker() {
                       alignItems: "center",
                       gap: 4,
                       transition: "all 0.15s ease",
-                      boxShadow: canGoNext ? "0 1px 2px rgba(0,0,0,0.02)" : "none",
+                      boxShadow: "none",
                     }}
                     title={canGoNext ? "Go to next day" : "Cannot mark future dates beyond today"}
                   >
@@ -4603,7 +4595,7 @@ export default function AttendanceTracker() {
                       border: "none",
                       background: isSelectedToday ? "#ffffff" : "transparent",
                       color: isSelectedToday ? "#0f172a" : "#64748b",
-                      boxShadow: isSelectedToday ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                      boxShadow: "none",
                       transition: "all 0.15s ease",
                       display: "inline-flex",
                       alignItems: "center",
@@ -4627,7 +4619,7 @@ export default function AttendanceTracker() {
                         border: "none",
                         background: isSelectedYesterday ? "#ffffff" : "transparent",
                         color: isSelectedYesterday ? "#0f172a" : "#64748b",
-                        boxShadow: isSelectedYesterday ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                        boxShadow: "none",
                         transition: "all 0.15s ease",
                       }}
                     >
@@ -4650,7 +4642,7 @@ export default function AttendanceTracker() {
                     alignItems: isMobile ? "stretch" : "center",
                     justifyContent: "space-between",
                     gap: 10,
-                    boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+                    boxShadow: "none",
                     width: "100%",
                     boxSizing: "border-box",
                   }}
@@ -4692,19 +4684,17 @@ export default function AttendanceTracker() {
                       border: "1px solid rgba(255, 255, 255, 0.22)",
                       cursor: "pointer",
                       whiteSpace: "nowrap",
-                      boxShadow: "0 2px 5px rgba(0, 0, 0, 0.22)",
+                      boxShadow: "none",
                       transition: "all 0.16s ease",
                       width: isMobile ? "100%" : "auto",
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background = "#18181b";
                       e.currentTarget.style.transform = "translateY(-1px)";
-                      e.currentTarget.style.boxShadow = "0 4px 10px rgba(0, 0, 0, 0.35)";
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = "#000000";
                       e.currentTarget.style.transform = "translateY(0)";
-                      e.currentTarget.style.boxShadow = "0 2px 5px rgba(0, 0, 0, 0.22)";
                     }}
                   >
                     <AdvisorIcon size={14} color="#ffffff" />
@@ -4836,11 +4826,7 @@ export default function AttendanceTracker() {
                               flexDirection: "column",
                               justifyContent: "space-between",
                               gap: 12,
-                              boxShadow: isPresent
-                                ? "0 1px 3px rgba(16, 185, 129, 0.08)"
-                                : isAbsent
-                                ? "0 1px 3px rgba(244, 63, 94, 0.08)"
-                                : "0 1px 2px rgba(0, 0, 0, 0.02)",
+                              boxShadow: "none",
                               transition: "all 0.15s ease",
                             }}
                           >
@@ -4999,7 +4985,7 @@ export default function AttendanceTracker() {
                                   justifyContent: "center",
                                   gap: 5,
                                   transition: "all 0.15s ease",
-                                  boxShadow: isPresent ? "0 2px 4px rgba(5, 150, 105, 0.25)" : "none",
+                                  boxShadow: "none",
                                 }}
                                 onMouseEnter={(e) => {
                                   if (!isPresent) {
@@ -5036,7 +5022,7 @@ export default function AttendanceTracker() {
                                   justifyContent: "center",
                                   gap: 5,
                                   transition: "all 0.15s ease",
-                                  boxShadow: isAbsent ? "0 2px 4px rgba(225, 29, 72, 0.25)" : "none",
+                                  boxShadow: "none",
                                 }}
                                 onMouseEnter={(e) => {
                                   if (!isAbsent) {
@@ -5089,7 +5075,7 @@ export default function AttendanceTracker() {
                 display: "flex",
                 flexDirection: "column",
                 gap: 16,
-                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+                boxShadow: "none",
               }}
             >
               {/* Header: Title & Description */}
@@ -5105,7 +5091,7 @@ export default function AttendanceTracker() {
                       alignItems: "center",
                       justifyContent: "center",
                       color: "#ffffff",
-                      boxShadow: "0 2px 5px rgba(15, 23, 42, 0.15)",
+                      boxShadow: "none",
                       flexShrink: 0,
                     }}
                   >
@@ -5254,28 +5240,14 @@ export default function AttendanceTracker() {
                           justifyContent: "space-between",
                           gap: 12,
                           cursor: "pointer",
-                          boxShadow: isRecoveryAndHighlighted
-                            ? (isUnattainable ? "0 0 0 3px rgba(225, 29, 72, 0.25)" : "0 0 0 3px rgba(217, 119, 6, 0.25)")
-                            : isSafeAndHighlighted
-                            ? "0 0 0 2px rgba(22, 163, 74, 0.2)"
-                            : isShortageAndHighlighted
-                            ? "0 0 0 2px rgba(239, 68, 68, 0.2)"
-                            : "0 1px 2px rgba(0, 0, 0, 0.02)",
+                          boxShadow: "none",
                           transition: "all 0.2s ease",
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.transform = "translateY(-2px)";
-                          e.currentTarget.style.boxShadow = "0 6px 16px rgba(15, 23, 42, 0.06)";
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.transform = "translateY(0)";
-                          e.currentTarget.style.boxShadow = isRecoveryAndHighlighted
-                            ? (isUnattainable ? "0 0 0 3px rgba(225, 29, 72, 0.25)" : "0 0 0 3px rgba(217, 119, 6, 0.25)")
-                            : isSafeAndHighlighted
-                            ? "0 0 0 2px rgba(22, 163, 74, 0.2)"
-                            : isShortageAndHighlighted
-                            ? "0 0 0 2px rgba(239, 68, 68, 0.2)"
-                            : "0 1px 2px rgba(0, 0, 0, 0.02)";
                         }}
                       >
                         <div>
@@ -5582,7 +5554,7 @@ export default function AttendanceTracker() {
                 border: "1px solid #e2e8f0",
                 borderRadius: 14,
                 padding: isMobile ? "14px" : "16px 20px",
-                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+                boxShadow: "none",
               }}
             >
               <div>
@@ -5646,7 +5618,7 @@ export default function AttendanceTracker() {
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 4.5,
-                            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.12)",
+                            boxShadow: "none",
                             transition: "all 0.15s ease",
                           }}
                           onMouseEnter={(e) => {
@@ -5694,7 +5666,7 @@ export default function AttendanceTracker() {
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 4,
-                            boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
+                            boxShadow: "none",
                             transition: "all 0.15s ease",
                           }}
                           onMouseEnter={(e) => {
@@ -5729,7 +5701,7 @@ export default function AttendanceTracker() {
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 4,
-                            boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
+                            boxShadow: "none",
                             transition: "all 0.15s ease",
                           }}
                           onMouseEnter={(e) => {
@@ -5769,7 +5741,7 @@ export default function AttendanceTracker() {
                   fontWeight: 700,
                   color: "#0f172a",
                   alignSelf: isMobile ? "flex-start" : "center",
-                  boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
+                  boxShadow: "none",
                 }}
               >
                 <CalendarIcon size={13} color="#475569" />
@@ -5823,7 +5795,7 @@ export default function AttendanceTracker() {
                   border: "1px solid #e2e8f0",
                   borderRadius: 14,
                   padding: isMobile ? "16px 14px" : "20px 22px",
-                  boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
+                  boxShadow: "none",
                   display: "flex",
                   flexDirection: "column",
                   gap: 14,
@@ -6095,7 +6067,7 @@ export default function AttendanceTracker() {
                               gap: 8,
                               opacity: 1,
                               filter: "none",
-                              boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+                              boxShadow: "none",
                               transition: "all 0.15s ease",
                               position: "relative",
                             }}
@@ -6348,7 +6320,7 @@ export default function AttendanceTracker() {
                   display: "flex",
                   flexDirection: "column",
                   gap: 16,
-                  boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+                  boxShadow: "none",
                   position: "relative",
                   overflow: "hidden",
                 }}
@@ -6749,7 +6721,7 @@ export default function AttendanceTracker() {
                     display: "flex",
                     flexDirection: "column",
                     gap: 14,
-                    boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+                    boxShadow: "none",
                   }}
                 >
                   {/* Top Bar: Title + Badges + Auto-Import Action */}
@@ -6990,7 +6962,7 @@ export default function AttendanceTracker() {
               display: "flex",
               flexDirection: "column",
               gap: 16,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+              boxShadow: "none",
               minWidth: 0,
               overflow: "visible",
             }}
@@ -7029,7 +7001,7 @@ export default function AttendanceTracker() {
                     display: "flex",
                     alignItems: "center",
                     gap: 5,
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                    boxShadow: "none",
                     transition: "all 0.15s ease",
                   }}
                 >
@@ -7055,7 +7027,7 @@ export default function AttendanceTracker() {
                       display: "flex",
                       flexDirection: "column",
                       gap: isMobile ? 10 : 14,
-                      boxShadow: isMobile ? "0 1px 3px rgba(0,0,0,0.02)" : "0 2px 8px rgba(0,0,0,0.03)",
+                      boxShadow: "none",
                       minWidth: 0,
                     }}
                   >
@@ -7186,7 +7158,7 @@ export default function AttendanceTracker() {
                             padding: isMobile ? "3px 4px" : "5px 8px",
                             width: "100%",
                             boxSizing: "border-box",
-                            boxShadow: isMobile ? "none" : "0 1px 2px rgba(0, 0, 0, 0.02)",
+                            boxShadow: "none",
                           }}
                         >
                           <button
@@ -7301,7 +7273,7 @@ export default function AttendanceTracker() {
                             padding: isMobile ? "3px 4px" : "5px 8px",
                             width: "100%",
                             boxSizing: "border-box",
-                            boxShadow: isMobile ? "none" : "0 1px 2px rgba(0, 0, 0, 0.02)",
+                            boxShadow: "none",
                           }}
                         >
                           <button
@@ -7429,7 +7401,7 @@ export default function AttendanceTracker() {
                     cursor: "pointer",
                     flexShrink: 0,
                     transition: "all 0.15s ease",
-                    boxShadow: isVerifiedDisclaimerChecked ? "0 2px 6px rgba(5, 150, 105, 0.35)" : "none",
+                    boxShadow: "none",
                   }}
                 >
                   {isVerifiedDisclaimerChecked && (
@@ -7462,7 +7434,7 @@ export default function AttendanceTracker() {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 8,
-                  boxShadow: isVerifiedDisclaimerChecked && !isCurrentActiveZeroByZero ? "0 4px 12px rgba(5, 150, 105, 0.25)" : "none",
+                  boxShadow: "none",
                   transition: "all 0.15s ease",
                 }}
               >
@@ -7522,7 +7494,7 @@ export default function AttendanceTracker() {
               display: "flex",
               flexDirection: "column",
               gap: 16,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+              boxShadow: "none",
               minWidth: 0,
               overflow: "hidden",
             }}
@@ -7946,7 +7918,7 @@ export default function AttendanceTracker() {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 7,
-                  boxShadow: "0 2px 5px rgba(0, 0, 0, 0.22)",
+                  boxShadow: "none",
                   transition: "all 0.15s ease",
                   marginTop: 2,
                 }}
@@ -8051,8 +8023,7 @@ export default function AttendanceTracker() {
                   border: "1px solid rgba(255, 255, 255, 0.12)",
                   borderRadius: 14,
                   padding: isMobile ? "10px 14px" : "11px 18px",
-                  boxShadow:
-                    "0 12px 36px -4px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(245, 158, 11, 0.28)",
+                  boxShadow: "none",
                   maxWidth: isMobile ? "100%" : 560,
                   width: "auto",
                   display: "flex",
@@ -8155,7 +8126,7 @@ export default function AttendanceTracker() {
           border: "1px solid #fca5a5",
           borderRadius: 8,
           padding: "12px 16px",
-          boxShadow: "0 4px 14px rgba(220, 38, 38, 0.12)",
+          boxShadow: "none",
           maxWidth: 380,
           display: "flex",
           alignItems: "flex-start",
@@ -8245,7 +8216,7 @@ export default function AttendanceTracker() {
                     maxWidth: "100%",
                     margin: "auto",
                     border: "1px solid #e2e8f0",
-                    boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.05)",
+                    boxShadow: "none",
                     display: "flex",
                     flexDirection: "column",
                     gap: 15,
@@ -8352,7 +8323,7 @@ export default function AttendanceTracker() {
                             fontSize: 12.5,
                             fontWeight: 700,
                             cursor: "pointer",
-                            boxShadow: "0 2px 8px rgba(220, 38, 38, 0.25)",
+                            boxShadow: "none",
                             fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                             transition: "all 0.15s ease",
                             display: "flex",
@@ -8502,7 +8473,7 @@ export default function AttendanceTracker() {
                           alignItems: "center",
                           justifyContent: "center",
                           gap: 8,
-                          boxShadow: "0 3px 10px rgba(15, 23, 42, 0.18)",
+                          boxShadow: "none",
                           fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                           transition: "all 0.15s ease",
                         }}

@@ -847,7 +847,7 @@ export default function Analytics() {
             border: "1px solid #cbd5e1",
             borderRadius: 16,
             padding: isMobile ? "14px 14px" : "20px 24px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 4px 14px rgba(15,23,42,0.03)",
+            boxShadow: "none",
             display: "flex",
             flexDirection: "column",
             gap: isMobile ? 12 : 16,
@@ -1006,7 +1006,7 @@ export default function Analytics() {
                       fontWeight: isActive ? 800 : 600,
                       cursor: "pointer",
                       transition: "all 0.15s ease",
-                      boxShadow: isActive ? "0 2px 6px rgba(15, 23, 42, 0.06)" : "none",
+                      boxShadow: "none",
                       whiteSpace: "nowrap",
                       fontFamily: "'DM Sans', sans-serif",
                     }}
@@ -1038,7 +1038,7 @@ export default function Analytics() {
             >
               {/* 4 Core Academic Metric Cards (2x2 on Mobile, 4-col on Desktop) */}
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: isMobile ? 8 : 16 }}>
-                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
                   <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Cumulative CGPA
                   </div>
@@ -1050,7 +1050,7 @@ export default function Analytics() {
                   </div>
                 </div>
 
-                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
                   <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Latest SGPA
                   </div>
@@ -1062,7 +1062,7 @@ export default function Analytics() {
                   </div>
                 </div>
 
-                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
                   <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Earned Credits
                   </div>
@@ -1077,7 +1077,7 @@ export default function Analytics() {
                   </div>
                 </div>
 
-                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
                   <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Academic Standing
                   </div>
@@ -1097,7 +1097,7 @@ export default function Analytics() {
                   border: "1px solid #cbd5e1",
                   borderRadius: 16,
                   padding: isMobile ? "14px 16px" : "18px 22px",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                  boxShadow: "none",
                   display: "flex",
                   flexDirection: isMobile ? "column" : "row",
                   alignItems: isMobile ? "stretch" : "center",
@@ -1219,7 +1219,7 @@ export default function Analytics() {
               </div>
 
               {/* Charts Row */}
-              <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 16, padding: isMobile ? "14px 14px" : "22px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column" }}>
+              <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 16, padding: isMobile ? "14px 14px" : "22px 24px", boxShadow: "none", display: "flex", flexDirection: "column" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: isMobile ? 12 : 18 }}>
                   <div>
                     <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", display: "flex", alignItems: "center", gap: 6 }}>
@@ -1250,7 +1250,7 @@ export default function Analytics() {
                           background: "#ffffff",
                           border: "1px solid #cbd5e1",
                           borderRadius: 10,
-                          boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+                          boxShadow: "none",
                           color: "#0f172a",
                           fontSize: 12,
                         }}
@@ -1284,7 +1284,7 @@ export default function Analytics() {
             >
               {/* 4 Grade KPI Cards */}
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(230px, 1fr))", gap: isMobile ? 8 : 16 }}>
-                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
                   <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Total Graded Courses
                   </div>
@@ -1296,7 +1296,7 @@ export default function Analytics() {
                   </div>
                 </div>
 
-                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
                   <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Honours Grade Ratio (O/E/A)
                   </div>
@@ -1308,7 +1308,7 @@ export default function Analytics() {
                   </div>
                 </div>
 
-                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
                   <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Outstanding 'O' Grades (10 Pts)
                   </div>
@@ -1320,7 +1320,7 @@ export default function Analytics() {
                   </div>
                 </div>
 
-                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
                   <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Remedial / Backlogs
                   </div>
@@ -1334,7 +1334,7 @@ export default function Analytics() {
               </div>
 
               {/* Grade Distribution BarChart Card */}
-              <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 16, padding: isMobile ? "14px 14px" : "24px 26px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column", gap: isMobile ? 12 : 18 }}>
+              <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 16, padding: isMobile ? "14px 14px" : "24px 26px", boxShadow: "none", display: "flex", flexDirection: "column", gap: isMobile ? 12 : 18 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
                   <div>
                     <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", display: "flex", alignItems: "center", gap: 6 }}>
@@ -1357,7 +1357,7 @@ export default function Analytics() {
                           background: "#ffffff",
                           border: "1px solid #cbd5e1",
                           borderRadius: 10,
-                          boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+                          boxShadow: "none",
                           color: "#0f172a",
                           fontSize: 12,
                         }}
@@ -1413,7 +1413,7 @@ export default function Analytics() {
                           cursor: isClickable ? "pointer" : "default",
                           opacity: isClickable ? 1 : 0.55,
                           transform: isSelected ? "scale(1.025)" : "none",
-                          boxShadow: isSelected ? `0 0 0 2px ${g.color}35, 0 4px 12px ${g.color}20` : "none",
+                          boxShadow: "none",
                           transition: "all 0.18s ease",
                           position: "relative",
                         }}
@@ -1476,7 +1476,7 @@ export default function Analytics() {
                           border: `1.5px solid ${GRADE_META[selectedGradeFilter]?.border || "#cbd5e1"}`,
                           borderRadius: 14,
                           padding: isMobile ? "14px 12px" : "18px 20px",
-                          boxShadow: `0 4px 16px ${GRADE_META[selectedGradeFilter]?.color || "#cbd5e1"}15`,
+                          boxShadow: "none",
                           display: "flex",
                           flexDirection: "column",
                           gap: 12,
@@ -1623,7 +1623,7 @@ export default function Analytics() {
                                     onMouseEnter={(e) => {
                                       e.currentTarget.style.background = "#ffffff";
                                       e.currentTarget.style.borderColor = GRADE_META[selectedGradeFilter]?.color || "#cbd5e1";
-                                      e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.04)";
+                                      e.currentTarget.style.boxShadow = "none";
                                     }}
                                     onMouseLeave={(e) => {
                                       e.currentTarget.style.background = "#f8fafc";
@@ -1754,7 +1754,7 @@ export default function Analytics() {
                 border: "1px solid #cbd5e1",
                 borderRadius: 16,
                 padding: isMobile ? "14px 14px" : "24px 26px",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                boxShadow: "none",
               }}
             >
               <CompanyEligibility branch={dynamicBranch} cgpa={cgpa} regNo={regNo} />
@@ -1774,7 +1774,7 @@ export default function Analytics() {
               style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 20 }}
             >
               {/* Radar Chart Card */}
-              <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 16, padding: isMobile ? "14px 14px" : "22px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column" }}>
+              <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 16, padding: isMobile ? "14px 14px" : "22px 24px", boxShadow: "none", display: "flex", flexDirection: "column" }}>
                 <div style={{ marginBottom: isMobile ? 12 : 18 }}>
                   <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", display: "flex", alignItems: "center", gap: 6 }}>
                     <Target size={16} color="#d97706" /> Curriculum Mastery Profile
@@ -1801,7 +1801,7 @@ export default function Analytics() {
               </div>
 
               {/* AI Insights Card */}
-              <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 16, padding: isMobile ? "14px 14px" : "24px 26px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column", gap: isMobile ? 10 : 16 }}>
+              <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 16, padding: isMobile ? "14px 14px" : "24px 26px", boxShadow: "none", display: "flex", flexDirection: "column", gap: isMobile ? 10 : 16 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
                   <div>
                     <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", display: "flex", alignItems: "center", gap: 6 }}>
@@ -1863,7 +1863,7 @@ export default function Analytics() {
                   border: "1px solid #cbd5e1",
                   borderRadius: 16,
                   padding: isMobile ? "14px 14px" : "26px 28px",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 4px 14px rgba(15,23,42,0.03)",
+                  boxShadow: "none",
                   display: "flex",
                   flexDirection: "column",
                   gap: isMobile ? 14 : 22,
@@ -2113,7 +2113,7 @@ export default function Analytics() {
                   border: "1px solid #cbd5e1",
                   borderRadius: 16,
                   padding: isMobile ? "14px 14px" : "24px 28px",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                  boxShadow: "none",
                 }}
               >
                 <h4 style={{ fontSize: isMobile ? 13.5 : 15, fontWeight: 800, color: "#0f172a", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
@@ -2178,7 +2178,7 @@ export default function Analytics() {
                   border: "1px solid #cbd5e1",
                   borderRadius: 16,
                   padding: isMobile ? "14px 14px" : "24px 26px",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 4px 14px rgba(15,23,42,0.03)",
+                  boxShadow: "none",
                   display: "flex",
                   flexDirection: "column",
                   gap: isMobile ? 12 : 18,
@@ -2416,7 +2416,7 @@ export default function Analytics() {
                             cursor: "pointer",
                             transition: "all 0.15s ease",
                             whiteSpace: "nowrap",
-                            boxShadow: isSelected ? "0 2px 8px rgba(99,102,241,0.15)" : "none",
+                            boxShadow: "none",
                             flexShrink: 0,
                           }}
                         >
@@ -2732,11 +2732,7 @@ export default function Analytics() {
                             : "1px solid #cbd5e1",
                           borderRadius: 14,
                           padding: isMobile ? "12px 14px" : "16px 18px",
-                          boxShadow: isCleared
-                            ? "0 4px 14px rgba(16, 185, 129, 0.12)"
-                            : isModified
-                            ? "0 4px 14px rgba(139, 92, 246, 0.08)"
-                            : "0 1px 3px rgba(0,0,0,0.03)",
+                          boxShadow: "none",
                           display: "flex",
                           flexDirection: "column",
                           justifyContent: "space-between",
