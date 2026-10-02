@@ -3075,7 +3075,7 @@ export default function AttendanceTracker() {
           <aside
             style={{
               position: "sticky",
-              top: 80,
+              top: 84,
               alignSelf: "start",
               display: "flex",
               flexDirection: "column",
@@ -3473,19 +3473,13 @@ export default function AttendanceTracker() {
             </div>
           )}
 
-          {/* Top Academic & Attendance Overview Header Card */}
-          <div
+          {/* Top Academic & Attendance Overview Header (Clean Canvas - Unboxed) */}
+          <header
             style={{
-              background: "#ffffff",
-              border: "1px solid #e2e8f0",
-              borderRadius: 14,
-              padding: isMobile ? "12px 14px" : "18px 20px",
               display: "flex",
               flexDirection: "column",
               gap: isMobile ? 10 : 14,
-              boxShadow: "none",
               width: "100%",
-              boxSizing: "border-box",
             }}
           >
             {/* Header Content */}
@@ -3775,7 +3769,7 @@ export default function AttendanceTracker() {
                     </div>
                   )}
                 </div>
-              </div>
+              </header>
 
               {/* Modern Interactive Mobile Sub-Navigation (Rendered cleanly below header) */}
               {isMobile && (

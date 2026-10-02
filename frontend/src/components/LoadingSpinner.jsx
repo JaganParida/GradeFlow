@@ -833,20 +833,15 @@ export function DashboardSkeleton() {
 
       {/* ── Right / Main Content Area Skeleton ── */}
       <div className="gf-dashboard-skeleton-main">
-        {/* Top Header Card Skeleton */}
+        {/* Top Header Canvas (Unboxed directly on canvas) */}
         <div
           style={{
-            background: "#ffffff",
-            border: "1px solid #e2e8f0",
-            borderRadius: 14,
-            padding: "18px 22px",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             flexWrap: "wrap",
             gap: 12,
-            boxSizing: "border-box",
-            width: "100%",
+            paddingBottom: 2,
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -2197,22 +2192,8 @@ export function AttendanceSkeleton() {
             </div>
           </div>
 
-          {/* Academic Overview Header Card Skeleton */}
-          <div
-            style={{
-              background: "#ffffff",
-              border: "1px solid #e2e8f0",
-              borderRadius: 14,
-              padding: "16px 20px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-              flexWrap: "wrap",
-              width: "100%",
-              boxSizing: "border-box",
-            }}
-          >
+          {/* Academic Overview Header Canvas (Unboxed on canvas) */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", width: "100%" }}>
             {/* Title & Section Tag */}
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
               <SkeletonBlock w="220px" h="22px" r="5px" />
