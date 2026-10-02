@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { BookOpen, ChevronDown, Check, Search, X, ArrowUpDown } from "lucide-react";
+import { BookOpen, ChevronDown, Check } from "lucide-react";
 import { resolveSubjectCode } from "../utils/timetableHelper";
 
 // Helper to normalize and compare subject names
@@ -33,9 +33,8 @@ export default function SubjectDropdown({
   placeholder = "Select Subject...",
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
   const dropdownRef = useRef(null);
-  const searchInputRef = useRef(null);
+  const listRef = useRef(null);
 
   // Close on outside click
   useEffect(() => {
@@ -46,7 +45,7 @@ export default function SubjectDropdown({
     }
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("touchstart", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside, { passive: true });
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
@@ -54,15 +53,47 @@ export default function SubjectDropdown({
     };
   }, [isOpen]);
 
-  // Focus search input when dropdown opens
+  // Bulletproof scroll isolation: prevents background page from scrolling when scrolling inside the dropdown list
   useEffect(() => {
-    if (isOpen && searchInputRef.current) {
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 50);
-    } else {
-      setSearchTerm("");
-    }
+    if (!isOpen) return;
+    const el = listRef.current;
+    if (!el) return;
+
+    let touchStartY = 0;
+    const onTouchStart = (e) => {
+      touchStartY = e.touches[0]?.clientY || 0;
+    };
+
+    const onTouchMove = (e) => {
+      const currentY = e.touches[0]?.clientY || 0;
+      const diffY = touchStartY - currentY;
+      const isAtTop = el.scrollTop <= 0 && diffY < 0;
+      const isAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1 && diffY > 0;
+
+      if (isAtTop || isAtBottom) {
+        if (e.cancelable) e.preventDefault();
+      }
+      e.stopPropagation();
+    };
+
+    const onWheel = (e) => {
+      const isAtTop = el.scrollTop <= 0 && e.deltaY < 0;
+      const isAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1 && e.deltaY > 0;
+      if (isAtTop || isAtBottom) {
+        if (e.cancelable) e.preventDefault();
+      }
+      e.stopPropagation();
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("wheel", onWheel, { passive: false });
+
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("wheel", onWheel);
+    };
   }, [isOpen]);
 
   // Active catalog item
@@ -99,17 +130,6 @@ export default function SubjectDropdown({
     if (!activeItem) return "";
     return activeStats?.code || activeItem?.code || activeItem?.subCode || resolveSubjectCode({ subject: activeItem?.subjectName }, studentData) || "";
   }, [activeItem, activeStats, studentData]);
-
-  // Filtered catalog list
-  const filteredCatalog = useMemo(() => {
-    if (!searchTerm.trim()) return catalog;
-    const term = searchTerm.toLowerCase();
-    return catalog.filter((item) => {
-      const name = (item.subjectName || "").toLowerCase();
-      const code = (item.code || resolveSubjectCode({ subject: item.subjectName }, studentData) || "").toLowerCase();
-      return name.includes(term) || code.includes(term);
-    });
-  }, [catalog, searchTerm, studentData]);
 
   const handleSelect = (item) => {
     onSelectSubject(item);
@@ -328,116 +348,29 @@ export default function SubjectDropdown({
             }
           `}</style>
 
-          {/* Quick Search Bar (if 3 or more subjects) */}
-          {catalog.length >= 3 && (
+          {/* Scrollable Subjects List with Peek Affordance (4th item sliced in half) */}
+          <div style={{ position: "relative", width: "100%", minHeight: 0 }}>
             <div
+              ref={listRef}
+              className="subject-dropdown-scroll"
+              data-lenis-prevent="true"
               style={{
-                position: "relative",
-                marginBottom: 6,
-                padding: "2px 0",
-                flexShrink: 0,
+                overflowY: "auto",
+                maxHeight: isMobile ? "min(218px, 45vh)" : "285px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+                paddingRight: 4,
+                paddingBottom: 6,
+                overscrollBehavior: "contain",
+                WebkitOverflowScrolling: "touch",
+                touchAction: "pan-y",
+                scrollbarWidth: "thin",
+                scrollbarColor: "#cbd5e1 transparent",
               }}
+              onWheel={(e) => e.stopPropagation()}
             >
-              <Search
-                size={14}
-                color="#94a3b8"
-                style={{
-                  position: "absolute",
-                  left: 10,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  pointerEvents: "none",
-                }}
-              />
-              <input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Search subject by name or code..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "7.5px 28px 7.5px 30px",
-                  fontSize: 12.5,
-                  fontWeight: 600,
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 8,
-                  background: "#f8fafc",
-                  color: "#0f172a",
-                  outline: "none",
-                  boxSizing: "border-box",
-                  transition: "all 0.15s ease",
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = "#94a3b8";
-                  e.target.style.background = "#ffffff";
-                  e.target.style.boxShadow = "0 0 0 2px rgba(15, 23, 42, 0.05)";
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = "#e2e8f0";
-                  e.target.style.background = "#f8fafc";
-                  e.target.style.boxShadow = "none";
-                }}
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm("")}
-                  style={{
-                    position: "absolute",
-                    right: 8,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "#94a3b8",
-                    display: "flex",
-                    alignItems: "center",
-                    padding: 2,
-                  }}
-                >
-                  <X size={13} />
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Subjects List */}
-          <div
-            className="subject-dropdown-scroll"
-            data-lenis-prevent="true"
-            style={{
-              overflowY: "auto",
-              flex: "1 1 auto",
-              minHeight: 0,
-              maxHeight: isMobile ? "55vh" : 350,
-              display: "flex",
-              flexDirection: "column",
-              gap: 3,
-              paddingRight: 4,
-              overscrollBehavior: "contain",
-              WebkitOverflowScrolling: "touch",
-              touchAction: "pan-y",
-              scrollbarWidth: "thin",
-              scrollbarColor: "#cbd5e1 transparent",
-            }}
-            onWheel={(e) => e.stopPropagation()}
-          >
-            {filteredCatalog.length === 0 ? (
-              <div
-                style={{
-                  padding: "16px 12px",
-                  textAlign: "center",
-                  fontSize: 12.5,
-                  color: "#94a3b8",
-                  fontWeight: 600,
-                }}
-              >
-                No subjects matching "{searchTerm}"
-              </div>
-            ) : (
-              filteredCatalog.map((item) => {
+              {catalog.map((item) => {
                 const isSelected = activeItem && activeItem.subjectName === item.subjectName;
                 const stats = getSubjectAttendance(item);
                 const code = item.code || item.subCode || stats.code || resolveSubjectCode({ subject: item.subjectName }, studentData) || "";
@@ -531,7 +464,23 @@ export default function SubjectDropdown({
                     </div>
                   </button>
                 );
-              })
+              })}
+            </div>
+
+            {/* Subtle bottom fade peek indicator (showing user there is more to scroll) */}
+            {catalog.length > 3 && (
+              <div
+                style={{
+                  pointerEvents: "none",
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 4,
+                  height: 18,
+                  background: "linear-gradient(to top, rgba(255,255,255,0.92), rgba(255,255,255,0))",
+                  borderRadius: "0 0 10px 10px",
+                }}
+              />
             )}
           </div>
         </div>
