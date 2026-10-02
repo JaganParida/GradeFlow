@@ -1122,9 +1122,8 @@ export default function Analytics() {
               <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 14, padding: isMobile ? "14px 14px" : "22px 24px", boxShadow: "none", display: "flex", flexDirection: "column" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: isMobile ? 12 : 18 }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", display: "flex", alignItems: "flex-start", gap: 7 }}>
-                      <TrendingUp size={16} color="#2563eb" style={{ flexShrink: 0, marginTop: 2 }} />
-                      <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}>Performance Progression</span>
+                    <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", wordBreak: "break-word" }}>
+                      Performance Progression
                     </h3>
                     <p style={{ color: "#64748b", fontSize: isMobile ? 11 : 12.5, margin: 0 }}>
                       Performance trajectory across completed semesters
@@ -1238,9 +1237,8 @@ export default function Analytics() {
               <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 16, padding: isMobile ? "14px 14px" : "24px 26px", boxShadow: "none", display: "flex", flexDirection: "column", gap: isMobile ? 12 : 18 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", display: "flex", alignItems: "flex-start", gap: 7 }}>
-                      <BarChart2 size={16} color="#8b5cf6" style={{ flexShrink: 0, marginTop: 2 }} />
-                      <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}>Overall Grade Distribution &amp; Frequencies</span>
+                    <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", wordBreak: "break-word" }}>
+                      Overall Grade Distribution &amp; Frequencies
                     </h3>
                     <p style={{ color: "#64748b", fontSize: isMobile ? 11 : 12.5, margin: 0 }}>
                       Complete breakdown of letter grades across all completed academic semesters
@@ -1678,9 +1676,8 @@ export default function Analytics() {
               {/* Radar Chart Card */}
               <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 16, padding: isMobile ? "14px 14px" : "22px 24px", boxShadow: "none", display: "flex", flexDirection: "column" }}>
                 <div style={{ marginBottom: isMobile ? 12 : 18 }}>
-                  <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", display: "flex", alignItems: "flex-start", gap: 7 }}>
-                    <Target size={16} color="#d97706" style={{ flexShrink: 0, marginTop: 2 }} />
-                    <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}>Curriculum Mastery Profile</span>
+                  <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", wordBreak: "break-word" }}>
+                    Curriculum Mastery Profile
                   </h3>
                   <p style={{ color: "#64748b", fontSize: isMobile ? 11 : 12.5, margin: 0 }}>
                     Weighted score distribution across Theory, Practical, and Project components
@@ -1707,9 +1704,8 @@ export default function Analytics() {
               <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 16, padding: isMobile ? "14px 14px" : "24px 26px", boxShadow: "none", display: "flex", flexDirection: "column", gap: isMobile ? 10 : 16 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", display: "flex", alignItems: "flex-start", gap: 7 }}>
-                      <Award size={16} color="#2563eb" style={{ flexShrink: 0, marginTop: 2 }} />
-                      <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}>Performance Observations &amp; Highlights</span>
+                    <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", wordBreak: "break-word" }}>
+                      Performance Observations &amp; Highlights
                     </h3>
                     <p style={{ color: "#64748b", fontSize: isMobile ? 11 : 12.5, margin: 0 }}>
                       Intelligent academic highlights synthesized from transcript records
@@ -1775,9 +1771,8 @@ export default function Analytics() {
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", display: "flex", alignItems: "flex-start", gap: 7 }}>
-                      <Target size={18} color="#16a34a" style={{ flexShrink: 0, marginTop: 2 }} />
-                      <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}>Target CGPA Goal Predictor</span>
+                    <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", wordBreak: "break-word" }}>
+                      Target CGPA Goal Predictor
                     </h3>
                     <p style={{ color: "#64748b", fontSize: isMobile ? 11.5 : 13, margin: 0 }}>
                       Calculate the exact SGPA needed across remaining {remainingSems} semester(s)
@@ -2092,9 +2087,8 @@ export default function Analytics() {
               >
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <h3 style={{ fontSize: isMobile ? 15 : 18, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0", display: "flex", alignItems: "flex-start", gap: 8 }}>
-                      <PieChart size={20} color="#8b5cf6" style={{ flexShrink: 0, marginTop: 2 }} />
-                      <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}>What-If Semester Grade &amp; Backlog Simulation Studio</span>
+                    <h3 style={{ fontSize: isMobile ? 15 : 18, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0", wordBreak: "break-word" }}>
+                      What-If Semester Grade &amp; Backlog Simulation Studio
                     </h3>
                     <p style={{ color: "#64748b", fontSize: isMobile ? 11.5 : 13, margin: 0, maxWidth: 800, lineHeight: 1.4 }}>
                       Simulate clearing backlogs or improving grades across <strong>any semester</strong> (Sem 1 through {latestSemester}). See the exact simulated SGPA for that semester and how much your <strong>overall cumulative CGPA increases</strong>.

@@ -742,62 +742,35 @@ export default function Timetable() {
               {/* Eyebrow */}
               <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
                   color: "#2563eb",
                   fontSize: 11,
                   fontWeight: 800,
                   textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                  flexWrap: "wrap",
+                  letterSpacing: "0.6px",
+                  wordBreak: "break-word",
                 }}
               >
-                <Building size={12} style={{ flexShrink: 0 }} />
-                <span>Centurion University · {canShowRoutineAndSection ? "B.Tech 7th Semester" : "Academic Calendar"}</span>
+                Centurion University · {canShowRoutineAndSection ? "B.Tech 7th Semester" : "Academic Calendar"}
               </div>
 
-              {/* Title Row with Clock Icon directly beside the Title */}
-              <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 8 : 10, minWidth: 0 }}>
-                <div
-                  style={{
-                    width: isMobile ? 28 : 34,
-                    height: isMobile ? 28 : 34,
-                    borderRadius: 8,
-                    background: "#eff6ff",
-                    border: "1px solid #dbeafe",
-                    color: "#2563eb",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    marginTop: isMobile ? 2 : 0,
-                    boxShadow: "none",
-                  }}
-                >
-                  <Clock size={isMobile ? 15 : 18} />
-                </div>
-
-                <h1
-                  style={{
-                    fontSize: isMobile ? "clamp(16px, 4.3vw, 19.5px)" : 25,
-                    fontWeight: 850,
-                    color: "#0f172a",
-                    margin: 0,
-                    letterSpacing: "-0.4px",
-                    lineHeight: 1.25,
-                    wordBreak: "break-word",
-                    flex: 1,
-                    minWidth: 0,
-                  }}
-                >
-                  {canShowRoutineAndSection
-                    ? isMobile
-                      ? `Section ${selectedSection} Routine & Schedule`
-                      : `Section ${selectedSection} Routine & Academic Schedule`
-                    : `Academic Calendar & University Timeline`}
-                </h1>
-              </div>
+              {/* Title Row (Clean, modern typography without icon clutter) */}
+              <h1
+                style={{
+                  fontSize: isMobile ? "clamp(18px, 4.8vw, 22px)" : 26,
+                  fontWeight: 850,
+                  color: "#0f172a",
+                  margin: 0,
+                  letterSpacing: "-0.5px",
+                  lineHeight: 1.25,
+                  wordBreak: "break-word",
+                }}
+              >
+                {canShowRoutineAndSection
+                  ? isMobile
+                    ? `Section ${selectedSection} Routine & Schedule`
+                    : `Section ${selectedSection} Routine & Academic Schedule`
+                  : `Academic Calendar & University Timeline`}
+              </h1>
             </div>
 
             {/* Right: Section Selector (Guest Mode Only) */}
@@ -1187,71 +1160,98 @@ export default function Timetable() {
               background: "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)",
               border: "1.5px solid #86efac",
               borderRadius: 12,
-              padding: "14px 20px",
+              padding: isMobile ? "10px 14px" : "12px 18px",
               display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 12,
+              flexDirection: isMobile ? "column" : "row",
+              justifyContent: isMobile ? "flex-start" : "space-between",
+              alignItems: isMobile ? "stretch" : "center",
+              gap: isMobile ? 8 : 12,
               boxShadow: "none",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 12,
-                  background: "#16a34a",
-                  color: "#ffffff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Activity size={18} />
+            {/* Top / Left meta row */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span
+                  style={{
+                    background: "#16a34a",
+                    color: "#ffffff",
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.4px",
+                    padding: "2px 7px",
+                    borderRadius: 6,
+                  }}
+                >
+                  Ongoing Class
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#15803d" }}>
+                  {formatDurationMinutes(liveOverview.activeClass.remainingMins)} remaining
+                </span>
               </div>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 800, color: "#16a34a" }}>
-                  <Radio size={13} color="#16a34a" />
-                  <span>ONGOING CLASS ({formatDurationMinutes(liveOverview.activeClass.remainingMins)} remaining)</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
-                  <span style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
-                    {cleanSubjectBaseName(liveOverview.activeClass.subject) || liveOverview.activeClass.subject}
+
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                {liveOverview.activeClass.room && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "#15803d",
+                      background: "#ffffff",
+                      border: "1px solid #bbf7d0",
+                      padding: "2px 7px",
+                      borderRadius: 6,
+                    }}
+                  >
+                    Room {liveOverview.activeClass.room}
                   </span>
-                  {resolveSubjectCode(liveOverview.activeClass, studentData) && (
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontFamily: "'Space Mono', monospace",
-                        fontWeight: 800,
-                        color: "#15803d",
-                        background: "#ffffff",
-                        border: "1px solid #86efac",
-                        padding: "1px 6px",
-                        borderRadius: 6,
-                      }}
-                    >
-                      {resolveSubjectCode(liveOverview.activeClass, studentData)}
-                    </span>
-                  )}
-                </div>
+                )}
+                {liveOverview.activeClass.faculty && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: "#334155",
+                      background: "#ffffff",
+                      border: "1px solid #e2e8f0",
+                      padding: "2px 7px",
+                      borderRadius: 6,
+                    }}
+                  >
+                    {liveOverview.activeClass.faculty}
+                  </span>
+                )}
               </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 12.5 }}>
-              {liveOverview.activeClass.room && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "#2563eb", fontWeight: 700, background: "#ffffff", padding: "4px 10px", borderRadius: 8, border: "1px solid #bfdbfe" }}>
-                  <MapPin size={13} />
-                  <span>Room: {liveOverview.activeClass.room}</span>
-                </span>
-              )}
-              {liveOverview.activeClass.faculty && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "#334155", fontWeight: 600, background: "#ffffff", padding: "4px 10px", borderRadius: 8, border: "1px solid #e2e8f0" }}>
-                  <User size={13} color="#64748b" />
-                  <span>{liveOverview.activeClass.faculty}</span>
+            {/* Subject Name & Code Row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", minWidth: 0 }}>
+              <span
+                style={{
+                  fontSize: isMobile ? 13.5 : 14.5,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  wordBreak: "break-word",
+                }}
+              >
+                {cleanSubjectBaseName(liveOverview.activeClass.subject) || liveOverview.activeClass.subject}
+              </span>
+              {resolveSubjectCode(liveOverview.activeClass, studentData) && (
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontFamily: "'Space Mono', monospace",
+                    fontWeight: 800,
+                    color: "#15803d",
+                    background: "#ffffff",
+                    border: "1px solid #86efac",
+                    padding: "1px 5px",
+                    borderRadius: 5,
+                    flexShrink: 0,
+                  }}
+                >
+                  {resolveSubjectCode(liveOverview.activeClass, studentData)}
                 </span>
               )}
             </div>
@@ -1263,44 +1263,99 @@ export default function Timetable() {
             style={{
               background: "linear-gradient(135deg, #f5f3ff 0%, #faf5ff 100%)",
               border: "1.5px solid #ddd6fe",
-              borderRadius: 14,
-              padding: "12px 20px",
+              borderRadius: 12,
+              padding: isMobile ? "10px 14px" : "12px 18px",
               display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 12,
+              flexDirection: isMobile ? "column" : "row",
+              justifyContent: isMobile ? "flex-start" : "space-between",
+              alignItems: isMobile ? "stretch" : "center",
+              gap: isMobile ? 8 : 12,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <Clock size={18} color="#7c3aed" />
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#5b21b6" }}>
-                Next Class in {formatDurationMinutes(liveOverview.nextClass.startsInMins)}: <strong>{cleanSubjectBaseName(liveOverview.nextClass.subject) || liveOverview.nextClass.subject}</strong>
-                {resolveSubjectCode(liveOverview.nextClass, studentData) && (
+            {/* Top / Left meta row */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span
+                  style={{
+                    background: "#7c3aed",
+                    color: "#ffffff",
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.4px",
+                    padding: "2px 7px",
+                    borderRadius: 6,
+                  }}
+                >
+                  Next Class
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#6d28d9" }}>
+                  in {formatDurationMinutes(liveOverview.nextClass.startsInMins)}
+                </span>
+              </div>
+
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "#5b21b6",
+                    background: "#ffffff",
+                    border: "1px solid #ddd6fe",
+                    padding: "2px 7px",
+                    borderRadius: 6,
+                  }}
+                >
+                  {liveOverview.nextClass.slot.startTime}
+                </span>
+                {liveOverview.nextClass.room && (
                   <span
                     style={{
-                      marginLeft: 6,
                       fontSize: 11,
-                      fontFamily: "'Space Mono', monospace",
-                      fontWeight: 800,
-                      color: "#6d28d9",
+                      fontWeight: 700,
+                      color: "#2563eb",
                       background: "#ffffff",
-                      border: "1px solid #ddd6fe",
-                      padding: "1px 5px",
-                      borderRadius: 5,
+                      border: "1px solid #e0e7ff",
+                      padding: "2px 7px",
+                      borderRadius: 6,
                     }}
                   >
-                    {resolveSubjectCode(liveOverview.nextClass, studentData)}
+                    Room {liveOverview.nextClass.room}
                   </span>
-                )} ({liveOverview.nextClass.slot.startTime})
-              </span>
+                )}
+              </div>
             </div>
-            {liveOverview.nextClass.room && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "#2563eb", fontSize: 12, fontWeight: 700, background: "#ffffff", padding: "3px 9px", borderRadius: 8, border: "1px solid #e0e7ff" }}>
-                <MapPin size={12} />
-                <span>Room: {liveOverview.nextClass.room}</span>
+
+            {/* Subject Name & Code Row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", minWidth: 0 }}>
+              <span
+                style={{
+                  fontSize: isMobile ? 13.5 : 14.5,
+                  fontWeight: 800,
+                  color: "#1e1b4b",
+                  wordBreak: "break-word",
+                }}
+              >
+                {cleanSubjectBaseName(liveOverview.nextClass.subject) || liveOverview.nextClass.subject}
               </span>
-            )}
+              {resolveSubjectCode(liveOverview.nextClass, studentData) && (
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontFamily: "'Space Mono', monospace",
+                    fontWeight: 800,
+                    color: "#6d28d9",
+                    background: "#ffffff",
+                    border: "1px solid #ddd6fe",
+                    padding: "1px 5px",
+                    borderRadius: 5,
+                    flexShrink: 0,
+                  }}
+                >
+                  {resolveSubjectCode(liveOverview.nextClass, studentData)}
+                </span>
+              )}
+            </div>
           </motion.div>
         ) : null)}
 
@@ -1393,8 +1448,7 @@ export default function Timetable() {
               boxShadow: "none",
             }}
           >
-            <Info size={16} color="#2563eb" style={{ flexShrink: 0, marginTop: 1 }} />
-            <div>
+            <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.5 }}>
               <strong style={{ color: "#0f172a", fontWeight: 800 }}>Schedule Disclaimer: </strong>
               Class routines displayed on GradeFlow reflect the semester master timetable. Daily period schedules or room allocations on the official university ERP may occasionally vary due to day-to-day faculty adjustments, compensatory classes, or university event schedules.
             </div>
@@ -2059,9 +2113,8 @@ export default function Timetable() {
               }}
             >
               <div style={{ minWidth: 0, flex: 1 }}>
-                <h4 style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "flex-start", gap: 8 }}>
-                  <Grid size={15} color="#2563eb" style={{ flexShrink: 0, marginTop: 2 }} />
-                  <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}>Weekly Routine Schedule · Section {selectedSection}</span>
+                <h4 style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", margin: 0, wordBreak: "break-word" }}>
+                  Weekly Routine Schedule · Section {selectedSection}
                 </h4>
                 <p style={{ fontSize: 11.5, color: "#64748b", margin: "2px 0 0 0" }}>
                   Full 6-day (Monday to Saturday) period schedule fitted across your viewport.
@@ -2467,9 +2520,8 @@ export default function Timetable() {
               }}
             >
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 6, color: "#7c3aed", fontSize: 11.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  <GraduationCap size={14} style={{ flexShrink: 0, marginTop: 2 }} />
-                  <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}>Centurion University of Technology and Management, Odisha</span>
+                <div style={{ color: "#7c3aed", fontSize: 11.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.5px", wordBreak: "break-word" }}>
+                  Centurion University of Technology and Management, Odisha
                 </div>
                 <h3 style={{ fontSize: isMobile ? "clamp(15px, 4vw, 17.5px)" : 18, fontWeight: 800, color: "#0f172a", margin: "2px 0 0 0", wordBreak: "break-word" }}>
                   Academic Calendar 2026–27 (UG & PG — School of Engineering)
@@ -2982,9 +3034,8 @@ export default function Timetable() {
               }}
             >
               <div style={{ minWidth: 0, flex: 1 }}>
-                <h4 style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "flex-start", gap: 7 }}>
-                  <CalendarIcon size={15} color="#dc2626" style={{ flexShrink: 0, marginTop: 2 }} />
-                  <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}>CUTM Academic Session 2026–27 Holiday List</span>
+                <h4 style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", margin: 0, wordBreak: "break-word" }}>
+                  CUTM Academic Session 2026–27 Holiday List
                 </h4>
                 <p style={{ fontSize: 11.5, color: "#64748b", margin: "2px 0 0 0" }}>
                   Official university holidays, observation days, and 2nd Saturday non-instructional breaks.

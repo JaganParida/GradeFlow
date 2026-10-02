@@ -3507,9 +3507,8 @@ export default function AttendanceTracker() {
                         >
                           Attendance Intelligence
                         </h1>
-                        <div style={{ fontSize: 11.5, fontWeight: 700, color: "#059669", marginTop: 2, display: "flex", alignItems: "center", gap: 5 }}>
-                          <Activity size={12} style={{ flexShrink: 0 }} />
-                          <span>Section {selectedSection} Routine</span>
+                        <div style={{ fontSize: 11.5, fontWeight: 700, color: "#059669", marginTop: 2 }}>
+                          Section {selectedSection} Routine
                         </div>
                       </div>
 
@@ -3528,26 +3527,8 @@ export default function AttendanceTracker() {
                             boxShadow: "none",
                           }}
                         >
-                          <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}>
-                            <div
-                              style={{
-                                width: 24,
-                                height: 24,
-                                borderRadius: 7,
-                                background: "#eff6ff",
-                                border: "1px solid #dbeafe",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                flexShrink: 0,
-                                marginTop: 1,
-                              }}
-                            >
-                              <Zap size={13} color="#2563eb" />
-                            </div>
-                            <div style={{ fontSize: 11.5, color: "#334155", lineHeight: 1.5 }}>
-                              <strong style={{ color: "#0f172a" }}>One-Time Setup (Save to Cloud):</strong> You only need to import your attendance once! After confirming and saving to cloud, you never have to upload screenshots again.
-                            </div>
+                          <div style={{ fontSize: 12, color: "#334155", lineHeight: 1.5 }}>
+                            <strong style={{ color: "#0f172a" }}>One-Time Setup (Save to Cloud):</strong> You only need to import your attendance once! After confirming and saving to cloud, you never have to upload screenshots again.
                           </div>
 
                           <div

@@ -1627,9 +1627,8 @@ export default function Dashboard() {
                   >
                     {/* Desktop Header with Title & Action Buttons */}
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#2563eb", fontSize: 11.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2 }}>
-                        <Activity size={12} />
-                        <span>Academic Overview · Semester {selectedSem}</span>
+                      <div style={{ color: "#2563eb", fontSize: 11.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2 }}>
+                        Academic Overview · Semester {selectedSem}
                       </div>
                       <h1
                         style={{

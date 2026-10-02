@@ -526,40 +526,19 @@ export default function Leaderboard() {
             >
               Centurion University Standings
             </div>
-            <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 8 : 10, minWidth: 0 }}>
-              <div
-                style={{
-                  width: isMobile ? 28 : 34,
-                  height: isMobile ? 28 : 34,
-                  borderRadius: 8,
-                  background: "#eff6ff",
-                  border: "1px solid #bfdbfe",
-                  color: "#2563eb",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  marginTop: isMobile ? 2 : 0,
-                }}
-              >
-                <Trophy size={isMobile ? 15 : 18} />
-              </div>
-              <h1
-                style={{
-                  fontSize: isMobile ? "clamp(18px, 4.8vw, 22px)" : 26,
-                  fontWeight: 850,
-                  color: "#0f172a",
-                  margin: 0,
-                  letterSpacing: "-0.5px",
-                  lineHeight: 1.25,
-                  wordBreak: "break-word",
-                  flex: 1,
-                  minWidth: 0,
-                }}
-              >
-                Leaderboard &amp; Rankings
-              </h1>
-            </div>
+            <h1
+              style={{
+                fontSize: isMobile ? "clamp(18px, 4.8vw, 22px)" : 26,
+                fontWeight: 850,
+                color: "#0f172a",
+                margin: 0,
+                letterSpacing: "-0.5px",
+                lineHeight: 1.25,
+                wordBreak: "break-word",
+              }}
+            >
+              Leaderboard &amp; Rankings
+            </h1>
           </div>
 
             {/* Segmented Tab Switcher */}

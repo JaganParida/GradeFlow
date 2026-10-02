@@ -801,12 +801,9 @@ export default function Resources() {
               >
                 {/* Header Title with Verified Blue Badge */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: isMobile ? 2 : 6 }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 8, minWidth: 0 }}>
-                    <h1 style={{ fontSize: isMobile ? "clamp(18px, 4.8vw, 22px)" : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: 0, letterSpacing: "-0.5px", lineHeight: 1.25, flex: 1, minWidth: 0, wordBreak: "break-word" }}>
-                      How SGPA &amp; CGPA Are Calculated
-                    </h1>
-                    <CheckCircle2 size={18} color="#2563eb" fill="#dbeafe" style={{ flexShrink: 0, marginTop: 4 }} />
-                  </div>
+                  <h1 style={{ fontSize: isMobile ? "clamp(18px, 4.8vw, 22px)" : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: 0, letterSpacing: "-0.5px", lineHeight: 1.25, wordBreak: "break-word" }}>
+                    How SGPA &amp; CGPA Are Calculated
+                  </h1>
                   <p style={{ fontSize: isMobile ? 12 : 13.5, color: "#64748b", margin: 0 }}>
                     Official formula used by Centurion University
                   </p>
