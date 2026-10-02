@@ -1605,17 +1605,14 @@ export default function Dashboard() {
           {/* Top Profile, 4 KPI Summary Cards & Standings (Mobile: ONLY visible on default 'result' tab) */}
           {(!isMobile || tab === "result") && (
             <>
-              {/* Top Header Card (Desktop Only - on mobile, student identity and badges are in top profile card) */}
+              {/* Top Header Canvas (Desktop Only - Clean Unboxed Layout) */}
               {!isMobile && (
-                <div
+                <header
                   style={{
-                    background: "#ffffff",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 14,
-                    padding: "20px 24px",
                     display: "flex",
                     flexDirection: "column",
-                    gap: 14,
+                    gap: 12,
+                    width: "100%",
                   }}
                 >
                   {/* Header Content */}
@@ -1624,25 +1621,27 @@ export default function Dashboard() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      gap: 10,
+                      gap: 12,
+                      flexWrap: "wrap",
                     }}
                   >
                     {/* Desktop Header with Title & Action Buttons */}
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#2563eb", fontSize: 12, fontWeight: 700, marginBottom: 2 }}>
-                        <Activity size={13} />
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#2563eb", fontSize: 11.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2 }}>
+                        <Activity size={12} />
                         <span>Academic Overview · Semester {selectedSem}</span>
                       </div>
                       <h1
                         style={{
-                          fontSize: "clamp(22px, 2.5vw, 28px)",
-                          fontWeight: 800,
+                          fontSize: "clamp(24px, 2.5vw, 30px)",
+                          fontWeight: 850,
                           color: "#0f172a",
                           margin: 0,
-                          letterSpacing: "-0.4px",
+                          letterSpacing: "-0.5px",
+                          lineHeight: 1.2,
                         }}
                       >
-                        {studentName}
+                        Semester {selectedSem} Performance Ledger
                       </h1>
                     </div>
 
@@ -1701,8 +1700,6 @@ export default function Dashboard() {
                         gap: 6,
                         overflowX: "visible",
                         flexWrap: "wrap",
-                        paddingTop: 8,
-                        borderTop: "1px solid #f1f5f9",
                         alignItems: "center",
                       }}
                     >
@@ -1729,7 +1726,7 @@ export default function Dashboard() {
                       ))}
                     </div>
                   )}
-                </div>
+                </header>
               )}
 
           {/* 4 Hero Stat Cards (2x2 on Mobile, 4 in row on Desktop) */}

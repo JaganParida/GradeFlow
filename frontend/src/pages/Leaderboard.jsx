@@ -502,65 +502,61 @@ export default function Leaderboard() {
           width: "100%",
         }}
       >
-        {/* 1. Header & Filters Card */}
-        <div
+        {/* 1. Header (Clean Canvas Layout - Unboxed) */}
+        <header
           style={{
-            background: "#ffffff",
-            border: "1px solid #cbd5e1",
-            borderRadius: 16,
-            padding: isMobile ? "16px 14px" : "20px 22px",
-            boxShadow: "none",
             display: "flex",
-            flexDirection: "column",
-            gap: 14,
+            justifyContent: "space-between",
+            alignItems: isMobile ? "stretch" : "center",
+            flexDirection: isMobile ? "column" : "row",
+            gap: 12,
             width: "100%",
-            boxSizing: "border-box",
           }}
         >
           {/* Top Row: Title + SGPA/CGPA Toggle */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: isMobile ? "stretch" : "center",
-              flexDirection: isMobile ? "column" : "row",
-              gap: 12,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div
+              style={{
+                width: isMobile ? 38 : 44,
+                height: isMobile ? 38 : 44,
+                borderRadius: 10,
+                background: "#eff6ff",
+                border: "1px solid #bfdbfe",
+                color: "#2563eb",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Trophy size={isMobile ? 18 : 22} />
+            </div>
+            <div>
               <div
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: "#eff6ff",
-                  border: "1px solid #bfdbfe",
+                  fontSize: 11,
+                  fontWeight: 800,
                   color: "#2563eb",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
                 }}
               >
-                <Trophy size={18} />
+                Centurion University Standings
               </div>
-              <div>
-                <h1
-                  style={{
-                    fontSize: isMobile ? 17 : 20,
-                    fontWeight: 900,
-                    color: "#0f172a",
-                    margin: "0 0 1px 0",
-                    letterSpacing: "-0.5px",
-                  }}
-                >
-                  Leaderboard & Rankings
-                </h1>
-                <p style={{ color: "#64748b", fontSize: 12, margin: 0 }}>
-                  Sorted by <strong>{isSGPA ? "Semester SGPA" : "Cumulative CGPA"}</strong>
-                </p>
-              </div>
+              <h1
+                style={{
+                  fontSize: isMobile ? 20 : 26,
+                  fontWeight: 850,
+                  color: "#0f172a",
+                  margin: "1px 0 0 0",
+                  letterSpacing: "-0.5px",
+                  lineHeight: 1.2,
+                }}
+              >
+                Leaderboard &amp; Rankings
+              </h1>
             </div>
+          </div>
 
             {/* Segmented Tab Switcher */}
             <div
@@ -627,21 +623,23 @@ export default function Leaderboard() {
                 <Star size={13} color={!isSGPA ? "#8b5cf6" : "#64748b"} /> Cumulative CGPA
               </button>
             </div>
-          </div>
+        </header>
 
-          {/* Filter Controls: Perfectly Balanced Flex/Grid */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: isMobile ? "column" : "row",
-              alignItems: isMobile ? "stretch" : "center",
-              gap: 10,
-              borderTop: "1px solid #f1f5f9",
-              paddingTop: 14,
-              width: "100%",
-              boxSizing: "border-box",
-            }}
-          >
+        {/* 2. Filter Controls Toolbar Card */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: 14,
+            padding: isMobile ? "12px 14px" : "14px 18px",
+            display: "flex",
+            flexDirection: isMobile ? "column" : "row",
+            alignItems: isMobile ? "stretch" : "center",
+            gap: 10,
+            width: "100%",
+            boxSizing: "border-box",
+          }}
+        >
             {/* Dropdowns Group */}
             <div
               style={{
@@ -948,7 +946,6 @@ export default function Leaderboard() {
                 </button>
               )}
             </form>
-          </div>
         </div>
 
         {/* 2. Top 3 Podium Cards */}
