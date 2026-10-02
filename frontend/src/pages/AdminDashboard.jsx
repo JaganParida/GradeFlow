@@ -262,9 +262,9 @@ function UploadCard({
       style={{
         background: "#ffffff",
         border: "1px solid #e2e8f0",
-        borderRadius: 16,
+        borderRadius: 14,
         padding: "22px 20px",
-        boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+        boxShadow: "none",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
@@ -693,10 +693,10 @@ function MissingUploadCard({
       animate={{ opacity: 1, y: 0 }}
       style={{
         background: "#ffffff",
-        border: "1.5px solid #e0e7ff",
-        borderRadius: 16,
+        border: "1px solid #e2e8f0",
+        borderRadius: 14,
         padding: "22px 20px",
-        boxShadow: "0 2px 12px rgba(79, 70, 229, 0.04)",
+        boxShadow: "none",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
@@ -1037,7 +1037,7 @@ function MissingUploadCard({
           alignItems: "center",
           justifyContent: "center",
           gap: 6,
-          boxShadow: "0 2px 8px rgba(79, 70, 229, 0.25)",
+          boxShadow: "none",
         }}
       >
         {loading ? (
@@ -1102,10 +1102,10 @@ function DeleteRecordCard({ authHeaders, API, onSuccess }) {
       animate={{ opacity: 1, y: 0 }}
       style={{
         background: "#ffffff",
-        border: "1px solid #fecaca",
-        borderRadius: 16,
+        border: "1px solid #fee2e2",
+        borderRadius: 14,
         padding: "22px 20px",
-        boxShadow: "0 2px 10px rgba(239, 68, 68, 0.03)",
+        boxShadow: "none",
         boxSizing: "border-box",
       }}
     >
@@ -1404,9 +1404,9 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
       style={{
         background: "#ffffff",
         border: "1px solid #e2e8f0",
-        borderRadius: 18,
+        borderRadius: 14,
         padding: "24px 22px",
-        boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+        boxShadow: "none",
         gridColumn: "1 / -1",
         boxSizing: "border-box",
       }}
@@ -1477,7 +1477,7 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
                     borderRadius: 10,
                     maxHeight: 200,
                     overflowY: "auto",
-                    boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+                    boxShadow: "none",
                     listStyle: "none",
                     padding: "4px 0",
                     margin: "4px 0 0 0",
@@ -2013,10 +2013,10 @@ function SectionToppersCard({ authHeaders, API }) {
       style={{
         background: "#ffffff",
         border: "1px solid #e2e8f0",
-        borderRadius: 18,
+        borderRadius: 14,
         padding: isMobile ? "16px 14px" : "24px 20px",
         marginBottom: 28,
-        boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+        boxShadow: "none",
         width: "100%",
         maxWidth: "100%",
         boxSizing: "border-box",
@@ -2503,11 +2503,11 @@ function SectionToppersCard({ authHeaders, API }) {
               onClick={(e) => e.stopPropagation()}
               style={{
                 background: "#ffffff",
-                borderRadius: 20,
+                borderRadius: 16,
                 padding: "26px 24px",
                 maxWidth: 440,
                 width: "100%",
-                boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
+                boxShadow: "none",
                 border: "1px solid #e2e8f0",
               }}
             >
@@ -2912,10 +2912,10 @@ function BacklogTrackerCard({ authHeaders, API }) {
       style={{
         background: "#ffffff",
         border: "1px solid #e2e8f0",
-        borderRadius: 18,
+        borderRadius: 14,
         padding: isMobile ? "16px 14px" : "24px 20px",
         marginBottom: 28,
-        boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+        boxShadow: "none",
         scrollMarginTop: 90,
         transform: "translateZ(0)",
         width: "100%",
@@ -3596,7 +3596,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
                                     border: "1px solid #fee2e2",
                                     borderRadius: 10,
                                     padding: "12px 14px",
-                                    boxShadow: "0 1px 3px rgba(239,68,68,0.04)",
+                                    boxShadow: "none",
                                   }}
                                 >
                                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -3744,7 +3744,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: isActive ? "0 2px 6px rgba(79, 70, 229, 0.25)" : "none",
+                      boxShadow: "none",
                       transition: "all 0.15s ease",
                     }}
                   >
@@ -3812,11 +3812,11 @@ function BacklogTrackerCard({ authHeaders, API }) {
               onClick={(e) => e.stopPropagation()}
               style={{
                 background: "#ffffff",
-                borderRadius: 20,
+                borderRadius: 16,
                 padding: "26px 24px",
                 maxWidth: 440,
                 width: "100%",
-                boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
+                boxShadow: "none",
                 border: "1px solid #e2e8f0",
               }}
             >
@@ -4172,9 +4172,9 @@ function FeedbackManager({ authHeaders, API, adminToken }) {
       style={{
         background: "#ffffff",
         border: "1px solid #e2e8f0",
-        borderRadius: 18,
+        borderRadius: 14,
         padding: "24px 20px",
-        boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+        boxShadow: "none",
       }}
     >
       {/* Top Header */}
@@ -4608,7 +4608,7 @@ function FeedbackManager({ authHeaders, API, adminToken }) {
                 padding: "24px 20px",
                 maxWidth: 480,
                 width: "100%",
-                boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.15)",
+                boxShadow: "none",
                 border: "1px solid #e2e8f0",
                 maxHeight: "90vh",
                 overflowY: "auto",
@@ -5215,7 +5215,7 @@ export default function AdminDashboard({ defaultTab = null }) {
           style={{
             background: "#ffffff",
             border: "1px solid #e2e8f0",
-            borderRadius: 18,
+            borderRadius: 14,
             padding: isMobile ? "14px 14px" : "18px 22px",
             marginBottom: isMobile ? 12 : 20,
             display: "flex",
@@ -5223,7 +5223,7 @@ export default function AdminDashboard({ defaultTab = null }) {
             justifyContent: "space-between",
             alignItems: isMobile ? "stretch" : "center",
             gap: isMobile ? 12 : 12,
-            boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+            boxShadow: "none",
           }}
         >
           <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 12 }}>
@@ -5474,9 +5474,9 @@ export default function AdminDashboard({ defaultTab = null }) {
                 style={{
                   background: "#ffffff",
                   border: stat.targetTab && tab === stat.targetTab ? "1.5px solid #10b981" : "1px solid #e2e8f0",
-                  borderRadius: isMobile ? 14 : 16,
+                  borderRadius: isMobile ? 12 : 14,
                   padding: isMobile ? (i === 4 ? "12px 14px" : "12px 11px") : "18px 20px",
-                  boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+                  boxShadow: "none",
                   display: "flex",
                   flexDirection: isMobile && i === 4 ? "row" : "column",
                   alignItems: isMobile && i === 4 ? "center" : "stretch",
@@ -5605,11 +5605,11 @@ export default function AdminDashboard({ defaultTab = null }) {
                           {stat.isLive && (
                             <span
                               style={{
-                                width: 5.5,
-                                height: 5.5,
+                                width: 6,
+                                height: 6,
                                 borderRadius: "50%",
                                 background: "#10b981",
-                                boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.25)",
+                                boxShadow: "none",
                                 display: "inline-block",
                               }}
                             />
@@ -5742,14 +5742,14 @@ export default function AdminDashboard({ defaultTab = null }) {
                       gap: 6,
                       padding: "9px 16px",
                       borderRadius: 10,
-                      border: "none",
                       background: isActive ? "#ffffff" : "transparent",
                       color: isActive ? "#0f172a" : "#64748b",
                       fontSize: 13,
                       fontWeight: isActive ? 800 : 600,
                       cursor: "pointer",
                       whiteSpace: "nowrap",
-                      boxShadow: isActive ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+                      boxShadow: "none",
+                      border: isActive ? "1px solid #e2e8f0" : "1px solid transparent",
                       transition: "all 0.15s ease",
                       fontFamily: "'DM Sans', sans-serif",
                     }}
@@ -5997,9 +5997,9 @@ export default function AdminDashboard({ defaultTab = null }) {
                 style={{
                   background: "#ffffff",
                   border: "1px solid #e2e8f0",
-                  borderRadius: 18,
+                  borderRadius: 14,
                   padding: isMobile ? "16px 14px" : "24px 20px",
-                  boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+                  boxShadow: "none",
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 8 }}>
@@ -6232,9 +6232,9 @@ export default function AdminDashboard({ defaultTab = null }) {
               style={{
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
-                borderRadius: 18,
+                borderRadius: 14,
                 padding: isMobile ? "16px 14px" : "22px 20px",
-                boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+                boxShadow: "none",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
@@ -6310,8 +6310,8 @@ export default function AdminDashboard({ defaultTab = null }) {
             <div
               style={{
                 background: "linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%)",
-                border: "1.5px solid #c7d2fe",
-                borderRadius: 18,
+                border: "1px solid #c7d2fe",
+                borderRadius: 14,
                 padding: isMobile ? "16px 14px" : "20px 22px",
                 display: "flex",
                 alignItems: "flex-start",
@@ -6322,14 +6322,14 @@ export default function AdminDashboard({ defaultTab = null }) {
                 style={{
                   width: 42,
                   height: 42,
-                  borderRadius: 12,
+                  borderRadius: 10,
                   background: "#4f46e5",
                   color: "#ffffff",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
-                  boxShadow: "0 3px 10px rgba(79, 70, 229, 0.25)",
+                  boxShadow: "none",
                 }}
               >
                 <ShieldCheck size={22} />
@@ -6580,9 +6580,10 @@ export default function AdminDashboard({ defaultTab = null }) {
                   width: "100%",
                   maxWidth: 380,
                   background: "#ffffff",
-                  borderRadius: 20,
+                  borderRadius: 16,
                   padding: "28px 24px 22px",
-                  boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
+                  border: "1px solid #e2e8f0",
+                  boxShadow: "none",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
@@ -6599,8 +6600,8 @@ export default function AdminDashboard({ defaultTab = null }) {
                   <p style={{ margin: "6px 0 0 0", fontSize: 13.5, color: "#64748b", lineHeight: 1.5 }}>Are you sure you want to logout from the Admin Console? You'll need to sign in again.</p>
                 </div>
                 <div style={{ display: "flex", gap: 10, width: "100%", marginTop: 4 }}>
-                  <button onClick={() => setShowAdminLogoutConfirm(false)} style={{ flex: 1, padding: "11px 16px", borderRadius: 12, border: "1.5px solid #e2e8f0", background: "#ffffff", color: "#334155", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")} onMouseLeave={(e) => (e.currentTarget.style.background = "#ffffff")}>Cancel</button>
-                  <button onClick={async () => { setShowAdminLogoutConfirm(false); await adminLogout(); navigate("/admin"); }} style={{ flex: 1, padding: "11px 16px", borderRadius: 12, border: "none", background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", color: "#ffffff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", boxShadow: "0 2px 8px rgba(239, 68, 68, 0.3)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.filter = "brightness(1.05)")} onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}><LogOut size={15} /> Yes, Logout</button>
+                  <button onClick={() => setShowAdminLogoutConfirm(false)} style={{ flex: 1, padding: "11px 16px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#ffffff", color: "#334155", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")} onMouseLeave={(e) => (e.currentTarget.style.background = "#ffffff")}>Cancel</button>
+                  <button onClick={async () => { setShowAdminLogoutConfirm(false); await adminLogout(); navigate("/admin"); }} style={{ flex: 1, padding: "11px 16px", borderRadius: 10, border: "none", background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", color: "#ffffff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", boxShadow: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.filter = "brightness(1.05)")} onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}><LogOut size={15} /> Yes, Logout</button>
                 </div>
               </motion.div>
             </div>

@@ -427,7 +427,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
               display: "flex",
               alignItems: "center",
               gap: 10,
-              boxShadow: "0 2px 8px rgba(16, 185, 129, 0.12)",
+              boxShadow: "none",
             }}
           >
             <CheckCircle2 size={18} color="#059669" style={{ flexShrink: 0 }} />
@@ -451,7 +451,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
               display: "flex",
               alignItems: "center",
               gap: 10,
-              boxShadow: "0 2px 8px rgba(239, 68, 68, 0.12)",
+              boxShadow: "none",
             }}
           >
             <AlertTriangle size={18} color="#dc2626" style={{ flexShrink: 0 }} />
@@ -473,9 +473,9 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
           style={{
             background: "#ffffff",
             border: "1px solid #e2e8f0",
-            borderRadius: 16,
+            borderRadius: 14,
             padding: "16px 18px",
-            boxShadow: "0 1px 4px rgba(15, 23, 42, 0.03)",
+            boxShadow: "none",
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -500,9 +500,9 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
           style={{
             background: "#ffffff",
             border: "1px solid #e2e8f0",
-            borderRadius: 16,
+            borderRadius: 14,
             padding: "16px 18px",
-            boxShadow: "0 1px 4px rgba(15, 23, 42, 0.03)",
+            boxShadow: "none",
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -526,9 +526,9 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
           style={{
             background: "#ffffff",
             border: "1px solid #e2e8f0",
-            borderRadius: 16,
+            borderRadius: 14,
             padding: "16px 18px",
-            boxShadow: "0 1px 4px rgba(15, 23, 42, 0.03)",
+            boxShadow: "none",
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -552,9 +552,9 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
           style={{
             background: "#ffffff",
             border: "1px solid #e2e8f0",
-            borderRadius: 16,
+            borderRadius: 14,
             padding: "16px 18px",
-            boxShadow: "0 1px 4px rgba(15, 23, 42, 0.03)",
+            boxShadow: "none",
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -588,9 +588,9 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
           style={{
             background: "#ffffff",
             border: "1px solid #e2e8f0",
-            borderRadius: 18,
+            borderRadius: 14,
             padding: isMobile ? "18px 16px" : "24px 26px",
-            boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
+            boxShadow: "none",
             display: "flex",
             flexDirection: "column",
             gap: 20,
@@ -648,7 +648,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
                         gap: 8,
                         transition: "all 0.15s ease",
                         textAlign: "left",
-                        boxShadow: isSelected ? "0 2px 6px rgba(37, 99, 235, 0.12)" : "none",
+                        boxShadow: "none",
                       }}
                     >
                       <div
@@ -907,7 +907,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 8,
-                  boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
+                  boxShadow: "none",
                   transition: "all 0.15s ease",
                 }}
               >
@@ -933,9 +933,9 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
             style={{
               background: "#ffffff",
               border: "1px solid #e2e8f0",
-              borderRadius: 18,
+              borderRadius: 14,
               padding: "20px 22px",
-              boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
+              boxShadow: "none",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
@@ -970,7 +970,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
                 display: "flex",
                 flexDirection: "column",
                 gap: 10,
-                boxShadow: "0 4px 14px rgba(37, 99, 235, 0.08)",
+                boxShadow: "none",
               }}
             >
               {/* Header inside card */}
@@ -1076,7 +1076,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 5,
-                    boxShadow: "0 2px 6px rgba(37, 99, 235, 0.2)",
+                    boxShadow: "none",
                     cursor: "default",
                   }}
                 >
@@ -1102,9 +1102,9 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
         style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
-          borderRadius: 18,
+          borderRadius: 14,
           padding: isMobile ? "18px 16px" : "22px 24px",
-          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
+          boxShadow: "none",
         }}
       >
         {/* Table & Filter Toolbar */}
@@ -1244,7 +1244,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
                     display: "flex",
                     flexDirection: "column",
                     gap: 10,
-                    boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)",
+                    boxShadow: "none",
                   }}
                 >
                   {/* Top Bar: Icon + Badge + Date */}

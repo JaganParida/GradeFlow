@@ -1209,7 +1209,7 @@ export default function FuturePredictor({
         style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
-          borderRadius: 18,
+          borderRadius: 14,
           padding: effectiveIsMobile ? "14px 12px" : "20px 24px",
           color: "#0f172a",
           display: "flex",
@@ -1445,7 +1445,7 @@ export default function FuturePredictor({
         style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
-          borderRadius: 18,
+          borderRadius: 14,
           padding: effectiveIsMobile ? "14px 12px" : "18px 20px",
           display: "flex",
           flexDirection: "column",
@@ -1774,7 +1774,7 @@ export default function FuturePredictor({
                     ? "#fde68a"
                     : "#cbd5e1"
                 }`,
-                borderRadius: 18,
+                borderRadius: 14,
                 padding: effectiveIsMobile ? "20px 16px" : "24px 22px",
                 minHeight: effectiveIsMobile ? 220 : 230,
                 display: "flex",
@@ -1936,7 +1936,7 @@ export default function FuturePredictor({
               style={{
                 background: "linear-gradient(135deg, #fffbeb 0%, #fff7ed 100%)",
                 border: "1.5px solid #fed7aa",
-                borderRadius: 18,
+                borderRadius: 14,
                 padding: effectiveIsMobile ? "20px 16px" : "24px 22px",
                 minHeight: effectiveIsMobile ? 220 : 230,
                 display: "flex",
@@ -2030,7 +2030,7 @@ export default function FuturePredictor({
               style={{
                 background: "#f8fafc",
                 border: "1.5px dashed #cbd5e1",
-                borderRadius: 18,
+                borderRadius: 14,
                 padding: effectiveIsMobile ? "20px 16px" : "24px 22px",
                 minHeight: effectiveIsMobile ? 220 : 230,
                 display: "flex",
@@ -2102,7 +2102,7 @@ export default function FuturePredictor({
               style={{
                 background: "linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)",
                 border: "1px solid #bfdbfe",
-                borderRadius: 18,
+                borderRadius: 14,
                 padding: effectiveIsMobile ? "14px 12px" : "18px 20px",
                 display: "flex",
                 flexDirection: "column",
@@ -2337,7 +2337,7 @@ export default function FuturePredictor({
             style={{
               background: "#ffffff",
               border: "1px solid #e2e8f0",
-              borderRadius: 18,
+              borderRadius: 14,
               padding: effectiveIsMobile ? "14px 12px" : "20px 22px",
               display: "flex",
               flexDirection: "column",
@@ -2968,7 +2968,7 @@ export default function FuturePredictor({
             style={{
               background: "#ffffff",
               border: "1px solid #e2e8f0",
-              borderRadius: 18,
+              borderRadius: 14,
               padding: effectiveIsMobile ? "14px 12px" : "20px 22px",
               display: "flex",
               flexDirection: "column",

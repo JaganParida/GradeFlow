@@ -474,9 +474,9 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
         style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
-          borderRadius: 16,
+          borderRadius: 14,
           padding: isMobile ? "16px 14px" : "20px 24px",
-          boxShadow: "0 2px 10px rgba(15, 23, 42, 0.03)",
+          boxShadow: "none",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 14, marginBottom: 18 }}>
@@ -603,7 +603,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
                   border: "1px solid #cbd5e1",
                   borderRadius: 10,
                   marginTop: 4,
-                  boxShadow: "0 10px 25px rgba(0, 0, 0, 0.1)",
+                  boxShadow: "none",
                   maxHeight: 280,
                   overflowY: "auto",
                   zIndex: 50,
@@ -683,7 +683,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              boxShadow: "0 2px 6px rgba(37, 99, 235, 0.25)",
+              boxShadow: "none",
               whiteSpace: "nowrap",
               width: isMobile ? "100%" : "auto",
               boxSizing: "border-box",
@@ -752,9 +752,9 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
             style={{
               background: "#ffffff",
               border: "1px solid #e2e8f0",
-              borderRadius: 16,
+              borderRadius: 14,
               padding: "18px 24px",
-              boxShadow: "0 2px 10px rgba(15, 23, 42, 0.03)",
+              boxShadow: "none",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
@@ -925,7 +925,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
                   display: "flex",
                   alignItems: "center",
                   gap: 7,
-                  boxShadow: "0 2px 8px rgba(22, 163, 74, 0.3)",
+                  boxShadow: "none",
                 }}
               >
                 {saving ? <RefreshCw size={15} className="spin" /> : <Save size={15} />}
@@ -943,7 +943,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
                 border: "1px solid #cbd5e1",
                 borderRadius: 14,
                 padding: "16px 18px",
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
+                boxShadow: "none",
                 display: "flex",
                 flexDirection: "column",
                 gap: 4,
@@ -973,7 +973,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
                 border: "1px solid #cbd5e1",
                 borderRadius: 14,
                 padding: "16px 18px",
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
+                boxShadow: "none",
                 display: "flex",
                 flexDirection: "column",
                 gap: 4,
@@ -1003,7 +1003,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
                 border: "1px solid #cbd5e1",
                 borderRadius: 14,
                 padding: "16px 18px",
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
+                boxShadow: "none",
                 display: "flex",
                 flexDirection: "column",
                 gap: 4,
@@ -1033,7 +1033,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
                 border: "1px solid #cbd5e1",
                 borderRadius: 14,
                 padding: "16px 18px",
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
+                boxShadow: "none",
                 display: "flex",
                 flexDirection: "column",
                 gap: 4,
@@ -1080,7 +1080,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
                 border: "1px solid #cbd5e1",
                 borderRadius: 14,
                 padding: "16px 18px",
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
+                boxShadow: "none",
                 display: "flex",
                 flexDirection: "column",
                 gap: 4,
@@ -1126,9 +1126,9 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
             style={{
               background: "#ffffff",
               border: "1px solid #e2e8f0",
-              borderRadius: 16,
+              borderRadius: 14,
               overflow: "hidden",
-              boxShadow: "0 2px 10px rgba(15, 23, 42, 0.03)",
+              boxShadow: "none",
             }}
           >
             {/* Table Header / Action Strip */}
@@ -1169,7 +1169,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
                   display: "flex",
                   alignItems: "center",
                   gap: 6,
-                  boxShadow: "0 2px 6px rgba(37, 99, 235, 0.2)",
+                  boxShadow: "none",
                 }}
               >
                 <Plus size={15} />
@@ -1475,7 +1475,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
-                    boxShadow: "0 2px 6px rgba(22, 163, 74, 0.2)",
+                    boxShadow: "none",
                   }}
                 >
                   {saving ? <RefreshCw size={14} className="spin" /> : <Save size={14} />}

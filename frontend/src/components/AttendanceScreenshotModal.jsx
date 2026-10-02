@@ -2380,7 +2380,7 @@ const parseCutmOcrText = (text, catalog = []) => {
               exit={{ opacity: 0, scale: 0.95 }}
               style={{
                 background: "#ffffff",
-                borderRadius: 18,
+                borderRadius: 16,
                 maxWidth: "min(500px, 95vw)",
                 width: "100%",
                 maxHeight: "90vh",

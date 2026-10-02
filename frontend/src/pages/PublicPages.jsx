@@ -651,7 +651,7 @@ function PrivacyPage() {
           </p>
           <p>
             For privacy inquiries, data requests, or security disclosures, contact our privacy officer at:{" "}
-            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "#2563eb", fontWeight: 700 }}>
+            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "#2563eb", fontWeight: 700, wordBreak: "break-all" }}>
               {CONTACT_EMAIL}
             </a>.
           </p>
@@ -819,7 +819,7 @@ function TermsPage() {
           </p>
           <p>
             For questions regarding these Terms, contact us at:{" "}
-            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "#2563eb", fontWeight: 700 }}>
+            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "#2563eb", fontWeight: 700, wordBreak: "break-all" }}>
               {CONTACT_EMAIL}
             </a>.
           </p>
@@ -954,7 +954,7 @@ function CookiesPage() {
           </div>
           <p>
             If you have questions regarding our cookie practices or browser storage management, please contact us at:{" "}
-            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "#2563eb", fontWeight: 700 }}>
+            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "#2563eb", fontWeight: 700, wordBreak: "break-all" }}>
               {CONTACT_EMAIL}
             </a>.
           </p>

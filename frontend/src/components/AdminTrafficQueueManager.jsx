@@ -291,9 +291,9 @@ export default function AdminTrafficQueueManager({ API, authHeaders, isMobile })
         style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
-          borderRadius: 18,
+          borderRadius: 14,
           padding: isMobile ? "16px" : "20px 24px",
-          boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+          boxShadow: "none",
         }}
       >
         <div
@@ -365,9 +365,7 @@ export default function AdminTrafficQueueManager({ API, authHeaders, isMobile })
                 display: "flex",
                 alignItems: "center",
                 gap: 6,
-                boxShadow: liveData.queueEnabled
-                  ? "0 2px 8px rgba(239, 68, 68, 0.25)"
-                  : "0 2px 8px rgba(16, 185, 129, 0.25)",
+                boxShadow: "none",
               }}
             >
               {liveData.queueEnabled ? <Lock size={14} /> : <Unlock size={14} />}
@@ -537,10 +535,10 @@ export default function AdminTrafficQueueManager({ API, authHeaders, isMobile })
         <div
           style={{
             background: "#fffafb",
-            border: "1.5px solid #fed7aa",
-            borderRadius: 18,
+            border: "1px solid #fed7aa",
+            borderRadius: 14,
             padding: isMobile ? "16px" : "20px 24px",
-            boxShadow: "0 2px 10px rgba(234, 88, 12, 0.05)",
+            boxShadow: "none",
           }}
         >
           <div
@@ -637,9 +635,9 @@ export default function AdminTrafficQueueManager({ API, authHeaders, isMobile })
         style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
-          borderRadius: 18,
+          borderRadius: 14,
           padding: isMobile ? "16px" : "20px 24px",
-          boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+          boxShadow: "none",
         }}
       >
         <div
@@ -700,7 +698,7 @@ export default function AdminTrafficQueueManager({ API, authHeaders, isMobile })
                 alignItems: "center",
                 gap: 5,
                 whiteSpace: "nowrap",
-                boxShadow: activeAnalyticsTab === "MOST" ? "0 1px 3px rgba(15,23,42,0.06)" : "none",
+                boxShadow: "none",
                 transition: "all 0.15s ease",
               }}
             >
@@ -721,7 +719,7 @@ export default function AdminTrafficQueueManager({ API, authHeaders, isMobile })
                 alignItems: "center",
                 gap: 5,
                 whiteSpace: "nowrap",
-                boxShadow: activeAnalyticsTab === "MEDIUM" ? "0 1px 3px rgba(15,23,42,0.06)" : "none",
+                boxShadow: "none",
                 transition: "all 0.15s ease",
               }}
             >
@@ -742,7 +740,7 @@ export default function AdminTrafficQueueManager({ API, authHeaders, isMobile })
                 alignItems: "center",
                 gap: 5,
                 whiteSpace: "nowrap",
-                boxShadow: activeAnalyticsTab === "LEAST" ? "0 1px 3px rgba(15,23,42,0.06)" : "none",
+                boxShadow: "none",
                 transition: "all 0.15s ease",
               }}
             >
@@ -763,7 +761,7 @@ export default function AdminTrafficQueueManager({ API, authHeaders, isMobile })
                 alignItems: "center",
                 gap: 5,
                 whiteSpace: "nowrap",
-                boxShadow: activeAnalyticsTab === "ALL" ? "0 1px 3px rgba(15,23,42,0.06)" : "none",
+                boxShadow: "none",
                 transition: "all 0.15s ease",
               }}
             >

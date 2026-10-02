@@ -292,9 +292,9 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
         style={{
           background: "#ffffff",
           border: "1px solid #cbd5e1",
-          borderRadius: 18,
+          borderRadius: 14,
           padding: isMobile ? "16px 14px" : "20px 22px",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+          boxShadow: "none",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -360,7 +360,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
             fontWeight: 700,
             cursor: loading ? "not-allowed" : "pointer",
             transition: "all 0.15s ease",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+            boxShadow: "none",
           }}
           onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "#ffffff")}
@@ -384,7 +384,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            boxShadow: "0 2px 6px rgba(16, 185, 129, 0.08)",
+            boxShadow: "none",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -418,7 +418,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
             display: "flex",
             flexDirection: "column",
             gap: 6,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            boxShadow: "none",
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -441,7 +441,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
             display: "flex",
             flexDirection: "column",
             gap: 6,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            boxShadow: "none",
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -466,7 +466,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
             display: "flex",
             flexDirection: "column",
             gap: 6,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            boxShadow: "none",
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -489,7 +489,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
             display: "flex",
             flexDirection: "column",
             gap: 6,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            boxShadow: "none",
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -515,7 +515,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
             display: "flex",
             flexDirection: "column",
             gap: 6,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            boxShadow: "none",
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -534,14 +534,14 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
         style={{
           background: "#ffffff",
           border: "1px solid #cbd5e1",
-          borderRadius: 16,
+          borderRadius: 14,
           padding: "14px 18px",
           display: "flex",
           flexDirection: isMobile ? "column" : "row",
           justifyContent: "space-between",
           alignItems: isMobile ? "stretch" : "center",
           gap: 12,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+          boxShadow: "none",
         }}
       >
         {/* Search Bar */}
@@ -726,7 +726,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
                 cursor: "pointer",
                 whiteSpace: "nowrap",
                 transition: "all 0.15s ease",
-                boxShadow: isActive ? "0 2px 8px rgba(37,99,235,0.25)" : "none",
+                boxShadow: "none",
               }}
             >
               <span>{t.label}</span>
@@ -867,12 +867,12 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
                 style={{
                   background: "#ffffff",
                   border: "1px solid #cbd5e1",
-                  borderRadius: 16,
+                  borderRadius: 14,
                   padding: "16px",
                   display: "flex",
                   flexDirection: "column",
                   gap: 12,
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                  boxShadow: "none",
                 }}
               >
                 {/* Card Header: Rank, Name, RegNo, and Status */}
@@ -1067,9 +1067,9 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
           style={{
             background: "#ffffff",
             border: "1px solid #cbd5e1",
-            borderRadius: 16,
+            borderRadius: 14,
             overflow: "hidden",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+            boxShadow: "none",
           }}
         >
           <div style={{ overflowX: "auto" }}>
@@ -1477,9 +1477,9 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
                 maxWidth: 680,
                 maxHeight: "90vh",
                 background: "#ffffff",
-                borderRadius: 20,
+                borderRadius: 16,
                 border: "1px solid #cbd5e1",
-                boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
+                boxShadow: "none",
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
@@ -1589,7 +1589,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
                     display: "flex",
                     flexDirection: "column",
                     gap: 14,
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                    boxShadow: "none",
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>

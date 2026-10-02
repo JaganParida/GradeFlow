@@ -204,7 +204,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
           border: "1px solid #fecaca",
           padding: isMobile ? "24px 14px" : "36px 20px",
           textAlign: "center",
-          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+          boxShadow: "none",
           boxSizing: "border-box",
           width: "100%",
         }}
@@ -326,10 +326,10 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
       <div
         style={{
           background: "#ffffff",
-          borderRadius: isMobile ? 12 : 16,
+          borderRadius: isMobile ? 12 : 14,
           border: "1px solid #e2e8f0",
           padding: isMobile ? "12px" : "18px 22px",
-          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+          boxShadow: "none",
           boxSizing: "border-box",
           width: "100%",
         }}
@@ -540,7 +540,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
             border: "1px solid #e2e8f0",
             borderRadius: isMobile ? 12 : 14,
             padding: isMobile ? "10px" : "14px 16px",
-            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+            boxShadow: "none",
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
@@ -674,7 +674,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
             border: "1px solid #e2e8f0",
             borderRadius: isMobile ? 12 : 14,
             padding: isMobile ? "10px" : "14px 16px",
-            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+            boxShadow: "none",
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
@@ -808,7 +808,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
             border: "1px solid #e2e8f0",
             borderRadius: isMobile ? 12 : 14,
             padding: isMobile ? "10px" : "14px 16px",
-            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+            boxShadow: "none",
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
@@ -927,7 +927,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
             border: "1px solid #e2e8f0",
             borderRadius: isMobile ? 12 : 14,
             padding: isMobile ? "10px" : "14px 16px",
-            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+            boxShadow: "none",
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
@@ -1064,9 +1064,9 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
         style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
-          borderRadius: isMobile ? 14 : 18,
+          borderRadius: isMobile ? 12 : 14,
           padding: isMobile ? "14px 12px" : "20px 22px",
-          boxShadow: "0 2px 10px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.02)",
+          boxShadow: "none",
           boxSizing: "border-box",
           width: "100%",
         }}
@@ -1094,7 +1094,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
-                boxShadow: "0 2px 6px rgba(124, 58, 237, 0.1)",
+                boxShadow: "none",
               }}
             >
               <TrendingUp size={isMobile ? 18 : 20} color="#7c3aed" />
@@ -1404,7 +1404,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
             boxSizing: "border-box",
             width: "100%",
             position: "relative",
-            boxShadow: "inset 0 1px 2px rgba(0,0,0,0.02)",
+            boxShadow: "none",
           }}
         >
           {/* Subtle Grid Lines with Request Scale */}
@@ -1481,18 +1481,15 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
 
               // Colors based on state
               let barBg = "#e2e8f0";
-              let barShadow = "none";
 
               if (isPeak) {
                 barBg = isHovered
                   ? "linear-gradient(180deg, #9333ea 0%, #6b21a8 100%)"
                   : "linear-gradient(180deg, #a855f7 0%, #7c3aed 100%)";
-                barShadow = "0 3px 12px rgba(124, 58, 237, 0.45)";
               } else if (h.requests > 0) {
                 barBg = isHovered
                   ? "linear-gradient(180deg, #38bdf8 0%, #1d4ed8 100%)"
                   : "linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)";
-                barShadow = isHovered ? "0 2px 8px rgba(37, 99, 235, 0.35)" : "none";
               } else if (isHovered) {
                 barBg = "#cbd5e1";
               }
@@ -1535,7 +1532,8 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                         fontSize: 10.5,
                         fontWeight: 700,
                         whiteSpace: "nowrap",
-                        boxShadow: "0 4px 14px rgba(15, 23, 42, 0.35)",
+                        boxShadow: "none",
+                        border: "1px solid #334155",
                         pointerEvents: "none",
                         zIndex: 40,
                         display: "flex",
@@ -1559,7 +1557,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                       <Flame
                         size={isMobile ? 10 : 12}
                         color="#f59e0b"
-                        style={{ flexShrink: 0, filter: "drop-shadow(0 1px 2px rgba(245, 158, 11, 0.6))" }}
+                        style={{ flexShrink: 0 }}
                       />
                     </div>
                   )}
@@ -1571,7 +1569,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                       height: `${heightPercent}%`,
                       borderRadius: "4px 4px 1px 1px",
                       background: barBg,
-                      boxShadow: barShadow,
+                      boxShadow: "none",
                       border: isHovered
                         ? "1.5px solid #0f172a"
                         : isCurrentHour
@@ -1743,9 +1741,9 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
         style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
-          borderRadius: isMobile ? 12 : 16,
+          borderRadius: isMobile ? 12 : 14,
           padding: isMobile ? "12px" : "18px 20px",
-          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+          boxShadow: "none",
           boxSizing: "border-box",
           width: "100%",
         }}
@@ -1831,9 +1829,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                   flexDirection: "column",
                   justifyContent: "space-between",
                   boxSizing: "border-box",
-                  boxShadow: isCurrentActive
-                    ? "0 2px 8px rgba(16, 185, 129, 0.12)"
-                    : "none",
+                  boxShadow: "none",
                 }}
               >
                 <div>
@@ -1964,9 +1960,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                   flexDirection: "column",
                   justifyContent: "space-between",
                   boxSizing: "border-box",
-                  boxShadow: isCurrentActive
-                    ? "0 2px 8px rgba(245, 158, 11, 0.12)"
-                    : "none",
+                  boxShadow: "none",
                 }}
               >
                 <div>
@@ -2097,9 +2091,7 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
                   flexDirection: "column",
                   justifyContent: "space-between",
                   boxSizing: "border-box",
-                  boxShadow: isCurrentActive
-                    ? "0 2px 8px rgba(239, 68, 68, 0.12)"
-                    : "none",
+                  boxShadow: "none",
                 }}
               >
                 <div>
@@ -2226,9 +2218,9 @@ export default function AdminVercelQuotaMonitor({ API, authHeaders, isMobile: pr
         style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
-          borderRadius: isMobile ? 12 : 16,
+          borderRadius: isMobile ? 12 : 14,
           padding: isMobile ? "12px" : "18px 20px",
-          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+          boxShadow: "none",
           boxSizing: "border-box",
           width: "100%",
         }}

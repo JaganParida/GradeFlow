@@ -723,7 +723,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 borderRadius: 14,
                 border: isActive ? "1.5px solid #4f46e5" : "1px solid #e2e8f0",
                 background: isActive ? "linear-gradient(135deg, #eef2ff 0%, #ffffff 100%)" : "#ffffff",
-                boxShadow: isActive ? "0 4px 14px rgba(79, 70, 229, 0.12)" : "0 1px 3px rgba(15, 23, 42, 0.03)",
+                boxShadow: "none",
                 cursor: "pointer",
                 textAlign: "left",
                 transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
@@ -871,10 +871,10 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
         <div
           style={{
             background: "#ffffff",
-            borderRadius: isMob ? 14 : 16,
+            borderRadius: 14,
             border: "1px solid #e2e8f0",
             padding: isMob ? "14px 12px" : "20px 24px",
-            boxShadow: "0 2px 10px rgba(15, 23, 42, 0.03)",
+            boxShadow: "none",
           }}
         >
           <form onSubmit={handleSearch} style={{ display: "flex", gap: 10, flexDirection: isMob ? "column" : "row", alignItems: "stretch" }}>
@@ -923,7 +923,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 8,
-                boxShadow: "0 4px 12px rgba(79, 70, 229, 0.25)",
+                boxShadow: "none",
                 transition: "all 0.2s",
                 opacity: loading ? 0.8 : 1,
               }}
@@ -986,7 +986,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             justifyContent: "space-between",
             flexWrap: "wrap",
             gap: 12,
-            boxShadow: "0 2px 8px rgba(124, 58, 237, 0.06)",
+            boxShadow: "none",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -1047,7 +1047,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               display: "inline-flex",
               alignItems: "center",
               gap: 6,
-              boxShadow: "0 2px 6px rgba(124, 58, 237, 0.25)",
+              boxShadow: "none",
             }}
           >
             <RefreshCw size={13} className={loading ? "spin" : ""} />
@@ -1068,7 +1068,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             justifyContent: "space-between",
             flexWrap: "wrap",
             gap: 12,
-            boxShadow: "0 2px 8px rgba(79, 70, 229, 0.06)",
+            boxShadow: "none",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -1129,7 +1129,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               display: "inline-flex",
               alignItems: "center",
               gap: 6,
-              boxShadow: "0 2px 6px rgba(67, 56, 202, 0.25)",
+              boxShadow: "none",
             }}
           >
             <RefreshCw size={13} className={adminLoading ? "spin" : ""} />
@@ -1148,7 +1148,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             display: "flex",
             flexDirection: "column",
             gap: 12,
-            boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
+            boxShadow: "none",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
@@ -1285,11 +1285,11 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               padding: isMob ? "10px 12px" : "12px 16px",
               flexWrap: "wrap",
               gap: 10,
-              boxShadow: "0 1px 3px rgba(37,99,235,0.06)",
+              boxShadow: "none",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#2563eb", boxShadow: "0 0 0 3px rgba(37,99,235,0.2)" }} />
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#2563eb", boxShadow: "none" }} />
               <span style={{ fontSize: isMob ? 12.5 : 13.5, fontWeight: 800, color: "#1e40af" }}>
                 Currently Inspecting: {displayTarget.name || displayTarget.studentName || "Account"} ({displayTarget.regNo})
               </span>
@@ -1316,7 +1316,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                   fontSize: 12,
                   fontWeight: 700,
                   cursor: "pointer",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                  boxShadow: "none",
                   transition: "all 0.15s ease",
                 }}
                 onMouseEnter={(e) => {
@@ -1450,10 +1450,10 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
           <div
             style={{
               background: "#ffffff",
-              borderRadius: 16,
+              borderRadius: 14,
               border: "1px solid #e2e8f0",
               padding: isMob ? "14px 12px" : "20px 24px",
-              boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+              boxShadow: "none",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
@@ -1881,10 +1881,10 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               <div
                 style={{
                   background: "#ffffff",
-                  borderRadius: 16,
+                  borderRadius: 14,
                   border: "1.5px solid #e2e8f0",
                   padding: isMob ? "16px 12px" : "22px 24px",
-                  boxShadow: "0 4px 20px rgba(15, 23, 42, 0.03)",
+                  boxShadow: "none",
                 }}
               >
                 {/* Header */}
@@ -2006,7 +2006,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                             flexDirection: "column",
                             gap: 8,
                             transition: "all 0.15s ease",
-                            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                            boxShadow: "none",
                           }}
                         >
                           {/* Top Row: Status Badge & Time */}
@@ -2228,7 +2228,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                                 alignItems: "center",
                                 justifyContent: "center",
                                 transition: "all 0.15s ease",
-                                boxShadow: isActive ? "0 2px 6px rgba(79, 70, 229, 0.25)" : "none",
+                                boxShadow: "none",
                               }}
                             >
                               {pageNum}
@@ -2275,7 +2275,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             style={{
               background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
               border: "1.5px solid #cbd5e1",
-              borderRadius: 16,
+              borderRadius: 14,
               padding: isMob ? "16px 14px" : "22px 26px",
               display: "flex",
               flexDirection: isMob ? "column" : "row",
@@ -2312,7 +2312,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 8,
-                boxShadow: "0 4px 12px rgba(220, 38, 38, 0.25)",
+                boxShadow: "none",
                 transition: "all 0.2s",
                 whiteSpace: "nowrap",
               }}
@@ -2329,10 +2329,10 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
       <div
         style={{
           background: "#ffffff",
-          borderRadius: isMob ? 16 : 18,
+          borderRadius: 14,
           border: "1px solid #e2e8f0",
           padding: isMob ? "14px 12px" : "22px 24px",
-          boxShadow: "0 2px 10px rgba(15, 23, 42, 0.03)",
+          boxShadow: "none",
           display: "flex",
           flexDirection: "column",
           gap: isMob ? 14 : 18,
@@ -2935,7 +2935,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                                 border: "1px solid #e2e8f0",
                                 borderRadius: 14,
                                 padding: "12px 14px",
-                                boxShadow: "0 1px 4px rgba(0,0,0,0.02)",
+                                boxShadow: "none",
                                 display: "flex",
                                 flexDirection: "column",
                                 gap: 10,
@@ -3450,11 +3450,11 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               exit={{ opacity: 0, scale: 0.95 }}
               style={{
                 background: "#ffffff",
-                borderRadius: 20,
+                borderRadius: 16,
                 maxWidth: 480,
                 width: "100%",
                 padding: 24,
-                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                boxShadow: "none",
                 border: "1px solid #e2e8f0",
               }}
             >
@@ -3612,11 +3612,11 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               onClick={(e) => e.stopPropagation()}
               style={{
                 background: "#ffffff",
-                borderRadius: 20,
+                borderRadius: 16,
                 maxWidth: 480,
                 width: "100%",
                 padding: 24,
-                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                boxShadow: "none",
                 border: "1px solid #e2e8f0",
               }}
             >

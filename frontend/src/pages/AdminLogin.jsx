@@ -586,10 +586,10 @@ export default function AdminLogin() {
                 key={feat.title}
                 style={{
                   padding: "14px 18px",
-                  borderRadius: 14,
+                  borderRadius: 12,
                   background: "#ffffff",
-                  border: "1px solid #f1f5f9",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                  border: "1px solid #e2e8f0",
+                  boxShadow: "none",
                   display: "flex",
                   alignItems: "flex-start",
                   gap: 14,
@@ -666,8 +666,8 @@ export default function AdminLogin() {
               padding: "36px 32px",
               background: "#ffffff",
               border: "1px solid #e2e8f0",
-              borderRadius: 20,
-              boxShadow: "0 10px 30px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.02)",
+              borderRadius: 14,
+              boxShadow: "none",
               boxSizing: "border-box",
             }}
             onContextMenu={(e) => e.preventDefault()}
@@ -683,7 +683,7 @@ export default function AdminLogin() {
                     gridTemplateColumns: "1fr 1fr",
                     background: "#f1f5f9",
                     padding: 4,
-                    borderRadius: 12,
+                    borderRadius: 10,
                     marginBottom: 20,
                     gap: 4,
                   }}
@@ -697,14 +697,14 @@ export default function AdminLogin() {
                     }}
                     style={{
                       padding: "8px 12px",
-                      borderRadius: 8,
-                      border: "none",
+                      borderRadius: 7,
+                      border: authMode === "MAIN" ? "1px solid #e2e8f0" : "1px solid transparent",
                       background: authMode === "MAIN" ? "#ffffff" : "transparent",
                       color: authMode === "MAIN" ? "#2563eb" : "#64748b",
                       fontWeight: 700,
                       fontSize: 12.5,
                       cursor: "pointer",
-                      boxShadow: authMode === "MAIN" ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
+                      boxShadow: "none",
                       transition: "all 0.15s ease",
                       whiteSpace: "nowrap",
                     }}
@@ -720,14 +720,14 @@ export default function AdminLogin() {
                     }}
                     style={{
                       padding: "8px 12px",
-                      borderRadius: 8,
-                      border: "none",
+                      borderRadius: 7,
+                      border: authMode === "SUBADMIN" ? "1px solid #e2e8f0" : "1px solid transparent",
                       background: authMode === "SUBADMIN" ? "#ffffff" : "transparent",
                       color: authMode === "SUBADMIN" ? "#4f46e5" : "#64748b",
                       fontWeight: 700,
                       fontSize: 12.5,
                       cursor: "pointer",
-                      boxShadow: authMode === "SUBADMIN" ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
+                      boxShadow: "none",
                       transition: "all 0.15s ease",
                       whiteSpace: "nowrap",
                     }}
@@ -896,7 +896,7 @@ export default function AdminLogin() {
                               display: "flex",
                               alignItems: "flex-start",
                               gap: 12,
-                              boxShadow: "0 2px 6px rgba(0, 0, 0, 0.02)",
+                              boxShadow: "none",
                             }}
                           >
                             <div
@@ -1045,7 +1045,7 @@ export default function AdminLogin() {
                           justifyContent: "center",
                           gap: 8,
                           transition: "all 0.2s ease",
-                          boxShadow: lockCountdown === 0 ? "0 4px 12px rgba(37, 99, 235, 0.25)" : "none",
+                          boxShadow: "none",
                           fontFamily: "'DM Sans', sans-serif",
                         }}
                       >
@@ -1195,7 +1195,7 @@ export default function AdminLogin() {
                           alignItems: "center",
                           justifyContent: "center",
                           gap: 8,
-                          boxShadow: "0 4px 12px rgba(79, 70, 229, 0.25)",
+                          boxShadow: "none",
                         }}
                       >
                         {loading ? (
@@ -1379,7 +1379,7 @@ export default function AdminLogin() {
                           display: "flex",
                           alignItems: "flex-start",
                           gap: 12,
-                          boxShadow: "0 2px 6px rgba(0, 0, 0, 0.02)",
+                          boxShadow: "none",
                         }}
                       >
                         <div
@@ -1476,10 +1476,7 @@ export default function AdminLogin() {
                       justifyContent: "center",
                       gap: 8,
                       transition: "all 0.2s ease",
-                      boxShadow:
-                        otp.join("").length === 6 && otpTimeLeft > 0
-                          ? "0 4px 12px rgba(22, 163, 74, 0.25)"
-                          : "none",
+                      boxShadow: "none",
                       fontFamily: "'DM Sans', sans-serif",
                     }}
                   >

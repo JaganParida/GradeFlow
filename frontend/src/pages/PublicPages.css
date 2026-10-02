@@ -1,5 +1,9 @@
 .gf-public-page {
   min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
   background: #fcfdfe;
   color: #0f172a;
   font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -9,7 +13,9 @@
 .gf-public-content {
   width: min(100%, 1160px);
   margin: 0 auto;
-  padding: 104px 24px 80px;
+  padding: 96px 20px 72px;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* ─── Hero Styles ─── */
@@ -99,26 +105,27 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 44px;
-  padding: 10px 18px;
-  border: 1px solid #2563eb;
-  border-radius: 10px;
+  min-height: 42px;
+  padding: 9px 16px;
+  border: 1px solid #1e40af;
+  border-radius: 8px;
   background: #2563eb;
   color: #ffffff !important;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
-  transition: all 0.18s ease;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+  transition: all 0.15s ease;
+  box-shadow: none !important;
+  box-sizing: border-box;
 }
 
 .gf-public-button:hover,
 .gf-public-button:focus-visible {
   background: #1d4ed8;
-  border-color: #1d4ed8;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  border-color: #1e3a8a;
+  transform: none;
+  box-shadow: none !important;
 }
 
 .gf-public-button-secondary {
@@ -126,17 +133,19 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 44px;
-  padding: 10px 18px;
+  min-height: 42px;
+  padding: 9px 16px;
   border: 1px solid #cbd5e1;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #ffffff;
   color: #334155;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.15s ease;
+  box-shadow: none !important;
+  box-sizing: border-box;
 }
 
 .gf-public-button-secondary:hover {
@@ -201,15 +210,16 @@
   position: relative;
   z-index: 1;
   display: grid;
-  min-width: 190px;
+  min-width: 180px;
   place-items: center;
   gap: 8px;
-  padding: 30px 24px;
+  padding: 24px 20px;
   border: 1px solid #dbeafe;
-  border-radius: 18px;
+  border-radius: 14px;
   background: #ffffff;
-  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+  box-shadow: none !important;
   color: #2563eb;
+  box-sizing: border-box;
 }
 
 .gf-public-illustration-card span {
@@ -259,22 +269,24 @@
 /* ─── Feature Grid ─── */
 .gf-public-feature-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .gf-public-feature-grid article {
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  border-radius: 12px;
   background: #ffffff;
-  padding: 26px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  padding: 22px 20px;
+  box-shadow: none !important;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
 }
 
 .gf-public-feature-grid article:hover {
-  transform: translateY(-2px);
   border-color: #cbd5e1;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
 }
 
 .gf-public-feature-grid svg {
@@ -287,6 +299,7 @@
   color: #0f172a;
   font-size: 1.05rem;
   font-weight: 800;
+  word-break: break-word;
 }
 
 .gf-public-feature-grid p,
@@ -297,22 +310,27 @@
   color: #64748b;
   font-size: 0.94rem;
   line-height: 1.65;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 /* ─── Corporate Legal Overview Highlights Box ─── */
 .gf-legal-highlights {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
-  margin: 32px 0 44px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 14px;
+  margin: 24px 0 36px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .gf-legal-highlight-card {
-  padding: 20px 22px;
+  padding: 16px 18px;
   border-radius: 12px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+  box-shadow: none !important;
+  box-sizing: border-box;
 }
 
 .gf-legal-highlight-card-header {
@@ -332,6 +350,7 @@
   font-size: 0.98rem;
   font-weight: 750;
   color: #0f172a;
+  word-break: break-word;
 }
 
 .gf-legal-highlight-card p {
@@ -339,16 +358,22 @@
   font-size: 0.88rem;
   color: #64748b;
   line-height: 1.6;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 /* ─── Legal Structured Article Blocks ─── */
 .gf-legal-article {
-  padding: 30px 32px;
-  margin-bottom: 24px;
+  padding: 24px 22px;
+  margin-bottom: 18px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+  border-radius: 12px;
+  box-shadow: none !important;
+  box-sizing: border-box;
+  width: 100%;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .gf-legal-article-header {
@@ -422,74 +447,99 @@
 /* ─── Contact Cards Grid ─── */
 .gf-contact-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 22px;
-  margin-top: 36px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  gap: 16px;
+  margin-top: 24px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .gf-contact-channel-card {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 28px;
+  padding: 22px 20px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  border-radius: 12px;
+  box-shadow: none !important;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
 }
 
 .gf-contact-channel-card:hover {
-  transform: translateY(-2px);
   border-color: #cbd5e1;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
 }
 
 .gf-contact-channel-top {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 18px;
+  gap: 14px;
+  margin-bottom: 14px;
+  box-sizing: border-box;
 }
 
 .gf-contact-icon-box {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
   background: #eff6ff;
   color: #2563eb;
   flex-shrink: 0;
 }
 
+.gf-contact-channel-info {
+  min-width: 0;
+  flex: 1;
+}
+
 .gf-contact-channel-info h3 {
   margin: 0 0 4px;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   color: #0f172a;
   font-weight: 800;
+  word-break: break-word;
 }
 
 .gf-contact-channel-info p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   color: #64748b;
-  line-height: 1.5;
+  line-height: 1.48;
+  word-break: break-word;
 }
 
 .gf-contact-email-pill {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  gap: 8px;
+  padding: 8px 12px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  margin: 18px 0;
-  font-size: 0.88rem;
+  border-radius: 8px;
+  margin: 14px 0;
+  font-size: clamp(0.78rem, 2.5vw, 0.86rem);
   font-weight: 650;
   color: #1e293b;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  flex-wrap: wrap;
+}
+
+.gf-contact-email-pill span {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  flex: 1;
 }
 
 .gf-contact-channel-footer {
@@ -564,16 +614,22 @@
 /* ─── FAQ Grid / List ─── */
 .gf-faq-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 18px;
-  margin-top: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 14px;
+  margin-top: 20px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .gf-faq-card {
-  padding: 22px 24px;
+  padding: 18px 20px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
+  box-shadow: none !important;
+  box-sizing: border-box;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .gf-faq-card h3 {
@@ -594,13 +650,16 @@
 .gf-public-callout {
   display: flex;
   align-items: flex-start;
-  gap: 18px;
+  gap: 16px;
   max-width: 820px;
-  padding: 28px;
-  border-radius: 14px;
+  padding: 22px 20px;
+  border-radius: 12px;
   background: #eff6ff;
   border: 1px solid #dbeafe;
-  margin-top: 48px;
+  margin-top: 36px;
+  box-shadow: none !important;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .gf-public-callout > svg {
@@ -691,69 +750,91 @@
   color: #2563eb;
 }
 
-/* ─── Responsive Media Queries ─── */
-@media (max-width: 768px) {
-  .gf-public-content {
-    padding: 84px 18px 56px;
-  }
-
-  .gf-public-hero {
-    padding: 16px 0 40px;
-  }
-
+/* ─── Responsive Media Queries (Mobile & Tablet Friendly) ─── */
+@media (max-width: 860px) {
   .gf-public-hero-split {
     grid-template-columns: 1fr;
     gap: 24px;
   }
 
   .gf-public-illustration {
-    min-height: 220px;
+    min-height: 190px;
   }
 
   .gf-public-orbit-one {
-    width: 200px;
-    height: 200px;
+    width: 180px;
+    height: 180px;
   }
 
   .gf-public-orbit-two {
-    width: 140px;
-    height: 140px;
+    width: 120px;
+    height: 120px;
+  }
+}
+
+@media (max-width: 768px) {
+  .gf-public-content {
+    padding: 76px 16px 44px;
+  }
+
+  .gf-public-hero {
+    padding: 12px 0 32px;
   }
 
   .gf-public-section {
-    padding-top: 42px;
-  }
-
-  .gf-public-feature-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .gf-legal-highlights {
-    grid-template-columns: 1fr;
+    padding-top: 32px;
   }
 
   .gf-legal-article {
-    padding: 22px 18px;
-  }
-
-  .gf-contact-grid {
-    grid-template-columns: 1fr;
+    padding: 18px 16px;
   }
 
   .gf-public-footer-inner {
     flex-direction: column;
-    gap: 24px;
-    padding: 28px 18px;
+    gap: 20px;
+    padding: 24px 16px;
   }
 
   .gf-public-footer-links {
     justify-content: flex-start;
+    gap: 10px 16px;
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 520px) {
+  .gf-public-content {
+    padding: 68px 12px 36px;
+  }
+
   .gf-public-hero h1 {
-    font-size: 1.95rem;
+    font-size: 1.7rem;
+    line-height: 1.2;
+  }
+
+  .gf-public-hero p {
+    font-size: 0.92rem;
+  }
+
+  .gf-public-steps li {
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 10px;
+    padding: 14px 0;
+  }
+
+  .gf-legal-article {
+    padding: 15px 12px;
+  }
+
+  .gf-legal-article-header {
+    gap: 8px;
+  }
+
+  .gf-contact-channel-card {
+    padding: 16px 14px;
+  }
+
+  .gf-contact-email-pill {
+    padding: 6px 10px;
   }
 
   .gf-contact-channel-footer {
@@ -767,8 +848,43 @@
     justify-content: center;
   }
 
+  .gf-security-notice {
+    flex-direction: column;
+    padding: 12px 14px;
+    gap: 8px;
+  }
+
   .gf-public-callout {
     flex-direction: column;
-    padding: 20px;
+    padding: 16px 14px;
+    gap: 10px;
+  }
+
+  .gf-legal-highlight-card {
+    padding: 14px 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  .gf-public-content {
+    padding: 64px 8px 30px;
+  }
+
+  .gf-public-hero h1 {
+    font-size: 1.5rem;
+  }
+
+  .gf-contact-email-pill {
+    font-size: 0.76rem;
+  }
+
+  .gf-public-orbit-one {
+    width: 140px;
+    height: 140px;
+  }
+
+  .gf-public-orbit-two {
+    width: 100px;
+    height: 100px;
   }
 }

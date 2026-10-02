@@ -517,7 +517,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
             background: "#ffffff",
             borderRadius: 14,
             border: "1px solid #e2e8f0",
-            boxShadow: "0 2px 8px -2px rgba(15, 23, 42, 0.04)",
+            boxShadow: "none",
             padding: "10px 14px",
             display: "flex",
             alignItems: "center",
@@ -536,7 +536,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                 alignItems: "center",
                 justifyContent: "center",
                 color: "#ffffff",
-                boxShadow: "0 4px 10px -1px rgba(79, 70, 229, 0.3)",
+                boxShadow: "none",
                 flexShrink: 0,
               }}
             >
@@ -588,7 +588,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                   borderRadius: "50%",
                   background: "#16a34a",
                   display: "inline-block",
-                  boxShadow: "0 0 0 2px rgba(22, 163, 74, 0.2)",
+                  boxShadow: "none",
                 }}
               />
               <span>Live Active</span>
@@ -625,9 +625,9 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
         <div
           style={{
             background: "#ffffff",
-            borderRadius: 20,
+            borderRadius: 14,
             border: "1px solid #e2e8f0",
-            boxShadow: "0 4px 20px -2px rgba(15, 23, 42, 0.04)",
+            boxShadow: "none",
             padding: "24px 28px",
             display: "flex",
             alignItems: "center",
@@ -646,7 +646,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                 alignItems: "center",
                 justifyContent: "center",
                 color: "#ffffff",
-                boxShadow: "0 6px 16px -2px rgba(79, 70, 229, 0.35)",
+                boxShadow: "none",
                 flexShrink: 0,
               }}
             >
@@ -723,7 +723,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                   borderRadius: "50%",
                   background: "#16a34a",
                   display: "inline-block",
-                  boxShadow: "0 0 0 2px rgba(22, 163, 74, 0.2)",
+                  boxShadow: "none",
                 }}
               />
               <span>Live Realtime Shield</span>
@@ -770,10 +770,10 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
         <div
           style={{
             background: "#ffffff",
-            borderRadius: isMob ? 13 : 16,
+            borderRadius: 14,
             border: "1px solid #e2e8f0",
             padding: isMob ? "10px 12px" : "16px 18px",
-            boxShadow: "0 2px 8px -2px rgba(15, 23, 42, 0.04)",
+            boxShadow: "none",
             display: "flex",
             alignItems: "center",
             gap: isMob ? 10 : 14,
@@ -828,10 +828,10 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
         <div
           style={{
             background: "#ffffff",
-            borderRadius: isMob ? 13 : 16,
+            borderRadius: 14,
             border: "1px solid #e2e8f0",
             padding: isMob ? "10px 12px" : "16px 18px",
-            boxShadow: "0 2px 8px -2px rgba(15, 23, 42, 0.04)",
+            boxShadow: "none",
             display: "flex",
             alignItems: "center",
             gap: isMob ? 10 : 14,
@@ -886,10 +886,10 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
         <div
           style={{
             background: "#ffffff",
-            borderRadius: isMob ? 13 : 16,
+            borderRadius: 14,
             border: "1px solid #e2e8f0",
             padding: isMob ? "10px 12px" : "16px 18px",
-            boxShadow: "0 2px 8px -2px rgba(15, 23, 42, 0.04)",
+            boxShadow: "none",
             display: "flex",
             alignItems: "center",
             gap: isMob ? 10 : 14,
@@ -944,10 +944,10 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
         <div
           style={{
             background: "#ffffff",
-            borderRadius: isMob ? 13 : 16,
+            borderRadius: 14,
             border: "1px solid #e2e8f0",
             padding: isMob ? "10px 12px" : "16px 18px",
-            boxShadow: "0 2px 8px -2px rgba(15, 23, 42, 0.04)",
+            boxShadow: "none",
             display: "flex",
             alignItems: "center",
             gap: isMob ? 10 : 14,
@@ -1025,7 +1025,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
             display: "flex",
             alignItems: "center",
             gap: 8,
-            boxShadow: "0 2px 6px rgba(220, 38, 38, 0.05)",
+            boxShadow: "none",
           }}
         >
           <AlertTriangle size={16} color="#dc2626" style={{ flexShrink: 0 }} />
@@ -1051,7 +1051,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
             display: "flex",
             alignItems: "center",
             gap: 8,
-            boxShadow: "0 2px 6px rgba(22, 163, 74, 0.05)",
+            boxShadow: "none",
           }}
         >
           <CheckCircle size={16} color="#16a34a" style={{ flexShrink: 0 }} />
@@ -1069,9 +1069,9 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
       <div
         style={{
           background: "#ffffff",
-          borderRadius: isMob ? 16 : 20,
+          borderRadius: 14,
           border: "1px solid #e2e8f0",
-          boxShadow: "0 4px 20px -2px rgba(15, 23, 42, 0.04)",
+          boxShadow: "none",
           padding: isMob ? "16px 14px" : "24px 26px",
         }}
       >
@@ -1180,7 +1180,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              boxShadow: "0 4px 14px rgba(79, 70, 229, 0.28)",
+              boxShadow: "none",
               flexShrink: 0,
               width: isMob ? "100%" : "auto",
             }}
@@ -1383,12 +1383,10 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
           <div
             style={{
               marginTop: 14,
-              borderRadius: isMob ? 14 : 16,
+              borderRadius: 14,
               border: inspectedStudent.isBlocked ? "1.5px solid #fca5a5" : "1.5px solid #bbf7d0",
               background: inspectedStudent.isBlocked ? "#fff5f5" : "#f0fdf4",
-              boxShadow: inspectedStudent.isBlocked
-                ? "0 4px 16px rgba(239, 68, 68, 0.08)"
-                : "0 4px 16px rgba(22, 163, 74, 0.08)",
+              boxShadow: "none",
               overflow: "hidden",
             }}
           >
@@ -1421,9 +1419,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                     justifyContent: "center",
                     fontSize: isMob ? 16 : 18,
                     fontWeight: 800,
-                    boxShadow: inspectedStudent.isBlocked
-                      ? "0 4px 12px rgba(220, 38, 38, 0.25)"
-                      : "0 4px 12px rgba(16, 185, 129, 0.25)",
+                    boxShadow: "none",
                     flexShrink: 0,
                   }}
                 >
@@ -1507,7 +1503,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                       color: "#ffffff",
                       fontSize: 12,
                       fontWeight: 800,
-                      boxShadow: "0 2px 8px rgba(220, 38, 38, 0.25)",
+                      boxShadow: "none",
                       width: isMob ? "100%" : "auto",
                       boxSizing: "border-box",
                     }}
@@ -1532,7 +1528,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                       color: "#ffffff",
                       fontSize: 12,
                       fontWeight: 800,
-                      boxShadow: "0 2px 8px rgba(22, 163, 74, 0.25)",
+                      boxShadow: "none",
                       width: isMob ? "100%" : "auto",
                       boxSizing: "border-box",
                     }}
@@ -1598,7 +1594,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                       fontSize: 13,
                       fontWeight: 700,
                       cursor: actionLoading ? "not-allowed" : "pointer",
-                      boxShadow: "0 4px 12px rgba(22, 163, 74, 0.25)",
+                      boxShadow: "none",
                       width: isMob ? "100%" : "auto",
                       justifyContent: "center",
                     }}
@@ -1714,7 +1710,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                             fontWeight: 800,
                             fontSize: isMob ? 11.5 : 12,
                             cursor: "pointer",
-                            boxShadow: tempMode === "preset" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                            boxShadow: "none",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -1743,7 +1739,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                             fontWeight: 800,
                             fontSize: isMob ? 11.5 : 12,
                             cursor: "pointer",
-                            boxShadow: tempMode === "custom" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                            boxShadow: "none",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -2096,7 +2092,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                         fontSize: 13,
                         fontWeight: 700,
                         cursor: actionLoading ? "not-allowed" : "pointer",
-                        boxShadow: "0 4px 14px rgba(220, 38, 38, 0.28)",
+                        boxShadow: "none",
                         width: isMob ? "100%" : "auto",
                         justifyContent: "center",
                       }}
@@ -2116,9 +2112,9 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
       <div
         style={{
           background: "#ffffff",
-          borderRadius: isMob ? 16 : 20,
+          borderRadius: 14,
           border: "1px solid #e2e8f0",
-          boxShadow: "0 4px 20px -2px rgba(15, 23, 42, 0.04)",
+          boxShadow: "none",
           padding: isMob ? "16px 14px" : "24px 26px",
         }}
       >
@@ -2197,7 +2193,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                     fontSize: 11.5,
                     fontWeight: 700,
                     cursor: "pointer",
-                    boxShadow: filterType === f.id ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                    boxShadow: "none",
                     transition: "all 0.15s ease",
                     whiteSpace: "nowrap",
                     textAlign: "center",
@@ -2261,7 +2257,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                 alignItems: "center",
                 justifyContent: "center",
                 margin: "0 auto 12px",
-                boxShadow: "0 4px 12px rgba(22, 163, 74, 0.15)",
+                boxShadow: "none",
               }}
             >
               <UserCheck size={22} />
@@ -2289,7 +2285,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                   display: "flex",
                   flexDirection: "column",
                   gap: 8,
-                  boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+                  boxShadow: "none",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
@@ -2536,11 +2532,12 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
           <div
             style={{
               background: "#ffffff",
-              borderRadius: 18,
+              borderRadius: 16,
+              border: "1px solid #e2e8f0",
               maxWidth: 440,
               width: "100%",
               padding: isMob ? "18px 16px" : "24px",
-              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+              boxShadow: "none",
               display: "flex",
               flexDirection: "column",
               gap: 14,
@@ -2611,7 +2608,7 @@ export default function StudentAccessControl({ API, authHeaders, isMobile }) {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 6,
-                  boxShadow: "0 4px 12px rgba(220, 38, 38, 0.25)",
+                  boxShadow: "none",
                 }}
               >
                 {actionLoading && <RefreshCw size={12} className="spin" />}

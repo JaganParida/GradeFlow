@@ -23,7 +23,7 @@ export default function FinalCtaSection({
       <div
         style={{
           background: "#ffffff",
-          borderRadius: 20,
+          borderRadius: 16,
           border: "1px solid #e2e8f0",
           padding: "64px 32px",
           textAlign: "center",

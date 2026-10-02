@@ -1364,7 +1364,7 @@ export default function Timetable() {
             style={{
               background: "linear-gradient(135deg, #f5f3ff 0%, #faf5ff 100%)",
               border: "1.5px solid #ddd6fe",
-              borderRadius: 16,
+              borderRadius: 14,
               padding: "12px 20px",
               display: "flex",
               justifyContent: "space-between",
@@ -3488,7 +3488,7 @@ export default function Timetable() {
                 onClick={(e) => e.stopPropagation()}
                 style={{
                   background: "#ffffff",
-                  borderRadius: 18,
+                  borderRadius: 16,
                   padding: "24px 26px",
                   maxWidth: 440,
                   width: "100%",

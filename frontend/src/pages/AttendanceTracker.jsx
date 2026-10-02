@@ -2895,7 +2895,7 @@ export default function AttendanceTracker() {
             width: "100%",
             background: "#ffffff",
             border: "1px solid #e2e8f0",
-            borderRadius: 20,
+            borderRadius: 14,
             padding: isMobile ? "28px 20px" : "36px 32px",
             textAlign: "center",
             boxShadow: "none",
@@ -6957,7 +6957,7 @@ export default function AttendanceTracker() {
             style={{
               background: "#ffffff",
               border: "1px solid #e2e8f0",
-              borderRadius: 18,
+              borderRadius: 14,
               padding: isMobile ? "16px 14px" : "22px 24px",
               display: "flex",
               flexDirection: "column",
@@ -7489,7 +7489,7 @@ export default function AttendanceTracker() {
             style={{
               background: "#ffffff",
               border: "1px solid #e2e8f0",
-              borderRadius: 18,
+              borderRadius: 14,
               padding: isMobile ? "16px 14px" : "22px 24px",
               display: "flex",
               flexDirection: "column",
@@ -7504,7 +7504,7 @@ export default function AttendanceTracker() {
               style={{
                 background: "linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)",
                 border: "1.5px solid #e2e8f0",
-                borderRadius: 16,
+                borderRadius: 12,
                 padding: "14px 18px",
                 display: "flex",
                 justifyContent: "space-between",
@@ -8210,7 +8210,7 @@ export default function AttendanceTracker() {
                   onClick={(e) => e.stopPropagation()}
                   style={{
                     background: "#ffffff",
-                    borderRadius: 20,
+                    borderRadius: 16,
                     padding: "20px 18px",
                     width: "min(380px, calc(100vw - 28px))",
                     maxWidth: "100%",

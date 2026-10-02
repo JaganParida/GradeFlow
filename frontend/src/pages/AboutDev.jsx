@@ -339,7 +339,7 @@ export default function AboutDev() {
           style={{
             background: "#ffffff",
             border: "1px solid #e2e8f0",
-            borderRadius: 24,
+            borderRadius: 14,
             padding: isMobile ? "24px 18px" : "36px 36px",
             boxShadow: "none",
             display: "grid",
@@ -778,7 +778,7 @@ export default function AboutDev() {
           style={{
             background: "#f8faff",
             border: "1px solid #edf2f7",
-            borderRadius: 18,
+            borderRadius: 14,
             padding: isMobile ? "16px 18px" : "20px 32px",
             display: "flex",
             alignItems: "center",

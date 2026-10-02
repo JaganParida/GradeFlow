@@ -2405,7 +2405,7 @@ input[type="number"].no-spin-button {
 .home-dashboard-preview {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: 14px;
   padding: 28px;
   box-shadow: 0 4px 40px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.02);
   position: relative;
@@ -2808,7 +2808,7 @@ input[type="number"].no-spin-button {
 
 .home-cta-inner {
   background: linear-gradient(135deg, #312e81, #4f46e5);
-  border-radius: 20px;
+  border-radius: 16px;
   padding: 40px 48px;
   display: flex;
   align-items: center;
@@ -2984,7 +2984,7 @@ input[type="number"].no-spin-button {
 .home-info-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: 14px;
   padding: 32px 28px;
   box-shadow: var(--shadow-card);
 }

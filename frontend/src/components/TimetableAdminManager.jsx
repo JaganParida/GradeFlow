@@ -963,7 +963,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
           padding: "6px 8px",
           borderRadius: 14,
           border: "1px solid #e2e8f0",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+          boxShadow: "none",
           overflowX: "auto",
           WebkitOverflowScrolling: "touch",
           scrollbarWidth: "none",
@@ -1139,9 +1139,9 @@ export default function TimetableAdminManager({ authHeaders, API }) {
             style={{
               background: "#ffffff",
               border: "1px solid #e2e8f0",
-              borderRadius: 16,
+              borderRadius: 14,
               padding: "20px 24px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+              boxShadow: "none",
               display: "flex",
               flexDirection: "column",
               gap: 16,
@@ -1255,9 +1255,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 7,
-                    boxShadow: hasUnsavedChanges
-                      ? "0 4px 12px rgba(234, 88, 12, 0.3)"
-                      : "0 4px 12px rgba(5, 150, 105, 0.25)",
+                    boxShadow: "none",
                     transition: "all 0.15s ease",
                   }}
                 >
@@ -1485,7 +1483,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                         fontWeight: 800,
                         cursor: "pointer",
                         whiteSpace: "nowrap",
-                        boxShadow: isDaySelected ? "0 3px 10px rgba(37,99,235,0.3)" : "0 1px 2px rgba(0,0,0,0.02)",
+                        boxShadow: "none",
                         transition: "all 0.15s ease",
                       }}
                     >
@@ -1512,7 +1510,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                           alignItems: "center",
                           justifyContent: "space-between",
                           color: "#c2410c",
-                          boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                          boxShadow: "none",
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1550,7 +1548,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                         display: "flex",
                         flexDirection: "column",
                         gap: 8,
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                        boxShadow: "none",
                       }}
                     >
                       {/* Period Header Row: Slot Name, Time Badge, Type Pill, Edit / Clear */}
@@ -1644,7 +1642,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                               display: "inline-flex",
                               alignItems: "center",
                               gap: 4,
-                              boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                              boxShadow: "none",
                             }}
                           >
                             <Plus size={13} />
@@ -1698,9 +1696,9 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               style={{
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
-                borderRadius: 16,
+                borderRadius: 14,
                 padding: "14px 16px",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.02)",
+                boxShadow: "none",
                 width: "100%",
                 boxSizing: "border-box",
                 overflow: "hidden",
@@ -1940,7 +1938,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                                     minHeight: 90,
                                     boxSizing: "border-box",
                                     position: "relative",
-                                    boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+                                    boxShadow: "none",
                                     transition: "all 0.15s ease",
                                   }}
                                 >
@@ -2107,9 +2105,9 @@ export default function TimetableAdminManager({ authHeaders, API }) {
             style={{
               background: "#ffffff",
               border: "1px solid #e2e8f0",
-              borderRadius: 16,
+              borderRadius: 14,
               padding: "20px 24px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+              boxShadow: "none",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 18 }}>
@@ -2150,7 +2148,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               style={{
                 background: "#f8fafc",
                 border: "2px dashed #cbd5e1",
-                borderRadius: 16,
+                borderRadius: 14,
                 padding: "36px 20px",
                 textAlign: "center",
                 cursor: "pointer",
@@ -2169,7 +2167,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                 style={{
                   width: 52,
                   height: 52,
-                  borderRadius: 16,
+                  borderRadius: 14,
                   background: "#eff6ff",
                   color: "#2563eb",
                   display: "flex",
@@ -2201,9 +2199,9 @@ export default function TimetableAdminManager({ authHeaders, API }) {
             style={{
               background: "#ffffff",
               border: "1px solid #e2e8f0",
-              borderRadius: 16,
+              borderRadius: 14,
               padding: "20px 24px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+              boxShadow: "none",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 18 }}>
@@ -2244,7 +2242,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               style={{
                 background: "#f8fafc",
                 border: "2px dashed #cbd5e1",
-                borderRadius: 16,
+                borderRadius: 14,
                 padding: "36px 20px",
                 textAlign: "center",
                 cursor: "pointer",
@@ -2290,9 +2288,9 @@ export default function TimetableAdminManager({ authHeaders, API }) {
             style={{
               background: "#ffffff",
               border: "1px solid #e2e8f0",
-              borderRadius: 16,
+              borderRadius: 14,
               padding: "20px 24px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+              boxShadow: "none",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 18 }}>
@@ -2333,7 +2331,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               style={{
                 background: "#fff7ed",
                 border: "2px dashed #fed7aa",
-                borderRadius: 16,
+                borderRadius: 14,
                 padding: "36px 20px",
                 textAlign: "center",
                 cursor: "pointer",
@@ -2379,9 +2377,9 @@ export default function TimetableAdminManager({ authHeaders, API }) {
             style={{
               background: "#ffffff",
               border: "1px solid #e2e8f0",
-              borderRadius: 16,
+              borderRadius: 14,
               padding: "20px 24px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+              boxShadow: "none",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -2559,10 +2557,10 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               transition={{ duration: 0.15 }}
               style={{
                 background: "#ffffff",
-                borderRadius: 18,
+                borderRadius: 16,
                 maxWidth: "min(480px, 95vw)", maxHeight: "90vh",
                 width: "100%",
-                boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+                boxShadow: "none",
                 overflow: "hidden",
                 border: "1px solid #e2e8f0",
               }}
@@ -2891,10 +2889,10 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               exit={{ opacity: 0, scale: 0.95 }}
               style={{
                 background: "#ffffff",
-                borderRadius: 18,
+                borderRadius: 16,
                 maxWidth: "min(420px, 95vw)",
                 width: "100%",
-                boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+                boxShadow: "none",
                 overflow: "hidden",
                 border: "1px solid #e2e8f0",
                 padding: "20px 24px",

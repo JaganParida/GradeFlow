@@ -938,7 +938,7 @@ export default function Dashboard() {
           margin: "80px auto",
           padding: "36px 32px",
           background: "#ffffff",
-          borderRadius: 20,
+          borderRadius: 14,
           border: "1px solid #fee2e2",
           textAlign: "center",
         }}
@@ -947,7 +947,7 @@ export default function Dashboard() {
           style={{
             width: 54,
             height: 54,
-            borderRadius: 16,
+            borderRadius: 12,
             background: "#fef2f2",
             color: "#ef4444",
             display: "flex",
@@ -1148,7 +1148,7 @@ export default function Dashboard() {
             style={{
               background: "#ffffff",
               border: "1px solid #e2e8f0",
-              borderRadius: 16,
+              borderRadius: 14,
               padding: isMobile ? "14px 14px" : "16px 14px",
               display: "flex",
               flexDirection: "column",
@@ -1611,7 +1611,7 @@ export default function Dashboard() {
                   style={{
                     background: "#ffffff",
                     border: "1px solid #e2e8f0",
-                    borderRadius: 16,
+                    borderRadius: 14,
                     padding: "20px 24px",
                     display: "flex",
                     flexDirection: "column",
@@ -2395,7 +2395,7 @@ export default function Dashboard() {
               style={{
                 background: "#fffafb",
                 border: "1.5px solid #fecaca",
-                borderRadius: 16,
+                borderRadius: 14,
                 padding: isMobile ? "14px 14px" : "18px 20px",
               }}
             >
@@ -2621,7 +2621,7 @@ export default function Dashboard() {
                 style={{
                   background: "#ffffff",
                   border: "1px solid #e2e8f0",
-                  borderRadius: 16,
+                  borderRadius: 14,
                   overflow: "hidden",
                   width: "100%",
                 }}
@@ -2936,7 +2936,7 @@ export default function Dashboard() {
                       style={{
                         background: "#ffffff",
                         border: "1px solid #e2e8f0",
-                        borderRadius: 16,
+                        borderRadius: 14,
                         padding: isMobile ? "14px 14px" : "24px 24px",
                       }}
                     >
@@ -3652,7 +3652,7 @@ export default function Dashboard() {
                     style={{
                       background: "#ffffff",
                       border: "1px solid #e2e8f0",
-                      borderRadius: 16,
+                      borderRadius: 14,
                       padding: isMobile ? "14px 14px" : "24px 26px",
                       display: "flex",
                       flexDirection: "column",

@@ -529,7 +529,7 @@ export default function Resources() {
               style={{
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
-                borderRadius: 20,
+                borderRadius: 14,
                 padding: isMobile ? "20px 14px" : "28px 16px",
                 boxShadow: "none",
                 display: "flex",
@@ -724,7 +724,7 @@ export default function Resources() {
               style={{
                 background: "#f0f4ff",
                 border: "1px solid #dbeafe",
-                borderRadius: 18,
+                borderRadius: 14,
                 padding: "18px 14px",
                 display: "flex",
                 flexDirection: "column",
@@ -831,7 +831,7 @@ export default function Resources() {
                     style={{
                       background: "#ffffff",
                       border: "1px solid #e2e8f0",
-                      borderRadius: 16,
+                      borderRadius: 14,
                       padding: isMobile ? "14px 14px" : "24px 26px",
                       boxShadow: "none",
                       display: "flex",
@@ -917,7 +917,7 @@ export default function Resources() {
                     style={{
                       background: "#ffffff",
                       border: "1px solid #e2e8f0",
-                      borderRadius: 16,
+                      borderRadius: 14,
                       padding: isMobile ? "14px 14px" : "24px 26px",
                       boxShadow: "none",
                       display: "flex",
@@ -1552,7 +1552,7 @@ export default function Resources() {
                   style={{
                     background: "linear-gradient(135deg, #f0fdf4 0%, #eff6ff 50%, #f5f3ff 100%)",
                     border: "1px solid #dbeafe",
-                    borderRadius: 20,
+                    borderRadius: 14,
                     padding: isMobile ? "18px 16px" : "24px 32px",
                     display: "grid",
                     gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr) auto",
@@ -2237,7 +2237,7 @@ export default function Resources() {
                     <div
                       style={{
                         background: "linear-gradient(135deg, #f5f3ff 0%, #eff6ff 100%)",
-                        borderRadius: 16,
+                        borderRadius: 14,
                         padding: isMobile ? "20px 16px" : "32px",
                         display: "flex",
                         flexDirection: "column",
@@ -2295,7 +2295,7 @@ export default function Resources() {
                       key={idx}
                       style={{
                         border: "1px solid #f1f5f9",
-                        borderRadius: 16,
+                        borderRadius: 14,
                         padding: isMobile ? "16px 14px" : "20px",
                         display: "flex",
                         flexDirection: "column",
@@ -2506,7 +2506,7 @@ export default function Resources() {
                       style={{
                         background: "#f8fafc",
                         border: "1px solid #e2e8f0",
-                        borderRadius: 16,
+                        borderRadius: 14,
                         padding: isMobile ? "16px 14px" : "22px 20px",
                         display: "flex",
                         flexDirection: "column",
@@ -2708,7 +2708,7 @@ export default function Resources() {
                       style={{
                         background: "linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)",
                         border: "1.5px solid #bfdbfe",
-                        borderRadius: 16,
+                        borderRadius: 14,
                         padding: isMobile ? "18px 16px" : "24px 22px",
                         display: "flex",
                         flexDirection: "column",
@@ -3269,7 +3269,7 @@ export default function Resources() {
                     </div>
                   </div>
 
-                  <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 20, padding: isMobile ? "24px 16px" : "32px", textAlign: "center" }}>
+                  <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 14, padding: isMobile ? "24px 16px" : "32px", textAlign: "center" }}>
                     <div style={{ fontSize: 11.5, fontWeight: 800, color: "#1e40af", textTransform: "uppercase" }}>Required Next Semester SGPA</div>
                     <div style={{ fontSize: isMobile ? 42 : 52, fontWeight: 800, color: "#1d4ed8", margin: "8px 0" }}>{requiredSgpa}</div>
                     <p style={{ fontSize: 12.5, color: "#475569", margin: 0, lineHeight: 1.45 }}>

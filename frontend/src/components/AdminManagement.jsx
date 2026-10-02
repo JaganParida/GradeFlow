@@ -826,9 +826,9 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
             style={{
               background: "#ffffff",
               border: "1px solid #e2e8f0",
-              borderRadius: isMobileView ? 14 : 16,
+              borderRadius: isMobileView ? 12 : 14,
               padding: isMobileView ? "12px 14px" : "16px 18px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+              boxShadow: "none",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
@@ -1029,7 +1029,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                   height: 8,
                   borderRadius: "50%",
                   background: "#ef4444",
-                  boxShadow: "0 0 6px rgba(239, 68, 68, 0.6)",
+                  boxShadow: "none",
                 }}
               />
             )}
@@ -1120,7 +1120,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
               fontWeight: 700,
               fontSize: 13,
               cursor: "pointer",
-              boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
+              boxShadow: "none",
               width: isMobileView ? "100%" : "auto",
               boxSizing: "border-box",
             }}
@@ -1137,9 +1137,9 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
           style={{
             background: "#ffffff",
             border: "1px solid #e2e8f0",
-            borderRadius: 16,
+            borderRadius: 14,
             overflow: "hidden",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.02)",
+            boxShadow: "none",
           }}
         >
           {/* Table Search & Filter Toolbar */}
@@ -1497,7 +1497,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                       border: "1px solid #e2e8f0",
                       borderRadius: 14,
                       padding: "14px",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                      boxShadow: "none",
                       display: "flex",
                       flexDirection: "column",
                       gap: 12,
@@ -1666,7 +1666,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                           alignItems: "center",
                           justifyContent: "center",
                           gap: 6,
-                          boxShadow: "0 1px 2px rgba(79, 70, 229, 0.08)",
+                          boxShadow: "none",
                         }}
                       >
                         <Sliders size={14} />
@@ -1757,9 +1757,9 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
           style={{
             background: "#ffffff",
             border: "1px solid #e2e8f0",
-            borderRadius: 16,
+            borderRadius: 14,
             overflow: "hidden",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.02)",
+            boxShadow: "none",
           }}
         >
           <div
@@ -1920,7 +1920,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                       display: "flex",
                       flexDirection: "column",
                       gap: 7,
-                      boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+                      boxShadow: "none",
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
@@ -2013,9 +2013,9 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
             style={{
               background: "#ffffff",
               border: "1px solid #e2e8f0",
-              borderRadius: 16,
+              borderRadius: 14,
               padding: isMobileView ? "16px 18px" : "24px 26px",
-              boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
+              boxShadow: "none",
               display: "flex",
               flexDirection: "column",
               gap: 20,
@@ -2082,9 +2082,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                       height: 8,
                       borderRadius: "50%",
                       background: maintenanceData.enabled ? "#dc2626" : "#059669",
-                      boxShadow: maintenanceData.enabled
-                        ? "0 0 8px rgba(220, 38, 38, 0.6)"
-                        : "0 0 8px rgba(5, 150, 105, 0.4)",
+                      boxShadow: "none",
                     }}
                   />
                   {maintenanceData.enabled ? "MAINTENANCE ACTIVE" : "SYSTEM OPERATIONAL"}
@@ -2151,7 +2149,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                       alignItems: "center",
                       justifyContent: "center",
                       gap: 8,
-                      boxShadow: "0 2px 8px rgba(5, 150, 105, 0.25)",
+                      boxShadow: "none",
                       width: isMobileView ? "100%" : "auto",
                       boxSizing: "border-box",
                     }}
@@ -2177,7 +2175,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                       alignItems: "center",
                       justifyContent: "center",
                       gap: 8,
-                      boxShadow: "0 2px 8px rgba(220, 38, 38, 0.25)",
+                      boxShadow: "none",
                       width: isMobileView ? "100%" : "auto",
                       boxSizing: "border-box",
                     }}
@@ -2291,9 +2289,9 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
             style={{
               background: "#ffffff",
               border: "1px solid #e2e8f0",
-              borderRadius: 16,
+              borderRadius: 14,
               padding: isMobile ? "18px" : "24px 26px",
-              boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
+              boxShadow: "none",
               display: "flex",
               flexDirection: "column",
               gap: 22,
@@ -2360,7 +2358,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                     height: 8,
                     borderRadius: "50%",
                     background: visibilityData.mode === "MANUAL" ? "#7c3aed" : "#10b981",
-                    boxShadow: `0 0 6px ${visibilityData.mode === "MANUAL" ? "rgba(124,58,237,0.5)" : "rgba(16,185,129,0.5)"}`,
+                    boxShadow: "none",
                   }}
                 />
                 {visibilityData.mode === "MANUAL" ? "Manual Override Active" : "Automatic System Logic Active"}
@@ -2391,7 +2389,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                     cursor: "pointer",
                     position: "relative",
                     transition: "all 0.2s ease",
-                    boxShadow: visibilityData.mode === "AUTO" ? "0 2px 10px rgba(59, 130, 246, 0.08)" : "none",
+                    boxShadow: "none",
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 }}>
@@ -2461,7 +2459,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                     cursor: "pointer",
                     position: "relative",
                     transition: "all 0.2s ease",
-                    boxShadow: visibilityData.mode === "MANUAL" ? "0 2px 10px rgba(124, 58, 237, 0.08)" : "none",
+                    boxShadow: "none",
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 }}>
@@ -2946,10 +2944,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 6,
-                    boxShadow:
-                      visibilityData.mode === "MANUAL"
-                        ? "0 2px 8px rgba(124, 58, 237, 0.25)"
-                        : "0 2px 8px rgba(37, 99, 235, 0.25)",
+                    boxShadow: "none",
                     transition: "all 0.15s ease",
                     flex: isMobileView ? 1 : "initial",
                   }}
@@ -2992,11 +2987,12 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
               exit={{ scale: 0.95, opacity: 0 }}
               style={{
                 background: "#ffffff",
-                borderRadius: 18,
+                borderRadius: 16,
                 maxWidth: 440,
                 width: "100%",
                 padding: "24px",
-                boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+                border: "1px solid #e2e8f0",
+                boxShadow: "none",
                 display: "flex",
                 flexDirection: "column",
                 gap: 16,
@@ -3111,11 +3107,12 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
               exit={{ scale: 0.95, opacity: 0 }}
               style={{
                 background: "#ffffff",
-                borderRadius: 18,
+                borderRadius: 16,
                 maxWidth: 440,
                 width: "100%",
                 padding: "24px",
-                boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+                border: "1px solid #e2e8f0",
+                boxShadow: "none",
                 display: "flex",
                 flexDirection: "column",
                 gap: 16,
@@ -3232,14 +3229,14 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
               className="gf-modal-dialog"
               style={{
                 background: "#ffffff",
-                borderRadius: 20,
+                borderRadius: 16,
                 width: "100%",
                 maxWidth: 720,
                 maxHeight: "92vh",
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
-                boxShadow: "0 20px 30px -10px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.05)",
+                boxShadow: "none",
                 border: "1px solid #e2e8f0",
               }}
             >
@@ -3266,7 +3263,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: "0 2px 5px rgba(37, 99, 235, 0.1)",
+                      boxShadow: "none",
                     }}
                   >
                     <UserPlus size={20} />
@@ -3709,7 +3706,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                                         justifyContent: "space-between",
                                         gap: 10,
                                         cursor: "pointer",
-                                        boxShadow: isActionChecked ? "0 1px 3px rgba(37, 99, 235, 0.08)" : "none",
+                                        boxShadow: "none",
                                         transition: "all 0.15s ease",
                                       }}
                                     >
@@ -3726,7 +3723,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                                             justifyContent: "center",
                                             color: "#ffffff",
                                             flexShrink: 0,
-                                            boxShadow: isActionChecked ? "0 1px 3px rgba(37, 99, 235, 0.25)" : "none",
+                                            boxShadow: "none",
                                             transition: "all 0.15s ease",
                                           }}
                                         >
@@ -3877,7 +3874,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                         fontWeight: 700,
                         fontSize: 13,
                         cursor: "pointer",
-                        boxShadow: "0 2px 6px rgba(37, 99, 235, 0.3)",
+                        boxShadow: "none",
                         display: "flex",
                         alignItems: "center",
                         gap: 6,
@@ -3920,14 +3917,14 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
               className="gf-modal-dialog"
               style={{
                 background: "#ffffff",
-                borderRadius: 20,
+                borderRadius: 16,
                 width: "100%",
                 maxWidth: 720,
                 maxHeight: "92vh",
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
-                boxShadow: "0 20px 30px -10px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.05)",
+                boxShadow: "none",
                 border: "1px solid #e2e8f0",
               }}
             >
@@ -3954,7 +3951,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: "0 2px 5px rgba(79, 70, 229, 0.1)",
+                      boxShadow: "none",
                     }}
                   >
                     <Sliders size={20} />
@@ -4235,7 +4232,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                                     justifyContent: "space-between",
                                     gap: 10,
                                     cursor: "pointer",
-                                    boxShadow: isActionChecked ? "0 1px 3px rgba(37, 99, 235, 0.08)" : "none",
+                                    boxShadow: "none",
                                     transition: "all 0.15s ease",
                                   }}
                                 >
@@ -4252,7 +4249,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                                         justifyContent: "center",
                                         color: "#ffffff",
                                         flexShrink: 0,
-                                        boxShadow: isActionChecked ? "0 1px 3px rgba(37, 99, 235, 0.25)" : "none",
+                                        boxShadow: "none",
                                         transition: "all 0.15s ease",
                                       }}
                                     >
@@ -4427,7 +4424,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
               exit={{ scale: 0.95, opacity: 0 }}
               style={{
                 background: "#ffffff",
-                borderRadius: 20,
+                borderRadius: 16,
                 width: "100%",
                 maxWidth: 580,
                 maxHeight: "85vh",
@@ -4435,7 +4432,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                 flexDirection: "column",
                 overflow: "hidden",
                 border: "1px solid #e2e8f0",
-                boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
+                boxShadow: "none",
               }}
             >
               <div
@@ -4594,12 +4591,12 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
               exit={{ scale: 0.95, opacity: 0 }}
               style={{
                 background: "#ffffff",
-                borderRadius: 20,
+                borderRadius: 16,
                 width: "100%",
                 maxWidth: 480,
                 overflow: "hidden",
                 border: "1px solid #e2e8f0",
-                boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
+                boxShadow: "none",
               }}
             >
               <div

@@ -56,9 +56,9 @@ export default function WaitingRoomPage({
           width: "100%",
           maxWidth: 480,
           background: "#ffffff",
-          borderRadius: 24,
+          borderRadius: 16,
           border: "1px solid #e2e8f0",
-          boxShadow: "0 20px 40px -15px rgba(15, 23, 42, 0.08), 0 0 1px 1px rgba(15, 23, 42, 0.04)",
+          boxShadow: "none",
           padding: "32px 24px",
           boxSizing: "border-box",
           textAlign: "center",
@@ -145,7 +145,7 @@ export default function WaitingRoomPage({
           style={{
             background: "linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)",
             border: "1.5px solid #dbeafe",
-            borderRadius: 20,
+            borderRadius: 14,
             padding: "24px 20px",
             marginBottom: 20,
           }}

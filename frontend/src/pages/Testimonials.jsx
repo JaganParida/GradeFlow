@@ -970,7 +970,7 @@ export default function Testimonials() {
                 justifyContent: "center",
                 minHeight: 220,
                 background: "linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%)",
-                borderRadius: 20,
+                borderRadius: 14,
                 border: "1px solid #e2e8f0",
                 padding: "24px",
                 overflow: "hidden",
@@ -1283,7 +1283,7 @@ export default function Testimonials() {
               <div
                 style={{
                   background: "#ffffff",
-                  borderRadius: 16,
+                  borderRadius: 14,
                   padding: "36px 20px",
                   textAlign: "center",
                   border: "1px solid #e2e8f0",
@@ -2947,7 +2947,7 @@ export default function Testimonials() {
               onClick={(e) => e.stopPropagation()}
               style={{
                 background: "#ffffff",
-                borderRadius: 20,
+                borderRadius: 16,
                 padding: "26px 22px",
                 maxWidth: 400,
                 width: "100%",
@@ -3088,7 +3088,7 @@ export default function Testimonials() {
               onClick={(e) => e.stopPropagation()}
               style={{
                 background: "#ffffff",
-                borderRadius: 20,
+                borderRadius: 16,
                 padding: "26px 22px",
                 maxWidth: 420,
                 width: "100%",
