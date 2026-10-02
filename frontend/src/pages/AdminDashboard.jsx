@@ -5210,27 +5210,23 @@ export default function AdminDashboard({ defaultTab = null }) {
       }}
     >
       <div style={{ maxWidth: 1380, margin: "0 auto" }}>
-        {/* ── Admin Top Navigation Header ── */}
-        <div
+        {/* ── Admin Top Navigation Header (Unboxed Canvas) ── */}
+        <header
           style={{
-            background: "#ffffff",
-            border: "1px solid #e2e8f0",
-            borderRadius: 14,
-            padding: isMobile ? "14px 14px" : "18px 22px",
-            marginBottom: isMobile ? 12 : 20,
             display: "flex",
             flexDirection: isMobile ? "column" : "row",
             justifyContent: "space-between",
             alignItems: isMobile ? "stretch" : "center",
-            gap: isMobile ? 12 : 12,
-            boxShadow: "none",
+            gap: isMobile ? 12 : 16,
+            marginBottom: isMobile ? 14 : 20,
+            width: "100%",
           }}
         >
           <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 12 }}>
             <div
               style={{
-                width: isMobile ? 38 : 42,
-                height: isMobile ? 38 : 42,
+                width: isMobile ? 38 : 44,
+                height: isMobile ? 38 : 44,
                 borderRadius: 11,
                 background: "#eff6ff",
                 color: "#2563eb",
@@ -5245,7 +5241,7 @@ export default function AdminDashboard({ defaultTab = null }) {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-                <h1 style={{ fontSize: isMobile ? 16.5 : 20, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.4px", lineHeight: 1.2 }}>
+                <h1 style={{ fontSize: isMobile ? 20 : 26, fontWeight: 850, color: "#0f172a", margin: 0, letterSpacing: "-0.5px", lineHeight: 1.2 }}>
                   Admin Control Console
                 </h1>
                 <span
@@ -5375,7 +5371,7 @@ export default function AdminDashboard({ defaultTab = null }) {
               <LogOut size={13} /> <span>Logout</span>
             </button>
           </div>
-        </div>
+        </header>
 
         {/* ── 4 Top Metrics Stats Grid (Clean Professional Mobile-Friendly Redesign) ── */}
         {stats ? (
