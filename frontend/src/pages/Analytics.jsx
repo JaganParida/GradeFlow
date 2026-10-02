@@ -840,17 +840,13 @@ export default function Analytics() {
     >
       <div style={{ maxWidth: 1240, margin: "0 auto", display: "flex", flexDirection: "column", gap: isMobile ? 12 : 22 }}>
         
-        {/* Top Header Card */}
-        <div
+        {/* Top Header Canvas (Unboxed & Clean) */}
+        <header
           style={{
-            background: "#ffffff",
-            border: "1px solid #cbd5e1",
-            borderRadius: 14,
-            padding: isMobile ? "14px 14px" : "20px 24px",
-            boxShadow: "none",
             display: "flex",
             flexDirection: "column",
             gap: isMobile ? 12 : 16,
+            width: "100%",
           }}
         >
           {/* Breadcrumb row */}
@@ -860,30 +856,32 @@ export default function Analytics() {
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 5,
-                padding: isMobile ? "5px 10px" : "6px 13px",
-                borderRadius: 8,
-                border: "1px solid #cbd5e1",
-                background: "#ffffff",
-                color: "#334155",
-                fontSize: isMobile ? 12 : 13,
+                gap: 6,
+                padding: "4px 0",
+                background: "transparent",
+                border: "none",
+                color: "#64748b",
+                fontSize: isMobile ? 12.5 : 13.5,
                 fontWeight: 600,
                 cursor: "pointer",
-                transition: "all 0.15s ease",
+                transition: "color 0.15s ease",
               }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#0f172a")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#64748b")}
             >
-              <ArrowLeft size={13} /> Back to Dashboard
+              <ArrowLeft size={14} /> Back to Dashboard
             </button>
 
             <span
               style={{
-                fontSize: isMobile ? 11 : 12,
-                fontWeight: 700,
+                fontSize: 11,
+                fontWeight: 750,
                 color: "#2563eb",
                 background: "#eff6ff",
-                border: "1px solid #bfdbfe",
+                border: "1px solid #dbeafe",
                 padding: "3px 9px",
                 borderRadius: 20,
+                letterSpacing: "0.2px",
               }}
             >
               Analytics Suite
@@ -893,123 +891,128 @@ export default function Analytics() {
           {/* Student Profile Info & Quick Metrics */}
           <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: isMobile ? 10 : 16 }}>
             <div>
-              <h1 style={{ fontSize: isMobile ? 18 : 23, fontWeight: 900, color: "#0f172a", margin: "0 0 2px 0", letterSpacing: "-0.4px" }}>
+              <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 850, color: "#0f172a", margin: "0 0 3px 0", letterSpacing: "-0.5px", lineHeight: 1.2 }}>
                 {studentName}
               </h1>
-              <p style={{ color: "#64748b", fontSize: isMobile ? 11.5 : 13, margin: 0, fontWeight: 500 }}>
+              <p style={{ color: "#64748b", fontSize: isMobile ? 12 : 13.5, margin: 0, fontWeight: 500 }}>
                 Reg No: <strong style={{ color: "#0f172a", fontFamily: "'Space Mono', monospace" }}>{regNo}</strong> &nbsp;·&nbsp;
                 Branch: <strong style={{ color: "#0f172a" }}>{dynamicBranch}</strong>
               </p>
             </div>
 
-            {/* Quick Metrics (3-column responsive grid) */}
+            {/* Quick Metrics (Clean, Sleek Badges) */}
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: isMobile ? 6 : 10,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
               }}
             >
               <div
                 style={{
-                  background: "#eff6ff",
-                  border: "1px solid #bfdbfe",
+                  background: "#ffffff",
+                  border: "1px solid #e2e8f0",
                   borderRadius: 10,
-                  padding: isMobile ? "6px 8px" : "7px 14px",
-                  textAlign: "center",
+                  padding: isMobile ? "5px 10px" : "6px 14px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
                 }}
               >
-                <div style={{ fontSize: isMobile ? 9 : 10, fontWeight: 800, color: "#2563eb", textTransform: "uppercase" }}>CGPA</div>
-                <div style={{ fontSize: isMobile ? 14 : 17, fontWeight: 800, color: "#1d4ed8", fontFamily: "'Space Mono', monospace" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>CGPA</span>
+                <span style={{ fontSize: 14, fontWeight: 850, color: "#2563eb", fontFamily: "'Space Mono', monospace" }}>
                   {cgpa}
-                </div>
+                </span>
               </div>
 
               <div
                 style={{
-                  background: "#f0fdf4",
-                  border: "1px solid #bbf7d0",
+                  background: "#ffffff",
+                  border: "1px solid #e2e8f0",
                   borderRadius: 10,
-                  padding: isMobile ? "6px 8px" : "7px 14px",
-                  textAlign: "center",
+                  padding: isMobile ? "5px 10px" : "6px 14px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
                 }}
               >
-                <div style={{ fontSize: isMobile ? 9 : 10, fontWeight: 800, color: "#15803d", textTransform: "uppercase" }}>Latest SGPA</div>
-                <div style={{ fontSize: isMobile ? 14 : 17, fontWeight: 800, color: "#16a34a", fontFamily: "'Space Mono', monospace" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>Latest SGPA</span>
+                <span style={{ fontSize: 14, fontWeight: 850, color: "#16a34a", fontFamily: "'Space Mono', monospace" }}>
                   {latestSgpa?.toFixed(2)}
-                </div>
+                </span>
               </div>
 
               <div
                 style={{
-                  background: backlogs.length ? "#fef2f2" : "#f0fdf4",
-                  border: `1px solid ${backlogs.length ? "#fecaca" : "#bbf7d0"}`,
+                  background: "#ffffff",
+                  border: `1px solid ${backlogs.length ? "#fecaca" : "#e2e8f0"}`,
                   borderRadius: 10,
-                  padding: isMobile ? "6px 8px" : "7px 14px",
-                  textAlign: "center",
+                  padding: isMobile ? "5px 10px" : "6px 14px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
                 }}
               >
-                <div style={{ fontSize: isMobile ? 9 : 10, fontWeight: 800, color: backlogs.length ? "#b91c1c" : "#15803d", textTransform: "uppercase" }}>
-                  Backlogs
-                </div>
-                <div style={{ fontSize: isMobile ? 14 : 17, fontWeight: 800, color: backlogs.length ? "#dc2626" : "#16a34a", fontFamily: "'Space Mono', monospace" }}>
-                  {backlogs.length ? `${backlogs.length}` : "Clear"}
-                </div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: backlogs.length ? "#b91c1c" : "#64748b" }}>Status</span>
+                <span style={{ fontSize: 13, fontWeight: 850, color: backlogs.length ? "#dc2626" : "#16a34a" }}>
+                  {backlogs.length ? `${backlogs.length} Backlogs` : "Clear"}
+                </span>
               </div>
             </div>
           </div>
+        </header>
 
-          {/* ══════════════════════════════════════════════════════════
-              DESKTOP SUB-NAV SEGMENTED TAB SWITCHER
-          ══════════════════════════════════════════════════════════ */}
-          {!isMobile && (
-            <div
-              style={{
-                background: "#f1f5f9",
-                border: "1px solid #e2e8f0",
-                borderRadius: 12,
-                padding: "4px",
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                overflowX: "auto",
-              }}
-            >
-              {navTabs.map((t) => {
-                const isActive = tab === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => handleTabChange(t.id)}
-                    style={{
-                      flex: 1,
-                      minWidth: 150,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
-                      padding: "9px 16px",
-                      borderRadius: 9,
-                      border: isActive ? "1px solid #cbd5e1" : "1px solid transparent",
-                      background: isActive ? "#ffffff" : "transparent",
-                      color: isActive ? "#0f172a" : "#64748b",
-                      fontSize: 13,
-                      fontWeight: isActive ? 800 : 600,
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
-                      boxShadow: "none",
-                      whiteSpace: "nowrap",
-                      fontFamily: "'DM Sans', sans-serif",
-                    }}
-                  >
-                    {t.icon}
-                    {t.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        {/* ══════════════════════════════════════════════════════════
+            DESKTOP SUB-NAV SEGMENTED TAB SWITCHER (Directly on canvas)
+        ══════════════════════════════════════════════════════════ */}
+        {!isMobile && (
+          <div
+            style={{
+              background: "#f1f5f9",
+              border: "1px solid #e2e8f0",
+              borderRadius: 12,
+              padding: "4px",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              overflowX: "auto",
+            }}
+          >
+            {navTabs.map((t) => {
+              const isActive = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => handleTabChange(t.id)}
+                  style={{
+                    flex: 1,
+                    minWidth: 150,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    padding: "9px 16px",
+                    borderRadius: 9,
+                    border: isActive ? "1px solid #cbd5e1" : "1px solid transparent",
+                    background: isActive ? "#ffffff" : "transparent",
+                    color: isActive ? "#0f172a" : "#64748b",
+                    fontSize: 13,
+                    fontWeight: isActive ? 800 : 600,
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                    boxShadow: "none",
+                    whiteSpace: "nowrap",
+                    fontFamily: "'DM Sans', sans-serif",
+                  }}
+                >
+                  {t.icon}
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* ══════════════════════════════════════════════════════════
             MOBILE SUB-NAV (Positioned cleanly outside the container)
@@ -1043,7 +1046,7 @@ export default function Analytics() {
             >
               {/* 4 Core Academic Metric Cards (2x2 on Mobile, 4-col on Desktop) */}
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: isMobile ? 8 : 16 }}>
-                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
+                <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
                   <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Cumulative CGPA
                   </div>
@@ -1055,7 +1058,7 @@ export default function Analytics() {
                   </div>
                 </div>
 
-                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
+                <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
                   <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Latest SGPA
                   </div>
@@ -1067,7 +1070,7 @@ export default function Analytics() {
                   </div>
                 </div>
 
-                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
+                <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
                   <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Earned Credits
                   </div>
@@ -1082,7 +1085,7 @@ export default function Analytics() {
                   </div>
                 </div>
 
-                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
+                <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "none" }}>
                   <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Academic Standing
                   </div>
@@ -1099,8 +1102,8 @@ export default function Analytics() {
               <div
                 style={{
                   background: "#ffffff",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: 16,
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 14,
                   padding: isMobile ? "14px 16px" : "18px 22px",
                   boxShadow: "none",
                   display: "flex",

@@ -701,18 +701,14 @@ export default function Timetable() {
         }}
       >
         {/* ═══════════════════════════════════════════════════════════════
-            TOP HERO HEADER CARD
+            TOP HERO HEADER (Clean Canvas Layout - Unboxed)
         ═══════════════════════════════════════════════════════════════ */}
         <div
           style={{
-            background: "#ffffff",
-            border: "1px solid #e2e8f0",
-            borderRadius: 14,
-            padding: isMobile ? "14px 12px" : "20px 24px",
-            boxShadow: "none",
             display: "flex",
             flexDirection: "column",
-            gap: 14,
+            gap: isMobile ? 12 : 16,
+            width: "100%",
           }}
         >
           {/* Top Row: Title, Subtitle, and Section Controls */}
@@ -720,7 +716,7 @@ export default function Timetable() {
             style={{
               display: "flex",
               justifyContent: "space-between",
-              alignItems: "center",
+              alignItems: isMobile ? "flex-start" : "center",
               flexWrap: "wrap",
               gap: 12,
             }}
@@ -729,8 +725,8 @@ export default function Timetable() {
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div
                 style={{
-                  width: isMobile ? 40 : 46,
-                  height: isMobile ? 40 : 46,
+                  width: isMobile ? 38 : 44,
+                  height: isMobile ? 38 : 44,
                   borderRadius: 10,
                   background: "#eff6ff",
                   border: "1px solid #dbeafe",
@@ -742,7 +738,7 @@ export default function Timetable() {
                   boxShadow: "none",
                 }}
               >
-                <Clock size={isMobile ? 20 : 24} />
+                <Clock size={isMobile ? 20 : 22} />
               </div>
 
               <div>
@@ -758,16 +754,17 @@ export default function Timetable() {
                     letterSpacing: "0.5px",
                   }}
                 >
-                  <Building size={13} />
+                  <Building size={12} />
                   <span>Centurion University · {canShowRoutineAndSection ? "B.Tech 7th Semester" : "Academic Calendar"}</span>
                 </div>
                 <h1
                   style={{
-                    fontSize: isMobile ? 18 : 22,
-                    fontWeight: 800,
+                    fontSize: isMobile ? 19 : 25,
+                    fontWeight: 850,
                     color: "#0f172a",
                     margin: "2px 0 0 0",
-                    letterSpacing: "-0.3px",
+                    letterSpacing: "-0.4px",
+                    lineHeight: 1.25,
                   }}
                 >
                   {canShowRoutineAndSection
@@ -910,8 +907,7 @@ export default function Timetable() {
           ) : (
             <div
               style={{
-                paddingTop: 12,
-                borderTop: "1px solid #f1f5f9",
+                paddingTop: 4,
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
