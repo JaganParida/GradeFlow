@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
@@ -162,6 +163,21 @@ export default function Timetable() {
   const [searchError, setSearchError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [inspectedClass, setInspectedClass] = useState(null);
+
+  // Lock body scroll and handle Escape key when inspectedClass modal is open
+  useEffect(() => {
+    if (!inspectedClass) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") setInspectedClass(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [inspectedClass]);
 
   // Holiday Month Scroll State & Methods
   const holidayMonthsRef = useRef(null);
@@ -3336,28 +3352,38 @@ export default function Timetable() {
       </AnimatePresence>
 
     {/* ═══════════════════════════════════════════════════════════════
-        CLASS DETAIL POPUP MODAL (For Matrix Click on Desktop)
+        CLASS DETAIL POPUP MODAL (For Matrix Click on Desktop & Mobile)
     ═══════════════════════════════════════════════════════════════ */}
-    <AnimatePresence>
+    {typeof document !== "undefined" &&
+      createPortal(
+        <AnimatePresence>
           {inspectedClass && (
             <div
               style={{
                 position: "fixed",
-                inset: 0,
-                background: "rgba(15, 23, 42, 0.45)",
-                backdropFilter: "blur(4px)",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width: "100vw",
+                height: "100dvh",
+                background: "rgba(15, 23, 42, 0.5)",
+                backdropFilter: "blur(6px)",
+                WebkitBackdropFilter: "blur(6px)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                zIndex: 9999,
+                zIndex: 999999,
                 padding: 16,
+                boxSizing: "border-box",
               }}
               onClick={() => setInspectedClass(null)}
             >
               <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                initial={{ opacity: 0, scale: 0.94, y: 8 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                exit={{ opacity: 0, scale: 0.94, y: 8 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
                 onClick={(e) => e.stopPropagation()}
                 style={{
                   background: "#ffffff",
@@ -3365,8 +3391,11 @@ export default function Timetable() {
                   padding: "24px 26px",
                   maxWidth: 440,
                   width: "100%",
-                  boxShadow: "none",
+                  boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.25)",
                   border: "1px solid #e2e8f0",
+                  position: "relative",
+                  margin: "auto",
+                  boxSizing: "border-box",
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -3466,7 +3495,9 @@ export default function Timetable() {
               </motion.div>
             </div>
           )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
       </div>
     </div>
   );
