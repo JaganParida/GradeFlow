@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import {
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
   CheckCircle2,
   Layers,
@@ -201,34 +199,6 @@ export default function ModernMobileSubNav({
     setIsOpen(false);
   };
 
-  const handleStep = (direction) => {
-    if (!items || items.length <= 1) return;
-    let nextIndex = currentIndex + direction;
-    if (nextIndex < 0) nextIndex = items.length - 1;
-    if (nextIndex >= items.length) nextIndex = 0;
-    const targetItem = items[nextIndex];
-    if (!targetItem) return;
-
-    if (targetItem.isLocked) {
-      if (typeof onLockedClick === "function") {
-        onLockedClick(targetItem);
-      }
-      return;
-    }
-    shouldScrollToSubNav.current = true;
-    onChange(targetItem.id, {
-      animation: direction > 0 ? "slide-left" : "slide-right",
-      direction,
-    });
-    requestAnimationFrame(() => {
-      const scrollY = window.scrollY || window.pageYOffset || 0;
-      const targetY = getSubNavDocTop();
-      if (Math.abs(targetY - scrollY) > 20) {
-        smoothScrollToY(targetY, 350);
-      }
-    });
-  };
-
   return (
     <>
       {/* Invisible static layout anchor for precise scroll targeting */}
@@ -246,7 +216,7 @@ export default function ModernMobileSubNav({
         }}
       />
 
-      {/* ── Main Sticky Anchor Bar (Flat, Zero Box-Shadow Aesthetic Stepper) ── */}
+      {/* ── Main Sticky Anchor Bar (Arrow pointing to Change button, Zero Box Shadow) ── */}
       <div
         id="gf-mobile-subnav"
         style={{
@@ -256,88 +226,42 @@ export default function ModernMobileSubNav({
           background: "rgba(248, 250, 252, 0.98)",
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
-          padding: "6px 0 8px 0",
+          padding: "6px 2px 7px 2px",
           width: "100%",
           boxShadow: "none",
         }}
       >
         <div
+          onClick={() => setIsOpen(true)}
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 7,
+            justifyContent: "space-between",
+            gap: 10,
             width: "100%",
             boxSizing: "border-box",
+            cursor: "pointer",
             userSelect: "none",
+            padding: "2px 2px",
           }}
         >
-          {/* Left Arrow Button (Step to Previous Module) */}
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.9 }}
-            onClick={() => handleStep(-1)}
-            disabled={items.length <= 1}
-            aria-label="Previous module"
-            title="Previous module"
+          {/* Left: Active Module Name + "Tap to change subtab" with Arrow pointing to [ Change ] */}
+          <div
             style={{
-              width: 38,
-              height: 44,
-              borderRadius: 12,
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: "#334155",
               display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: items.length <= 1 ? "default" : "pointer",
-              boxShadow: "none",
-              flexShrink: 0,
-              padding: 0,
-              transition: "border-color 0.15s ease, background 0.15s ease",
-            }}
-          >
-            <ChevronLeft size={19} strokeWidth={2.4} />
-          </motion.button>
-
-          {/* Center Change Button (Framed by Left & Right Arrows, opens Bottom Sheet) */}
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setIsOpen(true)}
-            aria-label={`Current view: ${activeItem?.label || "Select view"}. Tap to change.`}
-            style={{
+              flexDirection: "column",
+              gap: 3,
               flex: 1,
               minWidth: 0,
-              height: 44,
-              borderRadius: 12,
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "0 10px 0 9px",
-              cursor: "pointer",
-              boxShadow: "none",
-              boxSizing: "border-box",
-              gap: 8,
-              textAlign: "left",
             }}
           >
-            {/* Left: Active Icon + Module Title */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                minWidth: 0,
-                flex: 1,
-              }}
-            >
+            {/* Top: Active Module Name + Counter */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
               <div
                 style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 8,
+                  width: 20,
+                  height: 20,
+                  borderRadius: 6,
                   background: themeBg,
                   color: themeColor,
                   display: "flex",
@@ -348,96 +272,132 @@ export default function ModernMobileSubNav({
               >
                 {React.isValidElement(activeItem.icon)
                   ? React.cloneElement(activeItem.icon, {
-                      size: 15,
+                      size: 12,
                       color: activeItem.icon.props?.color || themeColor,
                     })
                   : activeItem.icon}
               </div>
 
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  letterSpacing: "-0.2px",
+                  lineHeight: 1.2,
+                }}
+              >
+                {activeItem.label}
+              </span>
+
+              <span
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 700,
+                  color: themeColor,
+                  background: themeBg,
+                  padding: "1px 5px",
+                  borderRadius: 4,
+                  flexShrink: 0,
+                  lineHeight: 1.2,
+                }}
+              >
+                {currentIndex + 1}/{items.length}
+              </span>
+            </div>
+
+            {/* Bottom: "Tap to change subtab" + Long Arrow pointing right to [ Change ] */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                width: "100%",
+                minWidth: 0,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: "#64748b",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                Tap to change subtab
+              </span>
+
+              {/* Pointing Arrow Line */}
               <div
                 style={{
                   display: "flex",
-                  flexDirection: "column",
-                  minWidth: 0,
+                  alignItems: "center",
                   flex: 1,
-                  justifyContent: "center",
+                  minWidth: 16,
+                  position: "relative",
                 }}
               >
-                <span
+                <div
                   style={{
-                    fontSize: 12.5,
-                    fontWeight: 750,
-                    color: "#0f172a",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    letterSpacing: "-0.2px",
-                    lineHeight: 1.25,
+                    height: 1.5,
+                    width: "100%",
+                    background: `linear-gradient(to right, ${themeColor}33, ${themeColor})`,
+                    borderRadius: 1,
                   }}
+                />
+                <svg
+                  width="8"
+                  height="10"
+                  viewBox="0 0 8 10"
+                  fill="none"
+                  style={{ flexShrink: 0, marginLeft: -2 }}
                 >
-                  {activeItem.label}
-                </span>
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    color: "#64748b",
-                    lineHeight: 1.2,
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  {currentIndex + 1} of {items.length} • {title || "Views"}
-                </span>
+                  <path
+                    d="M1 1.5L6.5 5L1 8.5"
+                    stroke={themeColor}
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </div>
             </div>
+          </div>
 
-            {/* Right: Clean "Change ▾" pill indicator */}
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 3.5,
-                fontSize: 11,
-                fontWeight: 750,
-                color: themeColor,
-                background: themeBg,
-                padding: "3.5px 8.5px",
-                borderRadius: 7,
-                flexShrink: 0,
-                lineHeight: 1.2,
-              }}
-            >
-              <span>Change</span>
-              <ChevronDown size={12} strokeWidth={2.4} />
-            </div>
-          </motion.button>
-
-          {/* Right Arrow Button (Step to Next Module) */}
+          {/* Right: Rounded "Change" Button (Exactly as drawn in user sketch, ZERO box shadow) */}
           <motion.button
             type="button"
-            whileTap={{ scale: 0.9 }}
-            onClick={() => handleStep(1)}
-            disabled={items.length <= 1}
-            aria-label="Next module"
-            title="Next module"
+            whileTap={{ scale: 0.94 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen(true);
+            }}
+            aria-label="Change subtab"
             style={{
-              width: 38,
-              height: 44,
-              borderRadius: 12,
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: "#334155",
-              display: "flex",
+              padding: "7px 14px",
+              borderRadius: 10,
+              border: `1.5px solid ${themeColor}`,
+              background: themeBg,
+              color: themeColor,
+              fontSize: 12.5,
+              fontWeight: 800,
+              display: "inline-flex",
               alignItems: "center",
-              justifyContent: "center",
-              cursor: items.length <= 1 ? "default" : "pointer",
+              gap: 4,
+              cursor: "pointer",
               boxShadow: "none",
               flexShrink: 0,
-              padding: 0,
-              transition: "border-color 0.15s ease, background 0.15s ease",
+              transition: "all 0.15s ease",
+              letterSpacing: "0.2px",
             }}
           >
-            <ChevronRight size={19} strokeWidth={2.4} />
+            <span>Change</span>
+            <ChevronDown size={13} strokeWidth={2.4} />
           </motion.button>
         </div>
       </div>
@@ -512,7 +472,8 @@ export default function ModernMobileSubNav({
                     background: "#ffffff",
                     borderTopLeftRadius: 24,
                     borderTopRightRadius: 24,
-                    boxShadow: "0 -8px 32px rgba(15, 23, 42, 0.14)",
+                    borderTop: "1.5px solid #e2e8f0",
+                    boxShadow: "none",
                     maxHeight: "85dvh",
                     width: "100%",
                     maxWidth: "100%",
