@@ -3484,17 +3484,13 @@ export default function AttendanceTracker() {
             />
           )}
 
-          {/* Top Academic & Attendance Overview Header Card (Master Target Selector Always Available) */}
-          <div
+          {/* Top Academic & Attendance Overview Header (Clean Canvas - Unboxed) */}
+          <header
             style={{
-              background: "#ffffff",
-              border: "1px solid #cbd5e1",
-              borderRadius: 10,
-              padding: isMobile ? "12px 14px" : "18px 20px",
               display: "flex",
               flexDirection: "column",
-              gap: isMobile ? 8 : 12,
-              boxShadow: "none",
+              gap: isMobile ? 10 : 14,
+              width: "100%",
             }}
           >
             {/* Header Content */}
@@ -3504,6 +3500,7 @@ export default function AttendanceTracker() {
                 alignItems: "center",
                 justifyContent: "space-between",
                 gap: 10,
+                width: "100%",
               }}
             >
                   {isMobile ? (
@@ -3511,21 +3508,21 @@ export default function AttendanceTracker() {
                     <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
                       {/* Row 1: Title & Section (Full width so Attendance Intelligence never wraps) */}
                       <div>
-                        <h2
+                        <h1
                           style={{
-                            fontSize: 17,
-                            fontWeight: 800,
+                            fontSize: 20,
+                            fontWeight: 850,
                             color: "#0f172a",
                             margin: 0,
-                            letterSpacing: "-0.3px",
+                            letterSpacing: "-0.4px",
                             lineHeight: 1.2,
                             whiteSpace: "nowrap",
                           }}
                         >
                           Attendance Intelligence
-                        </h2>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: "#059669", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
-                          <Activity size={11} />
+                        </h1>
+                        <div style={{ fontSize: 11.5, fontWeight: 700, color: "#059669", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+                          <Activity size={12} />
                           <span>Section {selectedSection} Routine</span>
                         </div>
                       </div>
@@ -3802,7 +3799,7 @@ export default function AttendanceTracker() {
                     </div>
                   )}
                 </div>
-              </div>
+              </header>
 
               {/* 4 Hero Stat Cards (or Onboarding Guide Banner for new students): Always visible on Desktop; On Mobile visible on default Daily Hub (checkin) */}
               {(!isMobile || activeTab === "checkin") && (

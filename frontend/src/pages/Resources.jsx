@@ -791,23 +791,18 @@ export default function Resources() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
                 style={{
-                  background: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: isMobile ? 16 : 20,
-                  padding: isMobile ? "20px 14px" : "28px 28px",
-                  boxShadow: "none",
                   display: "flex",
                   flexDirection: "column",
-                  gap: isMobile ? 18 : 24,
+                  gap: isMobile ? 16 : 22,
                   width: "100%",
                   boxSizing: "border-box",
                   margin: 0,
                 }}
               >
                 {/* Header Title with Verified Blue Badge */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: isMobile ? 2 : 6 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: isMobile ? 2 : 6 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-                    <h1 style={{ fontSize: isMobile ? 19 : "clamp(22px, 2.4vw, 28px)", fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.5px" }}>
+                    <h1 style={{ fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: 0, letterSpacing: "-0.5px" }}>
                       How SGPA &amp; CGPA Are Calculated
                     </h1>
                     <CheckCircle2 size={18} color="#2563eb" fill="#dbeafe" />
@@ -1625,11 +1620,6 @@ export default function Resources() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
                 style={{
-                  background: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: isMobile ? 16 : 20,
-                  padding: isMobile ? "20px 14px" : "28px 28px",
-                  boxShadow: "none",
                   display: "flex",
                   flexDirection: "column",
                   gap: isMobile ? 14 : 20,
@@ -1641,9 +1631,9 @@ export default function Resources() {
                 {/* Section Header */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-start", flexDirection: isMobile ? "column" : "row", gap: 12, width: "100%", boxSizing: "border-box" }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <h2 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0", letterSpacing: "-0.3px", wordBreak: "break-word", lineHeight: 1.3 }}>
+                    <h1 style={{ fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: "0 0 4px 0", letterSpacing: "-0.5px", wordBreak: "break-word", lineHeight: 1.25 }}>
                       University Grading Scale &amp; Point Mapping
-                    </h2>
+                    </h1>
                     <p style={{ fontSize: isMobile ? 12 : 13.5, color: "#64748b", margin: 0, lineHeight: 1.45, wordBreak: "break-word" }}>
                       Official grading thresholds, clearance conditions, and GPA points for Centurion University.
                     </p>
@@ -2010,11 +2000,6 @@ export default function Resources() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
                 style={{
-                  background: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: isMobile ? 16 : 20,
-                  padding: isMobile ? "20px 14px" : "28px 28px",
-                  boxShadow: "none",
                   display: "flex",
                   flexDirection: "column",
                   gap: isMobile ? 16 : 20,
@@ -2025,9 +2010,9 @@ export default function Resources() {
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-start", flexDirection: isMobile ? "column" : "row", gap: 12 }}>
                   <div>
-                    <h2 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0", letterSpacing: "-0.3px" }}>
+                    <h1 style={{ fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: "0 0 4px 0", letterSpacing: "-0.5px", lineHeight: 1.25 }}>
                       Live Academic Health Meter
-                    </h2>
+                    </h1>
                     <p style={{ fontSize: isMobile ? 12 : 13.5, color: "#64748b", margin: 0, lineHeight: 1.4 }}>
                       Adjust your metrics below to see your real-time computed health index (0 to 100 points).
                     </p>
@@ -2280,11 +2265,11 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: isMobile ? 16 : 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "none", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0 }}
+                style={{ display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0, gap: isMobile ? 14 : 20 }}
               >
-                <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
+                <h1 style={{ fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>
                   Unlockable Academic Badges
-                </h2>
+                </h1>
                 <p style={{ fontSize: 13.5, color: "#64748b", margin: "0 0 20px 0" }}>
                   Earn prestigious milestone badges on your student dashboard by meeting academic criteria.
                 </p>
@@ -2342,17 +2327,12 @@ export default function Resources() {
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.22, ease: "easeInOut" }}
                   style={{
-                    background: "#ffffff",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: isMobile ? 16 : 20,
-                    padding: isMobile ? "20px 14px" : "28px 28px",
-                    boxShadow: "none",
                     display: "flex",
                     flexDirection: "column",
                     width: "100%",
                     boxSizing: "border-box",
                     margin: 0,
-                    gap: isMobile ? 18 : 24,
+                    gap: isMobile ? 16 : 22,
                   }}
                 >
                   {/* Subtab Header */}
@@ -3190,13 +3170,13 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: isMobile ? 16 : 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "none", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0 }}
+                style={{ display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0, gap: isMobile ? 14 : 20 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-start", flexDirection: isMobile ? "column" : "row", gap: 12, marginBottom: 16 }}>
                   <div>
-                    <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
+                    <h1 style={{ fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>
                       Target GPA Goal Predictor
-                    </h2>
+                    </h1>
                     <p style={{ fontSize: 13.5, color: "#64748b", margin: 0 }}>
                       Calculate exactly what SGPA you need to score in your next semester to achieve your target graduation CGPA.
                     </p>
@@ -3290,13 +3270,13 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: isMobile ? 16 : 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "none", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0 }}
+                style={{ display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0, gap: isMobile ? 14 : 20 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 20, flexDirection: isMobile ? "column" : "row", gap: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 16, flexDirection: isMobile ? "column" : "row", gap: 12 }}>
                   <div>
-                    <h2 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
+                    <h1 style={{ fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: "0 0 4px 0", letterSpacing: "-0.5px" }}>
                       Interactive SGPA Calculator
-                    </h2>
+                    </h1>
                     <p style={{ fontSize: 13, color: "#64748b", margin: 0 }}>Add your subjects, credits, and expected grades to compute real-time SGPA.</p>
                   </div>
                   <div style={{ textAlign: isMobile ? "left" : "right", background: "#eff6ff", padding: "8px 16px", borderRadius: 12, border: "1px solid #bfdbfe", width: isMobile ? "100%" : "auto", boxSizing: "border-box" }}>
@@ -3411,13 +3391,13 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: isMobile ? 16 : 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "none", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0 }}
+                style={{ display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0, gap: isMobile ? 14 : 20 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 20, flexDirection: isMobile ? "column" : "row", gap: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 16, flexDirection: isMobile ? "column" : "row", gap: 12 }}>
                   <div>
-                    <h2 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
+                    <h1 style={{ fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: "0 0 4px 0", letterSpacing: "-0.5px" }}>
                       Multi-Semester CGPA Calculator
-                    </h2>
+                    </h1>
                     <p style={{ fontSize: 13, color: "#64748b", margin: 0 }}>Input semester credits &amp; SGPA to compute cumulative CGPA.</p>
                   </div>
                   <div style={{ textAlign: isMobile ? "left" : "right", background: "#f5f3ff", padding: "8px 16px", borderRadius: 12, border: "1px solid #ddd6fe", width: isMobile ? "100%" : "auto", boxSizing: "border-box" }}>
@@ -3526,13 +3506,13 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: isMobile ? 16 : 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "none", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0 }}
+                style={{ display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0, gap: isMobile ? 14 : 20 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 20, flexDirection: isMobile ? "column" : "row", gap: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 16, flexDirection: isMobile ? "column" : "row", gap: 10 }}>
                   <div>
-                    <h2 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
+                    <h1 style={{ fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: "0 0 4px 0", letterSpacing: "-0.5px" }}>
                       {studentData ? `${studentData.studentName}'s Academic Report` : "Academic Report Card Overview"}
-                    </h2>
+                    </h1>
                     <p style={{ fontSize: 13.5, color: "#64748b", margin: 0 }}>
                       {studentData
                         ? `Registration: ${studentData.regNo} · Branch: ${studentData.branch || "Engineering"} (Official University Ledger)`
@@ -3599,10 +3579,12 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: isMobile ? 16 : 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "none", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0 }}
+                style={{ display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0, gap: isMobile ? 14 : 20 }}
               >
-                <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>Frequently Asked Questions</h2>
-                <p style={{ fontSize: 13.5, color: "#64748b", margin: "0 0 20px 0" }}>Everything you need to know about Centurion University grading &amp; calculations.</p>
+                <div>
+                  <h1 style={{ fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>Frequently Asked Questions</h1>
+                  <p style={{ fontSize: 13.5, color: "#64748b", margin: 0 }}>Everything you need to know about Centurion University grading &amp; calculations.</p>
+                </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {faqs.map((f, idx) => (
