@@ -226,6 +226,8 @@ export default function ModernMobileSubNav({
           background: "rgba(241, 245, 249, 0.96)",
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
+          transform: "translateZ(0)",
+          WebkitTransform: "translateZ(0)",
           padding: "6px 0 8px 0",
           width: "100%",
           boxShadow: "none",
@@ -359,56 +361,47 @@ export default function ModernMobileSubNav({
               Tap to change subtab
             </span>
 
-            {/* Google-Style Stylish Directional Arrow (100% Dead Center with Button) */}
-            <motion.div
-              animate={{ x: [0, 3.5, 0] }}
-              transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+            {/* Google-Style Flared Curved Directional Arrow (Matching user sketch, 100% Dead Center, Zero Glitch on Scroll) */}
+            <div
               style={{
                 flex: 1,
                 display: "flex",
                 alignItems: "center",
-                minWidth: 20,
+                minWidth: 24,
                 position: "relative",
-                height: 16,
+                height: 20,
               }}
             >
-              {/* Start Node Dot */}
-              <div
-                style={{
-                  width: 4,
-                  height: 4,
-                  borderRadius: "50%",
-                  background: `${themeColor}66`,
-                  flexShrink: 0,
-                  marginRight: -1,
-                }}
-              />
-              {/* Gradient Shaft */}
+              {/* Horizontal Shaft */}
               <div
                 style={{
                   flex: 1,
-                  height: 2,
-                  background: `linear-gradient(90deg, ${themeColor}44 0%, ${themeColor} 100%)`,
-                  borderRadius: 2,
+                  height: 1.75,
+                  background: `linear-gradient(90deg, ${themeColor}33 0%, ${themeColor} 100%)`,
+                  borderRadius: 1,
                 }}
               />
-              {/* Google Material Rounded Arrowhead */}
+              {/* Flared Curved Wings Arrowhead (Exact match to media_1790948162915.png) */}
               <svg
-                width="10"
-                height="14"
-                viewBox="0 0 10 14"
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
                 fill="none"
-                style={{ flexShrink: 0, marginLeft: -2 }}
+                style={{
+                  flexShrink: 0,
+                  marginLeft: -1,
+                  display: "block",
+                }}
               >
                 <path
-                  d="M2.5 2.5L7.5 7L2.5 11.5"
+                  d="M3 3.5C7.5 7 14 9.5 19 10C14 10.5 7.5 13 3 16.5"
                   stroke={themeColor}
-                  strokeWidth="2.2"
+                  strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
               </svg>
-            </motion.div>
+            </div>
 
             {/* Change ▾ Button (Perfect Horizontal Center to Arrow) */}
             <motion.button
