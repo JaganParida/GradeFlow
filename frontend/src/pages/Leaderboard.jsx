@@ -514,45 +514,47 @@ export default function Leaderboard() {
           }}
         >
           {/* Top Row: Title + SGPA/CGPA Toggle */}
-          <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 12, minWidth: 0, flex: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0, flex: 1 }}>
             <div
               style={{
-                width: isMobile ? 38 : 44,
-                height: isMobile ? 38 : 44,
-                borderRadius: 10,
-                background: "#eff6ff",
-                border: "1px solid #bfdbfe",
+                fontSize: 11,
+                fontWeight: 800,
                 color: "#2563eb",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                marginTop: isMobile ? 2 : 0,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
               }}
             >
-              <Trophy size={isMobile ? 18 : 22} />
+              Centurion University Standings
             </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 8 : 10, minWidth: 0 }}>
               <div
                 style={{
-                  fontSize: 11,
-                  fontWeight: 800,
+                  width: isMobile ? 28 : 34,
+                  height: isMobile ? 28 : 34,
+                  borderRadius: 8,
+                  background: "#eff6ff",
+                  border: "1px solid #bfdbfe",
                   color: "#2563eb",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  marginTop: isMobile ? 2 : 0,
                 }}
               >
-                Centurion University Standings
+                <Trophy size={isMobile ? 15 : 18} />
               </div>
               <h1
                 style={{
                   fontSize: isMobile ? "clamp(18px, 4.8vw, 22px)" : 26,
                   fontWeight: 850,
                   color: "#0f172a",
-                  margin: "1px 0 0 0",
+                  margin: 0,
                   letterSpacing: "-0.5px",
                   lineHeight: 1.25,
                   wordBreak: "break-word",
+                  flex: 1,
+                  minWidth: 0,
                 }}
               >
                 Leaderboard &amp; Rankings

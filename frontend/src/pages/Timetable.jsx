@@ -738,56 +738,63 @@ export default function Timetable() {
             }}
           >
             {/* Left: Branding & Section Title */}
-            <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 10 : 12, minWidth: 0, flex: 1 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, flex: 1 }}>
+              {/* Eyebrow */}
               <div
                 style={{
-                  width: isMobile ? 38 : 44,
-                  height: isMobile ? 38 : 44,
-                  borderRadius: 10,
-                  background: "#eff6ff",
-                  border: "1px solid #dbeafe",
-                  color: "#2563eb",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  marginTop: isMobile ? 2 : 0,
-                  boxShadow: "none",
+                  gap: 6,
+                  color: "#2563eb",
+                  fontSize: 11,
+                  fontWeight: 800,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  flexWrap: "wrap",
                 }}
               >
-                <Clock size={isMobile ? 20 : 22} />
+                <Building size={12} style={{ flexShrink: 0 }} />
+                <span>Centurion University · {canShowRoutineAndSection ? "B.Tech 7th Semester" : "Academic Calendar"}</span>
               </div>
 
-              <div style={{ minWidth: 0, flex: 1 }}>
+              {/* Title Row with Clock Icon directly beside the Title */}
+              <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 8 : 10, minWidth: 0 }}>
                 <div
                   style={{
+                    width: isMobile ? 28 : 34,
+                    height: isMobile ? 28 : 34,
+                    borderRadius: 8,
+                    background: "#eff6ff",
+                    border: "1px solid #dbeafe",
+                    color: "#2563eb",
                     display: "flex",
                     alignItems: "center",
-                    gap: 6,
-                    color: "#2563eb",
-                    fontSize: 11,
-                    fontWeight: 800,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                    flexWrap: "wrap",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    marginTop: isMobile ? 2 : 0,
+                    boxShadow: "none",
                   }}
                 >
-                  <Building size={12} style={{ flexShrink: 0 }} />
-                  <span>Centurion University · {canShowRoutineAndSection ? "B.Tech 7th Semester" : "Academic Calendar"}</span>
+                  <Clock size={isMobile ? 15 : 18} />
                 </div>
+
                 <h1
                   style={{
-                    fontSize: isMobile ? "clamp(16.5px, 4.4vw, 20px)" : 25,
+                    fontSize: isMobile ? "clamp(16px, 4.3vw, 19.5px)" : 25,
                     fontWeight: 850,
                     color: "#0f172a",
-                    margin: "2px 0 0 0",
+                    margin: 0,
                     letterSpacing: "-0.4px",
                     lineHeight: 1.25,
                     wordBreak: "break-word",
+                    flex: 1,
+                    minWidth: 0,
                   }}
                 >
                   {canShowRoutineAndSection
-                    ? `Section ${selectedSection} Routine & Academic Schedule`
+                    ? isMobile
+                      ? `Section ${selectedSection} Routine & Schedule`
+                      : `Section ${selectedSection} Routine & Academic Schedule`
                     : `Academic Calendar & University Timeline`}
                 </h1>
               </div>
