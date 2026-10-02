@@ -56,6 +56,7 @@ export default function Navbar() {
 
   const location = useLocation();
   const navigate = useNavigate();
+  const isLandingPage = location.pathname === "/" || location.pathname === "";
   const {
     studentData,
     studentSession,
@@ -1041,61 +1042,63 @@ export default function Navbar() {
               </div>
             )}
 
-            {/* Mobile Hamburger Toggle Button */}
-            <button
-              className="gf-mobile-toggle"
-              onClick={() => setMobileMenuOpen((prev) => !prev)}
-              aria-label={
-                mobileMenuOpen
-                  ? "Close navigation menu"
-                  : "Open navigation menu"
-              }
-              aria-expanded={mobileMenuOpen}
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: 10,
-                background: mobileMenuOpen ? "#eff6ff" : "#f8fafc",
-                border: mobileMenuOpen
-                  ? "1.5px solid #bfdbfe"
-                  : "1px solid #e2e8f0",
-                display: "none",
-                alignItems: "center",
-                justifyContent: "center",
-                color: mobileMenuOpen ? "#2563eb" : "#0f172a",
-                cursor: "pointer",
-                transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease",
-                flexShrink: 0,
-                position: "relative",
-                overflow: "hidden",
-              }}
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                {mobileMenuOpen ? (
-                  <motion.span
-                    key="mobile-close-icon"
-                    initial={{ opacity: 0, rotate: -90, scale: 0.85 }}
-                    animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                    exit={{ opacity: 0, rotate: 90, scale: 0.85 }}
-                    transition={{ duration: prefersReducedMotion ? 0.01 : 0.18, ease: "easeOut" }}
-                    style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
-                  >
-                    <X size={20} />
-                  </motion.span>
-                ) : (
-                  <motion.span
-                    key="mobile-menu-icon"
-                    initial={{ opacity: 0, rotate: 90, scale: 0.85 }}
-                    animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                    exit={{ opacity: 0, rotate: -90, scale: 0.85 }}
-                    transition={{ duration: prefersReducedMotion ? 0.01 : 0.18, ease: "easeOut" }}
-                    style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
-                  >
-                    <Menu size={20} />
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </button>
+            {/* Mobile Hamburger Toggle Button (Removed from landing page per request) */}
+            {!isLandingPage && (
+              <button
+                className="gf-mobile-toggle"
+                onClick={() => setMobileMenuOpen((prev) => !prev)}
+                aria-label={
+                  mobileMenuOpen
+                    ? "Close navigation menu"
+                    : "Open navigation menu"
+                }
+                aria-expanded={mobileMenuOpen}
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  background: mobileMenuOpen ? "#eff6ff" : "#f8fafc",
+                  border: mobileMenuOpen
+                    ? "1.5px solid #bfdbfe"
+                    : "1px solid #e2e8f0",
+                  display: "none",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: mobileMenuOpen ? "#2563eb" : "#0f172a",
+                  cursor: "pointer",
+                  transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease",
+                  flexShrink: 0,
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {mobileMenuOpen ? (
+                    <motion.span
+                      key="mobile-close-icon"
+                      initial={{ opacity: 0, rotate: -90, scale: 0.85 }}
+                      animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                      exit={{ opacity: 0, rotate: 90, scale: 0.85 }}
+                      transition={{ duration: prefersReducedMotion ? 0.01 : 0.18, ease: "easeOut" }}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+                    >
+                      <X size={20} />
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="mobile-menu-icon"
+                      initial={{ opacity: 0, rotate: 90, scale: 0.85 }}
+                      animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                      exit={{ opacity: 0, rotate: 90, scale: 0.85 }}
+                      transition={{ duration: prefersReducedMotion ? 0.01 : 0.18, ease: "easeOut" }}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+                    >
+                      <Menu size={20} />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </button>
+            )}
           </div>
         </div>
       </nav>
@@ -2528,12 +2531,17 @@ export default function Navbar() {
             border-radius: 8px !important;
           }
           .gf-admin-text {
-            display: none !important;
+            display: inline-block !important;
+            font-size: 11px !important;
+            font-weight: 750 !important;
           }
           .gf-admin-link {
             padding: 0 7px !important;
             height: 33px !important;
-            width: 33px !important;
+            width: auto !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 3px !important;
             justify-content: center !important;
             border-radius: 8px !important;
           }

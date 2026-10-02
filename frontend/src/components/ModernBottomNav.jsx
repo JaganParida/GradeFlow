@@ -13,7 +13,6 @@ import {
   BookOpen,
   MessageSquare,
   Code2,
-  ShieldCheck,
   LogOut,
   GraduationCap,
   ChevronRight,
@@ -58,10 +57,6 @@ export default function ModernBottomNav() {
     isLoggingOut,
     openStudentAuthModal,
     setPendingDestination,
-    adminToken,
-    adminProfile,
-    adminButtonConfig,
-    adminLogout,
   } = useApp();
 
   const isHomePage = location.pathname === "/";
@@ -193,40 +188,13 @@ export default function ModernBottomNav() {
   const handleRankingsClick = async () => {
     setIsMoreOpen(false);
     const target = await getResolvedStudentTarget();
-    if (!target && !hasActiveSession && !adminToken) {
+    if (!target && !hasActiveSession) {
       setPendingDestination({ type: "leaderboard" });
       openStudentAuthModal();
     } else {
       navigate("/leaderboard");
     }
   };
-
-  // Determine admin portal visibility
-  const isSpecialAdminPortalViewer = String(loggedInRegNo).trim().toUpperCase() === "230301120327";
-  const isSubAdminViewer = adminProfile?.adminType === "subadmin" || Boolean(adminProfile?.isSubAdmin);
-  const isMainAdminViewer = Boolean(adminToken && !isSubAdminViewer);
-
-  let canSeeAdmin = false;
-  if (adminButtonConfig && adminButtonConfig.mode === "MANUAL") {
-    const roles = adminButtonConfig.allowedRoles || {};
-    if (isMainAdminViewer) {
-      canSeeAdmin = roles.mainAdmin !== false;
-    } else if (isSubAdminViewer) {
-      canSeeAdmin = roles.subAdmin !== false;
-    } else if (isSpecialAdminPortalViewer) {
-      canSeeAdmin = roles.specialStudent !== false;
-    } else if (loggedInRegNo) {
-      canSeeAdmin = Boolean(roles.allStudents);
-    } else {
-      canSeeAdmin = Boolean(roles.guests);
-    }
-  } else {
-    if (isMainAdminViewer || isSubAdminViewer || isSpecialAdminPortalViewer) {
-      canSeeAdmin = true;
-    } else {
-      canSeeAdmin = false;
-    }
-  }
 
   // Active status checks for Bottom Bar
   const isDashboardActive = location.pathname.startsWith("/dashboard");
@@ -236,7 +204,7 @@ export default function ModernBottomNav() {
   const isRankingsActive = location.pathname.startsWith("/leaderboard");
   const isMoreActive =
     isMoreOpen ||
-    ["/resources", "/testimonials", "/about-dev", "/about", "/help", "/contact", "/admin"].some((p) =>
+    ["/resources", "/testimonials", "/about-dev", "/about", "/help", "/contact"].some((p) =>
       location.pathname.startsWith(p)
     );
 
@@ -345,7 +313,7 @@ export default function ModernBottomNav() {
                   gap: 3,
                   background: "transparent",
                   border: "none",
-                  padding: "4px 2px",
+                  padding: "4px 1px",
                   cursor: "pointer",
                   color: active ? "#2563eb" : "#64748b",
                   position: "relative",
@@ -376,10 +344,10 @@ export default function ModernBottomNav() {
                 {/* Text Label */}
                 <span
                   style={{
-                    fontSize: 10,
+                    fontSize: "clamp(9px, 2.45vw, 10.5px)",
                     fontWeight: active ? 800 : 550,
                     lineHeight: 1.1,
-                    letterSpacing: "-0.01em",
+                    letterSpacing: "-0.03em",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -798,71 +766,7 @@ export default function ModernBottomNav() {
                       <ChevronRight size={16} color="#94a3b8" />
                     </button>
 
-                    {/* 4. Institutional Admin Portal / Dashboard (Conditional) */}
-                    {canSeeAdmin && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsMoreOpen(false);
-                          navigate(adminToken ? "/admin/dashboard" : "/admin");
-                        }}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          padding: "12px 14px",
-                          borderRadius: 14,
-                          border: location.pathname.startsWith("/admin") ? "1.5px solid #d97706" : "1px solid #fed7aa",
-                          background: location.pathname.startsWith("/admin") ? "#fffbeb" : "#fffdfb",
-                          cursor: "pointer",
-                          textAlign: "left",
-                          width: "100%",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <div
-                            style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 10,
-                              background: "#fffbeb",
-                              color: "#d97706",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              flexShrink: 0,
-                            }}
-                          >
-                            <ShieldCheck size={18} />
-                          </div>
-                          <div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <span style={{ fontSize: 14, fontWeight: 750, color: "#0f172a" }}>
-                                {adminToken ? "Admin Dashboard" : "Institutional Admin Portal"}
-                              </span>
-                              <span
-                                style={{
-                                  fontSize: 10,
-                                  fontWeight: 750,
-                                  color: "#b45309",
-                                  background: "#fef3c7",
-                                  padding: "1px 6px",
-                                  borderRadius: 4,
-                                }}
-                              >
-                                Institutional
-                              </span>
-                            </div>
-                            <div style={{ fontSize: 11.5, color: "#64748b", fontWeight: 500 }}>
-                              Real-time session controls, quotas &amp; management
-                            </div>
-                          </div>
-                        </div>
-                        <ChevronRight size={16} color="#94a3b8" />
-                      </button>
-                    )}
-
-                    {/* 5. Feedback Modal Trigger */}
+                    {/* 4. Feedback Modal Trigger */}
                     <button
                       type="button"
                       onClick={() => {

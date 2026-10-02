@@ -2,12 +2,14 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import {
+  ChevronLeft,
+  ChevronRight,
   ChevronDown,
-  LayoutGrid,
   CheckCircle2,
   Layers,
   Lock,
   RotateCcw,
+  X,
 } from "lucide-react";
 
 /**
@@ -199,6 +201,34 @@ export default function ModernMobileSubNav({
     setIsOpen(false);
   };
 
+  const handleStep = (direction) => {
+    if (!items || items.length <= 1) return;
+    let nextIndex = currentIndex + direction;
+    if (nextIndex < 0) nextIndex = items.length - 1;
+    if (nextIndex >= items.length) nextIndex = 0;
+    const targetItem = items[nextIndex];
+    if (!targetItem) return;
+
+    if (targetItem.isLocked) {
+      if (typeof onLockedClick === "function") {
+        onLockedClick(targetItem);
+      }
+      return;
+    }
+    shouldScrollToSubNav.current = true;
+    onChange(targetItem.id, {
+      animation: direction > 0 ? "slide-left" : "slide-right",
+      direction,
+    });
+    requestAnimationFrame(() => {
+      const scrollY = window.scrollY || window.pageYOffset || 0;
+      const targetY = getSubNavDocTop();
+      if (Math.abs(targetY - scrollY) > 20) {
+        smoothScrollToY(targetY, 350);
+      }
+    });
+  };
+
   return (
     <>
       {/* Invisible static layout anchor for precise scroll targeting */}
@@ -216,7 +246,7 @@ export default function ModernMobileSubNav({
         }}
       />
 
-      {/* ── Main Sticky Anchor Bar (Modern, Spacious, Mobile-First UI, Zero Wrapping) ── */}
+      {/* ── Main Sticky Anchor Bar (Flat, Zero Box-Shadow Aesthetic Stepper) ── */}
       <div
         id="gf-mobile-subnav"
         style={{
@@ -226,219 +256,188 @@ export default function ModernMobileSubNav({
           background: "rgba(248, 250, 252, 0.98)",
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
-          padding: "4px 0 8px 0",
+          padding: "6px 0 8px 0",
           width: "100%",
+          boxShadow: "none",
         }}
       >
-        {/* Micro-Header above nav card: Informs user what this section is and how to use it */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
-            padding: "2px 4px 6px 4px",
-            userSelect: "none",
-            gap: 6,
-          }}
-        >
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 5, minWidth: 0 }}>
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: themeColor,
-                display: "inline-block",
-                flexShrink: 0,
-              }}
-            />
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                color: "#475569",
-                letterSpacing: "0.04em",
-                textTransform: "uppercase",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {title || "Navigation Menu"}
-            </span>
-          </div>
-
-          <span
-            style={{
-              fontSize: 10.5,
-              fontWeight: 600,
-              color: "#64748b",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              flexShrink: 0,
-              whiteSpace: "nowrap",
-            }}
-          >
-            <span>{hintText}</span>
-          </span>
-        </div>
-
-        <div
-          style={{
-            background: "#ffffff",
-            border: "1px solid #e2e8f0",
-            borderRadius: 14,
-            padding: "10px 13px",
-            minHeight: 58,
+            gap: 7,
+            width: "100%",
             boxSizing: "border-box",
-            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
             userSelect: "none",
           }}
         >
-          {/* Left: Active Module Clickable Pill (Opens Drawer, Guaranteed No Wrapping) */}
-          <div
-            onClick={() => setIsOpen(true)}
+          {/* Left Arrow Button (Step to Previous Module) */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.9 }}
+            onClick={() => handleStep(-1)}
+            disabled={items.length <= 1}
+            aria-label="Previous module"
+            title="Previous module"
             style={{
+              width: 38,
+              height: 44,
+              borderRadius: 12,
+              border: "1px solid #e2e8f0",
+              background: "#ffffff",
+              color: "#334155",
               display: "flex",
               alignItems: "center",
-              gap: 11,
-              minWidth: 0,
-              flex: 1,
-              cursor: "pointer",
+              justifyContent: "center",
+              cursor: items.length <= 1 ? "default" : "pointer",
+              boxShadow: "none",
+              flexShrink: 0,
+              padding: 0,
+              transition: "border-color 0.15s ease, background 0.15s ease",
             }}
           >
-            {/* Active Icon Container (Comfortable 40x40 touch-friendly tile) */}
+            <ChevronLeft size={19} strokeWidth={2.4} />
+          </motion.button>
+
+          {/* Center Change Button (Framed by Left & Right Arrows, opens Bottom Sheet) */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setIsOpen(true)}
+            aria-label={`Current view: ${activeItem?.label || "Select view"}. Tap to change.`}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              height: 44,
+              borderRadius: 12,
+              border: "1px solid #e2e8f0",
+              background: "#ffffff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "0 10px 0 9px",
+              cursor: "pointer",
+              boxShadow: "none",
+              boxSizing: "border-box",
+              gap: 8,
+              textAlign: "left",
+            }}
+          >
+            {/* Left: Active Icon + Module Title */}
             <div
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: 10,
-                background: themeBg,
-                border: `1px solid ${themeColor}22`,
-                color: themeColor,
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              {React.isValidElement(activeItem.icon)
-                ? React.cloneElement(activeItem.icon, {
-                    size: 20,
-                    color: activeItem.icon.props?.color || themeColor,
-                  })
-                : activeItem.icon}
-            </div>
-
-            {/* Title & Status Indicator Stack */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
+                gap: 8,
                 minWidth: 0,
                 flex: 1,
               }}
             >
-              <span
+              <div
                 style={{
-                  fontSize: 13.5,
-                  fontWeight: 800,
-                  color: "#0f172a",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  letterSpacing: "-0.25px",
-                  lineHeight: 1.25,
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  background: themeBg,
+                  color: themeColor,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
                 }}
               >
-                {activeItem.label}
-              </span>
+                {React.isValidElement(activeItem.icon)
+                  ? React.cloneElement(activeItem.icon, {
+                      size: 15,
+                      color: activeItem.icon.props?.color || themeColor,
+                    })
+                  : activeItem.icon}
+              </div>
 
-              {/* Sub-row: Pill counter + Browse action hint (Guaranteed single line, never wraps!) */}
               <div
                 style={{
                   display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  marginTop: 2.5,
-                  flexWrap: "nowrap",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
+                  flexDirection: "column",
+                  minWidth: 0,
+                  flex: 1,
+                  justifyContent: "center",
                 }}
               >
                 <span
                   style={{
-                    fontSize: 10.5,
-                    fontWeight: 700,
-                    color: themeColor,
-                    background: themeBg,
-                    padding: "1.5px 6.5px",
-                    borderRadius: 5,
-                    lineHeight: 1.3,
-                    flexShrink: 0,
+                    fontSize: 12.5,
+                    fontWeight: 750,
+                    color: "#0f172a",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
+                    letterSpacing: "-0.2px",
+                    lineHeight: 1.25,
                   }}
                 >
-                  {currentIndex + 1} of {items.length}
+                  {activeItem.label}
                 </span>
-
-                <span style={{ fontSize: 9, color: "#cbd5e1", flexShrink: 0 }}>•</span>
-
                 <span
                   style={{
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: 600,
                     color: "#64748b",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 3,
-                    lineHeight: 1.3,
-                    flexShrink: 0,
-                    whiteSpace: "nowrap",
+                    lineHeight: 1.2,
+                    letterSpacing: "-0.01em",
                   }}
                 >
-                  <span>Change</span>
-                  <ChevronDown size={11} strokeWidth={2.4} color={themeColor} />
+                  {currentIndex + 1} of {items.length} • {title || "Views"}
                 </span>
               </div>
             </div>
-          </div>
 
-          {/* Right: Modern Compact All Modules Pill Button */}
+            {/* Right: Clean "Change ▾" pill indicator */}
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 3.5,
+                fontSize: 11,
+                fontWeight: 750,
+                color: themeColor,
+                background: themeBg,
+                padding: "3.5px 8.5px",
+                borderRadius: 7,
+                flexShrink: 0,
+                lineHeight: 1.2,
+              }}
+            >
+              <span>Change</span>
+              <ChevronDown size={12} strokeWidth={2.4} />
+            </div>
+          </motion.button>
+
+          {/* Right Arrow Button (Step to Next Module) */}
           <motion.button
             type="button"
-            className="gf-subnav-all-btn"
-            whileTap={{ scale: 0.94 }}
-            onClick={() => setIsOpen(true)}
-            title="Open all modules menu"
-            aria-label="All views"
+            whileTap={{ scale: 0.9 }}
+            onClick={() => handleStep(1)}
+            disabled={items.length <= 1}
+            aria-label="Next module"
+            title="Next module"
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              height: 34,
-              padding: "0 10px",
-              borderRadius: 9,
+              width: 38,
+              height: 44,
+              borderRadius: 12,
               border: "1px solid #e2e8f0",
               background: "#ffffff",
-              color: "#0f172a",
-              fontSize: 12,
-              fontWeight: 800,
-              cursor: "pointer",
-              boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
-              transition: "all 0.15s ease",
+              color: "#334155",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: items.length <= 1 ? "default" : "pointer",
+              boxShadow: "none",
               flexShrink: 0,
+              padding: 0,
+              transition: "border-color 0.15s ease, background 0.15s ease",
             }}
           >
-            <LayoutGrid size={13} strokeWidth={2.4} color={themeColor} />
-            <span>All</span>
-            <ChevronDown size={11} strokeWidth={2.4} color="#64748b" />
+            <ChevronRight size={19} strokeWidth={2.4} />
           </motion.button>
         </div>
       </div>
@@ -557,7 +556,7 @@ export default function ModernMobileSubNav({
                       />
                     </div>
 
-                    {/* Sheet Header (Clean Instagram-style header without close cross button) */}
+                    {/* Sheet Header */}
                     <div
                       style={{
                         display: "flex",
@@ -584,14 +583,37 @@ export default function ModernMobileSubNav({
                           <Layers size={15} />
                         </div>
                         <div>
-                          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: "#0f172a" }}>
+                          <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 900, color: "#0f172a" }}>
                             {title}
                           </h3>
-                          <p style={{ margin: 0, fontSize: 11.5, color: "#64748b", fontWeight: 600 }}>
-                            {items.length} Modules available • Tap to switch
+                          <p style={{ margin: 0, fontSize: 11, color: "#64748b", fontWeight: 600 }}>
+                            {items.length} Modules available • Tap to select
                           </p>
                         </div>
                       </div>
+
+                      <motion.button
+                        type="button"
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setIsOpen(false)}
+                        aria-label="Close menu"
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: "50%",
+                          border: "1px solid #e2e8f0",
+                          background: "#f8fafc",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#64748b",
+                          cursor: "pointer",
+                          padding: 0,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <X size={15} strokeWidth={2.2} />
+                      </motion.button>
                     </div>
                   </div>
 
@@ -614,35 +636,35 @@ export default function ModernMobileSubNav({
                       boxSizing: "border-box",
                     }}
                   >
-                    {/* Visual Grid of All Views (Guaranteed Responsive, Zero Overflow) */}
+                    {/* Full-width single-column list of all modules (Guaranteed 100% visible on all mobile widths) */}
                     <div
                       style={{
-                        display: "grid",
-                        gridTemplateColumns: items.length <= 4 ? "1fr" : "repeat(2, minmax(0, 1fr))",
+                        display: "flex",
+                        flexDirection: "column",
                         gap: 8,
                         width: "100%",
                         boxSizing: "border-box",
                       }}
                     >
-                      {items.map((item, idx) => {
+                      {items.map((item) => {
                         const isActive = item.id === activeTab;
                         return (
                           <motion.button
                             key={item.id}
                             type="button"
-                            whileTap={{ scale: 0.97 }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={() => handleSelect(item.id)}
                             style={{
                               position: "relative",
                               minWidth: 0,
                               width: "100%",
-                              padding: "11px 10px",
-                              borderRadius: 14,
+                              padding: "10px 12px",
+                              borderRadius: 13,
                               border: isActive ? `1.5px solid ${themeColor}` : "1px solid #e2e8f0",
                               background: isActive ? themeBg : "#ffffff",
                               display: "flex",
-                              alignItems: "flex-start",
-                              gap: 8,
+                              alignItems: "center",
+                              gap: 10,
                               textAlign: "left",
                               cursor: item.isLocked ? "not-allowed" : "pointer",
                               opacity: item.isLocked ? 0.55 : 1,
@@ -650,15 +672,14 @@ export default function ModernMobileSubNav({
                               boxShadow: "none",
                               transition: "all 0.15s ease",
                               boxSizing: "border-box",
-                              overflow: "hidden",
                             }}
                           >
-                            {/* Icon */}
+                            {/* Icon Tile */}
                             <div
                               style={{
-                                width: 32,
-                                height: 32,
-                                borderRadius: 8,
+                                width: 36,
+                                height: 36,
+                                borderRadius: 10,
                                 background: isActive ? themeColor : "#f1f5f9",
                                 color: isActive ? "#ffffff" : "#475569",
                                 display: "flex",
@@ -669,7 +690,7 @@ export default function ModernMobileSubNav({
                             >
                               {React.isValidElement(item.icon)
                                 ? React.cloneElement(item.icon, {
-                                    size: 16,
+                                    size: 18,
                                     color: isActive ? "#ffffff" : (item.icon.props?.color || "#475569"),
                                   })
                                 : item.icon}
@@ -680,30 +701,27 @@ export default function ModernMobileSubNav({
                               style={{
                                 display: "flex",
                                 flexDirection: "column",
-                                gap: 2.5,
+                                gap: 2,
                                 flex: 1,
                                 minWidth: 0,
-                                paddingRight: isActive ? 18 : 0,
                               }}
                             >
-                              <div style={{ display: "flex", alignItems: "flex-start", minWidth: 0 }}>
-                                <span
-                                  style={{
-                                    fontSize: 12.5,
-                                    fontWeight: 800,
-                                    color: isActive ? themeColor : "#0f172a",
-                                    lineHeight: 1.25,
-                                    wordBreak: "break-word",
-                                    overflowWrap: "anywhere",
-                                  }}
-                                >
-                                  {item.label}
-                                </span>
-                              </div>
+                              <span
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: 750,
+                                  color: isActive ? themeColor : "#0f172a",
+                                  lineHeight: 1.25,
+                                  wordBreak: "break-word",
+                                  overflowWrap: "anywhere",
+                                }}
+                              >
+                                {item.label}
+                              </span>
                               {item.desc && (
                                 <span
                                   style={{
-                                    fontSize: 10.5,
+                                    fontSize: 11,
                                     color: isActive ? "#334155" : "#64748b",
                                     lineHeight: 1.35,
                                     fontWeight: 500,
@@ -716,23 +734,21 @@ export default function ModernMobileSubNav({
                               )}
                             </div>
 
-                            {/* Top-Right Badge: Locked badge if locked, Active Tick if active */}
+                            {/* Status Tag: Locked badge or Active Tag */}
                             {item.isLocked ? (
                               <div
                                 style={{
-                                  position: "absolute",
-                                  top: 9,
-                                  right: 9,
-                                  display: "flex",
+                                  display: "inline-flex",
                                   alignItems: "center",
                                   gap: 3,
                                   background: "#f1f5f9",
                                   border: "1px solid #e2e8f0",
-                                  padding: "2px 5px",
-                                  borderRadius: 4,
-                                  fontSize: 9,
+                                  padding: "3px 6px",
+                                  borderRadius: 6,
+                                  fontSize: 9.5,
                                   fontWeight: 800,
                                   color: "#64748b",
+                                  flexShrink: 0,
                                   pointerEvents: "none",
                                 }}
                               >
@@ -742,17 +758,22 @@ export default function ModernMobileSubNav({
                             ) : isActive ? (
                               <div
                                 style={{
-                                  position: "absolute",
-                                  top: 9,
-                                  right: 9,
-                                  display: "flex",
+                                  display: "inline-flex",
                                   alignItems: "center",
-                                  justifyContent: "center",
+                                  gap: 4,
+                                  padding: "3.5px 8.5px",
+                                  borderRadius: 7,
+                                  background: "#ffffff",
+                                  border: `1px solid ${themeColor}33`,
+                                  color: themeColor,
+                                  fontSize: 11,
+                                  fontWeight: 750,
                                   flexShrink: 0,
                                   pointerEvents: "none",
                                 }}
                               >
-                                <CheckCircle2 size={15} color={themeColor} strokeWidth={2.4} />
+                                <CheckCircle2 size={13} color={themeColor} strokeWidth={2.4} />
+                                <span>Active</span>
                               </div>
                             ) : null}
                           </motion.button>
