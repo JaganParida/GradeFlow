@@ -216,52 +216,56 @@ export default function ModernMobileSubNav({
         }}
       />
 
-      {/* ── Main Sticky Anchor Bar (Arrow pointing to Change button, Zero Box Shadow) ── */}
+      {/* ── Main Sticky Anchor Bar (Aesthetic Google-Style Capsule Card, Perfectly Centered Arrow, Zero Box Shadow) ── */}
       <div
         id="gf-mobile-subnav"
         style={{
           position: "sticky",
           top: 0,
           zIndex: 900,
-          background: "rgba(248, 250, 252, 0.98)",
+          background: "rgba(241, 245, 249, 0.96)",
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
-          padding: "6px 2px 7px 2px",
+          padding: "6px 0 8px 0",
           width: "100%",
           boxShadow: "none",
         }}
       >
-        <div
+        {/* Aesthetic Capsule Card */}
+        <motion.div
+          whileTap={{ scale: 0.99 }}
           onClick={() => setIsOpen(true)}
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 10,
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: 14,
+            padding: "10px 14px",
             width: "100%",
             boxSizing: "border-box",
             cursor: "pointer",
             userSelect: "none",
-            padding: "2px 2px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            boxShadow: "none",
           }}
         >
-          {/* Left: Active Module Name + "Tap to change subtab" with Arrow pointing to [ Change ] */}
+          {/* Top Row: Active Tab Title + Step Badge + Status */}
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
-              gap: 3,
-              flex: 1,
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
               minWidth: 0,
             }}
           >
-            {/* Top: Active Module Name + Counter */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
               <div
                 style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: 6,
+                  width: 22,
+                  height: 22,
+                  borderRadius: 7,
                   background: themeBg,
                   color: themeColor,
                   display: "flex",
@@ -272,7 +276,7 @@ export default function ModernMobileSubNav({
               >
                 {React.isValidElement(activeItem.icon)
                   ? React.cloneElement(activeItem.icon, {
-                      size: 12,
+                      size: 12.5,
                       color: activeItem.icon.props?.color || themeColor,
                     })
                   : activeItem.icon}
@@ -280,7 +284,7 @@ export default function ModernMobileSubNav({
 
               <span
                 style={{
-                  fontSize: 13,
+                  fontSize: 13.5,
                   fontWeight: 800,
                   color: "#0f172a",
                   overflow: "hidden",
@@ -295,111 +299,150 @@ export default function ModernMobileSubNav({
 
               <span
                 style={{
-                  fontSize: 9.5,
-                  fontWeight: 700,
+                  fontSize: 10,
+                  fontWeight: 750,
                   color: themeColor,
                   background: themeBg,
-                  padding: "1px 5px",
-                  borderRadius: 4,
+                  border: `1px solid ${themeColor}22`,
+                  padding: "1.5px 6.5px",
+                  borderRadius: 999,
                   flexShrink: 0,
                   lineHeight: 1.2,
                 }}
               >
-                {currentIndex + 1}/{items.length}
+                {currentIndex + 1} of {items.length}
               </span>
             </div>
 
-            {/* Bottom: "Tap to change subtab" + Long Arrow pointing right to [ Change ] */}
-            <div
+            <span
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                width: "100%",
-                minWidth: 0,
+                fontSize: 9.5,
+                fontWeight: 750,
+                color: "#64748b",
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                padding: "2px 7px",
+                borderRadius: 6,
+                flexShrink: 0,
+                textTransform: "uppercase",
+                letterSpacing: "0.3px",
               }}
             >
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: "#64748b",
-                  whiteSpace: "nowrap",
-                  flexShrink: 0,
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                Tap to change subtab
-              </span>
-
-              {/* Pointing Arrow Line */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  flex: 1,
-                  minWidth: 16,
-                  position: "relative",
-                }}
-              >
-                <div
-                  style={{
-                    height: 1.5,
-                    width: "100%",
-                    background: `linear-gradient(to right, ${themeColor}33, ${themeColor})`,
-                    borderRadius: 1,
-                  }}
-                />
-                <svg
-                  width="8"
-                  height="10"
-                  viewBox="0 0 8 10"
-                  fill="none"
-                  style={{ flexShrink: 0, marginLeft: -2 }}
-                >
-                  <path
-                    d="M1 1.5L6.5 5L1 8.5"
-                    stroke={themeColor}
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-            </div>
+              Active Subtab
+            </span>
           </div>
 
-          {/* Right: Rounded "Change" Button (Exactly as drawn in user sketch, ZERO box shadow) */}
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.94 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsOpen(true);
-            }}
-            aria-label="Change subtab"
+          {/* Clean Hairline Divider */}
+          <div style={{ height: 1, background: "#f1f5f9", width: "100%" }} />
+
+          {/* Bottom Row: Instruction + Google-Style Centered Arrow + Change Button */}
+          <div
             style={{
-              padding: "7px 14px",
-              borderRadius: 10,
-              border: `1.5px solid ${themeColor}`,
-              background: themeBg,
-              color: themeColor,
-              fontSize: 12.5,
-              fontWeight: 800,
-              display: "inline-flex",
+              display: "flex",
               alignItems: "center",
-              gap: 4,
-              cursor: "pointer",
-              boxShadow: "none",
-              flexShrink: 0,
-              transition: "all 0.15s ease",
-              letterSpacing: "0.2px",
+              justifyContent: "space-between",
+              gap: 8,
+              width: "100%",
+              minWidth: 0,
             }}
           >
-            <span>Change</span>
-            <ChevronDown size={13} strokeWidth={2.4} />
-          </motion.button>
-        </div>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: "#64748b",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+                letterSpacing: "-0.01em",
+              }}
+            >
+              Tap to change subtab
+            </span>
+
+            {/* Google-Style Stylish Directional Arrow (100% Dead Center with Button) */}
+            <motion.div
+              animate={{ x: [0, 3.5, 0] }}
+              transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+              style={{
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                minWidth: 20,
+                position: "relative",
+                height: 16,
+              }}
+            >
+              {/* Start Node Dot */}
+              <div
+                style={{
+                  width: 4,
+                  height: 4,
+                  borderRadius: "50%",
+                  background: `${themeColor}66`,
+                  flexShrink: 0,
+                  marginRight: -1,
+                }}
+              />
+              {/* Gradient Shaft */}
+              <div
+                style={{
+                  flex: 1,
+                  height: 2,
+                  background: `linear-gradient(90deg, ${themeColor}44 0%, ${themeColor} 100%)`,
+                  borderRadius: 2,
+                }}
+              />
+              {/* Google Material Rounded Arrowhead */}
+              <svg
+                width="10"
+                height="14"
+                viewBox="0 0 10 14"
+                fill="none"
+                style={{ flexShrink: 0, marginLeft: -2 }}
+              >
+                <path
+                  d="M2.5 2.5L7.5 7L2.5 11.5"
+                  stroke={themeColor}
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </motion.div>
+
+            {/* Change ▾ Button (Perfect Horizontal Center to Arrow) */}
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.94 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsOpen(true);
+              }}
+              aria-label="Change subtab"
+              style={{
+                padding: "5px 12px",
+                borderRadius: 8,
+                border: `1.5px solid ${themeColor}`,
+                background: themeBg,
+                color: themeColor,
+                fontSize: 12,
+                fontWeight: 800,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                cursor: "pointer",
+                boxShadow: "none",
+                flexShrink: 0,
+                lineHeight: 1.2,
+                transition: "all 0.15s ease",
+                letterSpacing: "0.2px",
+              }}
+            >
+              <span>Change</span>
+              <ChevronDown size={13} strokeWidth={2.4} />
+            </motion.button>
+          </div>
+        </motion.div>
       </div>
 
       {/* ── Interactive Bottom Sheet Drawer (Portaled to document.body for true viewport attachment) ── */}
