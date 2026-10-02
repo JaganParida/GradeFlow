@@ -297,7 +297,16 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
   return (
     <div style={{ width: "100%", maxWidth: "100%", minWidth: 0, overflow: "hidden" }}>
       {/* ── Action Buttons & Toolbar ── */}
-      <div data-html2canvas-ignore="true" className="gradesheet-toolbar">
+      <div
+        data-html2canvas-ignore="true"
+        className="gradesheet-toolbar"
+        style={{
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: 14,
+          boxShadow: "none",
+        }}
+      >
         <div className="gradesheet-toolbar-btns">
           <motion.button
             type="button"
@@ -308,6 +317,10 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
             title={isDownloadingPdf ? "Exporting PDF..." : !isUnlocked ? "Unlock via Feedback to Download PDF" : "Download PDF"}
             style={{
               cursor: isDownloadingPdf || isSavingImage ? "not-allowed" : "pointer",
+              background: "#2563eb",
+              color: "#ffffff",
+              border: "1px solid #2563eb",
+              boxShadow: "none",
             }}
           >
             {!isUnlocked ? (
@@ -329,6 +342,10 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
             title={isSavingImage ? "Exporting Image..." : !isUnlocked ? "Unlock via Feedback to Download Image" : "Download Image (PNG)"}
             style={{
               cursor: isDownloadingPdf || isSavingImage ? "not-allowed" : "pointer",
+              background: "#ffffff",
+              color: "#334155",
+              border: "1px solid #e2e8f0",
+              boxShadow: "none",
             }}
           >
             {!isUnlocked ? (
@@ -350,6 +367,10 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
             title={!isUnlocked ? "Unlock via Feedback to Print" : "Print Sheet"}
             style={{
               cursor: isDownloadingPdf || isSavingImage ? "not-allowed" : "pointer",
+              background: "#ffffff",
+              color: "#334155",
+              border: "1px solid #e2e8f0",
+              boxShadow: "none",
             }}
           >
             {!isUnlocked ? (
@@ -361,7 +382,15 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
           </motion.button>
         </div>
 
-        <div className="gradesheet-toolbar-zoom">
+        <div
+          className="gradesheet-toolbar-zoom"
+          style={{
+            background: "#f8fafc",
+            border: "1px solid #e2e8f0",
+            borderRadius: 9,
+            boxShadow: "none",
+          }}
+        >
           <button
             type="button"
             className="btn btn-ghost gradesheet-zoom-btn"
@@ -673,8 +702,8 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
                 background: "#ffffff",
                 borderRadius: isMobile ? 14 : 18,
                 padding: isMobile ? "16px 14px" : "28px 24px",
-                boxShadow: "0 20px 45px -12px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.05)",
                 border: "1px solid #e4e4e7",
+                boxShadow: "none",
                 textAlign: "center",
                 display: "flex",
                 flexDirection: "column",
@@ -691,7 +720,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
                   borderRadius: isMobile ? 11 : 13,
                   background: "#09090b",
                   border: "1px solid #27272a",
-                  boxShadow: "0 8px 18px -4px rgba(0, 0, 0, 0.25)",
+                  boxShadow: "none",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -791,7 +820,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
                   padding: isMobile ? "9px 14px" : "11px 18px",
                   borderRadius: isMobile ? 9 : 11,
                   background: "#09090b",
-                  boxShadow: "0 8px 20px -4px rgba(0, 0, 0, 0.35)",
+                  boxShadow: "none",
                   border: "1px solid #27272a",
                   color: "#ffffff",
                   fontSize: isMobile ? 12.5 : 13.5,
@@ -806,12 +835,10 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "#18181b";
                   e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.boxShadow = "0 12px 24px -4px rgba(0, 0, 0, 0.45)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "#09090b";
                   e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "0 8px 20px -4px rgba(0, 0, 0, 0.35)";
                 }}
               >
                 <MessageSquare size={isMobile ? 14 : 15} color="#ffffff" />
