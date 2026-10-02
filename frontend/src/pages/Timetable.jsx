@@ -777,76 +777,36 @@ export default function Timetable() {
               </div>
             </div>
 
-            {/* Right: Section Badge / Selector & Student Tag */}
+            {/* Right: Section Selector (Guest Mode Only) */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              {canShowRoutineAndSection && (
-                activeStudentName || currentRegNo ? (
-                  <div
+              {canShowRoutineAndSection && !activeStudentName && !currentRegNo && (
+                <>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>
+                    Section:
+                  </span>
+                  <select
+                    value={selectedSection}
+                    onChange={(e) => setSelectedSection(e.target.value)}
                     style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "6px 12px",
+                      padding: "7px 12px",
                       borderRadius: 8,
-                      background: "#eff6ff",
-                      border: "1px solid #bfdbfe",
+                      border: "1px solid #cbd5e1",
+                      background: "#f8fafc",
                       color: "#1d4ed8",
                       fontSize: 12.5,
                       fontWeight: 800,
+                      cursor: "pointer",
+                      outline: "none",
+                      boxShadow: "none",
                     }}
                   >
-                    <Building size={14} color="#2563eb" />
-                    <span>Section {selectedSection}</span>
-                  </div>
-                ) : (
-                  <>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>
-                      Section:
-                    </span>
-                    <select
-                      value={selectedSection}
-                      onChange={(e) => setSelectedSection(e.target.value)}
-                      style={{
-                        padding: "7px 12px",
-                        borderRadius: 8,
-                        border: "1px solid #cbd5e1",
-                        background: "#f8fafc",
-                        color: "#1d4ed8",
-                        fontSize: 12.5,
-                        fontWeight: 800,
-                        cursor: "pointer",
-                        outline: "none",
-                        boxShadow: "none",
-                      }}
-                    >
-                      {ALL_SECTIONS.map((sec) => (
-                        <option key={sec} value={sec}>
-                          {sec}
-                        </option>
-                      ))}
-                    </select>
-                  </>
-                )
-              )}
-
-              {activeStudentName && (
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "7px 12px",
-                    borderRadius: 10,
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: "#334155",
-                  }}
-                >
-                  <User size={13} color="#2563eb" />
-                  <span>{activeStudentName}</span>
-                </div>
+                    {ALL_SECTIONS.map((sec) => (
+                      <option key={sec} value={sec}>
+                        {sec}
+                      </option>
+                    ))}
+                  </select>
+                </>
               )}
             </div>
           </div>
@@ -904,123 +864,49 @@ export default function Timetable() {
 
           {/* Section 2: Status & View Mode Switcher (Clean UI/UX for Large & Mobile Devices) */}
           {isMobile ? (
-            <div
-              style={{
-                paddingTop: 10,
-                borderTop: "1px solid #f1f5f9",
-                display: "flex",
-                flexDirection: "column",
-                gap: 8,
-                width: "100%",
-              }}
-            >
-              {/* Compact Status Pill on Mobile */}
-              {currentRegNo ? (
-                <div
+            !currentRegNo && !adminToken && (
+              <div
+                style={{
+                  paddingTop: 10,
+                  borderTop: "1px solid #f1f5f9",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 8,
+                  padding: "5px 10px",
+                  borderRadius: 8,
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+              >
+                <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <Lock size={12} color="#94a3b8" />
+                  <span>Personalized timetable</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={openStudentAuthModal}
                   style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                    padding: "5px 10px",
-                    borderRadius: 8,
-                    background: "#f0fdf4",
-                    border: "1px solid #bbf7d0",
-                    color: "#166534",
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    border: "none",
+                    background: "#2563eb",
+                    color: "#ffffff",
                     fontSize: 11,
                     fontWeight: 700,
-                    width: "100%",
-                    boxSizing: "border-box",
-                  }}
-                >
-                  <ShieldCheck size={13} color="#16a34a" />
-                  <span>
-                    Authorized: <strong>{currentRegNo}</strong>
-                    {canShowRoutineAndSection && (
-                      <> &middot; Section <strong>{selectedSection}</strong></>
-                    )}
-                  </span>
-                </div>
-              ) : adminToken ? (
-                <div
-                  style={{
+                    cursor: "pointer",
                     display: "inline-flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                    padding: "5px 10px",
-                    borderRadius: 8,
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    color: "#334155",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    width: "100%",
-                    boxSizing: "border-box",
+                    gap: 4,
                   }}
                 >
-                  <ShieldCheck size={13} color="#2563eb" />
-                  <span>
-                    Admin View &middot; Section <strong>{selectedSection}</strong>
-                  </span>
-                </div>
-              ) : (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 8,
-                    padding: "5px 10px",
-                    borderRadius: 8,
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    width: "100%",
-                    boxSizing: "border-box",
-                  }}
-                >
-                  <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                    <Lock size={12} color="#94a3b8" />
-                    <span>Personalized timetable</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={openStudentAuthModal}
-                    style={{
-                      padding: "4px 10px",
-                      borderRadius: 6,
-                      border: "none",
-                      background: "#2563eb",
-                      color: "#ffffff",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                  >
-                    <GraduationCap size={12} />
-                    <span>Login</span>
-                  </button>
-                </div>
-              )}
-
-              {/* View Mode Switcher: ModernMobileSubNav on Mobile */}
-              <div style={{ width: "100%" }}>
-                <ModernMobileSubNav
-                  items={availableViewModes}
-                  activeTab={viewMode}
-                  onChange={(newMode, meta) => {
-                    if (meta?.animation) setSubnavAnim(meta.animation);
-                    setViewMode(newMode);
-                  }}
-                  title="Timetable Views"
-                  themeColor="#2563eb"
-                  themeBg="#eff6ff"
-                />
+                  <GraduationCap size={12} />
+                  <span>Login</span>
+                </button>
               </div>
-            </div>
+            )
           ) : (
             <div
               style={{
@@ -1033,33 +919,9 @@ export default function Timetable() {
                 flexWrap: "wrap",
               }}
             >
-              {/* Left: Authorized Student / Admin Status Pill on Desktop */}
+              {/* Left: Privileged Admin Status Pill or Guest Login on Desktop */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                {currentRegNo ? (
-                  <div
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 7,
-                      padding: "6px 13px",
-                      borderRadius: 8,
-                      background: "#f0fdf4",
-                      border: "1px solid #bbf7d0",
-                      color: "#166534",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    <ShieldCheck size={14} color="#16a34a" />
-                    <span>
-                      Authorized Student: <strong>{currentRegNo}</strong>
-                      {canShowRoutineAndSection && (
-                        <> &middot; Section <strong>{selectedSection}</strong></>
-                      )}
-                    </span>
-                  </div>
-                ) : adminToken ? (
+                {adminToken ? (
                   <div
                     style={{
                       display: "inline-flex",
@@ -1080,7 +942,7 @@ export default function Timetable() {
                       Admin Privileged View &middot; Section <strong>{selectedSection}</strong> Routine
                     </span>
                   </div>
-                ) : (
+                ) : !currentRegNo ? (
                   <div style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
                       <Lock size={13} color="#94a3b8" />
@@ -1108,7 +970,7 @@ export default function Timetable() {
                       <span>Student Login</span>
                     </button>
                   </div>
-                )}
+                ) : null}
               </div>
 
               {/* Right: Clean Segmented View Mode Pills on Desktop */}
@@ -1257,6 +1119,21 @@ export default function Timetable() {
             </div>
           )}
         </div>
+
+        {/* View Mode Switcher: ModernMobileSubNav on Mobile (Rendered cleanly outside header container) */}
+        {isMobile && (
+          <ModernMobileSubNav
+            items={availableViewModes}
+            activeTab={viewMode}
+            onChange={(newMode, meta) => {
+              if (meta?.animation) setSubnavAnim(meta.animation);
+              setViewMode(newMode);
+            }}
+            title="Timetable Views"
+            themeColor="#2563eb"
+            themeBg="#eff6ff"
+          />
+        )}
 
         {!canShowRoutineAndSection && (
           <div
