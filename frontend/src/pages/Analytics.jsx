@@ -845,7 +845,7 @@ export default function Analytics() {
           style={{
             background: "#ffffff",
             border: "1px solid #cbd5e1",
-            borderRadius: 16,
+            borderRadius: 14,
             padding: isMobile ? "14px 14px" : "20px 24px",
             boxShadow: "none",
             display: "flex",
@@ -960,18 +960,9 @@ export default function Analytics() {
           </div>
 
           {/* ══════════════════════════════════════════════════════════
-              SUB-NAV SEGMENTED TAB SWITCHER
+              DESKTOP SUB-NAV SEGMENTED TAB SWITCHER
           ══════════════════════════════════════════════════════════ */}
-          {isMobile ? (
-            <ModernMobileSubNav
-              items={navTabs}
-              activeTab={tab}
-              onChange={(newTab) => handleTabChange(newTab)}
-              title="Analytics Views"
-              themeColor="#2563eb"
-              themeBg="#eff6ff"
-            />
-          ) : (
+          {!isMobile && (
             <div
               style={{
                 background: "#f1f5f9",
@@ -1019,6 +1010,20 @@ export default function Analytics() {
             </div>
           )}
         </div>
+
+        {/* ══════════════════════════════════════════════════════════
+            MOBILE SUB-NAV (Positioned cleanly outside the container)
+        ══════════════════════════════════════════════════════════ */}
+        {isMobile && (
+          <ModernMobileSubNav
+            items={navTabs}
+            activeTab={tab}
+            onChange={(newTab) => handleTabChange(newTab)}
+            title="Analytics Views"
+            themeColor="#2563eb"
+            themeBg="#eff6ff"
+          />
+        )}
 
         {/* ══════════════════════════════════════════════════════════
             ANIMATED TAB CONTENT SWITCHER
