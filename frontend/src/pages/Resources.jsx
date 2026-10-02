@@ -530,7 +530,7 @@ export default function Resources() {
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
                 borderRadius: 14,
-                padding: isMobile ? "20px 14px" : "28px 16px",
+                padding: isMobile ? "16px 14px" : "20px 16px",
                 boxShadow: "none",
                 display: "flex",
                 flexDirection: "column",

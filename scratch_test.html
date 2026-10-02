@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #f1f5f9; font-family: 'DM Sans', sans-serif; color: #0f172a; }
+.gf-navbar-fixed-root {
+  position: fixed; top: 0; left: 0; right: 0; width: 100%; height: 66px; background: white; border-bottom: 1px solid #e2e8f0; z-index: 1000;
+}
+.gf-navbar-spacer {
+  height: 66px !important; width: 100% !important; flex-shrink: 0 !important;
+}
+.gf-content-appear {
+  background: #f1f5f9; min-height: 100vh; color: #0f172a; padding-bottom: 80px; overflow-x: hidden; width: 100%;
+}
+.grid-container {
+  max-width: 1440px; margin: 0 auto; padding: 24px 32px 90px 32px; display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 24px; align-items: start; width: 100%;
+}
+aside {
+  position: sticky; top: 84px; align-self: start; display: flex; flex-direction: column; margin: 0; padding: 0; width: 100%;
+}
+.sidebar-card {
+  background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 14px; display: flex; flex-direction: column; gap: 13px; height: fit-content;
+}
+main {
+  display: flex; flex-direction: column; gap: 20px; min-width: 0; width: 100%;
+}
+header {
+  display: flex; flex-direction: column; gap: 14px; width: 100%;
+}
+</style>
+</head>
+<body>
+<nav class='gf-navbar-fixed-root'>Navbar 66px</nav>
+<div class='gf-navbar-spacer'></div>
+<div class='gf-content-appear'>
+  <div class='grid-container'>
+    <aside id='aside-el'>
+      <div class='sidebar-card' id='card-el'>
+        <div style='display:flex; align-items:center; gap:10px;'>
+          <div style='width:40px; height:40px; background:#0f172a; border-radius:10px; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800;'>J</div>
+          <div>
+            <div style='font-size:14.5px; font-weight:800;'>JAGAN PARIDA</div>
+            <div style='font-size:11px; color:#64748b;'>230301120327</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+    <main id='main-el'>
+      <header id='header-el'>
+        <div style='display:flex; justify-content:space-between; align-items:flex-start; width:100%;'>
+          <div>
+            <div id='eyebrow-el' style='color:#64748b; font-size:12px; font-weight:600; margin-bottom:3px;'>Section CSE-F Routine · Academic Workspace</div>
+            <h1 id='h1-el' style='font-size:26px; font-weight:800; line-height:1.2; margin:0;'>Attendance Intelligence</h1>
+          </div>
+          <div>Target Criteria</div>
+        </div>
+      </header>
+    </main>
+  </div>
+</div>
+
+<script>
+window.onload = function() {
+  const card = document.getElementById('card-el').getBoundingClientRect();
+  const aside = document.getElementById('aside-el').getBoundingClientRect();
+  const eyebrow = document.getElementById('eyebrow-el').getBoundingClientRect();
+  const h1 = document.getElementById('h1-el').getBoundingClientRect();
+  const header = document.getElementById('header-el').getBoundingClientRect();
+  const main = document.getElementById('main-el').getBoundingClientRect();
+  
+  console.log('RESULTS:');
+  console.log('card.top:', card.top);
+  console.log('aside.top:', aside.top);
+  console.log('eyebrow.top:', eyebrow.top);
+  console.log('h1.top:', h1.top);
+  console.log('header.top:', header.top);
+  console.log('main.top:', main.top);
+};
+</script>
+</body>
+</html>

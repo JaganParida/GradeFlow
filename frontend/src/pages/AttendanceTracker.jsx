@@ -3486,7 +3486,7 @@ export default function AttendanceTracker() {
             <div
               style={{
                 display: "flex",
-                alignItems: "center",
+                alignItems: "flex-start",
                 justifyContent: "space-between",
                 gap: 10,
                 width: "100%",
