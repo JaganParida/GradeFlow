@@ -3075,7 +3075,8 @@ export default function AttendanceTracker() {
           <aside
             style={{
               position: "sticky",
-              top: 84,
+              top: 80,
+              alignSelf: "start",
               display: "flex",
               flexDirection: "column",
               margin: 0,
@@ -3095,6 +3096,8 @@ export default function AttendanceTracker() {
                 flexDirection: "column",
                 gap: 13,
                 boxShadow: "none",
+                height: "fit-content",
+                boxSizing: "border-box",
               }}
             >
               {/* 1. Student Profile Header */}
@@ -3470,13 +3473,19 @@ export default function AttendanceTracker() {
             </div>
           )}
 
-          {/* Top Academic & Attendance Overview Header (Clean Canvas - Unboxed) */}
-          <header
+          {/* Top Academic & Attendance Overview Header Card */}
+          <div
             style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
+              padding: isMobile ? "12px 14px" : "18px 20px",
               display: "flex",
               flexDirection: "column",
               gap: isMobile ? 10 : 14,
+              boxShadow: "none",
               width: "100%",
+              boxSizing: "border-box",
             }}
           >
             {/* Header Content */}
@@ -3766,7 +3775,7 @@ export default function AttendanceTracker() {
                     </div>
                   )}
                 </div>
-              </header>
+              </div>
 
               {/* Modern Interactive Mobile Sub-Navigation (Rendered cleanly below header) */}
               {isMobile && (

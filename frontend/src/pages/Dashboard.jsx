@@ -1133,7 +1133,7 @@ export default function Dashboard() {
         <aside
           style={{
             position: isMobile ? "relative" : "sticky",
-            top: isMobile ? "auto" : 84,
+            top: isMobile ? "auto" : 80,
             display: "flex",
             flexDirection: "column",
             margin: 0,
@@ -1153,6 +1153,8 @@ export default function Dashboard() {
               display: "flex",
               flexDirection: "column",
               gap: isMobile ? 10 : 14,
+              height: "fit-content",
+              boxSizing: "border-box",
             }}
           >
             {/* 1. Student Profile Header */}
@@ -1605,14 +1607,20 @@ export default function Dashboard() {
           {/* Top Profile, 4 KPI Summary Cards & Standings (Mobile: ONLY visible on default 'result' tab) */}
           {(!isMobile || tab === "result") && (
             <>
-              {/* Top Header Canvas (Desktop Only - Clean Unboxed Layout) */}
+              {/* Top Header Card (Desktop Only) */}
               {!isMobile && (
-                <header
+                <div
                   style={{
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 14,
+                    padding: "18px 22px",
                     display: "flex",
                     flexDirection: "column",
                     gap: 12,
+                    boxShadow: "none",
                     width: "100%",
+                    boxSizing: "border-box",
                   }}
                 >
                   {/* Header Content */}
@@ -1725,7 +1733,7 @@ export default function Dashboard() {
                       ))}
                     </div>
                   )}
-                </header>
+                </div>
               )}
 
           {/* 4 Hero Stat Cards (2x2 on Mobile, 4 in row on Desktop) */}

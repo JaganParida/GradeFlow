@@ -513,7 +513,7 @@ export default function Resources() {
           <aside
             style={{
               position: isMobile ? "relative" : "sticky",
-              top: isMobile ? "auto" : 84,
+              top: isMobile ? "auto" : 80,
               alignSelf: "start",
               display: "flex",
               flexDirection: "column",
@@ -537,6 +537,7 @@ export default function Resources() {
                 gap: 18,
                 boxSizing: "border-box",
                 width: "100%",
+                height: "fit-content",
                 margin: 0,
               }}
             >
@@ -3167,7 +3168,7 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0, gap: isMobile ? 14 : 20 }}
+                style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 14, padding: isMobile ? "18px 16px" : "24px 28px", boxShadow: "none", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0, gap: isMobile ? 14 : 20 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-start", flexDirection: isMobile ? "column" : "row", gap: 12, marginBottom: 16 }}>
                   <div>
@@ -3267,7 +3268,7 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0, gap: isMobile ? 14 : 20 }}
+                style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 14, padding: isMobile ? "18px 16px" : "24px 28px", boxShadow: "none", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0, gap: isMobile ? 14 : 20 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 16, flexDirection: isMobile ? "column" : "row", gap: 12 }}>
                   <div>
@@ -3388,7 +3389,7 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0, gap: isMobile ? 14 : 20 }}
+                style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 14, padding: isMobile ? "18px 16px" : "24px 28px", boxShadow: "none", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0, gap: isMobile ? 14 : 20 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 16, flexDirection: isMobile ? "column" : "row", gap: 12 }}>
                   <div>
@@ -3503,7 +3504,7 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0, gap: isMobile ? 14 : 20 }}
+                style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 14, padding: isMobile ? "18px 16px" : "24px 28px", boxShadow: "none", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0, gap: isMobile ? 14 : 20 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 16, flexDirection: isMobile ? "column" : "row", gap: 10 }}>
                   <div>
@@ -3576,7 +3577,7 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0, gap: isMobile ? 14 : 20 }}
+                style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 14, padding: isMobile ? "18px 16px" : "24px 28px", boxShadow: "none", display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0, gap: isMobile ? 14 : 20 }}
               >
                 <div>
                   <h1 style={{ fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>Frequently Asked Questions</h1>
