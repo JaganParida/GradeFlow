@@ -393,8 +393,8 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
             margin: "0 auto", 
             position: "relative",
             transition: "all 0.25s ease",
-            borderRadius: 10, /* Matches inner paper to cleanly cut off shadow without looking bad */
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(15, 23, 42, 0.03)",
+            borderRadius: 14,
+            border: "1px solid #e2e8f0",
         }}>
           <div
             id={`gradesheet-capture-${result.semester}`}

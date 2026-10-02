@@ -513,7 +513,7 @@ export default function BasketDashboard({ results, studentData }) {
               gridTemplateColumns: "3.4fr 1fr 1.2fr 1fr",
               padding: "12px 20px",
               background: "#f8fafc",
-              borderBottom: "1px solid #cbd5e1",
+              borderBottom: "1px solid #e2e8f0",
               fontSize: 11,
               color: "#475569",
               fontWeight: 800,
@@ -561,7 +561,7 @@ export default function BasketDashboard({ results, studentData }) {
               gridTemplateColumns: "3fr 0.9fr 1.1fr 0.9fr 1.7fr",
               padding: "12px 20px",
               background: "#f8fafc",
-              borderBottom: "1px solid #cbd5e1",
+              borderBottom: "1px solid #e2e8f0",
               fontSize: 11,
               color: "#475569",
               fontWeight: 800,
@@ -611,7 +611,7 @@ export default function BasketDashboard({ results, studentData }) {
               gridTemplateColumns: "3fr 0.9fr 1.1fr 0.9fr 1.7fr",
               padding: "12px 20px",
               background: "#f8fafc",
-              borderBottom: "1px solid #cbd5e1",
+              borderBottom: "1px solid #e2e8f0",
               fontSize: 11,
               color: "#475569",
               fontWeight: 800,
@@ -662,7 +662,7 @@ export default function BasketDashboard({ results, studentData }) {
               </div>
               <div
                 style={{
-                  border: "1px solid #cbd5e1",
+                  border: "1px solid #e2e8f0",
                   borderRadius: 10,
                   overflow: "hidden",
                 }}
@@ -804,7 +804,7 @@ export default function BasketDashboard({ results, studentData }) {
                 </div>
                 <div
                   style={{
-                    border: "1px solid #cbd5e1",
+                    border: "1px solid #e2e8f0",
                     borderRadius: 10,
                     overflow: "hidden",
                   }}
@@ -837,7 +837,7 @@ export default function BasketDashboard({ results, studentData }) {
             </div>
             <div
               style={{
-                border: "1px solid #cbd5e1",
+                border: "1px solid #e2e8f0",
                 borderRadius: 10,
                 overflow: "hidden",
               }}
@@ -849,7 +849,7 @@ export default function BasketDashboard({ results, studentData }) {
                   gridTemplateColumns: "3.4fr 1fr 1.2fr 1fr",
                   padding: "12px 20px",
                   background: "#f8fafc",
-                  borderBottom: "1px solid #cbd5e1",
+                  borderBottom: "1px solid #e2e8f0",
                   fontSize: 11,
                   color: "#475569",
                   fontWeight: 800,
@@ -898,7 +898,7 @@ export default function BasketDashboard({ results, studentData }) {
               </div>
               <div
                 style={{
-                  border: "1px solid #cbd5e1",
+                  border: "1px solid #e2e8f0",
                   borderRadius: 10,
                   overflow: "hidden",
                 }}
@@ -926,7 +926,6 @@ export default function BasketDashboard({ results, studentData }) {
             border: "1.5px solid #fde68a",
             borderRadius: 14,
             padding: "16px 18px",
-            boxShadow: "0 2px 8px rgba(217, 119, 6, 0.04)",
           }}
         >
           <div
@@ -1047,7 +1046,6 @@ export default function BasketDashboard({ results, studentData }) {
                       alignItems: "center",
                       gap: 8,
                       textDecoration: "none",
-                      boxShadow: "0 2px 6px rgba(37, 211, 102, 0.25)",
                       whiteSpace: "nowrap",
                       flexShrink: 0,
                       transition: "all 0.15s ease",
@@ -1075,11 +1073,9 @@ export default function BasketDashboard({ results, studentData }) {
         <div
           style={{
             background: "#ffffff",
-            border: "1px solid #cbd5e1",
+            border: "1px solid #e2e8f0",
             borderRadius: 16,
             padding: "20px 24px",
-            boxShadow:
-              "0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(15, 23, 42, 0.03)",
             display: "flex",
             alignItems: "center",
             gap: 20,
@@ -1192,11 +1188,9 @@ export default function BasketDashboard({ results, studentData }) {
             background: "#ffffff",
             border: isHonoursEligible
               ? "1px solid #fde68a"
-              : "1px solid #cbd5e1",
+              : "1px solid #e2e8f0",
             borderRadius: 16,
             padding: "20px 24px",
-            boxShadow:
-              "0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(15, 23, 42, 0.03)",
             display: "flex",
             alignItems: "center",
             gap: 20,
@@ -1273,11 +1267,9 @@ export default function BasketDashboard({ results, studentData }) {
         <div
           style={{
             background: "#ffffff",
-            border: "1px solid #cbd5e1",
+            border: "1px solid #e2e8f0",
             borderRadius: 16,
             padding: "20px 24px",
-            boxShadow:
-              "0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(15, 23, 42, 0.03)",
             display: "flex",
             alignItems: "center",
             gap: 20,
@@ -1384,13 +1376,12 @@ export default function BasketDashboard({ results, studentData }) {
                 gap: 8,
                 padding: "8px 16px",
                 borderRadius: 10,
-                border: "1px solid #cbd5e1",
+                border: "1px solid #e2e8f0",
                 background: "#ffffff",
                 color: "#1e293b",
                 fontSize: 13,
                 fontWeight: 700,
                 cursor: isGenerating ? "not-allowed" : "pointer",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
                 fontFamily: "'DM Sans', sans-serif",
               }}
             >
@@ -1416,9 +1407,8 @@ export default function BasketDashboard({ results, studentData }) {
                     right: 0,
                     marginTop: 8,
                     background: "#ffffff",
-                    border: "1px solid #cbd5e1",
+                    border: "1px solid #e2e8f0",
                     borderRadius: 12,
-                    boxShadow: "0 10px 30px rgba(15, 23, 42, 0.12)",
                     overflow: "hidden",
                     zIndex: 100,
                     minWidth: 200,
@@ -1532,12 +1522,9 @@ export default function BasketDashboard({ results, studentData }) {
                   background: "#ffffff",
                   border: isExpanded
                     ? "1px solid #3b82f6"
-                    : "1px solid #cbd5e1",
+                    : "1px solid #e2e8f0",
                   borderRadius: 16,
                   overflow: "hidden",
-                  boxShadow: isExpanded
-                    ? "0 4px 20px rgba(37, 99, 235, 0.08)"
-                    : "0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(15, 23, 42, 0.03)",
                   transition: "all 0.2s ease",
                 }}
               >
@@ -1551,7 +1538,7 @@ export default function BasketDashboard({ results, studentData }) {
                     justifyContent: "space-between",
                     cursor: "pointer",
                     background: isExpanded ? "#f8fafc" : "#ffffff",
-                    borderBottom: isExpanded ? "1px solid #cbd5e1" : "none",
+                    borderBottom: isExpanded ? "1px solid #e2e8f0" : "none",
                     gap: 10,
                   }}
                 >

@@ -51,10 +51,9 @@ export default function TargetPredictor() {
       <div
         style={{
           background: "#ffffff",
-          border: "1px solid #cbd5e1",
+          border: "1px solid #e2e8f0",
           borderRadius: 16,
           padding: isMobile ? "14px 14px" : "24px 26px",
-          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(15, 23, 42, 0.03)",
           display: "flex",
           flexDirection: "column",
           gap: isMobile ? 14 : 22,
@@ -204,18 +203,17 @@ export default function TargetPredictor() {
                   border:
                     internalMarks !== "" && !isValidInternal
                       ? "1.5px solid #ef4444"
-                      : "1.5px solid #cbd5e1",
+                      : "1.5px solid #e2e8f0",
                   borderRadius: 10,
                   color: "#0f172a",
                   fontSize: 16,
                   fontWeight: 800,
                   fontFamily: "'Space Mono', monospace",
                   outline: "none",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
                 }}
                 onFocus={(e) => (e.target.style.borderColor = "#2563eb")}
                 onBlur={(e) => {
-                  if (internalMarks === "" || isValidInternal) e.target.style.borderColor = "#cbd5e1";
+                  if (internalMarks === "" || isValidInternal) e.target.style.borderColor = "#e2e8f0";
                 }}
               />
               <span
@@ -275,10 +273,9 @@ export default function TargetPredictor() {
         <div
           style={{
             background: "#ffffff",
-            border: "1px solid #cbd5e1",
+            border: "1px solid #e2e8f0",
             borderRadius: 16,
             padding: isMobile ? "14px 14px" : "24px 26px",
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(15, 23, 42, 0.03)",
             display: "flex",
             flexDirection: "column",
             gap: isMobile ? 12 : 16,
@@ -372,7 +369,6 @@ export default function TargetPredictor() {
                     flexDirection: "column",
                     justifyContent: "space-between",
                     gap: 12,
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
                   }}
                 >
                   {/* Grade Badge Header */}

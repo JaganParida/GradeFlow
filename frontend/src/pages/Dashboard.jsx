@@ -1147,13 +1147,12 @@ export default function Dashboard() {
           <div
             style={{
               background: "#ffffff",
-              border: "1px solid #cbd5e1",
+              border: "1px solid #e2e8f0",
               borderRadius: 16,
               padding: isMobile ? "14px 14px" : "16px 14px",
               display: "flex",
               flexDirection: "column",
               gap: isMobile ? 10 : 14,
-              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
             }}
           >
             {/* 1. Student Profile Header */}
@@ -1611,7 +1610,7 @@ export default function Dashboard() {
                 <div
                   style={{
                     background: "#ffffff",
-                    border: "1px solid #cbd5e1",
+                    border: "1px solid #e2e8f0",
                     borderRadius: 16,
                     padding: "20px 24px",
                     display: "flex",
@@ -1657,7 +1656,7 @@ export default function Dashboard() {
                           gap: 6,
                           padding: "9px 16px",
                           borderRadius: 9,
-                          border: "1px solid #cbd5e1",
+                          border: "1px solid #e2e8f0",
                           background: "#ffffff",
                           color: "#334155",
                           fontSize: 12.5,
@@ -1767,7 +1766,6 @@ export default function Dashboard() {
                     flexDirection: "column",
                     justifyContent: "space-between",
                     minHeight: isMobile ? 116 : 130,
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
                     position: "relative",
                     overflow: "hidden",
                     transition: "all 0.15s ease",
@@ -1860,7 +1858,6 @@ export default function Dashboard() {
                     flexDirection: "column",
                     justifyContent: "space-between",
                     minHeight: isMobile ? 116 : 130,
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
                     position: "relative",
                     overflow: "hidden",
                     cursor: "pointer",
@@ -1955,7 +1952,6 @@ export default function Dashboard() {
                     flexDirection: "column",
                     justifyContent: "space-between",
                     minHeight: isMobile ? 116 : 130,
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
                     position: "relative",
                     overflow: "hidden",
                     cursor: "pointer",
@@ -2051,7 +2047,6 @@ export default function Dashboard() {
                     flexDirection: "column",
                     justifyContent: "space-between",
                     minHeight: isMobile ? 116 : 130,
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
                     position: "relative",
                     overflow: "hidden",
                     cursor: "pointer",
@@ -2151,7 +2146,6 @@ export default function Dashboard() {
                       flexDirection: "column",
                       justifyContent: "space-between",
                       minHeight: isMobile ? 116 : 130,
-                      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
                       position: "relative",
                       overflow: "hidden",
                       cursor: "pointer",
@@ -2312,7 +2306,6 @@ export default function Dashboard() {
                       flexDirection: "column",
                       justifyContent: "space-between",
                       minHeight: isMobile ? 116 : 130,
-                      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
                       position: "relative",
                       overflow: "hidden",
                       cursor: "pointer",
@@ -2627,7 +2620,7 @@ export default function Dashboard() {
               <div
                 style={{
                   background: "#ffffff",
-                  border: "1px solid #cbd5e1",
+                  border: "1px solid #e2e8f0",
                   borderRadius: 16,
                   overflow: "hidden",
                   width: "100%",
@@ -2641,7 +2634,7 @@ export default function Dashboard() {
                     justifyContent: "space-between",
                     padding: "12px 18px",
                     background: "#f8fafc",
-                    borderBottom: "1px solid #cbd5e1",
+                    borderBottom: "1px solid #e2e8f0",
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 800, color: "#0f172a" }}>
@@ -2942,7 +2935,7 @@ export default function Dashboard() {
                     <div
                       style={{
                         background: "#ffffff",
-                        border: "1px solid #cbd5e1",
+                        border: "1px solid #e2e8f0",
                         borderRadius: 16,
                         padding: isMobile ? "14px 14px" : "24px 24px",
                       }}
@@ -3141,7 +3134,7 @@ export default function Dashboard() {
                               gap: 5,
                               padding: isMobile ? "6px 12px" : "8px 16px",
                               borderRadius: 8,
-                              border: "1px solid #cbd5e1",
+                              border: "1px solid #e2e8f0",
                               background: "#ffffff",
                               color: "#334155",
                               fontSize: isMobile ? 12 : 13,
@@ -3267,7 +3260,7 @@ export default function Dashboard() {
                               <div style={{ width: "100%", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" }}>
                                 <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 12.5, tableLayout: "fixed" }}>
                                   <thead>
-                                    <tr style={{ background: "#f8fafc", borderBottom: "1px solid #cbd5e1" }}>
+                                    <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
                                       <th style={{ width: "30%", padding: "12px 14px", fontSize: 11, color: "#475569", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.5px" }}>
                                         Subject
                                       </th>
@@ -3424,7 +3417,7 @@ export default function Dashboard() {
                                       padding: "6px 10px",
                                       height: 32,
                                       borderRadius: 8,
-                                      border: "1px solid #cbd5e1",
+                                      border: "1px solid #e2e8f0",
                                       background: currentInternalPage <= 1 ? "#f1f5f9" : "#ffffff",
                                       color: currentInternalPage <= 1 ? "#94a3b8" : "#1e293b",
                                       fontSize: 12,
@@ -3452,7 +3445,7 @@ export default function Dashboard() {
                                               height: 32,
                                               padding: "0 6px",
                                               borderRadius: 8,
-                                              border: p === currentInternalPage ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
+                                              border: p === currentInternalPage ? "1.5px solid #2563eb" : "1px solid #e2e8f0",
                                               background: p === currentInternalPage ? "#2563eb" : "#ffffff",
                                               color: p === currentInternalPage ? "#ffffff" : "#334155",
                                               fontSize: 12,
@@ -3481,7 +3474,7 @@ export default function Dashboard() {
                                       padding: "6px 10px",
                                       height: 32,
                                       borderRadius: 8,
-                                      border: "1px solid #cbd5e1",
+                                      border: "1px solid #e2e8f0",
                                       background: currentInternalPage >= totalInternalPages ? "#f1f5f9" : "#ffffff",
                                       color: currentInternalPage >= totalInternalPages ? "#94a3b8" : "#1e293b",
                                       fontSize: 12,
@@ -3658,7 +3651,7 @@ export default function Dashboard() {
                   <div
                     style={{
                       background: "#ffffff",
-                      border: "1px solid #cbd5e1",
+                      border: "1px solid #e2e8f0",
                       borderRadius: 16,
                       padding: isMobile ? "14px 14px" : "24px 26px",
                       display: "flex",
@@ -3715,7 +3708,7 @@ export default function Dashboard() {
                             }}
                             style={{
                               background: isSelected ? "#eff6ff" : "#ffffff",
-                              border: isSelected ? "2px solid #2563eb" : "1px solid #cbd5e1",
+                              border: isSelected ? "2px solid #2563eb" : "1px solid #e2e8f0",
                               borderRadius: 14,
                               padding: isMobile ? "12px 12px" : "16px 20px",
                               cursor: "pointer",
@@ -3734,7 +3727,7 @@ export default function Dashboard() {
                             onMouseLeave={(e) => {
                               if (!isSelected) {
                                 e.currentTarget.style.background = "#ffffff";
-                                e.currentTarget.style.borderColor = "#cbd5e1";
+                                e.currentTarget.style.borderColor = "#e2e8f0";
                               }
                             }}
                           >
