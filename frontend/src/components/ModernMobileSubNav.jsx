@@ -146,7 +146,7 @@ export default function ModernMobileSubNav({
 
         // Wait one frame for layout to settle after body unlock + content change
         requestAnimationFrame(() => {
-          const targetY = getSubNavDocTop();
+          const targetY = Math.max(0, getSubNavDocTop() - 62);
           const distance = Math.abs(targetY - scrollY);
 
           // Already at/near the subnav top — no scroll needed, stay in place
@@ -221,7 +221,7 @@ export default function ModernMobileSubNav({
         id="gf-mobile-subnav"
         style={{
           position: "sticky",
-          top: 0,
+          top: 58,
           zIndex: 900,
           background: "transparent",
           transform: "translateZ(0)",

@@ -3075,7 +3075,7 @@ export default function AttendanceTracker() {
           <aside
             style={{
               position: "sticky",
-              top: 16,
+              top: 84,
               display: "flex",
               flexDirection: "column",
               margin: 0,

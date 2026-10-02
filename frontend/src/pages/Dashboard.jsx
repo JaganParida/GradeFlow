@@ -1133,7 +1133,7 @@ export default function Dashboard() {
         <aside
           style={{
             position: isMobile ? "relative" : "sticky",
-            top: isMobile ? "auto" : 24,
+            top: isMobile ? "auto" : 84,
             display: "flex",
             flexDirection: "column",
             margin: 0,

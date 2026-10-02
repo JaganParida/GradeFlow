@@ -330,17 +330,19 @@ export default function Navbar() {
   return (
     <>
       <nav
+        className="gf-navbar-fixed-root"
         style={{
-          position: "sticky",
+          position: "fixed",
           top: 0,
           left: 0,
           right: 0,
+          width: "100%",
           zIndex: 1000,
           background: scrolled ? "rgba(255, 255, 255, 0.94)" : "#ffffff",
           backdropFilter: "blur(14px)",
           WebkitBackdropFilter: "blur(14px)",
           borderBottom: "1px solid rgba(226, 232, 240, 0.8)",
-          transition: "all 0.25s ease",
+          transition: "background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease",
           boxShadow: scrolled ? "0 4px 20px rgba(15, 23, 42, 0.04)" : "none",
         }}
       >
@@ -1102,6 +1104,9 @@ export default function Navbar() {
           </div>
         </div>
       </nav>
+
+      {/* ── Responsive Layout Spacer to prevent content from jumping under fixed navbar ── */}
+      <div className="gf-navbar-spacer" aria-hidden="true" />
 
       {/* ── Mobile Navigation Drawer (Hardware-Accelerated 60/120fps Native Slide) ── */}
       <div
@@ -2265,6 +2270,11 @@ export default function Navbar() {
       </AnimatePresence>
 
       <style>{`
+        .gf-navbar-spacer {
+          height: 66px !important;
+          width: 100% !important;
+          flex-shrink: 0 !important;
+        }
         .gf-navbar-inner {
           max-width: 1440px !important;
           margin: 0 auto !important;
@@ -2409,6 +2419,9 @@ export default function Navbar() {
             display: flex !important;
             align-items: center;
           }
+          .gf-navbar-spacer {
+            height: 60px !important;
+          }
           .gf-navbar-inner {
             height: 60px !important;
             padding: 0 14px !important;
@@ -2461,6 +2474,9 @@ export default function Navbar() {
         }
 
         @media (max-width: 480px) {
+          .gf-navbar-spacer {
+            height: 58px !important;
+          }
           .gf-navbar-inner {
             height: 58px !important;
             padding: 0 12px !important;
@@ -2517,6 +2533,9 @@ export default function Navbar() {
         }
 
         @media (max-width: 360px) {
+          .gf-navbar-spacer {
+            height: 56px !important;
+          }
           .gf-navbar-inner {
             height: 56px !important;
             padding: 0 8px !important;

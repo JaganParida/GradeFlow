@@ -513,7 +513,7 @@ export default function Resources() {
           <aside
             style={{
               position: isMobile ? "relative" : "sticky",
-              top: isMobile ? "auto" : 20,
+              top: isMobile ? "auto" : 84,
               alignSelf: "start",
               display: "flex",
               flexDirection: "column",
