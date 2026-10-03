@@ -1323,57 +1323,6 @@ export default function AttendanceTracker() {
             cleanDailyLogs[key] = rawLogs[key];
           }
         });
-
-        // ── Auto-Neutralize Non-Instructional / Suspended Dates ──
-        let sanitizedSaved = att.savedSubjects || [];
-        let hasSanitized = false;
-
-        Object.keys(cleanDailyLogs).forEach((key) => {
-          const dObj = new Date(key + "T00:00:00");
-          if (!isNaN(dObj.getTime())) {
-            const ctx = getDateInstructionalContext(dObj, att.section || selectedSection);
-            if (!ctx.isInstructional && cleanDailyLogs[key] && Object.keys(cleanDailyLogs[key]).length > 0) {
-              const routineClasses = getDaySchedule(att.section || selectedSection, ctx.dayName) || [];
-              routineClasses.forEach((period, idx) => {
-                const slotIndex = period.slotIndex !== undefined ? period.slotIndex : idx;
-                const status = cleanDailyLogs[key][slotIndex];
-                if (status === "present" || status === "absent") {
-                  const cleanName = cleanSubjectBaseName(period.subject);
-                  const compType = (period.type || "PP").toUpperCase();
-                  const deltaAtt = status === "present" ? -1 : 0;
-                  const deltaDel = -1;
-
-                  const sIdx = sanitizedSaved.findIndex((s) => isSameSubject(s, cleanName));
-                  if (sIdx !== -1) {
-                    const sub = { ...sanitizedSaved[sIdx] };
-                    sub.components = (sub.components || []).map((c) => {
-                      if (c.type.toUpperCase() === compType) {
-                        return {
-                          ...c,
-                          attended: Math.max(0, (Number(c.attended) || 0) + deltaAtt),
-                          delivered: Math.max(0, (Number(c.delivered) || 0) + deltaDel),
-                        };
-                      }
-                      return c;
-                    });
-                    sanitizedSaved[sIdx] = sub;
-                  }
-                }
-              });
-
-              delete cleanDailyLogs[key];
-              hasSanitized = true;
-            }
-          }
-        });
-
-        if (hasSanitized) {
-          att.savedSubjects = sanitizedSaved;
-          savedSubjectsRef.current = sanitizedSaved;
-          setSavedSubjects(sanitizedSaved);
-          syncAttendanceToDb(sanitizedSaved, cleanDailyLogs, att.targetGoal || targetGoal);
-        }
-
         allDailyLogsRef.current = cleanDailyLogs;
         setAllDailyLogs(cleanDailyLogs);
         const todayLogs = cleanDailyLogs[todayDateKey];
@@ -1844,9 +1793,7 @@ export default function AttendanceTracker() {
 
     const targetDateObj = new Date(dateKey + "T00:00:00");
     const targetSchedCtx = getSectionScheduleForDate(selectedSection, targetDateObj);
-    const dayClasses = targetSchedCtx.classes && targetSchedCtx.classes.length > 0
-      ? targetSchedCtx.classes
-      : (getDaySchedule(selectedSection, targetSchedCtx.dayName) || []);
+    const dayClasses = targetSchedCtx.classes || [];
 
     let nextSavedList = [...(savedSubjectsRef.current || savedSubjects)];
 
