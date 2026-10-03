@@ -457,6 +457,157 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    // 10. POST /api/timetable/admin/suspension/save
+    if (action === "admin-suspension-save" || (cleanUrl.includes("/admin/suspension/save") && req.method === "POST")) {
+      const auth = req.adminAuth;
+      const { academicYear, date, title, category, description, affectedSections } = req.body || {};
+
+      if (!date || !title) {
+        return res.status(400).json({
+          success: false,
+          message: "Date and suspension title/reason are required.",
+        });
+      }
+
+      const year = academicYear || "2026-27";
+      let holidayDoc = await AcademicHoliday.findOne({ academicYear: year });
+      if (!holidayDoc) {
+        holidayDoc = new AcademicHoliday({
+          academicYear: year,
+          title: `Academic Holidays List (${year})`,
+          holidays: [],
+          uploadedBy: auth?.admin?.email || "Admin",
+        });
+      }
+
+      const d = new Date(date + "T00:00:00");
+      const dayName = isNaN(d.getTime())
+        ? "Day"
+        : ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][d.getDay()];
+
+      const cleanSections = Array.isArray(affectedSections) && affectedSections.length > 0
+        ? affectedSections.map((s) => String(s).trim().toUpperCase())
+        : ["ALL"];
+
+      const cleanCategory = String(category || "emergency").toLowerCase();
+
+      let color = "#dc2626";
+      let bg = "#fef2f2";
+      if (cleanCategory.includes("cyclone") || cleanCategory.includes("weather")) {
+        color = "#ea580c";
+        bg = "#fff7ed";
+      } else if (cleanCategory.includes("protest")) {
+        color = "#b91c1c";
+        bg = "#fef2f2";
+      } else if (cleanCategory.includes("admin")) {
+        color = "#4338ca";
+        bg = "#eef2ff";
+      }
+
+      const suspensionItem = {
+        slNo: (holidayDoc.holidays?.length || 0) + 1,
+        title: String(title).trim(),
+        date: String(date).trim(),
+        day: dayName,
+        type: "suspension",
+        isOptional: false,
+        isObservation: false,
+        isSuspension: true,
+        category: cleanCategory,
+        affectedSections: cleanSections,
+        color,
+        bg,
+        description: String(description || `Classes suspended on ${date} as per administrative notice. Counted as non-instructional holiday.`).trim(),
+      };
+
+      const existingIdx = (holidayDoc.holidays || []).findIndex((h) => h.date === suspensionItem.date);
+      if (existingIdx !== -1) {
+        holidayDoc.holidays[existingIdx] = {
+          ...(holidayDoc.holidays[existingIdx]?.toObject?.() || holidayDoc.holidays[existingIdx]),
+          ...suspensionItem,
+        };
+      } else {
+        holidayDoc.holidays.push(suspensionItem);
+      }
+
+      holidayDoc.uploadedAt = new Date();
+      holidayDoc.uploadedBy = auth?.admin?.email || "Admin";
+      await holidayDoc.save();
+
+      try {
+        await Promise.allSettled([
+          publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+          broadcastRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+          publishAdminRealtimeEvent("admin-cache-invalidate", { scope: "attendance", timestamp: Date.now() }),
+        ]);
+      } catch (e) {
+        console.warn("[Ably] Timetable suspension update publish warning:", e?.message || e);
+      }
+
+      return res.json({
+        success: true,
+        message: `Class suspension for ${date} published successfully. All selected sections will treat this date as a holiday.`,
+        suspension: suspensionItem,
+        holidayDoc,
+      });
+    }
+
+    // 11. POST /api/timetable/admin/suspension/delete
+    if (action === "admin-suspension-delete" || (cleanUrl.includes("/admin/suspension/delete") && req.method === "POST")) {
+      const auth = req.adminAuth;
+      const { academicYear, date } = req.body || {};
+      if (!date) {
+        return res.status(400).json({ success: false, message: "Date is required to delete suspension." });
+      }
+
+      const year = academicYear || "2026-27";
+      const holidayDoc = await AcademicHoliday.findOne({ academicYear: year });
+      if (!holidayDoc) {
+        return res.status(404).json({ success: false, message: "Holidays record not found." });
+      }
+
+      const initialLen = holidayDoc.holidays.length;
+      holidayDoc.holidays = holidayDoc.holidays.filter((h) => h.date !== date || (!h.isSuspension && h.type !== "suspension"));
+
+      if (holidayDoc.holidays.length === initialLen) {
+        return res.status(404).json({ success: false, message: "No suspension found for specified date." });
+      }
+
+      holidayDoc.uploadedAt = new Date();
+      holidayDoc.uploadedBy = auth?.admin?.email || "Admin";
+      await holidayDoc.save();
+
+      try {
+        await Promise.allSettled([
+          publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+          broadcastRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+          publishAdminRealtimeEvent("admin-cache-invalidate", { scope: "attendance", timestamp: Date.now() }),
+        ]);
+      } catch (e) {
+        console.warn("[Ably] Timetable suspension delete publish warning:", e?.message || e);
+      }
+
+      return res.json({
+        success: true,
+        message: `Suspension on ${date} removed successfully. Regular classes restored.`,
+      });
+    }
+
+    // 12. GET /api/timetable/admin/suspension/list
+    if (action === "admin-suspension-list" || cleanUrl.includes("/admin/suspension/list")) {
+      const { academicYear } = req.query || {};
+      const year = academicYear || "2026-27";
+      const holidayDoc = await AcademicHoliday.findOne({ academicYear: year });
+      const suspensions = (holidayDoc?.holidays || []).filter(
+        (h) => h.isSuspension || h.type === "suspension"
+      );
+      return res.json({
+        success: true,
+        count: suspensions.length,
+        suspensions,
+      });
+    }
+
     return res.status(404).json({ success: false, message: "Endpoint not found in timetable handler." });
   } catch (err) {
     console.error("Timetable serverless error:", err);

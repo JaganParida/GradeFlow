@@ -404,4 +404,173 @@ router.post("/admin/holidays/save", protect, requirePermission("timetable.manage
   }
 });
 
+// 10. Admin: Save or Update Emergency Class Suspension / Holiday Override
+router.post("/admin/suspension/save", protect, requirePermission("timetable.manage", "timetable"), async (req, res) => {
+  try {
+    const { academicYear, date, title, category, description, affectedSections } = req.body;
+
+    if (!date || !title) {
+      return res.status(400).json({
+        success: false,
+        message: "Date and suspension title/reason are required.",
+      });
+    }
+
+    const year = academicYear || "2026-27";
+    let holidayDoc = await AcademicHoliday.findOne({ academicYear: year });
+    if (!holidayDoc) {
+      holidayDoc = new AcademicHoliday({
+        academicYear: year,
+        title: `CUTM Academic Session ${year} Holidays List`,
+        holidays: [],
+        uploadedBy: req.admin?.email || "Admin",
+      });
+    }
+
+    const d = new Date(date + "T00:00:00");
+    const dayName = isNaN(d.getTime())
+      ? "Day"
+      : ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][d.getDay()];
+
+    const cleanSections = Array.isArray(affectedSections) && affectedSections.length > 0
+      ? affectedSections.map((s) => String(s).trim().toUpperCase())
+      : ["ALL"];
+
+    const cleanCategory = String(category || "emergency").toLowerCase();
+
+    // Color/bg theme by category
+    let color = "#dc2626";
+    let bg = "#fef2f2";
+    if (cleanCategory.includes("cyclone") || cleanCategory.includes("weather")) {
+      color = "#ea580c";
+      bg = "#fff7ed";
+    } else if (cleanCategory.includes("protest")) {
+      color = "#b91c1c";
+      bg = "#fef2f2";
+    } else if (cleanCategory.includes("admin")) {
+      color = "#4338ca";
+      bg = "#eef2ff";
+    }
+
+    const suspensionItem = {
+      slNo: (holidayDoc.holidays?.length || 0) + 1,
+      title: String(title).trim(),
+      date: String(date).trim(),
+      day: dayName,
+      type: "suspension",
+      isOptional: false,
+      isObservation: false,
+      isSuspension: true,
+      category: cleanCategory,
+      affectedSections: cleanSections,
+      color,
+      bg,
+      description: String(description || `Classes suspended on ${date} as per administrative notice. Counted as non-instructional holiday.`).trim(),
+    };
+
+    // Update existing if date matches or append
+    const existingIdx = (holidayDoc.holidays || []).findIndex((h) => h.date === suspensionItem.date);
+    if (existingIdx !== -1) {
+      holidayDoc.holidays[existingIdx] = {
+        ...(holidayDoc.holidays[existingIdx]?.toObject?.() || holidayDoc.holidays[existingIdx]),
+        ...suspensionItem,
+      };
+    } else {
+      holidayDoc.holidays.push(suspensionItem);
+    }
+
+    holidayDoc.uploadedAt = new Date();
+    holidayDoc.uploadedBy = req.admin?.email || "Admin";
+    await holidayDoc.save();
+
+    try {
+      const { publishAdminRealtimeEvent, broadcastRealtimeEvent } = require("../utils/ablyService");
+      await Promise.allSettled([
+        publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+        broadcastRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+        publishAdminRealtimeEvent("admin-cache-invalidate", { scope: "attendance", timestamp: Date.now() }),
+      ]);
+    } catch (e) {
+      console.warn("[Ably] Timetable suspension update publish warning:", e?.message || e);
+    }
+
+    res.json({
+      success: true,
+      message: `Class suspension for ${date} published successfully. All selected sections will treat this date as a holiday.`,
+      suspension: suspensionItem,
+      holidayDoc,
+    });
+  } catch (err) {
+    console.error("Admin save suspension error:", err);
+    res.status(500).json({ success: false, message: err.message || "Failed to save class suspension." });
+  }
+});
+
+// 11. Admin: Delete Class Suspension / Holiday Override
+router.post("/admin/suspension/delete", protect, requirePermission("timetable.manage", "timetable"), async (req, res) => {
+  try {
+    const { academicYear, date } = req.body;
+    if (!date) {
+      return res.status(400).json({ success: false, message: "Date is required to delete suspension." });
+    }
+
+    const year = academicYear || "2026-27";
+    const holidayDoc = await AcademicHoliday.findOne({ academicYear: year });
+    if (!holidayDoc) {
+      return res.status(404).json({ success: false, message: "Holidays record not found." });
+    }
+
+    const initialLen = holidayDoc.holidays.length;
+    holidayDoc.holidays = holidayDoc.holidays.filter((h) => h.date !== date || (!h.isSuspension && h.type !== "suspension"));
+
+    if (holidayDoc.holidays.length === initialLen) {
+      return res.status(404).json({ success: false, message: "No suspension found for specified date." });
+    }
+
+    holidayDoc.uploadedAt = new Date();
+    holidayDoc.uploadedBy = req.admin?.email || "Admin";
+    await holidayDoc.save();
+
+    try {
+      const { publishAdminRealtimeEvent, broadcastRealtimeEvent } = require("../utils/ablyService");
+      await Promise.allSettled([
+        publishAdminRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+        broadcastRealtimeEvent("timetable-updated", { timestamp: Date.now() }),
+        publishAdminRealtimeEvent("admin-cache-invalidate", { scope: "attendance", timestamp: Date.now() }),
+      ]);
+    } catch (e) {
+      console.warn("[Ably] Timetable suspension delete publish warning:", e?.message || e);
+    }
+
+    res.json({
+      success: true,
+      message: `Suspension on ${date} removed successfully. Regular classes restored.`,
+    });
+  } catch (err) {
+    console.error("Admin delete suspension error:", err);
+    res.status(500).json({ success: false, message: err.message || "Failed to delete suspension." });
+  }
+});
+
+// 12. Admin: List All Suspensions
+router.get("/admin/suspension/list", protect, requirePermission("timetable.manage", "timetable"), async (req, res) => {
+  try {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    const { academicYear } = req.query;
+    const year = academicYear || "2026-27";
+    const holidayDoc = await AcademicHoliday.findOne({ academicYear: year });
+    const suspensions = (holidayDoc?.holidays || []).filter(
+      (h) => h.isSuspension || h.type === "suspension"
+    );
+    res.json({
+      success: true,
+      count: suspensions.length,
+      suspensions,
+    });
+  } catch (err) {
+    console.error("Admin list suspension error:", err);
+    res.status(500).json({ success: false, message: "Failed to list suspensions." });
+  }
+});
+
 module.exports = router;

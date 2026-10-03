@@ -171,6 +171,18 @@
       "destination": "/api/timetable.js?action=admin-holidays-save"
     },
     {
+      "source": "/api/timetable/admin/suspension/save",
+      "destination": "/api/timetable.js?action=admin-suspension-save"
+    },
+    {
+      "source": "/api/timetable/admin/suspension/delete",
+      "destination": "/api/timetable.js?action=admin-suspension-delete"
+    },
+    {
+      "source": "/api/timetable/admin/suspension/list",
+      "destination": "/api/timetable.js?action=admin-suspension-list"
+    },
+    {
       "source": "/api/admin/student-otp-management/reset-admin-otp",
       "destination": "/api/student-otp-management.js?action=reset-admin-otp"
     },

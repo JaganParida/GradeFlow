@@ -1677,7 +1677,7 @@ export default function Timetable() {
                     boxShadow: "none",
                   }}
                 >
-                  <Sun size={24} />
+                  {holidayInfo?.isSuspension ? <AlertTriangle size={24} color={holidayInfo.color || "#dc2626"} /> : <Sun size={24} />}
                 </div>
                 <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>
                   {holidayInfo.title}
@@ -1700,7 +1700,11 @@ export default function Timetable() {
                   }}
                 >
                   <CalendarIcon size={13} />
-                  <span>No instructional classes on {selectedDate.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}</span>
+                  <span>
+                    {holidayInfo?.isSuspension
+                      ? `Classes Officially Suspended · ${selectedDate.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}`
+                      : `No instructional classes on ${selectedDate.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}`}
+                  </span>
                 </div>
               </motion.div>
             ) : (academicDateStatus?.isOutsideSession || academicDateStatus?.classesSuspended) ? (

@@ -2,17 +2,20 @@ const mongoose = require("mongoose");
 
 const holidayItemSchema = new mongoose.Schema(
   {
-    slNo: { type: Number, required: true },
+    slNo: { type: Number, required: false },
     title: { type: String, required: true },
-    date: { type: String, required: true }, // e.g. "01.01.2027" or "2026-08-15"
-    day: { type: String, required: true }, // e.g. "Friday"
+    date: { type: String, required: true }, // e.g. "01.01.2027" or "2026-10-05"
+    day: { type: String, required: false }, // e.g. "Friday"
     type: {
       type: String,
-      enum: ["holiday", "observation", "optional", "break", "other"],
+      enum: ["holiday", "observation", "optional", "break", "suspension", "other"],
       default: "holiday",
     },
     isOptional: { type: Boolean, default: false },
     isObservation: { type: Boolean, default: false },
+    isSuspension: { type: Boolean, default: false },
+    category: { type: String, default: "general" },
+    affectedSections: [{ type: String }],
     description: { type: String, default: "" },
   },
   { _id: false }

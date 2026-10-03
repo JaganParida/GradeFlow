@@ -11,6 +11,7 @@ import {
   Trash2,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Download,
   Eye,
   Layers,
@@ -169,12 +170,32 @@ export default function TimetableAdminManager({ authHeaders, API }) {
   const [holidayFileName, setHolidayFileName] = useState("");
   const holidayFileRef = useRef(null);
 
+  // ── Emergency Suspensions & Holiday Overrides State ──
+  const [suspensionDate, setSuspensionDate] = useState(() => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  });
+  const [suspensionCategory, setSuspensionCategory] = useState("cyclone"); // "cyclone" | "protest" | "weather" | "emergency" | "administrative"
+  const [suspensionTitle, setSuspensionTitle] = useState("Classes Suspended (Cyclone Alert)");
+  const [suspensionDesc, setSuspensionDesc] = useState(
+    "Classes suspended due to cyclone/heavy rainfall alert. Counted as an official holiday for all sections, zero attendance deducted."
+  );
+  const [suspensionScope, setSuspensionScope] = useState("ALL");
+  const [suspensionsList, setSuspensionsList] = useState([]);
+  const [isLoadingSuspensions, setIsLoadingSuspensions] = useState(false);
+  const [isSavingSuspension, setIsSavingSuspension] = useState(false);
+  const [deletingDate, setDeletingDate] = useState(null);
+
   // ═════════════════════════════════════════════════════════════════
   // INITIAL DATA FETCH & SECTION SCHEDULE SYNC
   // ═════════════════════════════════════════════════════════════════
 
   useEffect(() => {
     fetchPublishedSchedules();
+    fetchSuspensions();
   }, []);
 
   useEffect(() => {
@@ -947,6 +968,89 @@ export default function TimetableAdminManager({ authHeaders, API }) {
     }
   }
 
+  // ── EMERGENCY SUSPENSIONS & HOLIDAY OVERRIDE HANDLERS ──
+  async function fetchSuspensions() {
+    setIsLoadingSuspensions(true);
+    try {
+      const { data } = await axios.get(`${API}/timetable/admin/suspension/list?academicYear=2026-27&_t=${Date.now()}`, authHeaders);
+      if (data && data.success) {
+        setSuspensionsList(data.suspensions || []);
+      }
+    } catch (e) {
+      console.warn("Failed to fetch suspensions:", e.message);
+    } finally {
+      setIsLoadingSuspensions(false);
+    }
+  }
+
+  function handleSuspensionCategorySelect(cat) {
+    setSuspensionCategory(cat);
+    if (cat === "cyclone") {
+      setSuspensionTitle("Classes Suspended (Cyclone Alert)");
+      setSuspensionDesc("Classes suspended due to cyclone/heavy rainfall alert. Counted as an official holiday for all sections, zero attendance deducted.");
+    } else if (cat === "protest") {
+      setSuspensionTitle("Classes Suspended (Campus Agitation / Protest)");
+      setSuspensionDesc("Classes suspended due to unavoidable student agitation/protest. Treated as a non-instructional holiday for all sections.");
+    } else if (cat === "emergency") {
+      setSuspensionTitle("Emergency University Holiday");
+      setSuspensionDesc("University closed on account of emergency holiday by executive order. No academic classes conducted.");
+    } else if (cat === "administrative") {
+      setSuspensionTitle("Administrative Non-Instructional Day");
+      setSuspensionDesc("Regular class routine suspended for institutional/administrative activities. No attendance counted.");
+    }
+  }
+
+  async function handleSaveSuspension() {
+    if (!suspensionDate || !suspensionTitle.trim()) {
+      setStatusMsg({ text: "Please provide both date and suspension reason.", type: "error" });
+      return;
+    }
+    setIsSavingSuspension(true);
+    try {
+      const payload = {
+        academicYear: "2026-27",
+        date: suspensionDate,
+        title: suspensionTitle.trim(),
+        category: suspensionCategory,
+        description: suspensionDesc.trim(),
+        affectedSections: suspensionScope === "ALL" ? ["ALL"] : [suspensionScope],
+      };
+
+      const { data } = await axios.post(`${API}/timetable/admin/suspension/save`, payload, authHeaders);
+      if (data.success) {
+        setStatusMsg({
+          text: `Class suspension on ${suspensionDate} published successfully! All sections will treat this date as a holiday.`,
+          type: "success",
+        });
+        clearCachedTimetableBundle();
+        invalidateAdminCache(AdminCacheScopes.ATTENDANCE);
+        await fetchSuspensions();
+      }
+    } catch (e) {
+      setStatusMsg({ text: e.response?.data?.message || "Failed to publish class suspension.", type: "error" });
+    } finally {
+      setIsSavingSuspension(false);
+    }
+  }
+
+  async function handleDeleteSuspension(date) {
+    if (!window.confirm(`Are you sure you want to remove the suspension for ${date}? Regular timetable classes will be restored.`)) return;
+    setDeletingDate(date);
+    try {
+      const { data } = await axios.post(`${API}/timetable/admin/suspension/delete`, { academicYear: "2026-27", date }, authHeaders);
+      if (data.success) {
+        setStatusMsg({ text: `Suspension for ${date} removed successfully. Regular classes restored.`, type: "success" });
+        clearCachedTimetableBundle();
+        invalidateAdminCache(AdminCacheScopes.ATTENDANCE);
+        await fetchSuspensions();
+      }
+    } catch (e) {
+      setStatusMsg({ text: e.response?.data?.message || "Failed to remove suspension.", type: "error" });
+    } finally {
+      setDeletingDate(null);
+    }
+  }
+
   // ═════════════════════════════════════════════════════════════════
   // RENDER UI
   // ═════════════════════════════════════════════════════════════════
@@ -1062,6 +1166,32 @@ export default function TimetableAdminManager({ authHeaders, API }) {
         >
           <Sun size={15} />
           <span>Academic Holidays</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setActiveSubTab("suspensions");
+            fetchSuspensions();
+          }}
+          style={{
+            padding: "8px 16px",
+            borderRadius: 10,
+            border: "none",
+            background: activeSubTab === "suspensions" ? "#0f172a" : "transparent",
+            color: activeSubTab === "suspensions" ? "#ffffff" : "#475569",
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 7,
+            whiteSpace: "nowrap",
+            transition: "all 0.15s ease",
+          }}
+        >
+          <AlertCircle size={15} color={activeSubTab === "suspensions" ? "#f87171" : "#ef4444"} />
+          <span>Class Suspensions & Offs {suspensionsList.length > 0 && `(${suspensionsList.length})`}</span>
         </button>
 
         <button
@@ -2526,6 +2656,442 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+          SUB-TAB 6: EMERGENCY CLASS SUSPENSIONS & HOLIDAY OVERRIDES
+      ═════════════════════════════════════════════════════════════ */}
+      {activeSubTab === "suspensions" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          {/* Header Context Banner */}
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
+              padding: "20px 24px",
+              boxShadow: "none",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: "#fee2e2",
+                  color: "#dc2626",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <AlertTriangle size={22} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                  Emergency Class Suspensions &amp; Holiday Overrides
+                </h3>
+                <p style={{ fontSize: 12.5, color: "#64748b", margin: "4px 0 0 0", lineHeight: 1.5, maxWidth: 840 }}>
+                  Declare emergency college closures for unexpected events such as <strong>Cyclones, Heavy Rainfall Alerts, Student Protests, District Orders, or Emergency Holidays</strong>. 
+                  When published, all selected sections will pause scheduled timetable classes on that date, display an official suspension notice on student screens, and treat the day as an <strong>Official Holiday</strong> (zero conducted classes, zero attendance deduction).
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* New Suspension Declaration Form Card */}
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
+              padding: "20px 24px",
+              boxShadow: "none",
+            }}
+          >
+            <div style={{ marginBottom: 16 }}>
+              <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                <Plus size={16} color="#dc2626" />
+                Declare New Suspension / Emergency Holiday
+              </h4>
+              <p style={{ fontSize: 12, color: "#64748b", margin: "3px 0 0 0" }}>
+                Select a preset category or customize date, scope, and administrative notice details.
+              </p>
+            </div>
+
+            {/* Quick Category Presets */}
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ display: "block", fontSize: 11.5, fontWeight: 800, color: "#475569", marginBottom: 6 }}>
+                QUICK REASON CATEGORY
+              </label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {[
+                  { id: "cyclone", label: "Cyclone / Weather Red Alert", color: "#ea580c", bg: "#fff7ed", border: "#fed7aa" },
+                  { id: "protest", label: "Student Protest / Agitation", color: "#b91c1c", bg: "#fef2f2", border: "#fecaca" },
+                  { id: "emergency", label: "Emergency University Holiday", color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" },
+                  { id: "administrative", label: "Administrative Non-Instructional", color: "#4338ca", bg: "#eef2ff", border: "#c7d2fe" },
+                ].map((cat) => {
+                  const isSelected = suspensionCategory === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => handleSuspensionCategorySelect(cat.id)}
+                      style={{
+                        padding: "7px 14px",
+                        borderRadius: 8,
+                        border: `1px solid ${isSelected ? cat.color : cat.border}`,
+                        background: isSelected ? cat.bg : "#ffffff",
+                        color: isSelected ? cat.color : "#475569",
+                        fontSize: 12,
+                        fontWeight: isSelected ? 800 : 600,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {isSelected && <Check size={13} color={cat.color} />}
+                      <span>{cat.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Form Fields Grid */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)",
+                gap: 14,
+                marginBottom: 14,
+              }}
+            >
+              <div>
+                <label style={{ display: "block", fontSize: 11.5, fontWeight: 800, color: "#475569", marginBottom: 4 }}>
+                  DATE OF SUSPENSION / OFF
+                </label>
+                <input
+                  type="date"
+                  value={suspensionDate}
+                  onChange={(e) => setSuspensionDate(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "9px 12px",
+                    borderRadius: 8,
+                    border: "1px solid #cbd5e1",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#0f172a",
+                    background: "#f8fafc",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: 11.5, fontWeight: 800, color: "#475569", marginBottom: 4 }}>
+                  AFFECTED SECTION SCOPE
+                </label>
+                <select
+                  value={suspensionScope}
+                  onChange={(e) => setSuspensionScope(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "9px 12px",
+                    borderRadius: 8,
+                    border: "1px solid #cbd5e1",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#0f172a",
+                    background: "#f8fafc",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <option value="ALL">All Sections (CSE-A to CSE-J)</option>
+                  {ALL_SECTIONS.map((sec) => (
+                    <option key={sec} value={sec}>
+                      Section {sec} Only
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ gridColumn: isMobile ? "span 1" : "span 2" }}>
+                <label style={{ display: "block", fontSize: 11.5, fontWeight: 800, color: "#475569", marginBottom: 4 }}>
+                  SUSPENSION TITLE / REASON HEADING
+                </label>
+                <input
+                  type="text"
+                  value={suspensionTitle}
+                  onChange={(e) => setSuspensionTitle(e.target.value)}
+                  placeholder="e.g. Classes Suspended (Cyclone Dana Alert)"
+                  style={{
+                    width: "100%",
+                    padding: "9px 12px",
+                    borderRadius: 8,
+                    border: "1px solid #cbd5e1",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#0f172a",
+                    background: "#f8fafc",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              <div style={{ gridColumn: isMobile ? "span 1" : "span 2" }}>
+                <label style={{ display: "block", fontSize: 11.5, fontWeight: 800, color: "#475569", marginBottom: 4 }}>
+                  OFFICIAL NOTICE DETAILS &amp; EXPLANATION
+                </label>
+                <textarea
+                  rows={3}
+                  value={suspensionDesc}
+                  onChange={(e) => setSuspensionDesc(e.target.value)}
+                  placeholder="e.g. In view of the weather advisory issued by the administration, all academic classes remain suspended. This day is counted as an official holiday and zero attendance is deducted."
+                  style={{
+                    width: "100%",
+                    padding: "9px 12px",
+                    borderRadius: 8,
+                    border: "1px solid #cbd5e1",
+                    fontSize: 12.5,
+                    color: "#0f172a",
+                    background: "#f8fafc",
+                    outline: "none",
+                    resize: "vertical",
+                    boxSizing: "border-box",
+                    lineHeight: 1.4,
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Action Bar */}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button
+                type="button"
+                onClick={handleSaveSuspension}
+                disabled={isSavingSuspension || !suspensionDate || !suspensionTitle.trim()}
+                style={{
+                  padding: "9px 20px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: "#dc2626",
+                  color: "#ffffff",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: isSavingSuspension ? "not-allowed" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 7,
+                  opacity: isSavingSuspension || !suspensionDate || !suspensionTitle.trim() ? 0.6 : 1,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {isSavingSuspension ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>Publishing Suspension...</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle size={15} />
+                    <span>Publish Class Suspension Override</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Active Suspensions List Card */}
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
+              padding: "20px 24px",
+              boxShadow: "none",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div>
+                <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                  <AlertCircle size={16} color="#dc2626" />
+                  Active Emergency Suspensions &amp; Overrides ({suspensionsList.length})
+                </h4>
+                <p style={{ fontSize: 12, color: "#64748b", margin: "3px 0 0 0" }}>
+                  All dates currently flagged as non-instructional suspensions in the database.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={fetchSuspensions}
+                disabled={isLoadingSuspensions}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 8,
+                  border: "1px solid #cbd5e1",
+                  background: "#f8fafc",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "#475569",
+                  cursor: isLoadingSuspensions ? "not-allowed" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                <RefreshCw size={12} className={isLoadingSuspensions ? "animate-spin" : ""} />
+                <span>Refresh</span>
+              </button>
+            </div>
+
+            {isLoadingSuspensions ? (
+              <div style={{ textAlign: "center", padding: "30px", color: "#64748b", fontSize: 13 }}>
+                Loading active suspensions from cloud...
+              </div>
+            ) : suspensionsList.length === 0 ? (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "36px 20px",
+                  background: "#f8fafc",
+                  border: "1px dashed #cbd5e1",
+                  borderRadius: 12,
+                  color: "#64748b",
+                }}
+              >
+                <Sun size={28} color="#94a3b8" style={{ margin: "0 auto 8px auto", display: "block" }} />
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", margin: 0 }}>
+                  No active emergency class suspensions.
+                </p>
+                <p style={{ fontSize: 12.5, margin: "4px 0 0 0" }}>
+                  All sections are currently following their regular published weekly timetable schedule.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(340px, 1fr))", gap: 14 }}>
+                {suspensionsList.map((susp, idx) => {
+                  const isDeleting = deletingDate === susp.date;
+                  const isCyclone = String(susp.category || "").includes("cyclone") || String(susp.category || "").includes("weather");
+                  const isProtest = String(susp.category || "").includes("protest");
+                  const badgeColor = isCyclone ? "#ea580c" : isProtest ? "#b91c1c" : "#2563eb";
+                  const badgeBg = isCyclone ? "#fff7ed" : isProtest ? "#fef2f2" : "#eff6ff";
+
+                  return (
+                    <div
+                      key={susp.date || idx}
+                      style={{
+                        background: "#ffffff",
+                        border: "1px solid #fee2e2",
+                        borderRadius: 12,
+                        padding: "16px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 10,
+                        position: "relative",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 900,
+                              background: badgeBg,
+                              color: badgeColor,
+                              padding: "2px 8px",
+                              borderRadius: 6,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.03em",
+                            }}
+                          >
+                            {susp.category || "SUSPENSION"}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 800,
+                              background: "#f1f5f9",
+                              color: "#475569",
+                              padding: "2px 7px",
+                              borderRadius: 5,
+                            }}
+                          >
+                            Scope: {Array.isArray(susp.affectedSections) ? susp.affectedSections.join(", ") : "ALL"}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSuspension(susp.date)}
+                          disabled={isDeleting}
+                          title="Remove Suspension and Restore Classes"
+                          style={{
+                            padding: "5px 8px",
+                            borderRadius: 6,
+                            border: "1px solid #fecaca",
+                            background: "#fff5f5",
+                            color: "#dc2626",
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            cursor: isDeleting ? "not-allowed" : "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <Trash2 size={12} />
+                          <span>{isDeleting ? "Removing..." : "Remove"}</span>
+                        </button>
+                      </div>
+
+                      <div>
+                        <h5 style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                          {susp.title}
+                        </h5>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#dc2626", marginTop: 2 }}>
+                          Date: {susp.date} ({susp.day || "Suspended Day"})
+                        </div>
+                      </div>
+
+                      {susp.description && (
+                        <p style={{ fontSize: 12, color: "#64748b", margin: 0, lineHeight: 1.4 }}>
+                          {susp.description}
+                        </p>
+                      )}
+
+                      <div
+                        style={{
+                          marginTop: "auto",
+                          paddingTop: 8,
+                          borderTop: "1px solid #f1f5f9",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: "#16a34a",
+                        }}
+                      >
+                        <CheckCircle2 size={12} />
+                        <span>Counts as Official Holiday · 0 Classes Held</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

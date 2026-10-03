@@ -4366,24 +4366,28 @@ export default function AttendanceTracker() {
                     const totalLogged = presentCount + absentCount;
 
                     if (isSelectedSunday || isSelectedHoliday || isSelectedExam || selectedDayClasses.length === 0) {
-                      const label = isSelectedSunday
+                      const isSuspension = Boolean(selectedHolidayInfo?.isSuspension || selectedDateScheduleCtx?.isSuspension);
+                      const label = isSuspension
+                        ? `Classes Suspended · ${selectedHolidayInfo?.title || "Notice"}`
+                        : isSelectedSunday
                         ? "Weekend · No Classes"
                         : isSelectedHoliday
                         ? `Holiday · ${selectedHolidayInfo?.title || "No Classes"}`
                         : isSelectedExam
                         ? `Exams · Classes Suspended`
                         : "No Classes";
-                      const isGold = isSelectedSunday || isSelectedHoliday;
-                      const isBlue = isSelectedExam;
+                      const isRed = isSuspension;
+                      const isGold = !isRed && (isSelectedSunday || isSelectedHoliday);
+                      const isBlue = !isRed && isSelectedExam;
 
                       return (
                         <span
                           style={{
                             fontSize: 11.5,
                             fontWeight: 700,
-                            color: isGold ? "#92400e" : isBlue ? "#1e40af" : "#475569",
-                            background: isGold ? "#fef3c7" : isBlue ? "#eff6ff" : "#f1f5f9",
-                            border: `1px solid ${isGold ? "#fde68a" : isBlue ? "#bfdbfe" : "#e2e8f0"}`,
+                            color: isRed ? "#b91c1c" : isGold ? "#92400e" : isBlue ? "#1e40af" : "#475569",
+                            background: isRed ? "#fef2f2" : isGold ? "#fef3c7" : isBlue ? "#eff6ff" : "#f1f5f9",
+                            border: `1px solid ${isRed ? "#fecaca" : isGold ? "#fde68a" : isBlue ? "#bfdbfe" : "#e2e8f0"}`,
                             padding: "4px 10px",
                             borderRadius: 8,
                           }}
@@ -4738,7 +4742,9 @@ export default function AttendanceTracker() {
                           width: 44,
                           height: 44,
                           borderRadius: "50%",
-                          background: isSelectedSunday || isSelectedHoliday
+                          background: selectedHolidayInfo?.isSuspension
+                            ? "#fee2e2"
+                            : isSelectedSunday || isSelectedHoliday
                             ? "#fef3c7"
                             : isSelectedExam
                             ? "#dbeafe"
@@ -4749,7 +4755,9 @@ export default function AttendanceTracker() {
                           marginBottom: 2,
                         }}
                       >
-                        {isSelectedSunday ? (
+                        {selectedHolidayInfo?.isSuspension ? (
+                          <AlertTriangle size={20} color="#dc2626" />
+                        ) : isSelectedSunday ? (
                           <CalendarIcon size={20} color="#d97706" />
                         ) : isSelectedHoliday ? (
                           <Sun size={20} color="#d97706" />
@@ -4761,7 +4769,9 @@ export default function AttendanceTracker() {
                       </div>
 
                       <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
-                        {isSelectedSunday
+                        {selectedHolidayInfo?.isSuspension
+                          ? `Classes Suspended · ${selectedHolidayInfo?.title || "Notice"}`
+                          : isSelectedSunday
                           ? "Sunday Weekend Holiday"
                           : isSelectedHoliday
                           ? `Official Holiday · ${selectedHolidayInfo?.title || "University Holiday"}`
@@ -4773,7 +4783,9 @@ export default function AttendanceTracker() {
                       </div>
 
                       <div style={{ fontSize: 12.5, fontWeight: 500, maxWidth: 520, lineHeight: 1.5, color: "#64748b" }}>
-                        {isSelectedSunday
+                        {selectedHolidayInfo?.isSuspension
+                          ? (selectedHolidayInfo.description || `Classes for Section ${selectedSection} are suspended on this date as per administrative order. This day is counted as a non-instructional holiday, not an academic class day.`)
+                          : isSelectedSunday
                           ? `No academic classes are scheduled on Sundays for Section ${selectedSection}.`
                           : isSelectedHoliday
                           ? `Today is recognized as an official holiday (${selectedHolidayInfo?.title || "Holiday"}). No classes are conducted for Section ${selectedSection}.`

@@ -554,32 +554,71 @@ export function isSecondSaturday(dateObj) {
 /**
  * Get comprehensive Holiday / Weekend information for any date
  */
-export function getHolidayInfo(dateObj) {
+export function getHolidayInfo(dateObj, section = null) {
   const d = new Date(dateObj);
   const dateKey = formatDateKey(d);
 
   // 1. Check Official Academic Calendar Holidays (Dynamic prioritized)
   const activeHolidays = getAcademicHolidaysData();
-  const matchedHoliday = activeHolidays.find((h) => h.date === dateKey);
+  const matchedHoliday = activeHolidays.find((h) => {
+    if (!h) return false;
+    if (h.date === dateKey) return true;
+    if (typeof h.date === "string" && h.date.includes(".")) {
+      const parts = h.date.split(".");
+      if (parts.length === 3) {
+        const iso = `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+        if (iso === dateKey) return true;
+      }
+    }
+    return false;
+  });
+
   if (matchedHoliday) {
-    const isOptional = matchedHoliday.type === "optional";
-    const isObservation = matchedHoliday.type === "observation";
-    // Optional holidays are instructional working days (isHoliday = false); official academic and observation holidays are non-instructional (isHoliday = true)
+    // If section filter is specified, check if this section is affected
+    if (section && Array.isArray(matchedHoliday.affectedSections) && matchedHoliday.affectedSections.length > 0) {
+      const normSec = normalizeSection(section);
+      const bareSec = normSec.replace(/^CSE-?/i, "");
+      const isAffected =
+        matchedHoliday.affectedSections.includes("ALL") ||
+        matchedHoliday.affectedSections.includes(normSec) ||
+        matchedHoliday.affectedSections.includes(bareSec);
+      if (!isAffected) {
+        return null;
+      }
+    }
+
+    const isOptional = matchedHoliday.type === "optional" || Boolean(matchedHoliday.isOptional);
+    const isObservation = matchedHoliday.type === "observation" || Boolean(matchedHoliday.isObservation);
+    const isSuspension = matchedHoliday.type === "suspension" || Boolean(matchedHoliday.isSuspension);
+    // Optional holidays are instructional working days (isHoliday = false); official academic, observation, and suspensions are non-instructional (isHoliday = true)
     const isFullHoliday = !isOptional;
+
+    const displayTitle = matchedHoliday.title || matchedHoliday.name || (isSuspension ? "Classes Suspended" : "University Holiday");
+    let displayDesc = matchedHoliday.description || "";
+    if (!displayDesc) {
+      if (isSuspension) {
+        displayDesc = `Classes are suspended on this date as per administrative order (${displayTitle}). Counted as a holiday, not an academic class day.`;
+      } else if (isOptional) {
+        displayDesc = `Optional University Holiday: ${displayTitle}. University remains open and classes are conducted as scheduled. Students & faculty are permitted to avail any 2 optional leaves per academic year.`;
+      } else if (isObservation) {
+        displayDesc = `Official University Observation Day: ${displayTitle}. Commemorative events held; regular semester lectures are suspended.`;
+      } else {
+        displayDesc = `Official University Academic Holiday: ${displayTitle}. University is closed.`;
+      }
+    }
 
     return {
       isHoliday: isFullHoliday,
       isOptional,
       isObservation,
-      title: matchedHoliday.name,
-      type: matchedHoliday.type,
-      color: matchedHoliday.color,
-      bg: matchedHoliday.bg,
-      description: isOptional
-        ? `Optional University Holiday: ${matchedHoliday.name}. University remains open and classes are conducted as scheduled. Students & faculty are permitted to avail any 2 optional leaves per academic year.`
-        : isObservation
-        ? `Official University Observation Day: ${matchedHoliday.name}. Commemorative events held; regular semester lectures are suspended.`
-        : `Official University Academic Holiday: ${matchedHoliday.name}. University is closed.`,
+      isSuspension,
+      category: matchedHoliday.category || (isSuspension ? "emergency" : "holiday"),
+      title: displayTitle,
+      type: matchedHoliday.type || (isSuspension ? "suspension" : "holiday"),
+      color: matchedHoliday.color || (isSuspension ? "#dc2626" : "#dc2626"),
+      bg: matchedHoliday.bg || (isSuspension ? "#fef2f2" : "#fef2f2"),
+      affectedSections: matchedHoliday.affectedSections || ["ALL"],
+      description: displayDesc,
     };
   }
 
@@ -837,7 +876,7 @@ export const CUTM_SESSION_BOUNDARIES = {
  * - Checks Optional Holidays (OPEN, instructional classes ARE conducted)
  * - Returns unified status, user-friendly labels, and working status
  */
-export function getDateInstructionalContext(dateObj = new Date()) {
+export function getDateInstructionalContext(dateObj = new Date(), section = null) {
   const d = new Date(dateObj);
   d.setHours(0, 0, 0, 0);
   const dateKey = formatDateKey(d);
@@ -845,10 +884,10 @@ export function getDateInstructionalContext(dateObj = new Date()) {
   const isSun = isSunday(d);
   const is2ndSat = isSecondSaturday(d);
 
-  // 1. Check Holiday Information
-  const holidayInfo = getHolidayInfo(d);
+  // 1. Check Holiday Information (Section-aware)
+  const holidayInfo = getHolidayInfo(d, section);
   const isOptionalHoliday = Boolean(holidayInfo?.isOptional);
-  const isOfficialHoliday = Boolean(holidayInfo?.isHoliday); // true for gazetted holidays, observation days, sundays, 2nd saturdays; false for optional holidays!
+  const isOfficialHoliday = Boolean(holidayInfo?.isHoliday); // true for gazetted holidays, observation days, sundays, 2nd saturdays, suspensions; false for optional holidays!
 
   // 2. Check Academic Calendar Status (Session boundaries, exam suspensions)
   const calendarStatus = getAcademicCalendarDateStatus(d);
@@ -873,7 +912,11 @@ export function getDateInstructionalContext(dateObj = new Date()) {
     description = "2nd Saturday is an official university non-instructional holiday.";
   } else if (isOfficialHoliday) {
     isInstructional = false;
-    statusType = holidayInfo?.isObservation ? "OBSERVATION" : "OFFICIAL_HOLIDAY";
+    statusType = holidayInfo?.isSuspension
+      ? "CLASS_SUSPENSION"
+      : holidayInfo?.isObservation
+      ? "OBSERVATION"
+      : "OFFICIAL_HOLIDAY";
     title = holidayInfo?.title || "University Holiday";
     description = holidayInfo?.description || "University is closed for official holiday.";
   } else if (isExam) {
@@ -906,6 +949,8 @@ export function getDateInstructionalContext(dateObj = new Date()) {
     isSunday: isSun,
     isSecondSaturday: is2ndSat,
     isOfficialHoliday,
+    isSuspension: Boolean(holidayInfo?.isSuspension),
+    suspensionCategory: holidayInfo?.category || null,
     isOptionalHoliday,
     optionalHolidayTitle: isOptionalHoliday ? holidayInfo?.title : null,
     holidayInfo,
@@ -923,7 +968,7 @@ export function getDateInstructionalContext(dateObj = new Date()) {
  */
 export function getSectionScheduleForDate(section = "CSE-A", dateObj = new Date(), customScheduleObj = null) {
   const normSec = normalizeSection(section);
-  const context = getDateInstructionalContext(dateObj);
+  const context = getDateInstructionalContext(dateObj, normSec);
 
   if (!context.isInstructional) {
     return {
