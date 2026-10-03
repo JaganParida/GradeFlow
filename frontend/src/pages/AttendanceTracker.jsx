@@ -4314,7 +4314,9 @@ export default function AttendanceTracker() {
                       {isSelectedSunday
                         ? "Sunday is a scheduled weekend holiday. No academic attendance is recorded."
                         : isSelectedHoliday
-                        ? `Official Holiday: ${selectedHolidayInfo?.title || "University Holiday"}. Regular classes are not scheduled.`
+                        ? (selectedHolidayInfo?.isSuspension
+                            ? `Classes Suspended: ${selectedHolidayInfo?.title ? selectedHolidayInfo.title.replace(/^classes\s+suspended\s*[·:\-–—]?\s*/i, "").replace(/^\((.+)\)$/, "$1").trim() : "Administrative Order"}. Regular classes are not scheduled.`
+                            : `Official Holiday: ${selectedHolidayInfo?.title || "University Holiday"}. Regular classes are not scheduled.`)
                         : isSelectedExam
                         ? `Examination Suspension: ${selectedCalendarStatus?.title || "Regular classes suspended for exams"}.`
                         : isSelectedOutsideSession
@@ -4367,12 +4369,15 @@ export default function AttendanceTracker() {
 
                     if (isSelectedSunday || isSelectedHoliday || isSelectedExam || selectedDayClasses.length === 0) {
                       const isSuspension = Boolean(selectedHolidayInfo?.isSuspension || selectedDateScheduleCtx?.isSuspension);
+                      const suspensionDetail = selectedHolidayInfo?.title
+                        ? selectedHolidayInfo.title.replace(/^classes\s+suspended\s*[·:\-–—]?\s*/i, "").replace(/^\((.+)\)$/, "$1").trim()
+                        : "";
                       const label = isSuspension
-                        ? `Classes Suspended · ${selectedHolidayInfo?.title || "Notice"}`
+                        ? (suspensionDetail ? `Classes Suspended · ${suspensionDetail}` : "Classes Suspended")
                         : isSelectedSunday
                         ? "Weekend · No Classes"
                         : isSelectedHoliday
-                        ? `Holiday · ${selectedHolidayInfo?.title || "No Classes"}`
+                        ? (selectedHolidayInfo?.title ? (selectedHolidayInfo.title.toLowerCase().startsWith("holiday") ? selectedHolidayInfo.title : `Holiday · ${selectedHolidayInfo.title}`) : "Holiday · No Classes")
                         : isSelectedExam
                         ? `Exams · Classes Suspended`
                         : "No Classes";
@@ -4770,7 +4775,12 @@ export default function AttendanceTracker() {
 
                       <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
                         {selectedHolidayInfo?.isSuspension
-                          ? `Classes Suspended · ${selectedHolidayInfo?.title || "Notice"}`
+                          ? (() => {
+                              const detail = selectedHolidayInfo?.title
+                                ? selectedHolidayInfo.title.replace(/^classes\s+suspended\s*[·:\-–—]?\s*/i, "").replace(/^\((.+)\)$/, "$1").trim()
+                                : "";
+                              return detail ? `Classes Suspended · ${detail}` : "Classes Suspended";
+                            })()
                           : isSelectedSunday
                           ? "Sunday Weekend Holiday"
                           : isSelectedHoliday
