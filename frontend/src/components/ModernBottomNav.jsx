@@ -271,7 +271,7 @@ export default function ModernBottomNav() {
           borderTop: "1px solid #e2e8f0",
           boxShadow: "none",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
-          height: "calc(58px + env(safe-area-inset-bottom, 0px))",
+          height: "calc(62px + env(safe-area-inset-bottom, 0px))",
           alignItems: "stretch",
           justifyContent: "space-around",
           boxSizing: "border-box",
@@ -284,7 +284,7 @@ export default function ModernBottomNav() {
           style={{
             display: "flex",
             width: "100%",
-            height: "58px",
+            height: "62px",
             alignItems: "center",
             justifyContent: "space-between",
             padding: "0 4px",
@@ -298,7 +298,7 @@ export default function ModernBottomNav() {
               <motion.button
                 key={item.id}
                 type="button"
-                whileTap={{ scale: 0.88 }}
+                whileTap={{ scale: 0.92 }}
                 onClick={item.onClick}
                 aria-label={item.label}
                 aria-current={active ? "page" : undefined}
@@ -315,64 +315,67 @@ export default function ModernBottomNav() {
                   border: "none",
                   padding: "4px 1px",
                   cursor: "pointer",
-                  color: active ? "#2563eb" : "#64748b",
+                  color: active ? "#1d4ed8" : "#64748b",
                   position: "relative",
                   transition: "color 0.18s ease",
                   WebkitTapHighlightColor: "transparent",
                 }}
               >
-                {/* Icon Container with subtle pill highlight for active state */}
+                {/* WhatsApp / Material 3 Style Extended Stadium Capsule Pill */}
                 <div
                   style={{
+                    position: "relative",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    width: 38,
-                    height: 26,
-                    borderRadius: 14,
-                    background: active ? "#eff6ff" : "transparent",
-                    transition: "all 0.18s ease",
+                    width: "100%",
+                    height: 32,
                   }}
                 >
+                  {active && (
+                    <motion.div
+                      layoutId="gf-bottom-nav-active-pill"
+                      style={{
+                        position: "absolute",
+                        width: "min(54px, 86%)",
+                        height: 32,
+                        borderRadius: 9999,
+                        background: "#dbeafe",
+                        zIndex: 0,
+                      }}
+                      transition={{ type: "spring", stiffness: 500, damping: 36 }}
+                    />
+                  )}
                   <Icon
                     size={20}
                     strokeWidth={active ? 2.5 : 2}
-                    color={active ? "#2563eb" : "#64748b"}
+                    color={active ? "#1d4ed8" : "#64748b"}
+                    style={{
+                      position: "relative",
+                      zIndex: 1,
+                      transition: "color 0.18s ease, transform 0.18s ease",
+                    }}
                   />
                 </div>
 
                 {/* Text Label */}
                 <span
                   style={{
-                    fontSize: "clamp(9px, 2.45vw, 10.5px)",
+                    fontSize: "clamp(9.5px, 2.5vw, 11px)",
                     fontWeight: active ? 800 : 550,
-                    lineHeight: 1.1,
-                    letterSpacing: "-0.03em",
+                    lineHeight: 1.15,
+                    letterSpacing: "-0.025em",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     maxWidth: "100%",
                     fontFamily: "'DM Sans', sans-serif",
+                    color: active ? "#1d4ed8" : "#64748b",
+                    transition: "color 0.18s ease",
                   }}
                 >
                   {item.label}
                 </span>
-
-                {/* Active Indicator dot */}
-                {active && (
-                  <motion.div
-                    layoutId="gf-bottom-nav-active-pip"
-                    style={{
-                      position: "absolute",
-                      top: 4,
-                      width: 4,
-                      height: 4,
-                      borderRadius: "50%",
-                      background: "#2563eb",
-                    }}
-                    transition={{ type: "spring", stiffness: 450, damping: 32 }}
-                  />
-                )}
               </motion.button>
             );
           })}
