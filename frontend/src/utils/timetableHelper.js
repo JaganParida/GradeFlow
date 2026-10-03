@@ -531,13 +531,42 @@ export function getAcademicCalendarData() {
 }
 
 /**
- * Returns merged Academic Holidays list (Dynamic from MongoDB -> fallback to constant)
+ * Returns merged Academic Holidays list (Dynamic from MongoDB -> merged on top of constant)
  */
 export function getAcademicHolidaysData() {
-  if (dynamicHolidaysStore && Array.isArray(dynamicHolidaysStore.holidays) && dynamicHolidaysStore.holidays.length > 0) {
-    return dynamicHolidaysStore.holidays;
+  const baseHolidays = Array.isArray(ACADEMIC_HOLIDAYS_2026_27) ? [...ACADEMIC_HOLIDAYS_2026_27] : [];
+  if (!dynamicHolidaysStore || !Array.isArray(dynamicHolidaysStore.holidays) || dynamicHolidaysStore.holidays.length === 0) {
+    return baseHolidays;
   }
-  return ACADEMIC_HOLIDAYS_2026_27;
+
+  // Create date-indexed map starting with base official academic holidays
+  const holidayMap = new Map();
+  baseHolidays.forEach((h) => {
+    if (h && h.date) {
+      holidayMap.set(h.date, { ...h });
+    }
+  });
+
+  // Layer dynamic holidays and emergency suspensions on top
+  dynamicHolidaysStore.holidays.forEach((dh) => {
+    if (!dh || !dh.date) return;
+    let cleanDate = dh.date;
+    if (typeof cleanDate === "string" && cleanDate.includes(".")) {
+      const parts = cleanDate.split(".");
+      if (parts.length === 3) {
+        cleanDate = `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+      }
+    }
+    const existing = holidayMap.get(cleanDate) || {};
+    holidayMap.set(cleanDate, {
+      ...existing,
+      ...dh,
+      date: cleanDate,
+    });
+  });
+
+  // Return sorted chronologically by date
+  return Array.from(holidayMap.values()).sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 }
 
 /**

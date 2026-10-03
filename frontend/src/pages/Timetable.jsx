@@ -3162,7 +3162,7 @@ export default function Timetable() {
                       borderRadius: 99,
                     }}
                   >
-                    {ACADEMIC_HOLIDAYS_2026_27.length}
+                    {activeHolidaysList.length}
                   </span>
                 </button>
 
