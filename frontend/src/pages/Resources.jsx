@@ -473,7 +473,7 @@ export default function Resources() {
         paddingBottom: isMobile ? 40 : 70,
         width: "100%",
         maxWidth: "100%",
-        overflowX: "hidden",
+        overflowX: "clip",
         boxSizing: "border-box",
       }}
     >
@@ -779,7 +779,7 @@ export default function Resources() {
         {/* ══════════════════════════════════════════════════════════
             MAIN CONTENT AREA (Smooth Animated Transitions)
         ══════════════════════════════════════════════════════════ */}
-        <main style={{ alignSelf: "start", margin: 0, padding: 0, minHeight: "80vh", width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", overflowX: "hidden" }}>
+        <main style={{ alignSelf: "start", margin: 0, padding: 0, minHeight: "80vh", width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", overflowX: "clip" }}>
           <AnimatePresence mode="wait">
             {/* ────────────────────────────────────────────────────────
                 VIEW: MASTER OVERVIEW (Spacious & Responsive Layout)

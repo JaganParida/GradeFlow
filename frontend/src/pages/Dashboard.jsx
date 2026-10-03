@@ -922,7 +922,7 @@ export default function Dashboard() {
           paddingBottom: 80,
           width: "100%",
           boxSizing: "border-box",
-          overflowX: "hidden",
+          overflowX: "clip",
         }}
       >
         <DashboardSkeleton />
@@ -1109,7 +1109,7 @@ export default function Dashboard() {
         color: "#0f172a",
         fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
         paddingBottom: 80,
-        overflowX: "hidden",
+        overflowX: "clip",
         width: "100%",
         boxSizing: "border-box",
       }}

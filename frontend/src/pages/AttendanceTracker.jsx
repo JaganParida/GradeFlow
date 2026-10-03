@@ -3050,7 +3050,7 @@ export default function AttendanceTracker() {
         color: "#0f172a",
         fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
         paddingBottom: 80,
-        overflowX: "hidden",
+        overflowX: "clip",
         width: "100%",
         boxSizing: "border-box",
       }}

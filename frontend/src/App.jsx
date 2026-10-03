@@ -141,7 +141,7 @@ function RouteLoadingFallback() {
         maxWidth: "100%",
         minHeight: "100vh",
         boxSizing: "border-box",
-        overflowX: "hidden",
+        overflowX: "clip",
       }}
     >
       {skeleton}
@@ -161,7 +161,7 @@ function PageTransition({ children }) {
         maxWidth: "100%",
         minHeight: "100vh",
         boxSizing: "border-box",
-        overflowX: "hidden",
+        overflowX: "clip",
       }}
     >
       {children}

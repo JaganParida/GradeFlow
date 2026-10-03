@@ -208,7 +208,7 @@ export function ResourcesSkeleton() {
         background: "#f8fafc",
         width: "100%",
         boxSizing: "border-box",
-        overflowX: "hidden",
+        overflowX: "clip",
       }}
       aria-label="Loading resources"
       aria-busy="true"
@@ -758,7 +758,7 @@ export function DashboardSkeleton() {
         background: "#f8fafc",
         width: "100%",
         boxSizing: "border-box",
-        overflowX: "hidden",
+        overflowX: "clip",
       }}
       aria-label="Loading dashboard"
       aria-busy="true"
@@ -2034,7 +2034,7 @@ export function AttendanceSkeleton() {
         background: "#f1f5f9",
         width: "100%",
         boxSizing: "border-box",
-        overflowX: "hidden",
+        overflowX: "clip",
       }}
       aria-label="Loading attendance tracker"
       aria-busy="true"
