@@ -3498,13 +3498,15 @@ export default function AttendanceTracker() {
                       {/* Row 1: Title & Section (Full width so Attendance Intelligence never wraps) */}
                       <div style={{ minWidth: 0, width: "100%" }}>
                         <h1
+                          className="gf-page-title"
                           style={{
+                            fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                             fontSize: "clamp(18px, 4.8vw, 22px)",
                             fontWeight: 850,
                             color: "#0f172a",
                             margin: 0,
-                            letterSpacing: "-0.4px",
-                            lineHeight: 1.25,
+                            letterSpacing: "-0.038em",
+                            lineHeight: 1.15,
                             wordBreak: "break-word",
                           }}
                         >
@@ -3665,13 +3667,15 @@ export default function AttendanceTracker() {
                             <span>Section {selectedSection} Routine · Academic Workspace</span>
                           </div>
                           <h1
+                            className="gf-page-title"
                             style={{
-                              fontSize: "clamp(22px, 2.3vw, 26px)",
-                              fontWeight: 800,
+                              fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                              fontSize: "clamp(22px, 2.3vw, 28px)",
+                              fontWeight: 850,
                               color: "#0f172a",
                               margin: 0,
-                              letterSpacing: "-0.4px",
-                              lineHeight: 1.2,
+                              letterSpacing: "-0.038em",
+                              lineHeight: 1.12,
                             }}
                           >
                             Attendance Intelligence

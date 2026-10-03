@@ -138,12 +138,14 @@ export default function AboutDev() {
 
             {/* Headline */}
             <h1
+              className="gf-page-title"
               style={{
+                fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                 fontSize: isMobile ? "32px" : "clamp(38px, 4.4vw, 56px)",
-                fontWeight: 800,
+                fontWeight: 850,
                 color: "#0f172a",
                 lineHeight: 1.12,
-                letterSpacing: "-1px",
+                letterSpacing: "-0.038em",
                 margin: 0,
               }}
             >

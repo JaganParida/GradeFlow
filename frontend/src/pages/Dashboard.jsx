@@ -1633,13 +1633,15 @@ export default function Dashboard() {
                         Academic Overview · Semester {selectedSem}
                       </div>
                       <h1
+                        className="gf-page-title"
                         style={{
+                          fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                           fontSize: "clamp(24px, 2.5vw, 30px)",
                           fontWeight: 850,
                           color: "#0f172a",
                           margin: 0,
-                          letterSpacing: "-0.5px",
-                          lineHeight: 1.2,
+                          letterSpacing: "-0.038em",
+                          lineHeight: 1.12,
                         }}
                       >
                         Semester {selectedSem} Performance Ledger

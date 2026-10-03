@@ -532,11 +532,13 @@ export default function AdminLogin() {
             </div>
 
             <h1
+              className="gf-page-title"
               style={{
+                fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                 fontSize: "clamp(26px, 3.2vw, 38px)",
-                fontWeight: 800,
-                lineHeight: 1.2,
-                letterSpacing: "-0.8px",
+                fontWeight: 850,
+                lineHeight: 1.12,
+                letterSpacing: "-0.038em",
                 marginBottom: 12,
                 color: "#0f172a",
               }}

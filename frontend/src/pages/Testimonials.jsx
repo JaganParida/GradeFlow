@@ -758,12 +758,14 @@ export default function Testimonials() {
 
             {/* Title */}
             <h1
+              className="gf-page-title"
               style={{
+                fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                 fontSize: isSmallMobile ? 24 : isMobile ? 30 : 42,
-                fontWeight: 900,
+                fontWeight: 850,
                 color: "#0f172a",
-                lineHeight: 1.2,
-                letterSpacing: "-0.8px",
+                lineHeight: 1.12,
+                letterSpacing: "-0.038em",
                 margin: 0,
               }}
             >

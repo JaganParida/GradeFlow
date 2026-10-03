@@ -891,13 +891,15 @@ export default function Analytics() {
           {/* Section Title & Subtitle (Clean Canvas - Unboxed) */}
           <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <h1
+              className="gf-page-title"
               style={{
-                fontSize: isMobile ? "clamp(19px, 5vw, 24px)" : 28,
+                fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                fontSize: isMobile ? "clamp(19px, 5vw, 24px)" : "clamp(24px, 2.5vw, 30px)",
                 fontWeight: 850,
                 color: "#0f172a",
                 margin: 0,
-                letterSpacing: "-0.5px",
-                lineHeight: 1.25,
+                letterSpacing: "-0.038em",
+                lineHeight: 1.15,
                 wordBreak: "break-word",
               }}
             >

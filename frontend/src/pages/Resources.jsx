@@ -802,7 +802,19 @@ export default function Resources() {
               >
                 {/* Header Title with Verified Blue Badge */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: isMobile ? 2 : 6 }}>
-                  <h1 style={{ fontSize: isMobile ? "clamp(18px, 4.8vw, 22px)" : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: 0, letterSpacing: "-0.5px", lineHeight: 1.25, wordBreak: "break-word" }}>
+                  <h1
+                    className="gf-page-title"
+                    style={{
+                      fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                      fontSize: isMobile ? "clamp(18px, 4.8vw, 22px)" : "clamp(24px, 2.5vw, 30px)",
+                      fontWeight: 850,
+                      color: "#0f172a",
+                      margin: 0,
+                      letterSpacing: "-0.038em",
+                      lineHeight: 1.15,
+                      wordBreak: "break-word",
+                    }}
+                  >
                     How SGPA &amp; CGPA Are Calculated
                   </h1>
                   <p style={{ fontSize: isMobile ? 12 : 13.5, color: "#64748b", margin: 0 }}>
@@ -1629,7 +1641,19 @@ export default function Resources() {
                 {/* Section Header */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-start", flexDirection: isMobile ? "column" : "row", gap: 12, width: "100%", boxSizing: "border-box" }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <h1 style={{ fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: "0 0 4px 0", letterSpacing: "-0.5px", wordBreak: "break-word", lineHeight: 1.25 }}>
+                    <h1
+                      className="gf-page-title"
+                      style={{
+                        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                        fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)",
+                        fontWeight: 850,
+                        color: "#0f172a",
+                        margin: "0 0 4px 0",
+                        letterSpacing: "-0.038em",
+                        wordBreak: "break-word",
+                        lineHeight: 1.15,
+                      }}
+                    >
                       University Grading Scale &amp; Point Mapping
                     </h1>
                     <p style={{ fontSize: isMobile ? 12 : 13.5, color: "#64748b", margin: 0, lineHeight: 1.45, wordBreak: "break-word" }}>
@@ -2008,7 +2032,18 @@ export default function Resources() {
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-start", flexDirection: isMobile ? "column" : "row", gap: 12 }}>
                   <div>
-                    <h1 style={{ fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: "0 0 4px 0", letterSpacing: "-0.5px", lineHeight: 1.25 }}>
+                    <h1
+                      className="gf-page-title"
+                      style={{
+                        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                        fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)",
+                        fontWeight: 850,
+                        color: "#0f172a",
+                        margin: "0 0 4px 0",
+                        letterSpacing: "-0.038em",
+                        lineHeight: 1.15,
+                      }}
+                    >
                       Live Academic Health Meter
                     </h1>
                     <p style={{ fontSize: isMobile ? 12 : 13.5, color: "#64748b", margin: 0, lineHeight: 1.4 }}>
@@ -2265,7 +2300,18 @@ export default function Resources() {
                 transition={{ duration: 0.22, ease: "easeInOut" }}
                 style={{ display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0, gap: isMobile ? 14 : 20 }}
               >
-                <h1 style={{ fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>
+                <h1
+                  className="gf-page-title"
+                  style={{
+                    fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                    fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)",
+                    fontWeight: 850,
+                    color: "#0f172a",
+                    margin: "0 0 6px 0",
+                    letterSpacing: "-0.038em",
+                    lineHeight: 1.15,
+                  }}
+                >
                   Unlockable Academic Badges
                 </h1>
                 <p style={{ fontSize: 13.5, color: "#64748b", margin: "0 0 20px 0" }}>
@@ -3172,7 +3218,18 @@ export default function Resources() {
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-start", flexDirection: isMobile ? "column" : "row", gap: 12, marginBottom: 16 }}>
                   <div>
-                    <h1 style={{ fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>
+                    <h1
+                      className="gf-page-title"
+                      style={{
+                        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                        fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)",
+                        fontWeight: 850,
+                        color: "#0f172a",
+                        margin: "0 0 6px 0",
+                        letterSpacing: "-0.038em",
+                        lineHeight: 1.15,
+                      }}
+                    >
                       Target GPA Goal Predictor
                     </h1>
                     <p style={{ fontSize: 13.5, color: "#64748b", margin: 0 }}>
@@ -3272,7 +3329,18 @@ export default function Resources() {
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 16, flexDirection: isMobile ? "column" : "row", gap: 12 }}>
                   <div>
-                    <h1 style={{ fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: "0 0 4px 0", letterSpacing: "-0.5px" }}>
+                    <h1
+                      className="gf-page-title"
+                      style={{
+                        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                        fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)",
+                        fontWeight: 850,
+                        color: "#0f172a",
+                        margin: "0 0 4px 0",
+                        letterSpacing: "-0.038em",
+                        lineHeight: 1.15,
+                      }}
+                    >
                       Interactive SGPA Calculator
                     </h1>
                     <p style={{ fontSize: 13, color: "#64748b", margin: 0 }}>Add your subjects, credits, and expected grades to compute real-time SGPA.</p>
@@ -3393,7 +3461,18 @@ export default function Resources() {
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 16, flexDirection: isMobile ? "column" : "row", gap: 12 }}>
                   <div>
-                    <h1 style={{ fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: "0 0 4px 0", letterSpacing: "-0.5px" }}>
+                    <h1
+                      className="gf-page-title"
+                      style={{
+                        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                        fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)",
+                        fontWeight: 850,
+                        color: "#0f172a",
+                        margin: "0 0 4px 0",
+                        letterSpacing: "-0.038em",
+                        lineHeight: 1.15,
+                      }}
+                    >
                       Multi-Semester CGPA Calculator
                     </h1>
                     <p style={{ fontSize: 13, color: "#64748b", margin: 0 }}>Input semester credits &amp; SGPA to compute cumulative CGPA.</p>
@@ -3508,7 +3587,18 @@ export default function Resources() {
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 16, flexDirection: isMobile ? "column" : "row", gap: 10 }}>
                   <div>
-                    <h1 style={{ fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: "0 0 4px 0", letterSpacing: "-0.5px" }}>
+                    <h1
+                      className="gf-page-title"
+                      style={{
+                        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                        fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)",
+                        fontWeight: 850,
+                        color: "#0f172a",
+                        margin: "0 0 4px 0",
+                        letterSpacing: "-0.038em",
+                        lineHeight: 1.15,
+                      }}
+                    >
                       {studentData ? `${studentData.studentName}'s Academic Report` : "Academic Report Card Overview"}
                     </h1>
                     <p style={{ fontSize: 13.5, color: "#64748b", margin: 0 }}>
@@ -3580,7 +3670,20 @@ export default function Resources() {
                 style={{ display: "flex", flexDirection: "column", width: "100%", boxSizing: "border-box", margin: 0, gap: isMobile ? 14 : 20 }}
               >
                 <div>
-                  <h1 style={{ fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)", fontWeight: 850, color: "#0f172a", margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>Frequently Asked Questions</h1>
+                  <h1
+                    className="gf-page-title"
+                    style={{
+                      fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                      fontSize: isMobile ? 20 : "clamp(24px, 2.5vw, 30px)",
+                      fontWeight: 850,
+                      color: "#0f172a",
+                      margin: "0 0 6px 0",
+                      letterSpacing: "-0.038em",
+                      lineHeight: 1.15,
+                    }}
+                  >
+                    Frequently Asked Questions
+                  </h1>
                   <p style={{ fontSize: 13.5, color: "#64748b", margin: 0 }}>Everything you need to know about Centurion University grading &amp; calculations.</p>
                 </div>
 

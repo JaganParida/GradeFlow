@@ -5241,7 +5241,18 @@ export default function AdminDashboard({ defaultTab = null }) {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-                <h1 style={{ fontSize: isMobile ? 20 : 26, fontWeight: 850, color: "#0f172a", margin: 0, letterSpacing: "-0.5px", lineHeight: 1.2 }}>
+                <h1
+                  className="gf-page-title"
+                  style={{
+                    fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                    fontSize: isMobile ? 20 : 26,
+                    fontWeight: 850,
+                    color: "#0f172a",
+                    margin: 0,
+                    letterSpacing: "-0.038em",
+                    lineHeight: 1.15,
+                  }}
+                >
                   Admin Control Console
                 </h1>
                 <span

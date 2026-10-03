@@ -527,13 +527,15 @@ export default function Leaderboard() {
               Centurion University Standings
             </div>
             <h1
+              className="gf-page-title"
               style={{
-                fontSize: isMobile ? "clamp(18px, 4.8vw, 22px)" : 26,
+                fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                fontSize: isMobile ? "clamp(18px, 4.8vw, 22px)" : "clamp(22px, 2.3vw, 28px)",
                 fontWeight: 850,
                 color: "#0f172a",
                 margin: 0,
-                letterSpacing: "-0.5px",
-                lineHeight: 1.25,
+                letterSpacing: "-0.038em",
+                lineHeight: 1.15,
                 wordBreak: "break-word",
               }}
             >
