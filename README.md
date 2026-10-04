@@ -13,11 +13,14 @@
 * **Grade Predictor & What-If Analysis:** Powerful target-prediction algorithms that allow you to simulate future semester performances. Understand exactly what SGPA you need to achieve your ultimate CGPA goals, enabling strategic academic planning.
 * **University Leaderboards:** Real-time, transparent academic rankings. See where you stand not just within your specific branch, but across your entire batch through beautifully crafted, gamified leaderboards.
 * **Official Grade Sheets (PDF Generation):** Seamless, one-click generation of formatted, print-ready grade sheets featuring embedded university branding, meticulously aligned data grids, and tamper-proof layouts.
+* **Attendance Tracking & OCR Integration:** Smart attendance analytics with camera/screenshot OCR scanner integration, target percentage forecasting, and daily quota monitoring.
+* **Dynamic Timetable & Academic Calendar:** Real-time schedule visualization with instant emergency class suspension alerts and synchronized holiday calendar overrides.
 
 ### 👨‍💻 For Administrators
 * **Bulk Excel Uploads:** Effortlessly publish thousands of student results instantly using standard CSV/Excel formats.
 * **Data Validation Engine:** Built-in safeguards against duplicate entries or malformed data files.
-* **Secure Access:** JWT-protected admin routes with rate-limiting.
+* **Timetable & Suspension Management:** Broadcast urgent class cancellations, manage suspension tags, and configure holiday schedule overrides in real time.
+* **Session & Security Monitoring:** Device authorization controls, active student session management, and granular sub-admin role permissions.
 
 ### 🎨 UI / UX
 * **Glassmorphism & Neumorphism:** A premium, "crazy but clean" aesthetic featuring responsive grid layouts, blurred translucent panels, and micro-animations.
@@ -31,6 +34,7 @@
 * **Frontend:** React (Vite), Lucide-React (Icons), Recharts (Data Viz), Framer Motion (Animations), jsPDF (Document Generation)
 * **Backend:** Node.js, Express.js
 * **Database:** MongoDB (Mongoose ORM)
+* **Realtime & Cloud:** Ably Realtime Pub/Sub, Vercel Serverless Functions
 * **Security:** JSON Web Tokens (JWT), Express Rate Limit, bcrypt
 
 ---
