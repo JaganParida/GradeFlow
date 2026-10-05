@@ -2482,81 +2482,139 @@ export default function Dashboard() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.18, ease: "easeOut" }}
-                    style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}
+                    style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}
                   >
-                    {backlogs.map((b, i) => {
-                      return (
-                        <div
-                          key={i}
-                          style={{
-                            display: "flex",
-                            flexDirection: isMobile ? "column" : "row",
-                            alignItems: isMobile ? "flex-start" : "center",
-                            justifyContent: "space-between",
-                            padding: isMobile ? "10px 12px" : "12px 16px",
-                            background: "#ffffff",
-                            borderRadius: 10,
-                            border: "1px solid #fee2e2",
-                            fontSize: 12.5,
-                            gap: isMobile ? 8 : 12,
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                            <span style={{ fontWeight: 800, color: "#0f172a", fontSize: 13, textTransform: "uppercase" }}>
-                              {b.subName}
-                            </span>
-                            <span
-                              style={{
-                                color: "#475569",
-                                background: "#f1f5f9",
-                                border: "1px solid #e2e8f0",
-                                fontFamily: "'Space Mono', monospace",
-                                fontSize: 11,
-                                fontWeight: 700,
-                                padding: "2px 6px",
-                                borderRadius: 6,
-                              }}
-                            >
-                              {b.subCode}
-                            </span>
-                            {b.credit && (
-                              <span style={{ color: "#64748b", fontSize: 11, fontWeight: 600 }}>
-                                ({b.credit} Credits)
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
+                        gap: 10,
+                      }}
+                    >
+                      {backlogs.map((b, i) => {
+                        return (
+                          <div
+                            key={i}
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              justifyContent: "space-between",
+                              padding: "13px 15px",
+                              background: "#ffffff",
+                              borderRadius: 12,
+                              border: "1px solid #fee2e2",
+                              boxShadow: "0 1px 3px rgba(220, 38, 38, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)",
+                              gap: 10,
+                              transition: "all 0.18s ease",
+                              position: "relative",
+                              overflow: "hidden",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = "#fca5a5";
+                              e.currentTarget.style.transform = "translateY(-1.5px)";
+                              e.currentTarget.style.boxShadow = "0 4px 12px rgba(220, 38, 38, 0.07)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = "#fee2e2";
+                              e.currentTarget.style.transform = "translateY(0)";
+                              e.currentTarget.style.boxShadow = "0 1px 3px rgba(220, 38, 38, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02)";
+                            }}
+                          >
+                            {/* Card Top: Semester Pill & Grade Pill */}
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                              <span
+                                style={{
+                                  background: "#eff6ff",
+                                  border: "1px solid #dbeafe",
+                                  color: "#1d4ed8",
+                                  fontWeight: 750,
+                                  fontSize: 10.5,
+                                  padding: "2px 7.5px",
+                                  borderRadius: 5,
+                                  letterSpacing: "0.2px",
+                                }}
+                              >
+                                Sem {b.semester}
                               </span>
-                            )}
-                          </div>
+                              <span
+                                style={{
+                                  background: "#fef2f2",
+                                  color: "#dc2626",
+                                  fontWeight: 800,
+                                  padding: "2px 8.5px",
+                                  borderRadius: 5,
+                                  fontSize: 11,
+                                  border: "1px solid #fecaca",
+                                  letterSpacing: "0.2px",
+                                }}
+                              >
+                                Grade {b.grade || "F"}
+                              </span>
+                            </div>
 
-                          <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-                            <span
+                            {/* Card Body: Subject Name */}
+                            <div style={{ flex: 1, display: "flex", alignItems: "flex-start" }}>
+                              <h4
+                                title={b.subName}
+                                style={{
+                                  margin: 0,
+                                  fontWeight: 750,
+                                  color: "#0f172a",
+                                  fontSize: 13,
+                                  lineHeight: 1.35,
+                                  letterSpacing: "-0.15px",
+                                  textTransform: "uppercase",
+                                }}
+                              >
+                                {b.subName}
+                              </h4>
+                            </div>
+
+                            {/* Card Footer: Subject Code & Credits */}
+                            <div
                               style={{
-                                background: "#eff6ff",
-                                border: "1px solid #dbeafe",
-                                color: "#1d4ed8",
-                                fontWeight: 700,
-                                fontSize: 11,
-                                padding: "3px 8px",
-                                borderRadius: 6,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                paddingTop: 8,
+                                borderTop: "1px solid #f1f5f9",
+                                gap: 6,
                               }}
                             >
-                              Sem {b.semester}
-                            </span>
-                            <span
-                              style={{
-                                background: "#fef2f2",
-                                color: "#dc2626",
-                                fontWeight: 800,
-                                padding: "3px 10px",
-                                borderRadius: 6,
-                                fontSize: 11.5,
-                                border: "1px solid #fecaca",
-                              }}
-                            >
-                              Grade {b.grade || "F"}
-                            </span>
+                              <span
+                                style={{
+                                  color: "#475569",
+                                  background: "#f8fafc",
+                                  border: "1px solid #e2e8f0",
+                                  fontFamily: "'Space Mono', monospace",
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  padding: "1.5px 6.5px",
+                                  borderRadius: 5,
+                                  letterSpacing: "0.2px",
+                                }}
+                              >
+                                {b.subCode}
+                              </span>
+                              {b.credit && (
+                                <span
+                                  style={{
+                                    color: "#64748b",
+                                    fontSize: 10.5,
+                                    fontWeight: 650,
+                                    background: "#f1f5f9",
+                                    padding: "1.5px 6.5px",
+                                    borderRadius: 5,
+                                  }}
+                                >
+                                  {b.credit} Credits
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
 
                     {/* ── BACKLOG DISCLAIMER & WHATSAPP SUPPORT BANNER ── */}
                     <div
