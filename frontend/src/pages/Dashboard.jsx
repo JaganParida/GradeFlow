@@ -343,14 +343,24 @@ export default function Dashboard() {
   const { studentData, studentSession, fetchStudent, loading, error, API, rankingsVersion, adminToken } = useApp();
   const navigate = useNavigate();
 
-  // Normalize URL to obfuscated token if raw registration number is provided, or resolve from active session
+  // Normalize URL to obfuscated token if raw registration number is provided, or resolve from active session / storage
+  const effectiveRegNo = useMemo(() => {
+    if (regNo) return regNo;
+    if (studentSession?.regNo) return String(studentSession.regNo).trim();
+    try {
+      const stored = localStorage.getItem("gf_student_reg");
+      if (stored && /^\d{5,20}$/.test(stored.trim())) return stored.trim();
+    } catch {}
+    return null;
+  }, [regNo, studentSession?.regNo]);
+
   useEffect(() => {
     if (regNo && urlParam && !isEncryptedToken(urlParam)) {
       navigate(`/dashboard/${encodeStudentId(regNo)}`, { replace: true });
-    } else if (!urlParam && studentSession?.regNo) {
-      navigate(`/dashboard/${encodeStudentId(studentSession.regNo)}`, { replace: true });
+    } else if (!urlParam && effectiveRegNo) {
+      navigate(`/dashboard/${encodeStudentId(effectiveRegNo)}`, { replace: true });
     }
-  }, [urlParam, regNo, studentSession?.regNo, navigate]);
+  }, [urlParam, regNo, effectiveRegNo, navigate]);
 
   const normalizeTabParam = (raw) => {
     if (!raw) return "result";
@@ -664,10 +674,11 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    if (regNo && (!studentData || studentData.regNo !== regNo)) {
-      fetchStudent(regNo);
+    const targetReg = effectiveRegNo || regNo;
+    if (targetReg && (!studentData || studentData.regNo !== targetReg)) {
+      fetchStudent(targetReg);
     }
-  }, [regNo, studentData?.regNo]);
+  }, [effectiveRegNo, regNo, studentData?.regNo]);
 
   useEffect(() => {
     if (studentData) {

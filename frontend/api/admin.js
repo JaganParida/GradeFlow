@@ -901,22 +901,22 @@ async function getAdminBootstrapData(adminUser) {
         },
       },
     ]).catch(() => []),
-    getSectionToppersData({ batch: "2023", branch: "CSE", section: "Sec A", limit: 10 }).catch(() => ({ totalToppers: 0, students: [] })),
-    getBacklogsData({ page: 1, limit: 20 }).catch(() => ({ totalStudentsWithBacklogs: 0, totalBacklogsCount: 0, students: [], totalPages: 1, page: 1 })),
+    defaultToppersCache ? Promise.resolve(defaultToppersCache) : Promise.resolve({ totalToppers: 0, students: [] }),
+    defaultBacklogsCache ? Promise.resolve(defaultBacklogsCache) : Promise.resolve({ totalStudentsWithBacklogs: 0, totalBacklogsCount: 0, students: [], totalPages: 1, page: 1 }),
     TimetableSchedule.find({}, "scheduleId batch branch section title isLiveCustomPublished updatedAt")
-      .sort({ updatedAt: -1 }).limit(50).lean().catch(() => []),
+      .sort({ updatedAt: -1 }).limit(30).lean().catch(() => []),
     TrafficQueueConfig.findOne({ key: "global_queue_config" }).lean().catch(() => null),
     LiveVisitor.countDocuments({ lastSeen: { $gte: new Date(Date.now() - 5 * 60 * 1000) } }).catch(() => 0),
     StudentRouteActivity.find(
       { regNo: { $ne: EXCLUDED_STUDENT_REG } },
-      "regNo studentName branch batch deviceType os browser currentRoute currentPageTitle lastActiveRoute lastActivePageTitle timeSpentCurrentRoute totalTimeSpentSeconds mostVisitedRoute mostVisitedPageTitle mostVisitedCount mostTimeSpentRoute mostTimeSpentPageTitle mostTimeSpentSeconds mostActiveTimeSlot peakTimeSpentSeconds mostActiveDay visitsToday visitsThisWeek visitedRoutes lastActiveAt"
-    ).sort({ lastActiveAt: -1 }).limit(50).lean().catch(() => []),
+      "regNo currentRoute totalTimeSpentSeconds lastActiveAt"
+    ).sort({ lastActiveAt: -1 }).limit(20).lean().catch(() => []),
     SystemConfig.findOne({ key: "admin_button_config" }).lean().catch(() => null),
     SystemConfig.findOne({ key: "maintenance" }).lean().catch(() => null),
     StudentNotification.find({ $or: [{ regNo: "ALL" }, { isBroadcast: true }] })
       .sort({ createdAt: -1 }).limit(20).lean().catch(() => []),
     Feedback.find({}).sort({ createdAt: -1 }).limit(20).lean().catch(() => []),
-    getVercelQuotaData().catch(() => null),
+    Promise.resolve(null), // Vercel quota metrics load lazily on-demand when the Quota Monitor tab is mounted
   ]);
 
   const batchMap = new Map();
