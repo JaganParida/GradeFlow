@@ -2669,8 +2669,8 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* University & Branch Ranking Strip (Single Row) */}
-          {(() => {
+          {/* University & Branch Ranking Strip (Single Row) - Only shown on 'result' tab */}
+          {tab === "result" && (() => {
             const cgpaRankNum = semesterRanking ? (semesterRanking.cgpaRank || semesterRanking.universityRank) : null;
             const sgpaRankNum = semesterRanking ? (semesterRanking.sgpaRank || semesterRanking.universityRank) : null;
             const isCgpaTop50 = cgpaRankNum && cgpaRankNum <= 50;
