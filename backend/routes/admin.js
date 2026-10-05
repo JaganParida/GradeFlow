@@ -1394,14 +1394,23 @@ router.post("/student/update-grade", protect, requirePermission("students.update
 // Fetch full semester report card details for a student & semester
 router.get("/student/semester-record/:regNo/:semester", protect, requirePermission("students.view", "report-card", "report-card.view-grades"), async (req, res) => {
   try {
-    const cleanRegNo = String(req.params.regNo || "").trim();
+    let cleanRegNo = String(req.params.regNo || "").trim();
     const semNum = Number(req.params.semester);
 
     if (!cleanRegNo || isNaN(semNum)) {
       return res.status(400).json({ message: "Valid Registration Number and Semester number are required" });
     }
 
-    const allResults = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 }).lean();
+    let allResults = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 }).lean();
+    if ((!allResults || !allResults.length) && !/^\d{5,20}$/.test(cleanRegNo)) {
+      const nameMatch = await SemesterResult.findOne({
+        studentName: { $regex: new RegExp(`^${cleanRegNo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
+      }).lean();
+      if (nameMatch?.regNo) {
+        cleanRegNo = nameMatch.regNo;
+        allResults = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 }).lean();
+      }
+    }
     if (!allResults || !allResults.length) {
       return res.status(404).json({ message: `No academic records found for student "${cleanRegNo}"` });
     }
@@ -1468,8 +1477,8 @@ router.post("/student/update-semester-record", protect, requirePermission("stude
       if (!subCode || !subName) {
         return res.status(400).json({ message: `Row #${i + 1}: Subject Code and Subject Name are required.` });
       }
-      if (isNaN(credit) || credit <= 0) {
-        return res.status(400).json({ message: `Row #${i + 1} ("${subName}"): Credit must be a positive number.` });
+      if (isNaN(credit) || credit < 0) {
+        return res.status(400).json({ message: `Row #${i + 1} ("${subName}"): Credit must be a non-negative number.` });
       }
       if (!GRADE_POINTS.hasOwnProperty(grade)) {
         return res.status(400).json({

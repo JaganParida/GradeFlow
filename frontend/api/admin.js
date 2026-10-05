@@ -2197,14 +2197,23 @@ module.exports = async function handler(req, res) {
 
     // 5. GET /student/semester-record/:regNo/:semester
     if (action === "semester-record" || cleanUrl.includes("/student/semester-record")) {
-      const cleanRegNo = String(req.query.regNo || "").trim();
+      let cleanRegNo = String(req.query.regNo || "").trim();
       const semNum = Number(req.query.sem || req.query.semester || 1);
 
       if (!cleanRegNo) {
         return res.status(400).json({ message: "Registration number is required" });
       }
 
-      const allResults = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 }).lean();
+      let allResults = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 }).lean();
+      if ((!allResults || !allResults.length) && !/^\d{5,20}$/.test(cleanRegNo)) {
+        const nameMatch = await SemesterResult.findOne({
+          studentName: { $regex: new RegExp(`^${cleanRegNo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
+        }).lean();
+        if (nameMatch?.regNo) {
+          cleanRegNo = nameMatch.regNo;
+          allResults = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 }).lean();
+        }
+      }
       if (!allResults || !allResults.length) {
         return res.status(404).json({ message: `No academic records found for student "${cleanRegNo}"` });
       }
@@ -2264,8 +2273,8 @@ module.exports = async function handler(req, res) {
         if (!subCode || !subName) {
           return res.status(400).json({ message: `Row #${i + 1}: Subject Code and Subject Name are required.` });
         }
-        if (isNaN(credit) || credit <= 0) {
-          return res.status(400).json({ message: `Row #${i + 1} ("${subName}"): Credit must be a positive number.` });
+        if (isNaN(credit) || credit < 0) {
+          return res.status(400).json({ message: `Row #${i + 1} ("${subName}"): Credit must be a non-negative number.` });
         }
         if (!GRADE_POINTS.hasOwnProperty(grade)) {
           return res.status(400).json({ message: `Row #${i + 1} ("${subName}"): Invalid grade "${grade}".` });
@@ -2358,6 +2367,23 @@ module.exports = async function handler(req, res) {
       await generateRankingForSemester(semNum, null, true, studentBatch).catch((e) =>
         console.error("[UpdateSemesterRecord] Ranking regen error:", e?.message || e)
       );
+
+      // Invalidate admin bootstrap & stats in-memory caches so dashboard displays freshly calculated metrics immediately
+      statsCache = null;
+      statsCacheTimestamp = 0;
+      defaultBootstrapCache = null;
+      defaultBootstrapCacheTime = 0;
+      defaultBacklogsCache = null;
+      defaultBacklogsCacheTime = 0;
+      defaultToppersCache = null;
+      defaultToppersCacheTime = 0;
+
+      // Broadcast update to admins
+      await publishAdminRealtimeEvent("rankings-updated", {
+        timestamp: Date.now(),
+        semester: semNum,
+        batch: studentBatch,
+      }).catch(() => {});
 
       // Notify this student in real-time across active tabs/devices (<1s)
       await publishStudentRealtimeEvent(cleanRegNo, "results-updated", {

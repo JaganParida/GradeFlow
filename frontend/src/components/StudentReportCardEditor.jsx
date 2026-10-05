@@ -140,6 +140,15 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
 
   const searchBoxRef = useRef(null);
 
+  const getRequestConfig = () => ({
+    ...(authHeaders || {}),
+    headers: {
+      "X-Requested-With": "XMLHttpRequest",
+      ...(authHeaders?.headers || {}),
+    },
+    withCredentials: true,
+  });
+
   // Debounced search for student auto-suggestions
   useEffect(() => {
     if (!searchQuery.trim() || searchQuery.trim().length < 2) {
@@ -153,7 +162,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
       try {
         const { data } = await axios.get(
           `${API}/admin/students/search?q=${encodeURIComponent(searchQuery.trim())}`,
-          authHeaders
+          getRequestConfig()
         );
         setSuggestions(data || []);
         setShowSuggestions(true);
@@ -179,10 +188,18 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
 
   // Fetch full student report card record
   async function loadStudentData(regNoToLoad, semToLoad = selectedSem) {
-    const regNo = String(regNoToLoad || selectedRegNo || searchQuery).trim();
+    let regNo = String(regNoToLoad || selectedRegNo || searchQuery).trim();
     if (!regNo) {
       setErrorMsg("Please enter a valid Registration Number or Student Name to search.");
       return;
+    }
+
+    // If query is not a registration number (e.g. name), resolve from suggestions if available
+    if (!/^\d{5,20}$/.test(regNo) && suggestions && suggestions.length > 0) {
+      const match = suggestions.find((s) => s.studentName?.toLowerCase().includes(regNo.toLowerCase())) || suggestions[0];
+      if (match?.regNo) {
+        regNo = match.regNo;
+      }
     }
 
     setLoading(true);
@@ -193,7 +210,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
       const targetSem = Number(semToLoad) || 1;
       const { data } = await axios.get(
         `${API}/admin/student/semester-record/${encodeURIComponent(regNo)}/${targetSem}`,
-        authHeaders
+        getRequestConfig()
       );
 
       setSelectedRegNo(data.regNo);
@@ -451,7 +468,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
       const { data } = await axios.post(
         `${API}/admin/student/update-semester-record`,
         payload,
-        authHeaders
+        getRequestConfig()
       );
 
       setSuccessMsg(data.message || "Academic Report Card updated & synchronized successfully!");
@@ -958,11 +975,11 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
                 </span>
               </div>
               <div style={{ fontSize: 26, fontWeight: 900, color: "#2563eb", fontFamily: "'Space Mono', monospace", lineHeight: 1.1 }}>
-                {liveMetrics.sgpa.toFixed(2)}
+                {(Number(liveMetrics?.sgpa) || 0).toFixed(2)}
                 <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}> / 10.0</span>
               </div>
               <span style={{ fontSize: 11, color: "#64748b" }}>
-                Numerator: {liveMetrics.totalWeighted} / Divisor: {liveMetrics.creditsForDivisor}
+                Numerator: {liveMetrics?.totalWeighted || 0} / Divisor: {liveMetrics?.creditsForDivisor || 0}
               </span>
             </div>
 
@@ -988,7 +1005,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
                 </span>
               </div>
               <div style={{ fontSize: 26, fontWeight: 900, color: "#7c3aed", fontFamily: "'Space Mono', monospace", lineHeight: 1.1 }}>
-                {liveCGPA.toFixed(2)}
+                {(Number(progressiveSimulatedCGPA) || 0).toFixed(2)}
                 <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}> / 10.0</span>
               </div>
               <span style={{ fontSize: 11, color: "#64748b" }}>
@@ -1179,7 +1196,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
 
             {/* Desktop / Tablet Table View */}
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
+              <table style={{ width: "100%", minWidth: isMobile ? 860 : "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0", color: "#475569", fontWeight: 800, fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.5px" }}>
                     <th style={{ padding: "12px 14px", width: 45, textAlign: "center" }}>#</th>
