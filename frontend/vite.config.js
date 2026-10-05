@@ -45,6 +45,9 @@ export default defineConfig({
           if (id.includes("node_modules/html2canvas/")) {
             return "vendor-html2canvas";
           }
+          if (id.includes("node_modules/ably/")) {
+            return "vendor-ably";
+          }
         },
       },
     },

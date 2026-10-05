@@ -340,15 +340,17 @@ function computeAttendanceSummary(data) {
 export default function Dashboard() {
   const { regNo: urlParam } = useParams();
   const regNo = decodeStudentId(urlParam);
-  const { studentData, fetchStudent, loading, error, API, rankingsVersion, adminToken } = useApp();
+  const { studentData, studentSession, fetchStudent, loading, error, API, rankingsVersion, adminToken } = useApp();
   const navigate = useNavigate();
 
-  // Normalize URL to obfuscated token if raw registration number is provided
+  // Normalize URL to obfuscated token if raw registration number is provided, or resolve from active session
   useEffect(() => {
     if (regNo && urlParam && !isEncryptedToken(urlParam)) {
       navigate(`/dashboard/${encodeStudentId(regNo)}`, { replace: true });
+    } else if (!urlParam && studentSession?.regNo) {
+      navigate(`/dashboard/${encodeStudentId(studentSession.regNo)}`, { replace: true });
     }
-  }, [urlParam, regNo, navigate]);
+  }, [urlParam, regNo, studentSession?.regNo, navigate]);
 
   const normalizeTabParam = (raw) => {
     if (!raw) return "result";

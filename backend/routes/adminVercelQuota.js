@@ -122,10 +122,15 @@ router.get("/", async (req, res) => {
     // 3. Fetch Student Activity baseline (excluding special student and admin)
     const studentActivities = await StudentRouteActivity.find({
       regNo: { $ne: EXCLUDED_STUDENT_REG },
-    }).lean();
+    })
+      .select("visitsToday totalPageViews hourlyActivity dayOfWeekActivity")
+      .lean();
 
     // 4. Fetch PageAnalytics
-    const pages = await PageAnalytics.find({}).sort({ totalViews: -1 }).lean();
+    const pages = await PageAnalytics.find({})
+      .select("route pageTitle totalViews lastVisitedAt")
+      .sort({ totalViews: -1 })
+      .lean();
 
     // 5. Fetch Traffic Queue Configuration
     const queueConfig = (await TrafficQueueConfig.findOne({ key: "global_traffic_config" }).lean()) || {

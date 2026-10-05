@@ -597,7 +597,7 @@ module.exports = async function handler(req, res) {
     if (action === "admin-suspension-list" || cleanUrl.includes("/admin/suspension/list")) {
       const { academicYear } = req.query || {};
       const year = academicYear || "2026-27";
-      const holidayDoc = await AcademicHoliday.findOne({ academicYear: year });
+      const holidayDoc = await AcademicHoliday.findOne({ academicYear: year }).lean();
       const suspensions = (holidayDoc?.holidays || []).filter(
         (h) => h.isSuspension || h.type === "suspension"
       );

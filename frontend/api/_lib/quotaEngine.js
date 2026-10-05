@@ -131,8 +131,8 @@ async function getVercelQuotaData(forceRefresh = false) {
   const [todayMetric, monthlyMetrics, studentActivities, pages, rawQueueConfig] = await Promise.all([
     VercelQuotaMetric.findOne({ dateStr }).lean().catch(() => null),
     VercelQuotaMetric.find({ monthStr }).lean().catch(() => []),
-    StudentRouteActivity.find({ regNo: { $ne: EXCLUDED_STUDENT_REG } }).lean().catch(() => []),
-    PageAnalytics.find({}).sort({ totalViews: -1 }).lean().catch(() => []),
+    StudentRouteActivity.find({ regNo: { $ne: EXCLUDED_STUDENT_REG } }).select("regNo").lean().catch(() => []),
+    PageAnalytics.find({}).select("route pageTitle totalViews lastVisitedAt").sort({ totalViews: -1 }).lean().catch(() => []),
     TrafficQueueConfig.findOne({ key: "global_traffic_config" }).lean().catch(() => null),
   ]);
 

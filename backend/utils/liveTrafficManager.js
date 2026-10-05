@@ -425,6 +425,7 @@ async function recordPageView(rawRouteOrObj, visitorToken) {
 async function getCategorizedPageAnalytics() {
   try {
     const pages = await PageAnalytics.find({})
+      .select("route pageTitle totalViews lastVisitedAt")
       .sort({ totalViews: -1 })
       .lean();
 

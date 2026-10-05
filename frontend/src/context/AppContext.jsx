@@ -1873,7 +1873,7 @@ export function AppProvider({ children }) {
         return res.data;
       } catch (err) {
         const status = err.response?.status;
-        const isTransient = status === 429 || status === 502 || status === 503;
+        const isTransient = status === 429 || status === 502 || status === 503 || status === 504;
         if (isTransient && retries > 0) {
           await new Promise((resolve) => setTimeout(resolve, backoffMs));
           return fetchStudent(cleanReg, retries - 1, backoffMs * 2, forceRefresh);
