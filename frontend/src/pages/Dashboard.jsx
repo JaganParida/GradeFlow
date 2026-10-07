@@ -13,6 +13,7 @@ import BasketDashboard from "../components/BasketDashboard";
 import TargetPredictor from "../components/TargetPredictor";
 import ModernMobileSubNav from "../components/ModernMobileSubNav";
 import { isLateralEntryStudent } from "../utils/basketLogic";
+import { isDeveloperOrSpecialStudent } from "../utils/developerHelper";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -474,7 +475,7 @@ export default function Dashboard() {
 
   const downloadFullTranscript = async () => {
     const cleanReg = String(studentData?.regNo || regNo || "").trim().toUpperCase();
-    const isExempt = cleanReg === "230301120327";
+    const isExempt = isDeveloperOrSpecialStudent(cleanReg);
     const isFeedbackSubmitted = Boolean(
       isExempt || studentData?.hasSubmittedFeedback
     );

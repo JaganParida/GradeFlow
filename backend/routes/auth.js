@@ -47,6 +47,13 @@ const {
 } = require("../utils/sessionManager");
 
 const {
+  isDeveloperOrSpecialStudent,
+  getDeveloperRegNo,
+  getDeveloperDailyOtpMax,
+  getDeveloperMaxDevices,
+} = require("../utils/developerHelper");
+
+const {
   publishStudentRealtimeEvent,
   publishApprovalRealtimeEvent,
   broadcastRealtimeEvent,
@@ -219,49 +226,89 @@ async function recordAccountOtpSend(accountKey) {
 
 const { extractRequestDeviceInfo } = require("../utils/deviceDetector");
 
-function findMatchingSessionByDevice(activeSessions, req) {
-  if (!Array.isArray(activeSessions) || activeSessions.length === 0) return null;
-  const currentDev = extractRequestDeviceInfo(req);
+function setDeviceIdCookie(res, req, deviceId) {
+  if (!res || typeof res.cookie !== "function" || !deviceId) return;
+  const isProd = process.env.NODE_ENV === "production";
+  const oneYearMs = 365 * 24 * 60 * 60 * 1000;
+  res.cookie("gf_device_id", String(deviceId).trim(), {
+    maxAge: oneYearMs,
+    expires: new Date(Date.now() + oneYearMs),
+    httpOnly: true,
+    secure: isProd || req.secure || req.headers["x-forwarded-proto"] === "https",
+    sameSite: "lax",
+    path: "/",
+  });
+}
 
-  // 1. Exact or prefix userAgent match (highest fidelity: same browser version & platform build)
-  if (currentDev.userAgent) {
-    const curUA = currentDev.userAgent.trim();
-    const matchUA = activeSessions.find((s) => {
-      const dbUA = String(s.deviceInfo?.userAgent || "").trim();
-      return dbUA && (dbUA === curUA || dbUA.startsWith(curUA) || curUA.startsWith(dbUA));
-    });
-    if (matchUA) return matchUA;
+function getOrCreateDeviceId(req, res) {
+  let deviceId = req.cookies?.gf_device_id || req.headers?.["x-device-id"];
+  if (deviceId && typeof deviceId === "string" && /^[a-zA-Z0-9_-]{16,64}$/.test(deviceId.trim())) {
+    deviceId = deviceId.trim();
+  } else {
+    deviceId = crypto.randomUUID();
+  }
+  setDeviceIdCookie(res, req, deviceId);
+  return deviceId;
+}
+
+/**
+ * Cryptographic device identity resolver.
+ * Replaces User-Agent/OS guessing with cryptographic JWT validation and persistent HttpOnly device binding.
+ * Guarantees zero bypass via User-Agent or device header spoofing.
+ */
+function resolveCurrentDeviceSession(activeSessions, req, options = {}) {
+  if (!Array.isArray(activeSessions) || activeSessions.length === 0) {
+    return { isCurrentDevice: false, matchedSession: null };
   }
 
-  // 2. High-fidelity match: OS family + deviceType + browser family
-  const curOs = String(currentDev.os || "").toLowerCase();
-  const curType = String(currentDev.deviceType || "").toLowerCase();
-  const curBrowser = String(currentDev.browser || "").toLowerCase();
+  const { expectedRegNo, role = "student" } = options;
 
-  const matchHighFidelity = activeSessions.find((s) => {
-    const dev = s.deviceInfo || {};
-    const dbOs = String(dev.os || "").toLowerCase();
-    const dbType = String(dev.deviceType || "").toLowerCase();
-    const dbBrowser = String(dev.browser || "").toLowerCase();
+  // 1. Primary: Cryptographic JWT Verification
+  let incomingToken = role === "admin"
+    ? (req.cookies?.jwt || req.cookies?.admin_jwt || req.headers["x-admin-token"])
+    : (req.cookies?.student_jwt || req.headers["x-student-token"]);
 
-    const sameType = curType && dbType && curType === dbType;
-    const sameOs = curOs && dbOs && (curOs === dbOs || (curOs.includes("android") && dbOs.includes("android")) || (curOs.includes("windows") && dbOs.includes("windows")) || (curOs.includes("ios") && dbOs.includes("ios")) || (curOs.includes("mac") && dbOs.includes("mac")));
-    const sameBrowser = curBrowser && dbBrowser && (curBrowser === dbBrowser || curBrowser.includes(dbBrowser) || dbBrowser.includes(curBrowser));
+  if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+    incomingToken = req.headers.authorization.split(" ")[1];
+  }
 
-    return sameType && sameOs && sameBrowser;
-  });
-  if (matchHighFidelity) return matchHighFidelity;
+  if (incomingToken && incomingToken !== "none") {
+    try {
+      const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+      const regMatches = !expectedRegNo || decoded.regNo === expectedRegNo;
+      const roleMatches = role === "admin" ? (decoded.role === "admin" || decoded.isAdmin) : (decoded.role === "student" || !decoded.role);
+      if (regMatches && roleMatches) {
+        const match = activeSessions.find((s) => s.sessionId === decoded.sessionId);
+        if (match) {
+          return { isCurrentDevice: true, matchedSession: match };
+        }
+      }
+    } catch {}
+  }
 
-  // 3. Fallback match: OS family + deviceType
-  return activeSessions.find((s) => {
-    const dev = s.deviceInfo || {};
-    const dbOs = String(dev.os || "").toLowerCase();
-    const dbType = String(dev.deviceType || "").toLowerCase();
+  // 2. Cryptographic Device ID Binding (Persistent HttpOnly Cookie or Verified Header)
+  const incomingDeviceId = (req.cookies?.gf_device_id || req.headers?.["x-device-id"] || "").trim();
+  if (incomingDeviceId) {
+    const match = activeSessions.find((s) => s.deviceId && s.deviceId === incomingDeviceId);
+    if (match) {
+      return { isCurrentDevice: true, matchedSession: match };
+    }
+  }
 
-    const sameType = curType && dbType && curType === dbType;
-    const sameOs = curOs && dbOs && (curOs === dbOs || (curOs.includes("android") && dbOs.includes("android")) || (curOs.includes("windows") && dbOs.includes("windows")));
-    return sameType && sameOs;
-  }) || null;
+  // 3. Last Session Header (Only valid if matching cryptographic deviceId)
+  const lastSessionHeader = (role === "admin"
+    ? (req.headers["x-admin-last-session"] || req.headers["x-admin-session"])
+    : (req.headers["x-student-last-session"] || req.headers["x-student-session"]) || "").trim();
+
+  if (lastSessionHeader && incomingDeviceId) {
+    const match = activeSessions.find((s) => s.sessionId === lastSessionHeader);
+    if (match && match.deviceId && match.deviceId === incomingDeviceId) {
+      return { isCurrentDevice: true, matchedSession: match };
+    }
+  }
+
+  // ZERO User-Agent or OS guessing: If neither cryptographic token nor deviceId matches, treat as new device
+  return { isCurrentDevice: false, matchedSession: null };
 }
 
 
@@ -314,9 +361,12 @@ function getPresenceCookieOptions(req, customExpires = null) {
   };
 }
 
-function setStudentAuthCookies(res, req, token, expiresAt = null) {
+function setStudentAuthCookies(res, req, token, expiresAt = null, deviceId = null) {
   res.cookie("student_jwt", token, getCookieOptions(req, expiresAt));
   res.cookie("gf_auth_present", "1", getPresenceCookieOptions(req, expiresAt));
+  if (deviceId) {
+    setDeviceIdCookie(res, req, deviceId);
+  }
 }
 
 function clearStudentAuthCookies(res, req) {
@@ -329,8 +379,9 @@ function clearStudentAuthCookies(res, req) {
 function getAdminCookieOptions(req, customExpires = null) {
   const isProd = process.env.NODE_ENV === "production";
   const expires = customExpires || new Date(Date.now() + ADMIN_PERMANENT_SESSION_MS);
+  const maxAge = Math.max(0, expires.getTime() - Date.now());
   return {
-    maxAge: ADMIN_PERMANENT_SESSION_MS,
+    maxAge,
     expires,
     httpOnly: true,
     secure: isProd || req.secure || req.headers["x-forwarded-proto"] === "https",
@@ -342,8 +393,9 @@ function getAdminCookieOptions(req, customExpires = null) {
 function getAdminPresenceCookieOptions(req, customExpires = null) {
   const isProd = process.env.NODE_ENV === "production";
   const expires = customExpires || new Date(Date.now() + ADMIN_PERMANENT_SESSION_MS);
+  const maxAge = Math.max(0, expires.getTime() - Date.now());
   return {
-    maxAge: ADMIN_PERMANENT_SESSION_MS,
+    maxAge,
     expires,
     httpOnly: false, // Non-HttpOnly UI hint readable by browser
     secure: isProd || req.secure || req.headers["x-forwarded-proto"] === "https",
@@ -352,10 +404,13 @@ function getAdminPresenceCookieOptions(req, customExpires = null) {
   };
 }
 
-function setAdminAuthCookies(res, req, token, expiresAt = null) {
+function setAdminAuthCookies(res, req, token, expiresAt = null, deviceId = null) {
   const adminExpires = expiresAt || new Date(Date.now() + ADMIN_PERMANENT_SESSION_MS);
   res.cookie("jwt", token, getAdminCookieOptions(req, adminExpires));
   res.cookie("gf_auth_present", "1", getAdminPresenceCookieOptions(req, adminExpires));
+  if (deviceId) {
+    setDeviceIdCookie(res, req, deviceId);
+  }
 }
 
 function clearAdminAuthCookies(res, req) {
@@ -419,38 +474,17 @@ router.get("/student/check-status", async (req, res) => {
 
     let isCurrentDevice = false;
     let currentSessionId = null;
-    if (hasPassword && incomingToken && incomingToken !== "none") {
-      try {
-        const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
-        if (decoded.regNo === rawReg && activeSessions.some((s) => s.sessionId === decoded.sessionId)) {
-          isCurrentDevice = true;
-          currentSessionId = decoded.sessionId;
-        }
-      } catch {}
-    }
-
-    // Fallback 1: Header hint
-    const lastSessionHeader = req.headers["x-student-last-session"] || req.headers["x-student-session"];
-    if (!isCurrentDevice && hasPassword && lastSessionHeader) {
-      const match = activeSessions.find((s) => s.sessionId === lastSessionHeader);
-      if (match) {
+    if (hasPassword && activeSessions.length > 0) {
+      const devRes = resolveCurrentDeviceSession(activeSessions, req, { expectedRegNo: rawReg, role: "student" });
+      if (devRes.isCurrentDevice) {
         isCurrentDevice = true;
-        currentSessionId = match.sessionId;
-      }
-    }
-
-    // Fallback 2: Match active session by physical device info if cookies/storage were cleared
-    if (!isCurrentDevice && hasPassword && activeSessions.length > 0) {
-      const match = findMatchingSessionByDevice(activeSessions, req);
-      if (match) {
-        isCurrentDevice = true;
-        currentSessionId = match.sessionId;
+        currentSessionId = devRes.matchedSession?.sessionId || null;
       }
     }
 
     // Determine device limits and OTP eligibility
     const isCapacityFull = activeSessions.length >= maxAllowedDevices && !isCurrentDevice;
-    const maxDailyLimit = rawReg === "230301120327" ? 5 : 3;
+    const maxDailyLimit = isDeveloperOrSpecialStudent(rawReg) ? getDeveloperDailyOtpMax() : 3;
     const quota = await getAccountOtpQuotaState(rawReg, maxDailyLimit);
 
     const isCooldownActive = quota.isCooldownActive;
@@ -471,8 +505,8 @@ router.get("/student/check-status", async (req, res) => {
     let blockMessage = null;
 
     const now = new Date();
-    // ── Normal Student 2-Failed-Password & 24h Lockout Check (Anti-Bypass Protection) ──
-    if (rawReg !== "230301120327" && studentAccount) {
+    // ── Brute-Force & 24h Lockout Check (Anti-Bypass Protection) ──
+    if (studentAccount) {
       // 1. If 24h lockout period has naturally expired, reset counters
       if (studentAccount.recoveryRestrictedUntil && new Date(studentAccount.recoveryRestrictedUntil) <= now) {
         studentAccount.failedPasswordAttempts = 0;
@@ -565,8 +599,7 @@ router.get("/student/check-status", async (req, res) => {
 
     const sessionDetails = activeSessions.map((s, idx) => ({
       deviceIndex: idx + 1,
-      sessionId: s.sessionId,
-      isCurrentDevice: s.sessionId === currentSessionId,
+      isCurrentDevice: Boolean(currentSessionId && s.sessionId === currentSessionId),
       platform: s.deviceInfo?.platform || "Unknown",
       userAgent: s.deviceInfo?.userAgent || "Unknown",
       ip: s.deviceInfo?.ip || "",
@@ -584,6 +617,8 @@ router.get("/student/check-status", async (req, res) => {
       isCurrentDevice,
       activeDeviceCount: activeSessions.length,
       maxAllowedDevices,
+      isSpecialStudent: isDeveloperOrSpecialStudent(rawReg),
+      isDeveloper: isDeveloperOrSpecialStudent(rawReg),
       isBlocked,
       isLocked: isBlocked && blockReason === "ACCOUNT_TEMPORARILY_LOCKED",
       code: blockReason,
@@ -669,8 +704,8 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
     // ── Brute-Force Defense: Verify lockout state BEFORE evaluating password ──
     const now = new Date();
     if (studentAccount.recoveryRestrictedUntil && new Date(studentAccount.recoveryRestrictedUntil) > now) {
-      // For normal student: check if 5-minute recovery OTP is still active
-      if (rawReg !== "230301120327" && studentAccount.failedPasswordAttempts >= 3) {
+      // Check if 5-minute recovery OTP is still active
+      if (studentAccount.failedPasswordAttempts >= 3) {
         const activeRecoveryOtp = await OtpVerification.findOne({
           regNo: rawReg,
           purpose: "FAILED_PASSWORD_RECOVERY",
@@ -734,8 +769,8 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
     const maxAllowedDevices = getMaxAllowedDevices(rawReg);
     const activeSessions = await getActiveSessions(StudentSession, rawReg);
 
-    // Anti-Bypass: If normal student has already reached 3 failed attempts, prevent further password evaluations
-    if (rawReg !== "230301120327" && (studentAccount.failedPasswordAttempts || 0) >= 3) {
+    // Anti-Bypass: If student has already reached 3 failed attempts, prevent further password evaluations
+    if ((studentAccount.failedPasswordAttempts || 0) >= 3) {
       const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
       return res.status(200).json({
         success: true,
@@ -777,47 +812,10 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
         }
       );
 
-      // Check if current requesting device already has an active session
-      let incomingToken = req.cookies?.student_jwt;
-      if (!incomingToken && req.headers["x-student-token"]) {
-        incomingToken = req.headers["x-student-token"];
-      }
-      if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-        incomingToken = req.headers.authorization.split(" ")[1];
-      }
-
-      let isCurrentDevice = false;
-      let matchedSession = null;
-      if (incomingToken && incomingToken !== "none") {
-        try {
-          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
-          if (decoded.regNo === rawReg) {
-            matchedSession = activeSessions.find((s) => s.sessionId === decoded.sessionId);
-            if (matchedSession) {
-              isCurrentDevice = true;
-            }
-          }
-        } catch {}
-      }
-
-      // Fallback 1: Header hint
-      const lastSessionHeader = req.headers["x-student-last-session"] || req.headers["x-student-session"];
-      if (!isCurrentDevice && lastSessionHeader) {
-        const match = activeSessions.find((s) => s.sessionId === lastSessionHeader);
-        if (match) {
-          isCurrentDevice = true;
-          matchedSession = match;
-        }
-      }
-
-      // Fallback 2: Match active session by physical device info if cookies/storage were cleared
-      if (!isCurrentDevice && activeSessions.length > 0) {
-        const match = findMatchingSessionByDevice(activeSessions, req);
-        if (match) {
-          isCurrentDevice = true;
-          matchedSession = match;
-        }
-      }
+      // Check if current requesting device already has an active session via cryptographic binding
+      const devRes = resolveCurrentDeviceSession(activeSessions, req, { expectedRegNo: rawReg, role: "student" });
+      const isCurrentDevice = devRes.isCurrentDevice;
+      const matchedSession = devRes.matchedSession;
 
       // CASE A: Normal Single-Device Student (limit = 1)
       if (maxAllowedDevices === 1) {
@@ -834,8 +832,10 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
           : activeSessions;
 
         if (remainingActiveSessions.length === 0) {
-          // Direct login! Issue fresh session & JWT
+          // Direct login! Issue fresh session & JWT bound to persistent deviceId
+          const currentDeviceId = getOrCreateDeviceId(req, res);
           const { newSession } = await replaceStudentSession(StudentSession, rawReg, {
+            deviceId: currentDeviceId,
             deviceInfo: extractRequestDeviceInfo(req),
           });
 
@@ -845,7 +845,7 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
             { expiresIn: "60d" }
           );
 
-          setStudentAuthCookies(res, req, studentToken, newSession.expiresAt);
+          setStudentAuthCookies(res, req, studentToken, newSession.expiresAt, currentDeviceId);
 
           return res.json({
             success: true,
@@ -854,6 +854,9 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
               regNo: rawReg,
               studentName,
               sessionId: newSession.sessionId,
+              deviceId: currentDeviceId,
+              isSpecialStudent: isDeveloperOrSpecialStudent(rawReg),
+              isDeveloper: isDeveloperOrSpecialStudent(rawReg),
             },
           });
         }
@@ -887,7 +890,7 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
           },
         });
       } else {
-        // CASE B: 2-Device Account (Special Student 230301120327): Strict 2-Device Cap (Device 3 Blocked)
+        // CASE B: Multi-Device Account (Developer / Special Student): Strict Cap
         // Check active authenticated device sessions ONLY AFTER password is verified
         // If current device matches an active session, exclude it so re-authentication proceeds to OTP
         const remainingActiveSessions = (isCurrentDevice && matchedSession)
@@ -914,19 +917,20 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
           });
         }
 
-        // Active devices < 2: Check 5-send 24-hour OTP quota & 180s cooldown
-        const quota = await getAccountOtpQuotaState(rawReg, 5);
+        // Active devices < cap: Check multi-device OTP quota & 180s cooldown
+        const devOtpMax = getDeveloperDailyOtpMax();
+        const quota = await getAccountOtpQuotaState(rawReg, devOtpMax);
         if (quota.isLimitReached) {
           return res.status(429).json({
             success: false,
             code: "DAILY_LIMIT_EXCEEDED",
-            message: `OTP limit reached (maximum 5 requests per 24 hours). You can request another OTP after ${formatUnlockTime(quota.unlockAt)}.`,
+            message: `OTP limit reached (maximum ${devOtpMax} requests per 24 hours). You can request another OTP after ${formatUnlockTime(quota.unlockAt)}.`,
             remainingSeconds: quota.secondsUntilUnlock,
             secondsUntilUnlock: quota.secondsUntilUnlock,
             unlockAt: quota.unlockAt,
             unlockTime: formatUnlockTime(quota.unlockAt),
             remainingDailyAttempts: 0,
-            maxDailyAttempts: 5,
+            maxDailyAttempts: devOtpMax,
           });
         }
 
@@ -939,7 +943,7 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
             secondsRemaining: quota.cooldownRemainingSeconds,
             cooldownRemainingSeconds: quota.cooldownRemainingSeconds,
             remainingDailyAttempts: quota.remainingAttempts,
-            maxDailyAttempts: 5,
+            maxDailyAttempts: getDeveloperDailyOtpMax(),
           });
         }
 
@@ -999,8 +1003,8 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
     studentAccount.failedPasswordAttempts = (studentAccount.failedPasswordAttempts || 0) + 1;
     studentAccount.lastFailedPasswordAt = new Date();
 
-    if (rawReg !== "230301120327" && studentAccount.failedPasswordAttempts >= 3) {
-      // ── NORMAL STUDENT: 3 Failed Password Attempts Reached! ──
+    if (studentAccount.failedPasswordAttempts >= 3) {
+      // 3 Failed Password Attempts Reached!
       // Do NOT dispatch OTP automatically! Transition to dedicated RECOVERY_PROMPT instruction page.
       // The student must explicitly click "Send One-Time OTP to Email" to dispatch the 5-min OTP.
       studentAccount.failedPasswordAttempts = 3;
@@ -1028,8 +1032,8 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
           studentName,
         },
       });
-    } else if (rawReg !== "230301120327") {
-      // Failed attempt 1 or 2 for normal student
+    } else {
+      // Failed attempt 1 or 2
       const attemptsCount = studentAccount.failedPasswordAttempts;
       const remainingAttempts = Math.max(0, 3 - attemptsCount);
 
@@ -1050,48 +1054,6 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
         remainingAttempts,
         failedAttempts: attemptsCount,
       });
-    } else {
-      // Special student logic
-      if (studentAccount.failedPasswordAttempts >= 3) {
-        const restrictionDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        studentAccount.recoveryRestrictedUntil = restrictionDate;
-        await Student.updateOne(
-          { _id: studentAccount._id },
-          {
-            $set: {
-              failedPasswordAttempts: studentAccount.failedPasswordAttempts,
-              lastFailedPasswordAt: studentAccount.lastFailedPasswordAt,
-              recoveryRestrictedUntil: restrictionDate,
-              lockedUntil: restrictionDate,
-            },
-          }
-        );
-        return res.status(429).json({
-          success: false,
-          code: "ACCOUNT_TEMPORARILY_LOCKED",
-          message: "Maximum password attempts reached (3/3). Account is restricted for 24 hours.",
-          recoveryRestrictedUntil: restrictionDate,
-          remainingHours: 24,
-        });
-      } else {
-        await Student.updateOne(
-          { _id: studentAccount._id },
-          {
-            $set: {
-              failedPasswordAttempts: studentAccount.failedPasswordAttempts,
-              lastFailedPasswordAt: studentAccount.lastFailedPasswordAt,
-            },
-          }
-        );
-        const remaining = 3 - studentAccount.failedPasswordAttempts;
-        return res.status(401).json({
-          success: false,
-          code: "INVALID_PASSWORD",
-          message: `Incorrect password. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`,
-          remainingAttempts: remaining,
-          failedAttempts: studentAccount.failedPasswordAttempts,
-        });
-      }
     }
   } catch (err) {
     console.error("Student login-password error:", err);
@@ -1111,7 +1073,7 @@ router.post("/student/send-recovery-otp", otpSendLimiter, async (req, res) => {
       });
     }
 
-    if (rawReg === "230301120327") {
+    if (isDeveloperOrSpecialStudent(rawReg)) {
       return res.status(400).json({
         success: false,
         message: "This endpoint is only for normal student password recovery.",
@@ -1319,7 +1281,7 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
     const studentName = studentRecord.studentName || "Student";
     const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
     const maxAllowedDevices = getMaxAllowedDevices(rawReg);
-    const isUnlimited = rawReg === "230301120327";
+    const isUnlimited = isDeveloperOrSpecialStudent(rawReg);
 
     let studentAccount = await Student.findOne({ regNo: rawReg });
     if (studentAccount && Student.isStudentBlocked(studentAccount)) {
@@ -1347,7 +1309,7 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
     let isCurrentDevice = false;
     if (hasPassword && incomingToken && incomingToken !== "none") {
       try {
-        const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+        const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
         if (decoded.regNo === rawReg && activeSessions.some((s) => s.sessionId === decoded.sessionId)) {
           isCurrentDevice = true;
         }
@@ -1400,7 +1362,7 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
         });
       }
 
-      if (rawReg !== "230301120327" && (studentAccount.failedPasswordAttempts || 0) >= 3) {
+      if ((studentAccount.failedPasswordAttempts || 0) >= 3) {
         return res.status(400).json({
           success: false,
           code: "RECOVERY_PROMPT_REQUIRED",
@@ -1442,7 +1404,7 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
     }
 
     const isForgotPassword = Boolean(req.body.isForgotPassword || req.body.forceOtp);
-    const maxDailyLimit = rawReg === "230301120327" ? 5 : 3;
+    const maxDailyLimit = isDeveloperOrSpecialStudent(rawReg) ? getDeveloperDailyOtpMax() : 3;
     let quota = null;
 
     if (!isForgotPassword) {
@@ -1693,7 +1655,7 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
     const studentName = studentRecord?.studentName || "Student";
 
     const isSpecialStudentLogin =
-      (otpRecord.purpose === "SPECIAL_STUDENT_LOGIN" || (rawReg === "230301120327" && otpRecord.purpose !== "PASSWORD_RESET")) &&
+      (otpRecord.purpose === "SPECIAL_STUDENT_LOGIN" || (isDeveloperOrSpecialStudent(rawReg) && otpRecord.purpose !== "PASSWORD_RESET")) &&
       Boolean(studentAccount && studentAccount.passwordHash) &&
       !req.body.isForgotPassword;
 
@@ -1704,47 +1666,10 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
       const maxAllowedDevices = getMaxAllowedDevices(rawReg);
       const activeSessions = await getActiveSessions(StudentSession, rawReg);
 
-      // Check if current requesting device already has an active session
-      let incomingToken = req.cookies?.student_jwt;
-      if (!incomingToken && req.headers["x-student-token"]) {
-        incomingToken = req.headers["x-student-token"];
-      }
-      if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-        incomingToken = req.headers.authorization.split(" ")[1];
-      }
-
-      let isCurrentDevice = false;
-      let matchedSession = null;
-      if (incomingToken && incomingToken !== "none") {
-        try {
-          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
-          if (decoded.regNo === rawReg) {
-            matchedSession = activeSessions.find((s) => s.sessionId === decoded.sessionId);
-            if (matchedSession) {
-              isCurrentDevice = true;
-            }
-          }
-        } catch {}
-      }
-
-      // Fallback 1: Header hint
-      const lastSessionHeader = req.headers["x-student-last-session"] || req.headers["x-student-session"];
-      if (!isCurrentDevice && lastSessionHeader) {
-        const match = activeSessions.find((s) => s.sessionId === lastSessionHeader);
-        if (match) {
-          isCurrentDevice = true;
-          matchedSession = match;
-        }
-      }
-
-      // Fallback 2: Match active session by physical device info if cookies/storage were cleared
-      if (!isCurrentDevice && activeSessions.length > 0) {
-        const match = findMatchingSessionByDevice(activeSessions, req);
-        if (match) {
-          isCurrentDevice = true;
-          matchedSession = match;
-        }
-      }
+      // Check if current requesting device already has an active session via cryptographic binding
+      const devRes = resolveCurrentDeviceSession(activeSessions, req, { expectedRegNo: rawReg, role: "student" });
+      const isCurrentDevice = devRes.isCurrentDevice;
+      const matchedSession = devRes.matchedSession;
 
       if (isCurrentDevice && matchedSession) {
         matchedSession.isActive = false;
@@ -1781,10 +1706,11 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
       const now = Date.now();
       const expiresAt = new Date(now + PERMANENT_SESSION_MS);
 
+      const currentDeviceId = getOrCreateDeviceId(req, res);
       const newSession = await StudentSession.create({
         regNo: rawReg,
         sessionId,
-        deviceId: crypto.randomUUID(),
+        deviceId: currentDeviceId,
         deviceInfo: extractRequestDeviceInfo(req),
         loggedInAt: new Date(now),
         lastActiveAt: new Date(now),
@@ -1798,7 +1724,7 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
         { expiresIn: "60d" }
       );
 
-      setStudentAuthCookies(res, req, studentToken, expiresAt);
+      setStudentAuthCookies(res, req, studentToken, expiresAt, currentDeviceId);
 
       return res.json({
         success: true,
@@ -1808,6 +1734,9 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
           regNo: rawReg,
           studentName,
           sessionId: newSession.sessionId,
+          deviceId: currentDeviceId,
+          isSpecialStudent: isDeveloperOrSpecialStudent(rawReg),
+          isDeveloper: isDeveloperOrSpecialStudent(rawReg),
         },
       });
     }
@@ -2154,7 +2083,7 @@ router.get("/bootstrap", async (req, res) => {
     // 1. Passive / Read-only Student Session Validation
     if (studentToken && studentToken !== "none") {
       try {
-        const decoded = jwt.verify(studentToken, process.env.JWT_SECRET);
+        const decoded = jwt.verify(studentToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
         if (decoded?.regNo && decoded?.sessionId) {
           const session = await StudentSession.findOne({
             regNo: decoded.regNo,
@@ -2177,7 +2106,7 @@ router.get("/bootstrap", async (req, res) => {
     // 2. Passive / Read-only Admin & Sub-Admin Session Validation
     if (adminToken && adminToken !== "none") {
       try {
-        const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
+        const decoded = jwt.verify(adminToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
         if (decoded?.role === "admin") {
           if (decoded.adminType === "subadmin" && decoded.subAdminId) {
             const session = await SubAdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
@@ -2333,7 +2262,7 @@ router.post("/student/logout", async (req, res) => {
 
     if (studentToken && studentToken !== "none") {
       try {
-        const decoded = jwt.verify(studentToken, process.env.JWT_SECRET);
+        const decoded = jwt.verify(studentToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
         sessionId = decoded?.sessionId;
         decodedRegNo = decoded?.regNo;
       } catch {}
@@ -2468,34 +2397,18 @@ router.get("/admin/check-status", async (req, res) => {
     let decodedAdmin = null;
     if (incomingToken && incomingToken !== "none") {
       try {
-        decodedAdmin = jwt.verify(incomingToken, process.env.JWT_SECRET);
+        decodedAdmin = jwt.verify(incomingToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
       } catch {}
     }
 
     const activeSessions = await getActiveAdminSessions(AdminSession);
 
     let isCurrentDevice = false;
-    if (decodedAdmin && decodedAdmin.role === "admin" && decodedAdmin.sessionId) {
-      const matching = activeSessions.find((s) => s.sessionId === decodedAdmin.sessionId);
-      if (matching) {
+    if (activeSessions.length > 0) {
+      const devRes = resolveCurrentDeviceSession(activeSessions, req, { role: "admin" });
+      if (devRes.isCurrentDevice) {
         isCurrentDevice = true;
-        touchAdminSession(matching).catch(() => {});
-      }
-    }
-
-    // Fallback 1: Header hint
-    if (!isCurrentDevice && clientLastSession) {
-      const match = activeSessions.find((s) => s.sessionId === clientLastSession);
-      if (match) {
-        isCurrentDevice = true;
-      }
-    }
-
-    // Fallback 2: Match active session by physical device info if cookies/storage were cleared
-    if (!isCurrentDevice && activeSessions.length > 0) {
-      const match = findMatchingSessionByDevice(activeSessions, req);
-      if (match) {
-        isCurrentDevice = true;
+        touchAdminSession(devRes.matchedSession).catch(() => {});
       }
     }
 
@@ -2647,7 +2560,7 @@ const handleAdminPasswordLogin = async (req, res) => {
     let matchedSession = null;
     if (incomingToken && incomingToken !== "none") {
       try {
-        const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+        const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
         if (decoded.role === "admin" && decoded.sessionId) {
           const matching = activeSessions.find((s) => s.sessionId === decoded.sessionId);
           if (matching && isAdminSessionValid(matching)) {
@@ -2667,22 +2580,12 @@ const handleAdminPasswordLogin = async (req, res) => {
       } catch {}
     }
 
-    // Fallback 1: Header hint
-    const lastAdminSessionHeader = req.headers["x-admin-last-session"] || req.headers["x-admin-session"];
-    if (!isCurrentDevice && lastAdminSessionHeader) {
-      const match = activeSessions.find((s) => s.sessionId === lastAdminSessionHeader);
-      if (match && isAdminSessionValid(match)) {
-        isCurrentDevice = true;
-        matchedSession = match;
-      }
-    }
-
-    // Fallback 2: Match active session by physical device info if cookies/storage were cleared
+    // Cryptographic device binding check
     if (!isCurrentDevice && activeSessions.length > 0) {
-      const match = findMatchingSessionByDevice(activeSessions, req);
-      if (match && isAdminSessionValid(match)) {
+      const devRes = resolveCurrentDeviceSession(activeSessions, req, { role: "admin" });
+      if (devRes.isCurrentDevice && devRes.matchedSession && isAdminSessionValid(devRes.matchedSession)) {
         isCurrentDevice = true;
-        matchedSession = match;
+        matchedSession = devRes.matchedSession;
       }
     }
 
@@ -2698,11 +2601,16 @@ const handleAdminPasswordLogin = async (req, res) => {
         message: "Maximum active administrator sessions reached (2 devices). Access denied.",
         activeDeviceCount: remainingActiveSessions.length,
         maxAllowedDevices: MAX_ADMIN_DEVICES,
-        activeDevices: remainingActiveSessions.map((s) => ({
-          sessionId: s.sessionId,
-          deviceInfo: s.deviceInfo,
-          lastActiveAt: s.lastActiveAt,
+        activeDevices: remainingActiveSessions.map((s, idx) => ({
+          deviceIndex: idx + 1,
+          deviceType: s.deviceInfo?.deviceType || "Desktop",
+          os: s.deviceInfo?.os || "Windows",
+          browser: s.deviceInfo?.browser || "Chrome",
+          platform: s.deviceInfo?.platform || `${s.deviceInfo?.os || "Windows"} • ${s.deviceInfo?.browser || "Chrome"}`,
+          userAgent: s.deviceInfo?.userAgent || "Standard Browser",
           loggedInAt: s.loggedInAt,
+          lastActiveAt: s.lastActiveAt,
+          status: "ACTIVE",
         })),
       });
     }
@@ -2836,36 +2744,9 @@ router.post("/admin/verify-otp", async (req, res) => {
       incomingToken = req.headers.authorization.split(" ")[1];
     }
 
-    let isCurrentDevice = false;
-    let matchedSession = null;
-    if (incomingToken && incomingToken !== "none") {
-      try {
-        const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
-        if (decoded.role === "admin" && decoded.sessionId) {
-          matchedSession = activeSessions.find((s) => s.sessionId === decoded.sessionId);
-          if (matchedSession) isCurrentDevice = true;
-        }
-      } catch {}
-    }
-
-    // Fallback 1: Header hint
-    const lastAdminSessionHeader = req.headers["x-admin-last-session"] || req.headers["x-admin-session"];
-    if (!isCurrentDevice && lastAdminSessionHeader) {
-      const match = activeSessions.find((s) => s.sessionId === lastAdminSessionHeader);
-      if (match) {
-        isCurrentDevice = true;
-        matchedSession = match;
-      }
-    }
-
-    // Fallback 2: Match active session by physical device info if cookies/storage were cleared
-    if (!isCurrentDevice && activeSessions.length > 0) {
-      const match = findMatchingSessionByDevice(activeSessions, req);
-      if (match) {
-        isCurrentDevice = true;
-        matchedSession = match;
-      }
-    }
+    const devRes = resolveCurrentDeviceSession(activeSessions, req, { role: "admin" });
+    const isCurrentDevice = devRes.isCurrentDevice;
+    const matchedSession = devRes.matchedSession;
 
     if (isCurrentDevice && matchedSession) {
       matchedSession.isActive = false;
@@ -2885,21 +2766,28 @@ router.post("/admin/verify-otp", async (req, res) => {
         message: "Maximum active administrator sessions reached (2 devices). Access denied.",
         activeDeviceCount: remainingActiveSessions.length,
         maxAllowedDevices: MAX_ADMIN_DEVICES,
-        activeDevices: remainingActiveSessions.map((s) => ({
-          sessionId: s.sessionId,
-          deviceInfo: s.deviceInfo,
-          lastActiveAt: s.lastActiveAt,
+        activeDevices: remainingActiveSessions.map((s, idx) => ({
+          deviceIndex: idx + 1,
+          deviceType: s.deviceInfo?.deviceType || "Desktop",
+          os: s.deviceInfo?.os || "Windows",
+          browser: s.deviceInfo?.browser || "Chrome",
+          platform: s.deviceInfo?.platform || `${s.deviceInfo?.os || "Windows"} • ${s.deviceInfo?.browser || "Chrome"}`,
+          userAgent: s.deviceInfo?.userAgent || "Standard Browser",
           loggedInAt: s.loggedInAt,
+          lastActiveAt: s.lastActiveAt,
+          status: "ACTIVE",
         })),
       });
     }
 
+    const currentDeviceId = getOrCreateDeviceId(req, res);
     const sessionId = crypto.randomUUID();
     const now = new Date();
     const expiresAt = new Date(Date.now() + ADMIN_PERMANENT_SESSION_MS);
 
     await AdminSession.create({
       sessionId,
+      deviceId: currentDeviceId,
       deviceInfo: extractRequestDeviceInfo(req),
       loggedInAt: now,
       lastActiveAt: now,
@@ -2910,10 +2798,10 @@ router.post("/admin/verify-otp", async (req, res) => {
     const token = jwt.sign(
       { role: "admin", sessionId, loggedInAt: now },
       process.env.JWT_SECRET,
-      { expiresIn: "36500d" }
+      { expiresIn: "30d" }
     );
 
-    setAdminAuthCookies(res, req, token, expiresAt);
+    setAdminAuthCookies(res, req, token, expiresAt, currentDeviceId);
 
     let liveAdminCount = 1;
     try {
@@ -3004,7 +2892,7 @@ router.post("/subadmin/login", async (req, res) => {
     let isCurrentDevice = false;
     if (incomingToken && incomingToken !== "none") {
       try {
-        const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+        const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
         if (decoded.adminType === "subadmin" && decoded.sessionId) {
           const matching = activeSessions.find((s) => s.sessionId === decoded.sessionId);
           if (matching && matching.isActive) {
@@ -3032,11 +2920,16 @@ router.post("/subadmin/login", async (req, res) => {
         message: `Sub-Admin portal is currently active on ${activeSessions.length} authorized devices (maximum limit: ${MAX_SUBADMIN_DEVICES} devices). Please log out from another device to continue.`,
         activeDeviceCount: activeSessions.length,
         maxAllowedDevices: MAX_SUBADMIN_DEVICES,
-        activeDevices: activeSessions.map((s) => ({
-          sessionId: s.sessionId,
-          deviceInfo: s.deviceInfo,
-          lastActiveAt: s.lastActiveAt,
+        activeDevices: activeSessions.map((s, idx) => ({
+          deviceIndex: idx + 1,
+          deviceType: s.deviceInfo?.deviceType || "Desktop",
+          os: s.deviceInfo?.os || "Windows",
+          browser: s.deviceInfo?.browser || "Chrome",
+          platform: s.deviceInfo?.platform || `${s.deviceInfo?.os || "Windows"} • ${s.deviceInfo?.browser || "Chrome"}`,
+          userAgent: s.deviceInfo?.userAgent || "Standard Browser",
           loggedInAt: s.loggedInAt,
+          lastActiveAt: s.lastActiveAt,
+          status: "ACTIVE",
         })),
       });
     }
@@ -3187,15 +3080,21 @@ router.post("/subadmin/verify-otp", async (req, res) => {
         message: `Sub-Admin portal is currently active on ${activeSessions.length} authorized devices (maximum limit: ${MAX_SUBADMIN_DEVICES} devices). Access denied.`,
         activeDeviceCount: activeSessions.length,
         maxAllowedDevices: MAX_SUBADMIN_DEVICES,
-        activeDevices: activeSessions.map((s) => ({
-          sessionId: s.sessionId,
-          deviceInfo: s.deviceInfo,
-          lastActiveAt: s.lastActiveAt,
+        activeDevices: activeSessions.map((s, idx) => ({
+          deviceIndex: idx + 1,
+          deviceType: s.deviceInfo?.deviceType || "Desktop",
+          os: s.deviceInfo?.os || "Windows",
+          browser: s.deviceInfo?.browser || "Chrome",
+          platform: s.deviceInfo?.platform || `${s.deviceInfo?.os || "Windows"} • ${s.deviceInfo?.browser || "Chrome"}`,
+          userAgent: s.deviceInfo?.userAgent || "Standard Browser",
           loggedInAt: s.loggedInAt,
+          lastActiveAt: s.lastActiveAt,
+          status: "ACTIVE",
         })),
       });
     }
 
+    const currentDeviceId = getOrCreateDeviceId(req, res);
     const sessionId = crypto.randomUUID();
     const now = new Date();
     const expiresAt = new Date(Date.now() + ADMIN_PERMANENT_SESSION_MS);
@@ -3203,7 +3102,7 @@ router.post("/subadmin/verify-otp", async (req, res) => {
     await SubAdminSession.create({
       subAdminId: subAdmin._id,
       sessionId,
-      deviceId: crypto.randomUUID(),
+      deviceId: currentDeviceId,
       deviceInfo: extractRequestDeviceInfo(req),
       loggedInAt: now,
       lastActiveAt: now,
@@ -3226,10 +3125,10 @@ router.post("/subadmin/verify-otp", async (req, res) => {
         loggedInAt: now,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "36500d" }
+      { expiresIn: "30d" }
     );
 
-    setAdminAuthCookies(res, req, token, expiresAt);
+    setAdminAuthCookies(res, req, token, expiresAt, currentDeviceId);
 
     return res.json({
       success: true,
@@ -3368,17 +3267,20 @@ const handleAdminLogout = async (req, res) => {
     }
 
     if (!targetSessionId) {
-      targetSessionId = req.headers["x-admin-last-session"] || req.body?.sessionId || null;
-    }
-
-    if (!targetSessionId) {
-      try {
-        const activeSessions = await getActiveAdminSessions(AdminSession);
-        const match = findMatchingSessionByDevice(activeSessions, req);
-        if (match) {
-          targetSessionId = match.sessionId;
-        }
-      } catch {}
+      const candidateId = req.headers["x-admin-last-session"] || req.body?.sessionId || null;
+      const incomingDeviceId = (req.cookies?.gf_device_id || req.headers?.["x-device-id"] || "").trim();
+      if (incomingDeviceId) {
+        try {
+          const activeSessions = await getActiveAdminSessions(AdminSession);
+          if (candidateId) {
+            const match = activeSessions.find((s) => s.sessionId === candidateId && s.deviceId === incomingDeviceId);
+            if (match) targetSessionId = match.sessionId;
+          } else {
+            const match = activeSessions.find((s) => s.deviceId && s.deviceId === incomingDeviceId);
+            if (match) targetSessionId = match.sessionId;
+          }
+        } catch {}
+      }
     }
 
     if (targetSessionId) {
@@ -3429,16 +3331,31 @@ router.post("/admin/logout", handleAdminLogout);
 // Admin Release Session
 const handleAdminReleaseSession = async (req, res) => {
   try {
-    let targetSessionId = req.body?.sessionId || req.headers["x-admin-last-session"] || null;
+    let targetSessionId = null;
+    let token = req.cookies?.jwt || req.headers["x-admin-token"];
+    if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+    if (token && token !== "none") {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+        targetSessionId = decoded?.sessionId;
+      } catch {}
+    }
+
     if (!targetSessionId) {
-      let token = req.cookies?.jwt || req.headers["x-admin-token"];
-      if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-        token = req.headers.authorization.split(" ")[1];
-      }
-      if (token && token !== "none") {
+      const candidateId = req.body?.sessionId || req.headers["x-admin-last-session"] || null;
+      const incomingDeviceId = (req.cookies?.gf_device_id || req.headers?.["x-device-id"] || "").trim();
+      if (incomingDeviceId) {
         try {
-          const decoded = jwt.verify(token, process.env.JWT_SECRET);
-          targetSessionId = decoded?.sessionId;
+          const activeSessions = await getActiveAdminSessions(AdminSession);
+          if (candidateId) {
+            const match = activeSessions.find((s) => s.sessionId === candidateId && s.deviceId === incomingDeviceId);
+            if (match) targetSessionId = match.sessionId;
+          } else {
+            const match = activeSessions.find((s) => s.deviceId && s.deviceId === incomingDeviceId);
+            if (match) targetSessionId = match.sessionId;
+          }
         } catch {}
       }
     }
@@ -3510,7 +3427,7 @@ const handleAdminHeartbeat = async (req, res) => {
 
     if (incomingToken && incomingToken !== "none") {
       try {
-        const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+        const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
         if (decoded.role === "admin" && decoded.sessionId) {
           const session = await AdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
           if (session) {
@@ -3545,7 +3462,7 @@ const handleStudentLogout = async (req, res) => {
 
     if (token && token !== "none") {
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
         sessionId = decoded?.sessionId;
         decodedRegNo = decoded?.regNo;
       } catch {}
@@ -3560,9 +3477,12 @@ const handleStudentLogout = async (req, res) => {
     if (!sessionId && targetReg) {
       try {
         const activeSessions = await getActiveSessions(StudentSession, targetReg);
-        const match = findMatchingSessionByDevice(activeSessions, req);
-        if (match) {
-          sessionId = match.sessionId;
+        const incomingDeviceId = (req.cookies?.gf_device_id || req.headers?.["x-device-id"] || "").trim();
+        if (incomingDeviceId) {
+          const match = activeSessions.find((s) => s.deviceId && s.deviceId === incomingDeviceId);
+          if (match) {
+            sessionId = match.sessionId;
+          }
         }
       } catch {}
     }
@@ -3609,7 +3529,7 @@ router.all("/realtime-token", async (req, res) => {
     // 1. Authenticated Admin Token Request (Priority for admin-control channel capabilities)
     if (adminToken && adminToken !== "none") {
       try {
-        const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
+        const decoded = jwt.verify(adminToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
         if (decoded.role === "admin" && decoded.sessionId) {
           let session = null;
           if (decoded.adminType === "subadmin") {
@@ -3643,7 +3563,7 @@ router.all("/realtime-token", async (req, res) => {
     // 2. Authenticated Student Token Request
     if (incomingToken && incomingToken !== "none") {
       try {
-        const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+        const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
         if (decoded.role === "student" && decoded.regNo && decoded.sessionId) {
           const cleanReg = String(decoded.regNo).trim().toUpperCase();
           const session = await StudentSession.findOne({
@@ -3702,4 +3622,5 @@ router.all("/realtime-token", async (req, res) => {
   }
 });
 
+router.resolveCurrentDeviceSession = resolveCurrentDeviceSession;
 module.exports = router;

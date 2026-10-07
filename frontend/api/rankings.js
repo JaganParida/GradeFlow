@@ -1,6 +1,19 @@
 const connectToDatabase = require("./_lib/db");
 const Ranking = require("./_lib/models/Ranking");
 const SystemConfig = require("./_lib/models/SystemConfig");
+const Student = require("./_lib/models/Student");
+const StudentSession = require("./_lib/models/StudentSession");
+const AdminSession = require("./_lib/models/AdminSession");
+const SubAdminSession = require("./_lib/models/SubAdminSession");
+const SubAdmin = require("./_lib/models/SubAdmin");
+const {
+  isSessionValid,
+  touchSession,
+  isAdminSessionValid,
+  touchAdminSession,
+  isSubAdminSessionValid,
+  touchSubAdminSession,
+} = require("./_lib/sessionManager");
 const { sortByScore } = require("./_lib/gradeCalculations");
 const { globalDbQueue } = require("./_lib/dbProtection");
 
@@ -59,32 +72,191 @@ function parseCookies(cookieHeader) {
   const cookies = {};
   if (!cookieHeader) return cookies;
   cookieHeader.split(";").forEach((cookie) => {
-    const [name, ...rest] = cookie.trim().split("=");
+    let [name, ...rest] = cookie.trim().split("=");
+    name = name?.trim();
+    if (!name) return;
     cookies[name] = rest.join("=");
   });
   return cookies;
 }
 
-function verifyAuth(req) {
+async function verifyAuth(req) {
   const cookies = parseCookies(req.headers.cookie);
-  const adminToken = cookies.jwt || req.headers["x-admin-token"] || (req.headers.authorization?.startsWith("Bearer") ? req.headers.authorization.split(" ")[1] : null);
-  const studentToken = cookies.student_jwt || req.headers["x-student-token"] || (req.headers.authorization?.startsWith("Bearer") ? req.headers.authorization.split(" ")[1] : null);
+  const authHeader = req.headers.authorization || "";
+  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  const customAdminToken = req.headers["x-admin-token"];
+  const customStudentToken = req.headers["x-student-token"];
 
-  if (adminToken && adminToken !== "none") {
+  // 1. Identify and validate Admin token
+  let adminTokenCandidate = cookies.jwt || cookies.admin_token || customAdminToken;
+  if (!adminTokenCandidate && bearerToken) {
     try {
-      const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
-      if (decoded) return { role: "admin", user: decoded };
-    } catch {}
+      const peek = jwt.verify(bearerToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+      if (peek && peek.role !== "student" && !peek.regNo && (peek.role === "admin" || peek.adminType === "subadmin" || peek.email)) {
+        adminTokenCandidate = bearerToken;
+      }
+    } catch (_) {}
   }
 
-  if (studentToken && studentToken !== "none") {
+  if (adminTokenCandidate && adminTokenCandidate !== "none" && adminTokenCandidate !== "") {
     try {
-      const decoded = jwt.verify(studentToken, process.env.JWT_SECRET);
-      if (decoded && decoded.regNo) return { role: "student", user: decoded };
-    } catch {}
+      const decodedAdmin = jwt.verify(adminTokenCandidate, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+      if (decodedAdmin && decodedAdmin.role !== "student" && !decodedAdmin.regNo) {
+        if (!decodedAdmin.sessionId) {
+          return {
+            error: {
+              status: 401,
+              message: "Administrative session token invalid or missing session identifier.",
+              code: "AUTH_SESSION_INVALID",
+            },
+          };
+        }
+
+        if (decodedAdmin.adminType === "subadmin") {
+          const subSession = await SubAdminSession.findOne({
+            sessionId: decodedAdmin.sessionId,
+            isActive: true,
+          });
+
+          if (!subSession || !isSubAdminSessionValid(subSession)) {
+            return {
+              error: {
+                status: 401,
+                message: "Sub-Admin session ended because this device was logged out or inactive.",
+                code: "ADMIN_SESSION_TERMINATED",
+              },
+            };
+          }
+
+          const subAdmin = await SubAdmin.findById(decodedAdmin.subAdminId).lean();
+          if (!subAdmin) {
+            return {
+              error: {
+                status: 403,
+                message: "Sub-Admin account not found.",
+                code: "SUBADMIN_NOT_FOUND",
+              },
+            };
+          }
+
+          if (subAdmin.status !== "active") {
+            return {
+              error: {
+                status: 403,
+                message: `Sub-Admin account is currently ${subAdmin.status}. Access denied.`,
+                code: `SUBADMIN_${subAdmin.status.toUpperCase()}`,
+              },
+            };
+          }
+
+          await touchSubAdminSession(subSession);
+          return { role: "admin", adminType: "subadmin", user: decodedAdmin, session: subSession };
+        } else {
+          // Main Admin
+          const adminSession = await AdminSession.findOne({
+            sessionId: decodedAdmin.sessionId,
+            isActive: true,
+          });
+
+          if (!adminSession || !isAdminSessionValid(adminSession)) {
+            return {
+              error: {
+                status: 401,
+                message: "Admin session ended because this device was logged out.",
+                code: "ADMIN_SESSION_TERMINATED",
+              },
+            };
+          }
+
+          await touchAdminSession(adminSession);
+          return { role: "admin", adminType: "main", user: decodedAdmin, session: adminSession };
+        }
+      }
+    } catch (err) {
+      if (cookies.jwt || customAdminToken) {
+        return {
+          error: {
+            status: 401,
+            message: "Administrative session token invalid or expired.",
+            code: "AUTH_REQUIRED",
+          },
+        };
+      }
+    }
   }
 
-  return null;
+  // 2. Identify and validate Student token
+  let studentTokenCandidate = cookies.student_jwt || customStudentToken;
+  if (!studentTokenCandidate && bearerToken) {
+    studentTokenCandidate = bearerToken;
+  }
+
+  if (studentTokenCandidate && studentTokenCandidate !== "none" && studentTokenCandidate !== "") {
+    try {
+      const decodedStudent = jwt.verify(studentTokenCandidate, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+      if (!decodedStudent.regNo || !decodedStudent.sessionId) {
+        return {
+          error: {
+            status: 401,
+            message: "Invalid session token. Please log in again.",
+            code: "AUTH_SESSION_INVALID",
+          },
+        };
+      }
+
+      // Check student account suspension status
+      const studentAccount = await Student.findOne({ regNo: decodedStudent.regNo }).select("isBlocked blockType blockedUntil blockedReason").lean();
+      if (studentAccount && Student.isStudentBlocked(studentAccount)) {
+        await StudentSession.updateMany({ regNo: decodedStudent.regNo }, { $set: { isActive: false } });
+        return {
+          error: {
+            status: 403,
+            message: `Student not found\n(Suspended by admin: ${studentAccount.blockedReason || "Portal access suspended by administration"})`,
+            code: "ACCOUNT_SUSPENDED",
+            isBlocked: true,
+            blockedReason: studentAccount.blockedReason || "Portal access suspended by administration",
+          },
+        };
+      }
+
+      // Authoritative database session check
+      const session = await StudentSession.findOne({
+        regNo: decodedStudent.regNo,
+        sessionId: decodedStudent.sessionId,
+        isActive: true,
+      });
+
+      if (!session || !isSessionValid(session)) {
+        return {
+          error: {
+            status: 401,
+            message: "Your session has ended because this device was logged out or expired due to inactivity.",
+            code: "SESSION_TERMINATED",
+          },
+        };
+      }
+
+      await touchSession(session);
+      return { role: "student", user: decodedStudent, session };
+    } catch (err) {
+      return {
+        error: {
+          status: 401,
+          message: "Session token invalid or expired. Please log in again.",
+          code: "AUTH_SESSION_INVALID",
+        },
+      };
+    }
+  }
+
+  // 3. No token provided
+  return {
+    error: {
+      status: 401,
+      message: "Authentication required. Please log in to view rankings.",
+      code: "AUTH_REQUIRED",
+    },
+  };
 }
 
 const { applyCors } = require("./_lib/cors");
@@ -96,9 +268,15 @@ module.exports = async function handler(req, res) {
   try {
     await connectToDatabase();
 
-    const auth = verifyAuth(req);
-    if (!auth) {
-      return res.status(401).json({ message: "Authentication required. Please log in to view rankings.", code: "AUTH_REQUIRED" });
+    const auth = await verifyAuth(req);
+    if (auth.error) {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+      return res.status(auth.error.status).json({
+        success: false,
+        message: auth.error.message,
+        code: auth.error.code,
+        ...(auth.error.isBlocked ? { isBlocked: true, blockedReason: auth.error.blockedReason } : {}),
+      });
     }
 
     const action = req.query.action;
@@ -129,7 +307,7 @@ module.exports = async function handler(req, res) {
 
       const meta = metaDoc?.rankingsMeta || {};
       const version = meta.version || (meta.updatedAt ? new Date(meta.updatedAt).getTime() : 1);
-      res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=600");
+      res.setHeader("Cache-Control", "private, max-age=120, stale-while-revalidate=600");
       return res.json({
         semesters: (meta.semesters || []).map(Number).sort((a, b) => a - b),
         batches: (meta.batches || []).filter(Boolean).sort(),
@@ -177,13 +355,13 @@ module.exports = async function handler(req, res) {
 
     if (andClauses.length > 0) query.$and = andClauses;
     
-    // Set safe public edge cache headers
+    // Set safe client cache headers (authenticated endpoint: private cache only)
     if (req.query.v) {
-      // Versioned query: 100% immutable Edge CDN cache hit (24 hours). 0 CPU, 0 DB reads!
-      res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=86400");
+      // Versioned query: client-side cache hit for 5 minutes
+      res.setHeader("Cache-Control", "private, max-age=300, stale-while-revalidate=600");
     } else {
       // Fallback for unversioned legacy calls
-      res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=300");
+      res.setHeader("Cache-Control", "private, max-age=120, stale-while-revalidate=300");
     }
 
     const projectionFields =

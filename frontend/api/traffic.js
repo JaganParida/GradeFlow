@@ -2,12 +2,16 @@ const connectToDatabase = require("./_lib/db");
 const PageAnalytics = require("./_lib/models/PageAnalytics");
 const TrafficQueueConfig = require("./_lib/models/TrafficQueueConfig");
 const StudentSession = require("./_lib/models/StudentSession");
+const AdminSession = require("./_lib/models/AdminSession");
+const SubAdminSession = require("./_lib/models/SubAdminSession");
 const Ranking = require("./_lib/models/Ranking");
 const StudentRouteActivity = require("./_lib/models/StudentRouteActivity");
 const VercelQuotaMetric = require("./_lib/models/VercelQuotaMetric");
 const LiveVisitor = require("./_lib/models/LiveVisitor");
 const { applyCors } = require("./_lib/cors");
 const { publishAdminRealtimeEvent } = require("./_lib/ablyService");
+const { getDeveloperRegNo, isDeveloperOrSpecialStudent } = require("./_lib/developerHelper");
+const { isAdminSessionValid, isSubAdminSessionValid } = require("./_lib/sessionManager");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 
@@ -21,7 +25,7 @@ function parseCookies(cookieHeader) {
   return cookies;
 }
 
-function verifyAdmin(req) {
+async function verifyAdmin(req) {
   const cookies = parseCookies(req.headers.cookie);
   let token = req.headers["x-admin-token"] || cookies.jwt;
   if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
@@ -31,7 +35,18 @@ function verifyAdmin(req) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
     if (decoded.role === "student" || decoded.regNo) return null;
-    return decoded;
+    if (!decoded.sessionId) return null;
+
+    await connectToDatabase();
+    if (decoded.adminType === "subadmin") {
+      const session = await SubAdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+      if (!session || !isSubAdminSessionValid(session)) return null;
+      return decoded;
+    } else {
+      const session = await AdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+      if (!session || !isAdminSessionValid(session)) return null;
+      return decoded;
+    }
   } catch {
     return null;
   }
@@ -72,7 +87,7 @@ function getFriendlyPageTitle(route) {
 }
 
 // Special student regNo to NEVER track
-const EXCLUDED_STUDENT_REG = "230301120327";
+const EXCLUDED_STUDENT_REG = getDeveloperRegNo();
 
 function getIstHour() {
   const now = new Date();
@@ -201,7 +216,7 @@ module.exports = async function handler(req, res) {
 
     // ─── 1. Admin Live Traffic & Queue Controls ──────────────────────────────
     if (isAdminRequest) {
-      if (!verifyAdmin(req)) {
+      if (!(await verifyAdmin(req))) {
         return res.status(401).json({ success: false, message: "Unauthorized admin access." });
       }
 
@@ -474,7 +489,7 @@ module.exports = async function handler(req, res) {
       }
 
       // Exempt Admins
-      if (verifyAdmin(req)) {
+      if (await verifyAdmin(req)) {
         return res.json({
           success: true,
           queueActive: false,
@@ -665,7 +680,7 @@ module.exports = async function handler(req, res) {
       } catch (quotaIncErr) {}
 
       // ─── 3. FILTER FOR STUDENT ROUTE INTELLIGENCE TABLE (Exclude Admin) ───
-      if (isAdmin || verifyAdmin(req)) {
+      if (isAdmin || (await verifyAdmin(req))) {
         return res.json({ success: true, loggedQuota: true, skippedStudentActivity: "admin" });
       }
 
@@ -675,7 +690,7 @@ module.exports = async function handler(req, res) {
         const cookies = parseCookies(req.headers.cookie);
         if (cookies.student_jwt && cookies.student_jwt !== "none") {
           try {
-            const decoded = jwt.verify(cookies.student_jwt, process.env.JWT_SECRET);
+            const decoded = jwt.verify(cookies.student_jwt, process.env.JWT_SECRET, { algorithms: ["HS256"] });
             if (decoded && decoded.regNo) cleanReg = String(decoded.regNo).toUpperCase().trim();
           } catch {}
         }

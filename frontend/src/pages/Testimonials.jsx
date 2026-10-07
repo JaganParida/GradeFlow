@@ -33,6 +33,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { validateFeedbackComment } from "../utils/feedbackValidator";
+import { isDeveloperOrSpecialStudent } from "../utils/developerHelper";
 
 /* ─── Category List ────────────────────────────────────────────── */
 const CATEGORIES = [
@@ -565,7 +566,7 @@ export default function Testimonials() {
         item.regNo &&
         item.regNo.trim().toUpperCase() === currentRegNo.trim().toUpperCase()
       );
-      const isCreator = currentRegNo === "230301120327";
+      const isCreator = isDeveloperOrSpecialStudent(currentRegNo);
       return isOwner || isCreator;
     });
 

@@ -10,8 +10,21 @@ const cookieParser = require("cookie-parser");
 
 const app = express();
 
-// Middleware
-app.set("trust proxy", 1);
+// Secure trusted proxy configuration
+// Defaults to private network ranges (Render internal proxy, Docker, Kubernetes, Loopback)
+// Overridable via TRUST_PROXY environment variable
+const getTrustProxyConfig = () => {
+  const env = process.env.TRUST_PROXY;
+  if (!env) {
+    return ["loopback", "linklocal", "uniquelocal"];
+  }
+  if (env === "true") return true;
+  if (env === "false") return false;
+  if (!isNaN(Number(env))) return Number(env);
+  return env.split(",").map((s) => s.trim());
+};
+
+app.set("trust proxy", getTrustProxyConfig());
 
 // Set security HTTP headers with explicit Content Security Policy & HSTS
 app.use(
@@ -35,23 +48,13 @@ app.use(
   })
 );
 
-// Enable CORS with credentials support — whitelist allowed origins and Vercel domains
-const ALLOWED_ORIGINS = [
-  "http://localhost:5173",
-  "http://localhost:3000",
-  "https://grade-flow-six.vercel.app",
-  "https://grade-flow-navy.vercel.app",
-  process.env.FRONTEND_URL,
-].filter(Boolean);
+// ─── CSRF & CORS Origin Protection ──────────────────────────────────────────
+const { csrfProtect, isOriginAllowed } = require("./middleware/csrf");
 
 const corsOptions = {
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
-    const cleanOrigin = origin.replace(/\/$/, "");
-    if (
-      ALLOWED_ORIGINS.includes(cleanOrigin) ||
-      /^https:\/\/grade-flow[a-z0-9\-_]*\.vercel\.app$/i.test(cleanOrigin)
-    ) {
+    if (isOriginAllowed(origin)) {
       return callback(null, true);
     }
     return callback(null, false);
@@ -65,6 +68,15 @@ const corsOptions = {
     "x-gradeflow-csrf",
     "x-student-token",
     "x-admin-token",
+    "x-device-id",
+    "x-student-regno",
+    "Accept",
+    "Accept-Version",
+    "Content-Length",
+    "Content-MD5",
+    "Date",
+    "X-Api-Version",
+    "Cookie",
   ],
 };
 
@@ -80,8 +92,8 @@ app.use(mongoSanitize());
 // Prevent XSS attacks
 app.use(xss());
 
-// ─── CSRF & Cache Protection for Administrative Endpoints ──────────────────
-const { csrfProtect } = require("./middleware/csrf");
+// ─── Global CSRF Protection for All State-Changing Requests ─────────────────
+app.use(csrfProtect);
 
 // Enforce no-cache on sensitive administrative responses
 app.use(["/api/admin", "/api/auth/admin", "/api/auth/subadmin"], (req, res, next) => {
@@ -134,9 +146,11 @@ app.use("/api/admin/traffic", adminLimiter, csrfProtect, require("./routes/admin
 app.use("/api/admin/vercel-quota", adminLimiter, csrfProtect, require("./routes/adminVercelQuota"));
 app.use("/api/admin/notifications", adminLimiter, csrfProtect, require("./routes/notifications"));
 
+const { requireStudentOrAdmin } = require("./middleware/auth");
 const AttendanceScanLog = require("./models/AttendanceScanLog");
 const Student = require("./models/Student");
 const SemesterResult = require("./models/SemesterResult");
+const { isDeveloperOrSpecialStudent } = require("./utils/developerHelper");
 
 function getTodayDateKey(d = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -158,7 +172,7 @@ app.get("/api/attendance/scan-quota", publicLimiter, async (req, res) => {
       dateKey: todayKey,
       isReset: false,
     });
-    const isExempt = cleanRegNo === "230301120327";
+    const isExempt = isDeveloperOrSpecialStudent(cleanRegNo);
     const max = isExempt ? 9999 : 2;
     const remaining = isExempt ? 9999 : Math.max(0, 2 - todayScans);
     const isLimitReached = !isExempt && todayScans >= 2;
@@ -178,28 +192,55 @@ app.get("/api/attendance/scan-quota", publicLimiter, async (req, res) => {
   }
 });
 
-app.post("/api/attendance/scan-log", publicLimiter, async (req, res) => {
+app.post("/api/attendance/scan-log", publicLimiter, requireStudentOrAdmin, async (req, res) => {
   try {
-    const studentId = req.body?.studentId || req.body?.regNo || "";
+    const studentId = req.body?.studentId || req.body?.regNo || req.student?.regNo || "";
     const cleanRegNo = String(studentId || "").trim().toUpperCase();
-    if (cleanRegNo) {
-      let studentName = "Student";
-      const meta =
-        (await SemesterResult.findOne({ regNo: cleanRegNo }, "studentName").lean()) ||
-        (await Student.findOne({ regNo: cleanRegNo }, "studentName").lean());
-      if (meta?.studentName) studentName = meta.studentName;
+    if (!cleanRegNo) {
+      return res.status(400).json({ success: false, message: "studentId or regNo is required" });
+    }
 
-      await AttendanceScanLog.create({
-        regNo: cleanRegNo,
-        studentName,
-        scannedAt: new Date(),
-        dateKey: getTodayDateKey(),
-        engine: "tesseract_fallback",
-        modelUsed: "tesseract.js",
-        subjectsDetected: Number(req.body?.subjectsCount) || 0,
-        isReset: false,
+    if (req.student && req.student.regNo && req.student.regNo.toUpperCase() !== cleanRegNo) {
+      return res.status(403).json({
+        success: false,
+        message: "Access Denied: You are not allowed to log scans for another student.",
+        code: "DATA_ISOLATION_FORBIDDEN",
       });
     }
+
+    const todayKey = getTodayDateKey();
+    const isExempt = isDeveloperOrSpecialStudent(cleanRegNo) || Boolean(req.admin);
+    const todayScans = await AttendanceScanLog.countDocuments({
+      regNo: cleanRegNo,
+      dateKey: todayKey,
+      isReset: false,
+    });
+
+    if (!isExempt && todayScans >= 2) {
+      return res.status(429).json({
+        success: false,
+        message: "Daily scan limit reached (2/2 scans used). Cannot log additional scans.",
+        code: "SCAN_QUOTA_EXHAUSTED",
+      });
+    }
+
+    let studentName = "Student";
+    const meta =
+      (await SemesterResult.findOne({ regNo: cleanRegNo }, "studentName").lean()) ||
+      (await Student.findOne({ regNo: cleanRegNo }, "studentName").lean());
+    if (meta?.studentName) studentName = meta.studentName;
+
+    await AttendanceScanLog.create({
+      regNo: cleanRegNo,
+      studentName,
+      scannedAt: new Date(),
+      dateKey: todayKey,
+      engine: "tesseract_fallback",
+      modelUsed: "tesseract.js",
+      subjectsDetected: Number(req.body?.subjectsCount) || 0,
+      isReset: false,
+    });
+
     return res.json({ success: true, message: "Fallback scan logged successfully." });
   } catch (fErr) {
     return res.status(500).json({ success: false, message: "Failed to log fallback scan: " + fErr.message });
@@ -207,11 +248,56 @@ app.post("/api/attendance/scan-log", publicLimiter, async (req, res) => {
 });
 
 // ─── Attendance OCR Endpoint ───────────────────────────────────
-app.post("/api/attendance/ocr", publicLimiter, async (req, res) => {
+app.post("/api/attendance/ocr", publicLimiter, requireStudentOrAdmin, async (req, res) => {
   try {
+    const studentId = req.body?.studentId || req.body?.regNo || req.student?.regNo || "";
+    const cleanRegNo = String(studentId || "").trim().toUpperCase();
+
+    if (req.student && req.student.regNo && cleanRegNo && req.student.regNo.toUpperCase() !== cleanRegNo) {
+      return res.status(403).json({
+        success: false,
+        message: "Access Denied: You are not allowed to perform attendance scans for another student.",
+        code: "DATA_ISOLATION_FORBIDDEN",
+      });
+    }
+
+    const effectiveRegNo = req.student?.regNo || cleanRegNo;
+
+    // Check daily scan quota BEFORE calling Gemini Vision API to prevent wallet draining / DoS
+    if (effectiveRegNo) {
+      const todayKey = getTodayDateKey();
+      const isExempt = isDeveloperOrSpecialStudent(effectiveRegNo) || Boolean(req.admin);
+      const todayScans = await AttendanceScanLog.countDocuments({
+        regNo: effectiveRegNo,
+        dateKey: todayKey,
+        isReset: false,
+      });
+
+      if (!isExempt && todayScans >= 2) {
+        return res.status(429).json({
+          success: false,
+          message: "Daily scan limit reached (2/2 scans used). Your quota resets at midnight.",
+          code: "SCAN_QUOTA_EXHAUSTED",
+          used: todayScans,
+          max: 2,
+          remaining: 0,
+          isLimitReached: true,
+        });
+      }
+    }
+
     const { imageBase64, mimeType = "image/jpeg" } = req.body || {};
     if (!imageBase64) {
       return res.status(400).json({ success: false, message: "imageBase64 is required" });
+    }
+
+    const MAX_BASE64_LENGTH = 7 * 1024 * 1024;
+    if (typeof imageBase64 !== "string" || imageBase64.length > MAX_BASE64_LENGTH) {
+      return res.status(413).json({
+        success: false,
+        message: "Image payload exceeds maximum permitted size (5MB). Please upload a compressed image.",
+        code: "PAYLOAD_TOO_LARGE",
+      });
     }
 
     const cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, "");
@@ -374,7 +460,7 @@ OUTPUT FORMAT (JSON Schema):
                 };
               });
 
-              const studentRegNo = req.body?.studentId || req.body?.regNo || "";
+              const studentRegNo = effectiveRegNo || req.body?.studentId || req.body?.regNo || "";
               if (studentRegNo) {
                 try {
                   const cleanRegNo = String(studentRegNo).trim().toUpperCase();

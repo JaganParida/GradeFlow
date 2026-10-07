@@ -974,8 +974,7 @@ async function handleMissingInternalUpload(fileBuffer, fields, res) {
 
 // ─── ENTRYPOINT FUNCTION FOR ROUTING ──────────────────────────────────────────
 async function handleUpload(req, res) {
-  applyCors(req, res);
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (applyCors(req, res, "POST,OPTIONS")) return;
 
   if (req.method !== "POST") {
     return res.status(405).json({ success: false, message: "Method not allowed. Use POST for file uploads." });

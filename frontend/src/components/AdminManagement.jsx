@@ -5,6 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useApp } from "../context/AppContext";
 import AdminTrafficQueueManager from "./AdminTrafficQueueManager";
 import { getAdminCache, setAdminCache } from "../utils/adminRealtimeCache";
+import { getDeveloperRegNo } from "../utils/developerHelper";
 import {
   ShieldCheck,
   ShieldAlert,
@@ -2426,7 +2427,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                   </div>
 
                   <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#64748b", lineHeight: 1.5 }}>
-                    The existing logical detection runs uninterrupted. When 0 or 1 admin device is active, the button is visible to all visitors. When both 2 admin device slots are filled, the button automatically hides from public visitors while remaining accessible to Main Admin and Special Student (<code>230301120327</code>).
+                    The existing logical detection runs uninterrupted. When 0 or 1 admin device is active, the button is visible to all visitors. When both 2 admin device slots are filled, the button automatically hides from public visitors while remaining accessible to Main Admin and Special Student (<code>{getDeveloperRegNo()}</code>).
                   </p>
 
                   <div
@@ -2496,7 +2497,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                   </div>
 
                   <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#64748b", lineHeight: 1.5 }}>
-                    Completely overrides the automatic device limit logic. You explicitly decide who can see the Admin portal button on the site: Main Admin, Sub-Admins, Special Student (<code>230301120327</code>), All Students, or Public Guests.
+                    Completely overrides the automatic device limit logic. You explicitly decide who can see the Admin portal button on the site: Main Admin, Sub-Admins, Special Student (<code>{getDeveloperRegNo()}</code>), All Students, or Public Guests.
                   </p>
 
                   <div
@@ -2770,7 +2771,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                     </div>
                     <div>
                       <div style={{ fontWeight: 800, fontSize: 13.5, color: "#0f172a" }}>
-                        Special Student (<code>230301120327</code>)
+                        Special Student (<code>{getDeveloperRegNo()}</code>)
                       </div>
                       <div style={{ fontSize: 11.5, color: "#64748b" }}>
                         Designated student account with multi-device login & direct admin visibility

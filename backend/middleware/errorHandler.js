@@ -4,6 +4,8 @@
  * while logging full debug details on the server side.
  */
 
+const { getClientIp } = require("../utils/ipHelper");
+
 function errorHandler(err, req, res, next) {
   // Prevent any caching of error responses across all browsers, proxies, and CDNs
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
@@ -16,7 +18,7 @@ function errorHandler(err, req, res, next) {
     message: err.message,
     name: err.name,
     code: err.code,
-    ip: req.ip,
+    ip: getClientIp(req),
     user: req.user ? req.user.email : "anonymous",
   });
 

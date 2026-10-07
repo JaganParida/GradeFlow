@@ -10,10 +10,12 @@ const AdminSession = require("./_lib/models/AdminSession");
 const SubAdminSession = require("./_lib/models/SubAdminSession");
 const Feedback = require("./_lib/models/Feedback");
 const { validateFeedbackComment } = require("./_lib/feedbackValidator");
+const { isDeveloperOrSpecialStudent } = require("./_lib/developerHelper");
 const { isSessionValid, touchSession, isAdminSessionValid } = require("./_lib/sessionManager");
 const { globalDbQueue } = require("./_lib/dbProtection");
 const { publishAdminRealtimeEvent, publishStudentRealtimeEvent } = require("./_lib/ablyService");
 const { recordStudentRouteActivity } = require("./_lib/routeActivityHelper");
+const { getClientIp } = require("./_lib/ipHelper");
 const {
   calculateBacklogs,
   calculateCGPA,
@@ -82,13 +84,14 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      // Helper to check admin status
+      // Helper to check caller status (Admin or Student via cryptographic JWT & DB Session)
       const cookies = parseCookies(req.headers.cookie);
       const authHeader = req.headers.authorization || "";
       const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
       const customAdminToken = req.headers["x-admin-token"];
+      const customStudentToken = req.headers["x-student-token"];
 
-      const tokenCandidates = [
+      const adminCandidates = [
         cookies.jwt,
         cookies.admin_token,
         customAdminToken,
@@ -96,13 +99,52 @@ module.exports = async function handler(req, res) {
       ].filter((t) => t && typeof t === "string" && t !== "none" && t !== "true" && t !== "false" && t.length > 20);
 
       let isAdmin = false;
-      if (process.env.JWT_SECRET && tokenCandidates.length > 0) {
-        for (const cand of tokenCandidates) {
+      if (process.env.JWT_SECRET && adminCandidates.length > 0) {
+        for (const cand of adminCandidates) {
           try {
             const decoded = jwt.verify(cand, process.env.JWT_SECRET, { algorithms: ["HS256"] });
             if (decoded && (decoded.role === "admin" || decoded.adminType === "subadmin" || decoded.email)) {
-              isAdmin = true;
-              break;
+              if (decoded.adminType === "subadmin" && decoded.sessionId) {
+                const subSess = await SubAdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+                if (subSess) { isAdmin = true; break; }
+              } else if (decoded.sessionId) {
+                const admSess = await AdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+                if (admSess && isAdminSessionValid(admSess)) { isAdmin = true; break; }
+              } else {
+                isAdmin = true;
+                break;
+              }
+            }
+          } catch {}
+        }
+      }
+
+      // Check Student Token
+      const studentCandidates = [
+        cookies.student_jwt,
+        customStudentToken,
+        bearerToken,
+      ].filter((t) => t && typeof t === "string" && t !== "none" && t !== "true" && t !== "false" && t.length > 20);
+
+      let verifiedStudentRegNo = "";
+      if (process.env.JWT_SECRET && studentCandidates.length > 0) {
+        for (const cand of studentCandidates) {
+          try {
+            const decoded = jwt.verify(cand, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+            if (decoded && (decoded.role === "student" || decoded.regNo)) {
+              const normReg = String(decoded.regNo || "").trim().toUpperCase();
+              if (normReg) {
+                if (decoded.sessionId) {
+                  const session = await StudentSession.findOne({ regNo: normReg, sessionId: decoded.sessionId, isActive: true });
+                  if (session && isSessionValid(session)) {
+                    verifiedStudentRegNo = normReg;
+                    break;
+                  }
+                } else {
+                  verifiedStudentRegNo = normReg;
+                  break;
+                }
+              }
             }
           } catch {}
         }
@@ -117,18 +159,11 @@ module.exports = async function handler(req, res) {
       requestBody = requestBody || {};
 
       if (req.method === "GET" && !feedbackId) {
-        const studentRegNo = (
-          req.query.studentRegNo ||
-          req.query.regNo ||
-          req.headers["x-student-regno"] ||
-          ""
-        ).toString().trim().toUpperCase();
-
-        const isCreator = studentRegNo === "230301120327";
+        const isCreator = isDeveloperOrSpecialStudent(verifiedStudentRegNo);
 
         // Serve from memo cache only for general public
         const now = Date.now();
-        if (!isAdmin && !isCreator && !studentRegNo && feedbacksMemoCache.data && now - feedbacksMemoCache.ts < FEEDBACKS_MEMO_TTL_MS) {
+        if (!isAdmin && !isCreator && !verifiedStudentRegNo && feedbacksMemoCache.data && now - feedbacksMemoCache.ts < FEEDBACKS_MEMO_TTL_MS) {
           res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
           return res.json(feedbacksMemoCache.data);
         }
@@ -136,11 +171,10 @@ module.exports = async function handler(req, res) {
         let filter = {};
         if (isAdmin || isCreator) {
           filter = {};
-        } else if (studentRegNo) {
+        } else if (verifiedStudentRegNo) {
           const regVariants = Array.from(new Set([
-            studentRegNo,
-            studentRegNo.toLowerCase(),
-            studentRegNo.toUpperCase(),
+            verifiedStudentRegNo,
+            verifiedStudentRegNo.toLowerCase(),
           ]));
           filter = {
             $or: [
@@ -158,7 +192,7 @@ module.exports = async function handler(req, res) {
           .limit(300)
           .lean();
 
-        if (!isAdmin && !isCreator && !studentRegNo) {
+        if (!isAdmin && !isCreator && !verifiedStudentRegNo) {
           feedbacksMemoCache = { data: feedbacks, ts: now };
           res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
         }
@@ -189,6 +223,14 @@ module.exports = async function handler(req, res) {
         const cleanRegNo = String(regNo).trim().toUpperCase();
         if (cleanRegNo === "000000000000" || cleanRegNo.startsWith("0000")) {
           return res.status(400).json({ message: "Registration number not found in university records. Only enrolled students can submit feedback." });
+        }
+
+        if (verifiedStudentRegNo && verifiedStudentRegNo !== cleanRegNo) {
+          return res.status(403).json({
+            success: false,
+            message: "Access Denied: You can only submit a review for your own authenticated registration number.",
+            code: "DATA_ISOLATION_FORBIDDEN",
+          });
         }
 
         // Single feedback check per student
@@ -274,13 +316,6 @@ module.exports = async function handler(req, res) {
         const feedback = await Feedback.findById(feedbackId);
         if (!feedback) return res.status(404).json({ message: "Feedback not found" });
 
-        const requesterRegNo = (
-          requestBody.studentRegNo ||
-          req.query?.studentRegNo ||
-          req.headers["x-student-regno"] ||
-          ""
-        ).toString().trim().toUpperCase();
-
         if (isAdmin) {
           const { name, regNo, rating, comment, category, status } = requestBody;
           if (name) feedback.name = name.trim();
@@ -320,10 +355,21 @@ module.exports = async function handler(req, res) {
           return res.json(updatedFeedback);
         }
 
-
         // Student edit: verify ownership
-        if (!requesterRegNo || requesterRegNo !== feedback.regNo.toUpperCase()) {
-          return res.status(403).json({ message: "You are not authorized to edit this review." });
+        if (!verifiedStudentRegNo) {
+          return res.status(401).json({
+            success: false,
+            message: "Authentication required to edit feedback reviews.",
+            code: "AUTH_REQUIRED",
+          });
+        }
+
+        if (verifiedStudentRegNo !== feedback.regNo.toUpperCase()) {
+          return res.status(403).json({
+            success: false,
+            message: "Access Denied: You are not authorized to edit another student's review.",
+            code: "DATA_ISOLATION_FORBIDDEN",
+          });
         }
 
         // Check 24-hour window
@@ -383,15 +429,22 @@ module.exports = async function handler(req, res) {
         const feedback = await Feedback.findById(feedbackId);
         if (!feedback) return res.status(404).json({ message: "Feedback not found" });
 
-        const requesterRegNo = (
-          requestBody.studentRegNo ||
-          req.query?.studentRegNo ||
-          req.headers["x-student-regno"] ||
-          ""
-        ).toString().trim().toUpperCase();
+        if (!isAdmin) {
+          if (!verifiedStudentRegNo) {
+            return res.status(401).json({
+              success: false,
+              message: "Authentication required to delete feedback reviews.",
+              code: "AUTH_REQUIRED",
+            });
+          }
 
-        if (!isAdmin && (!requesterRegNo || requesterRegNo !== feedback.regNo.toUpperCase())) {
-          return res.status(403).json({ message: "You are not authorized to delete this review." });
+          if (verifiedStudentRegNo !== feedback.regNo.toUpperCase()) {
+            return res.status(403).json({
+              success: false,
+              message: "Access Denied: You are not authorized to delete another student's review.",
+              code: "DATA_ISOLATION_FORBIDDEN",
+            });
+          }
         }
 
         const deletedRegNo = feedback.regNo;
@@ -447,7 +500,7 @@ module.exports = async function handler(req, res) {
     let isAdmin = false;
     if (adminToken && adminToken !== "none") {
       try {
-        const decodedAdmin = jwt.verify(adminToken, process.env.JWT_SECRET);
+        const decodedAdmin = jwt.verify(adminToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
         if (decodedAdmin && (decodedAdmin.role === "admin" || decodedAdmin.id || decodedAdmin.email) && decodedAdmin.role !== "student" && !decodedAdmin.regNo) {
           if (decodedAdmin.adminType === "subadmin") {
             if (decodedAdmin.sessionId) {
@@ -482,7 +535,7 @@ module.exports = async function handler(req, res) {
 
       let decodedStudent;
       try {
-        decodedStudent = jwt.verify(studentToken, process.env.JWT_SECRET);
+        decodedStudent = jwt.verify(studentToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
       } catch (err) {
         return res.status(401).json({ message: "Session token invalid or expired. Please log in again." });
       }
@@ -637,7 +690,7 @@ module.exports = async function handler(req, res) {
           route: "/attendance",
           pageTitle: "Attendance Tracker & Calculator",
           userAgent: req.headers["user-agent"] || "",
-          ip: req.headers["x-forwarded-for"] || req.connection?.remoteAddress || "",
+          ip: getClientIp(req),
         }).catch(() => {});
 
         const attendanceData = {

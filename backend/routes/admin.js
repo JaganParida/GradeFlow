@@ -33,7 +33,9 @@ const AttendanceScanLog = require("../models/AttendanceScanLog");
 const { getActiveSessions, getMaxAllowedDevices } = require("../utils/sessionManager");
 const { publishAdminRealtimeEvent, broadcastRealtimeEvent, publishStudentRealtimeEvent } = require("../utils/ablyService");
 const { isBatchExpired, purgeExpiredBatches } = require("../utils/batchLifecycle");
+const { getClientIp } = require("../utils/ipHelper");
 const { clearStudentCache } = require("./student");
+const { getDeveloperRegNo, isDeveloperOrSpecialStudent, getDeveloperDailyOtpMax } = require("../utils/developerHelper");
 
 function getTodayDateKey(d = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -4334,8 +4336,8 @@ router.get("/student-otp-management/history/:regNo", requireMainAdmin, async (re
     const maskedEmail = `${studentEmail.slice(0, 4)}***@${studentEmail.split("@")[1]}`;
 
     const todayKey = getIstDateKey();
-    const isUnlimited = rawReg === "230301120327";
-    const maxDailyLimit = isUnlimited ? 99 : 3;
+    const isUnlimited = isDeveloperOrSpecialStudent(rawReg);
+    const maxDailyLimit = isUnlimited ? getDeveloperDailyOtpMax() : 3;
 
     // Fetch Daily Limit Record
     const dailyLimit = await StudentDailyLimit.findOne({ regNo: rawReg, dateKey: todayKey });
@@ -4552,8 +4554,8 @@ router.post("/student-otp-management/reset/:regNo", requireMainAdmin, async (req
     const rollingWindowMs = 24 * 60 * 60 * 1000;
     const yesterdayKey = getIstDateKey(new Date(Date.now() - rollingWindowMs));
 
-    const isSpecialStudent = rawReg === "230301120327";
-    const maxDailyLimit = isSpecialStudent ? 5 : 3;
+    const isSpecialStudent = isDeveloperOrSpecialStudent(rawReg);
+    const maxDailyLimit = isSpecialStudent ? getDeveloperDailyOtpMax() : 3;
 
     const existingLimits = await StudentDailyLimit.find({
       regNo: rawReg,
@@ -5279,7 +5281,7 @@ router.get("/attendance-tracker/monitor", protect, async (req, res) => {
         recentScans: [],
         lastScannedAt: null,
       };
-      const isExempt = String(doc.regNo) === "230301120327";
+      const isExempt = isDeveloperOrSpecialStudent(doc.regNo);
       const remainingScans = isExempt ? "Unlimited" : Math.max(0, 2 - scanData.todayScanCount);
       const isLimitReached = !isExempt && scanData.todayScanCount >= 2;
 
@@ -5451,7 +5453,7 @@ router.post("/attendance-tracker/reset-scan-limit", protect, async (req, res) =>
         action: "RESET_ATTENDANCE_SCAN_LIMIT",
         targetUser: cleanRegNo,
         details: `Reset daily OCR scan quota for student ${cleanRegNo} on date ${todayKey} (${updateResult.modifiedCount} scans reset).`,
-        ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown",
+        ip: getClientIp(req),
       });
     } catch (auditErr) {
       console.warn("[AdminAuditLog] Failed to log scan quota reset:", auditErr.message);

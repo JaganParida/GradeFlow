@@ -5,6 +5,7 @@ import { createAblyRealtime, subscribeAdminChannel, closeSharedAdminAbly } from 
 import { invalidateAdminCache, AdminCacheScopes } from "../utils/adminRealtimeCache";
 import { isOldDomainEnvironment } from "../utils/domainHelper";
 import { resetStudentScanQuotaLocal } from "../utils/scanLimitHelper";
+import { getOrCreateClientDeviceId, syncClientDeviceId } from "../utils/deviceHelper";
 
 export const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
@@ -14,8 +15,13 @@ axios.defaults.withCredentials = true;
 axios.interceptors.request.use((config) => {
   try {
     config.headers = config.headers || {};
-    // Attach CSRF protection header for state-changing browser requests
+    // Attach CSRF protection headers for state-changing browser requests
     config.headers["X-Requested-With"] = "XMLHttpRequest";
+    config.headers["X-CSRF-Token"] = "1";
+    const devId = getOrCreateClientDeviceId();
+    if (devId) {
+      config.headers["x-device-id"] = devId;
+    }
   } catch {}
   return config;
 });
@@ -371,6 +377,7 @@ export function AppProvider({ children }) {
           if (student && student.regNo && student.sessionId) {
             setStudentSession(student);
             setAuthStatus("AUTHENTICATED");
+            if (student.deviceId) syncClientDeviceId(student.deviceId);
             try { localStorage.setItem("gf_student_session_hint", String(student.sessionId).trim()); } catch {}
             // Only non-blocking fetch session profile if we are not currently viewing a specific student route
             const path = typeof window !== "undefined" ? window.location.pathname : "";
@@ -395,6 +402,7 @@ export function AppProvider({ children }) {
             setAdminToken(true);
             setAdminProfile(admin);
             setAdminAuthStatus("AUTHENTICATED");
+            if (admin.deviceId) syncClientDeviceId(admin.deviceId);
             if (admin.sessionId) {
               try { localStorage.setItem("gf_admin_session_hint", String(admin.sessionId).trim()); } catch {}
             }
@@ -1269,6 +1277,7 @@ export function AppProvider({ children }) {
         }
         if (res.data.student) {
           setStudentSession(res.data.student);
+          if (res.data.student.deviceId) syncClientDeviceId(res.data.student.deviceId);
           if (res.data.student.sessionId) {
             try { localStorage.setItem("gf_student_session_hint", String(res.data.student.sessionId).trim()); } catch (_) {}
           }
@@ -1343,6 +1352,7 @@ export function AppProvider({ children }) {
       }
       if (res.data?.success && res.data?.student) {
         setStudentSession(res.data.student);
+        if (res.data.student.deviceId) syncClientDeviceId(res.data.student.deviceId);
         if (res.data.student.sessionId) {
           try { localStorage.setItem("gf_student_session_hint", String(res.data.student.sessionId).trim()); } catch (_) {}
         }
@@ -1400,6 +1410,10 @@ export function AppProvider({ children }) {
       );
       if (res.data?.success && res.data?.student) {
         setStudentSession(res.data.student);
+        if (res.data.student.deviceId) syncClientDeviceId(res.data.student.deviceId);
+        if (res.data.student.sessionId) {
+          try { localStorage.setItem("gf_student_session_hint", String(res.data.student.sessionId).trim()); } catch (_) {}
+        }
         await fetchStudent(res.data.student.regNo, 3, 500, true);
         return { success: true, status: "COMPLETED", student: res.data.student };
       }
@@ -1430,6 +1444,10 @@ export function AppProvider({ children }) {
       }, { withCredentials: true });
       if (res.data?.success && res.data?.student) {
         setStudentSession(res.data.student);
+        if (res.data.student.deviceId) syncClientDeviceId(res.data.student.deviceId);
+        if (res.data.student.sessionId) {
+          try { localStorage.setItem("gf_student_session_hint", String(res.data.student.sessionId).trim()); } catch (_) {}
+        }
         await fetchStudent(regNo, 3, 500, true);
         return { success: true, student: res.data.student, message: res.data.message };
       }
@@ -1587,6 +1605,7 @@ export function AppProvider({ children }) {
       if (res.data?.success && res.data?.authenticated) {
         setAdminToken(true);
         setAdminProfile(res.data);
+        if (res.data.deviceId) syncClientDeviceId(res.data.deviceId);
         if (res.data.sessionId) {
           try {
             localStorage.setItem("gf_admin_session_hint", String(res.data.sessionId).trim());

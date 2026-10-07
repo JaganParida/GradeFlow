@@ -47,8 +47,10 @@ const {
 const { applyCors } = require("./_lib/cors");
 const { broadcastRealtimeEvent, publishAdminRealtimeEvent, publishStudentRealtimeEvent } = require("./_lib/ablyService");
 const { getVercelQuotaData } = require("./_lib/quotaEngine");
+const { getDeveloperRegNo, isDeveloperOrSpecialStudent } = require("./_lib/developerHelper");
+const { getClientIp } = require("./_lib/ipHelper");
 
-const EXCLUDED_STUDENT_REG = "230301120327";
+const EXCLUDED_STUDENT_REG = getDeveloperRegNo();
 
 const ROUTE_LABELS = {
   "/": "Home / Landing",
@@ -1189,8 +1191,8 @@ async function getAdminBootstrapData(adminUser) {
       dismissedCount: dismissedSet.size || (b.dismissedBy ? b.dismissedBy.length : 0),
       readDetails: (b.readBy || []).map((r) => ({
         regNo: r.regNo || "GUEST",
-        name: r.name || (r.regNo === "230301120327" ? "JAGAN PARIDA" : ""),
-        branch: r.branch || (r.regNo === "230301120327" ? "CSE" : ""),
+        name: r.name || (isDeveloperOrSpecialStudent(r.regNo) ? "JAGAN PARIDA" : ""),
+        branch: r.branch || (isDeveloperOrSpecialStudent(r.regNo) ? "CSE" : ""),
         readAt: r.readAt || b.createdAt || new Date(),
         actionTaken: r.actionTaken || "CHECK_NOW",
         device: r.device || "Desktop · Chrome (Windows)",
@@ -1748,7 +1750,7 @@ module.exports = async function handler(req, res) {
             result: "SUCCESS",
             targetRegNo: rawReg,
             details: { regNo: rawReg, blockType, blockedUntil, reason },
-            ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
+            ip: getClientIp(req),
             userAgent: req.headers["user-agent"] || "",
           });
         } catch (_) {}
@@ -1802,7 +1804,7 @@ module.exports = async function handler(req, res) {
             result: "SUCCESS",
             targetRegNo: rawReg,
             details: { regNo: rawReg },
-            ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
+            ip: getClientIp(req),
             userAgent: req.headers["user-agent"] || "",
           });
         } catch (_) {}
@@ -2130,7 +2132,7 @@ module.exports = async function handler(req, res) {
           action: "RESET_ATTENDANCE_SCAN_LIMIT",
           targetUser: cleanRegNo,
           details: `Reset daily OCR scan quota for student ${cleanRegNo} on date ${todayKey} (${updateResult.modifiedCount} scans reset).`,
-          ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown",
+          ip: getClientIp(req),
         });
       } catch (auditErr) {
         console.warn("[AdminAuditLog] Failed to log scan quota reset:", auditErr.message);

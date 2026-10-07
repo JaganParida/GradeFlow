@@ -1,5 +1,8 @@
 const connectToDatabase = require("./_lib/db");
 const TrafficQueueConfig = require("./_lib/models/TrafficQueueConfig");
+const AdminSession = require("./_lib/models/AdminSession");
+const SubAdminSession = require("./_lib/models/SubAdminSession");
+const { isAdminSessionValid, isSubAdminSessionValid } = require("./_lib/sessionManager");
 const { getVercelQuotaData, invalidateQuotaCache } = require("./_lib/quotaEngine");
 const { applyCors } = require("./_lib/cors");
 const jwt = require("jsonwebtoken");
@@ -14,7 +17,7 @@ function parseCookies(cookieHeader) {
   return cookies;
 }
 
-function verifyAdmin(req) {
+async function verifyAdmin(req) {
   const cookies = parseCookies(req.headers.cookie);
   let token = req.headers["x-admin-token"] || cookies.jwt;
   if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
@@ -25,7 +28,18 @@ function verifyAdmin(req) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
     if (decoded.role === "student" || decoded.regNo) return null;
-    return decoded;
+    if (!decoded.sessionId) return null;
+
+    await connectToDatabase();
+    if (decoded.adminType === "subadmin") {
+      const session = await SubAdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+      if (!session || !isSubAdminSessionValid(session)) return null;
+      return decoded;
+    } else {
+      const session = await AdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+      if (!session || !isAdminSessionValid(session)) return null;
+      return decoded;
+    }
   } catch {
     return null;
   }
@@ -49,7 +63,7 @@ module.exports = async function handler(req, res) {
     await connectToDatabase();
 
     // Verify Admin Access
-    const adminUser = verifyAdmin(req);
+    const adminUser = await verifyAdmin(req);
     if (!adminUser) {
       return res.status(401).json({ success: false, message: "Unauthorized admin access." });
     }

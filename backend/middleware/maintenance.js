@@ -105,7 +105,7 @@ const jwt = require("jsonwebtoken");
 /**
  * Express middleware to enforce maintenance mode on student-facing routes
  */
-function maintenanceMiddleware(req, res, next) {
+async function maintenanceMiddleware(req, res, next) {
   // If maintenance is OFF, allow all traffic immediately
   if (!cachedMaintenance.enabled) {
     return next();
@@ -139,7 +139,18 @@ function maintenanceMiddleware(req, res, next) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
       if (decoded && (decoded.role === "admin" || decoded.adminType === "subadmin" || decoded.email)) {
-        return next();
+        if (decoded.sessionId) {
+          const AdminSession = require("../models/AdminSession");
+          const SubAdminSession = require("../models/SubAdminSession");
+          const { isAdminSessionValid, isSubAdminSessionValid } = require("../utils/sessionManager");
+          if (decoded.adminType === "subadmin") {
+            const session = await SubAdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+            if (session && isSubAdminSessionValid(session)) return next();
+          } else {
+            const session = await AdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+            if (session && isAdminSessionValid(session)) return next();
+          }
+        }
       }
     } catch {
       // Invalid/expired admin token, proceed to block

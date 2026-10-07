@@ -159,3 +159,35 @@ export function formatLastActiveTime(dateVal, loggedInVal) {
     return "Unknown";
   }
 }
+
+/**
+ * Retrieves or lazily initializes a persistent high-entropy device ID for cryptographic binding.
+ * Stored in localStorage and sent via 'x-device-id' header alongside the HttpOnly 'gf_device_id' cookie.
+ */
+export function getOrCreateClientDeviceId() {
+  try {
+    let id = localStorage.getItem("gf_device_id");
+    if (id && typeof id === "string" && /^[a-zA-Z0-9_-]{16,64}$/.test(id.trim())) {
+      return id.trim();
+    }
+    const newId = (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
+      ? crypto.randomUUID()
+      : "dev_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    localStorage.setItem("gf_device_id", newId);
+    return newId;
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Synchronizes client device ID received from authenticated server response.
+ */
+export function syncClientDeviceId(deviceId) {
+  if (deviceId && typeof deviceId === "string" && /^[a-zA-Z0-9_-]{16,64}$/.test(deviceId.trim())) {
+    try {
+      localStorage.setItem("gf_device_id", deviceId.trim());
+    } catch {}
+  }
+}
+

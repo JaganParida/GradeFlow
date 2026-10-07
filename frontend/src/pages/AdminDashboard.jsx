@@ -1142,7 +1142,7 @@ function DeleteRecordCard({ authHeaders, API, onSuccess }) {
           </label>
           <input
             type="text"
-            placeholder="e.g. 230301120327"
+            placeholder="e.g. 230301120001"
             value={regNo}
             onChange={(e) => setRegNo(e.target.value)}
             style={{
@@ -1446,7 +1446,7 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
             <div style={{ flex: 1, position: "relative" }}>
               <input
                 type="text"
-                placeholder="e.g. 230301120327 or Student Name"
+                placeholder="e.g. 230301120001 or Student Name"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);

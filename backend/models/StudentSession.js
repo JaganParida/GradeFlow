@@ -20,7 +20,7 @@ const studentSessionSchema = new mongoose.Schema(
     pageTitle: { type: String, default: "Student Dashboard" },
     loggedInAt: { type: Date, default: Date.now },
     lastActiveAt: { type: Date, default: Date.now },
-    expiresAt: { type: Date, default: () => new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000) },
+    expiresAt: { type: Date, default: () => new Date(Date.now() + 60 * 24 * 60 * 60 * 1000) },
     revokedAt: { type: Date, default: null },
     revokeReason: { type: String, default: null },
     loggedOutAt: { type: Date, default: null },

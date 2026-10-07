@@ -6,6 +6,7 @@ const { requirePermission } = require("../middleware/rbac");
 const { publicLimiter } = require("../middleware/rateLimiters");
 const { validateFeedbackInput } = require("../middleware/validation");
 const { validateFeedbackComment } = require("../utils/feedbackValidator");
+const { isDeveloperOrSpecialStudent } = require("../utils/developerHelper");
 
 const jwt = require("jsonwebtoken");
 
@@ -21,60 +22,109 @@ function parseCookies(cookieHeader) {
   return cookies;
 }
 
-// Helper to check admin status
-function checkIsAdmin(req) {
+const StudentSession = require("../models/StudentSession");
+const AdminSession = require("../models/AdminSession");
+const SubAdminSession = require("../models/SubAdminSession");
+const { isSessionValid, isAdminSessionValid, isSubAdminSessionValid } = require("../utils/sessionManager");
+
+// Authoritative Caller Resolution Helper (Zero-Trust: Cryptographic JWT & DB Session Only)
+async function resolveFeedbackCaller(req) {
   let cookieJwt = req.cookies?.jwt;
-  if (!cookieJwt && req.headers?.cookie) {
+  let cookieStudentJwt = req.cookies?.student_jwt;
+
+  if (req.headers?.cookie) {
     const parsed = parseCookies(req.headers.cookie);
-    cookieJwt = parsed.jwt;
+    if (!cookieJwt) cookieJwt = parsed.jwt;
+    if (!cookieStudentJwt) cookieStudentJwt = parsed.student_jwt;
   }
 
   const authHeader = req.headers?.authorization || "";
   const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
   const customAdminToken = req.headers?.["x-admin-token"];
+  const customStudentToken = req.headers?.["x-student-token"];
 
-  const candidates = [
+  // 1. Check Admin / SubAdmin Token
+  const adminCandidates = [
     cookieJwt,
     req.cookies?.admin_token,
     customAdminToken,
     bearerToken,
   ].filter((t) => t && typeof t === "string" && t !== "none" && t !== "true" && t !== "false" && t.length > 20);
 
-  if (!process.env.JWT_SECRET || candidates.length === 0) return false;
-
-  for (const token of candidates) {
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
-      if (decoded && (decoded.role === "admin" || decoded.adminType === "subadmin" || decoded.email)) {
-        return true;
-      }
-    } catch (_) {}
+  if (process.env.JWT_SECRET && adminCandidates.length > 0) {
+    for (const token of adminCandidates) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+        if (decoded && (decoded.role === "admin" || decoded.adminType === "subadmin" || decoded.email)) {
+          if (decoded.adminType === "subadmin" && decoded.sessionId) {
+            const subSession = await SubAdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+            if (subSession && isSubAdminSessionValid(subSession)) {
+              return { type: "admin", role: "subadmin", admin: decoded };
+            }
+          } else if (decoded.sessionId) {
+            const adminSession = await AdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+            if (adminSession && isAdminSessionValid(adminSession)) {
+              return { type: "admin", role: "admin", admin: decoded };
+            }
+          } else {
+            return { type: "admin", role: "admin", admin: decoded };
+          }
+        }
+      } catch (_) {}
+    }
   }
-  return false;
+
+  // 2. Check Student Token
+  const studentCandidates = [
+    cookieStudentJwt,
+    customStudentToken,
+    bearerToken,
+  ].filter((t) => t && typeof t === "string" && t !== "none" && t !== "true" && t !== "false" && t.length > 20);
+
+  if (process.env.JWT_SECRET && studentCandidates.length > 0) {
+    for (const token of studentCandidates) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+        if (decoded && (decoded.role === "student" || decoded.regNo)) {
+          const normRegNo = String(decoded.regNo || "").trim().toUpperCase();
+          if (normRegNo) {
+            if (decoded.sessionId) {
+              const session = await StudentSession.findOne({
+                regNo: normRegNo,
+                sessionId: decoded.sessionId,
+                isActive: true,
+              });
+              if (session && isSessionValid(session)) {
+                return { type: "student", regNo: normRegNo, student: decoded };
+              }
+            } else {
+              return { type: "student", regNo: normRegNo, student: decoded };
+            }
+          }
+        }
+      } catch (_) {}
+    }
+  }
+
+  return { type: "anonymous", regNo: "" };
 }
 
 // GET /api/feedback - Retrieve feedbacks
-// Admin & creator 230301120327 see all; students see public + their own review; public sees approved rating >= 3
+// Admin & verified creator see all; verified students see public + their own review; public sees approved rating >= 3
 router.get("/", async (req, res) => {
   try {
-    const isAdmin = checkIsAdmin(req);
-    const studentRegNo = (
-      req.query.studentRegNo ||
-      req.query.regNo ||
-      req.headers["x-student-regno"] ||
-      ""
-    ).toString().trim().toUpperCase();
-
-    const isCreator = studentRegNo === "230301120327";
+    const caller = await resolveFeedbackCaller(req);
+    const isAdmin = caller.type === "admin";
+    const verifiedStudentRegNo = caller.type === "student" ? caller.regNo : "";
+    const isCreator = isDeveloperOrSpecialStudent(verifiedStudentRegNo);
 
     let filter = {};
     if (isAdmin || isCreator) {
       filter = {};
-    } else if (studentRegNo) {
+    } else if (verifiedStudentRegNo) {
       const regVariants = Array.from(new Set([
-        studentRegNo,
-        studentRegNo.toLowerCase(),
-        studentRegNo.toUpperCase(),
+        verifiedStudentRegNo,
+        verifiedStudentRegNo.toLowerCase(),
       ]));
       filter = {
         $or: [
@@ -111,6 +161,15 @@ router.post("/", publicLimiter, validateFeedbackInput, async (req, res) => {
     const cleanRegNo = String(regNo || "").trim().toUpperCase();
     if (!cleanRegNo || !/^[a-zA-Z0-9]{5,20}$/.test(cleanRegNo)) {
       return res.status(400).json({ message: "A valid student Registration Number is required to submit a review." });
+    }
+
+    const caller = await resolveFeedbackCaller(req);
+    if (caller.type === "student" && caller.regNo !== cleanRegNo) {
+      return res.status(403).json({
+        success: false,
+        message: "Access Denied: You can only submit a review for your own authenticated registration number.",
+        code: "DATA_ISOLATION_FORBIDDEN",
+      });
     }
 
     // Single feedback check per student
@@ -204,7 +263,7 @@ router.post("/:id/like", publicLimiter, async (req, res) => {
   }
 });
 
-// PUT /api/feedback/:id - Update feedback (Admin anytime, or Student within 24 hours)
+// PUT /api/feedback/:id - Update feedback (Admin anytime, or verified Student owner within 24 hours)
 router.put("/:id", async (req, res) => {
   try {
     if (!/^[0-9a-fA-F]{24}$/.test(req.params.id)) {
@@ -216,15 +275,9 @@ router.put("/:id", async (req, res) => {
       return res.status(404).json({ message: "Feedback not found" });
     }
 
-    const isAdmin = checkIsAdmin(req);
-    const requesterRegNo = (
-      req.body.studentRegNo ||
-      req.query.studentRegNo ||
-      req.headers["x-student-regno"] ||
-      ""
-    ).toString().trim().toUpperCase();
+    const caller = await resolveFeedbackCaller(req);
 
-    if (isAdmin) {
+    if (caller.type === "admin") {
       const { name, regNo, rating, comment, category, status } = req.body;
       if (name) feedback.name = name.trim();
       if (regNo) feedback.regNo = String(regNo).trim().toUpperCase();
@@ -268,10 +321,22 @@ router.put("/:id", async (req, res) => {
       return res.json(updated);
     }
 
+    // Student edit: MUST be authenticated as student
+    if (caller.type !== "student") {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required to edit feedback reviews.",
+        code: "AUTH_REQUIRED",
+      });
+    }
 
-    // Student edit: verify ownership
-    if (!requesterRegNo || requesterRegNo !== feedback.regNo.toUpperCase()) {
-      return res.status(403).json({ message: "You are not authorized to edit this review." });
+    // Student ownership check: verified student regNo MUST match feedback.regNo
+    if (caller.regNo !== feedback.regNo.toUpperCase()) {
+      return res.status(403).json({
+        success: false,
+        message: "Access Denied: You are not authorized to edit another student's review.",
+        code: "DATA_ISOLATION_FORBIDDEN",
+      });
     }
 
     // Check 24-hour window
@@ -328,7 +393,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// DELETE /api/feedback/:id - Delete feedback (Admin anytime, or Student owner)
+// DELETE /api/feedback/:id - Delete feedback (Admin anytime, or verified Student owner)
 router.delete("/:id", async (req, res) => {
   try {
     if (!/^[0-9a-fA-F]{24}$/.test(req.params.id)) {
@@ -340,16 +405,24 @@ router.delete("/:id", async (req, res) => {
       return res.status(404).json({ message: "Feedback not found" });
     }
 
-    const isAdmin = checkIsAdmin(req);
-    const requesterRegNo = (
-      req.body?.studentRegNo ||
-      req.query?.studentRegNo ||
-      req.headers["x-student-regno"] ||
-      ""
-    ).toString().trim().toUpperCase();
+    const caller = await resolveFeedbackCaller(req);
 
-    if (!isAdmin && (!requesterRegNo || requesterRegNo !== feedback.regNo.toUpperCase())) {
-      return res.status(403).json({ message: "You are not authorized to delete this review." });
+    if (caller.type !== "admin") {
+      if (caller.type !== "student") {
+        return res.status(401).json({
+          success: false,
+          message: "Authentication required to delete feedback reviews.",
+          code: "AUTH_REQUIRED",
+        });
+      }
+
+      if (caller.regNo !== feedback.regNo.toUpperCase()) {
+        return res.status(403).json({
+          success: false,
+          message: "Access Denied: You are not authorized to delete another student's review.",
+          code: "DATA_ISOLATION_FORBIDDEN",
+        });
+      }
     }
 
     const deletedRegNo = feedback.regNo;

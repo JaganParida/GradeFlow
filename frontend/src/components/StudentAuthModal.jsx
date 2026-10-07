@@ -33,6 +33,7 @@ import {
   ArrowRightLeft,
 } from "lucide-react";
 import BlockedLoginDeviceModal from "./BlockedLoginDeviceModal";
+import { isDeveloperOrSpecialStudent, getDeveloperMaxDevices } from "../utils/developerHelper";
 
 export default function StudentAuthModal({ isOpen, onClose }) {
   const {
@@ -1468,8 +1469,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "#475569" }}>
                   <ShieldCheck size={13} color="#16a34a" />
                   <span>
-                    <strong>{cleanReg === "230301120327" ? "Multi-Device Policy:" : "Single-Device Policy:"}</strong>{" "}
-                    {cleanReg === "230301120327" ? "Max 2 devices allowed." : "1 active logged-in device allowed."}
+                    <strong>{isDeveloperOrSpecialStudent(cleanReg) ? "Multi-Device Policy:" : "Single-Device Policy:"}</strong>{" "}
+                    {isDeveloperOrSpecialStudent(cleanReg) ? `Max ${getDeveloperMaxDevices()} devices allowed.` : "1 active logged-in device allowed."}
                   </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "#475569" }}>
@@ -2461,7 +2462,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     type="button"
                     disabled={resendCooldown > 0 || (remainingDailyAttempts <= 0 && !isForgotPasswordMode) || loading}
                     onClick={() => {
-                      if (cleanReg === "230301120327" && password && !isForgotPasswordMode) {
+                      if (isDeveloperOrSpecialStudent(cleanReg) && password && !isForgotPasswordMode) {
                         handlePasswordSubmit();
                       } else {
                         triggerSendOtp(isForgotPasswordMode);
@@ -2809,9 +2810,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         onClose={() => setIsBlockedModalOpen(false)}
         activeDevices={blockedDevicesData}
         accountIdentifier={regNo}
-        maxAllowed={regNo.trim().toUpperCase() === "230301120327" ? 2 : 1}
+        maxAllowed={isDeveloperOrSpecialStudent(regNo) ? getDeveloperMaxDevices() : 1}
         onTransferSession={
-          regNo.trim().toUpperCase() === "230301120327" || errorCode === "DEVICE_LIMIT_REACHED"
+          isDeveloperOrSpecialStudent(regNo) || errorCode === "DEVICE_LIMIT_REACHED"
             ? undefined
             : () => {
                 setIsBlockedModalOpen(false);

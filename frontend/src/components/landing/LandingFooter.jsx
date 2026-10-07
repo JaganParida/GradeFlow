@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ShieldCheck, ArrowUpRight } from "lucide-react";
 import { useApp } from "../../context/AppContext";
+import { isDeveloperOrSpecialStudent } from "../../utils/developerHelper";
 
 export default function LandingFooter({ onNavigateSection }) {
   const navigate = useNavigate();
@@ -9,7 +10,7 @@ export default function LandingFooter({ onNavigateSection }) {
   let localReg = "";
   try { localReg = localStorage.getItem("gf_student_reg") || ""; } catch {}
   const loggedInRegNo = studentSession?.regNo || studentData?.regNo || localReg || "";
-  const isSpecialAdminPortalViewer = String(loggedInRegNo).trim().toUpperCase() === "230301120327";
+  const isSpecialAdminPortalViewer = isDeveloperOrSpecialStudent(loggedInRegNo);
   const isSubAdminViewer = adminProfile?.adminType === "subadmin" || Boolean(adminProfile?.isSubAdmin);
   const isMainAdminViewer = Boolean(adminToken && !isSubAdminViewer);
 

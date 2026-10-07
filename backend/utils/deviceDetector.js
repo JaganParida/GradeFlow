@@ -1,13 +1,11 @@
+const { getClientIp } = require("./ipHelper");
+
 /**
  * High-fidelity device, OS, and browser detector for GradeFlow session metadata.
  */
 function extractRequestDeviceInfo(req) {
   const userAgent = String(req.headers?.["user-agent"] || "").trim();
-  const ip = String(
-    req.ip || req.headers?.["x-forwarded-for"] || req.connection?.remoteAddress || ""
-  )
-    .split(",")[0]
-    .trim();
+  const ip = getClientIp(req);
 
   // 1. Detect Device Type
   let deviceType = "Desktop";

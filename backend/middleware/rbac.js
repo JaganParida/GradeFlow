@@ -1,5 +1,6 @@
 const SubAdmin = require("../models/SubAdmin");
 const AdminAuditLog = require("../models/AdminAuditLog");
+const { getClientIp } = require("../utils/ipHelper");
 
 /**
  * Enforces that the requesting actor is exclusively the Main Administrator.
@@ -30,7 +31,7 @@ const requireMainAdmin = async (req, res, next) => {
             method: req.method,
             subAdminId: req.admin.subAdminId,
           },
-          ip: req.ip || req.connection?.remoteAddress || "",
+          ip: getClientIp(req),
           userAgent: req.headers["user-agent"] || "",
         });
       } catch (logErr) {
@@ -163,7 +164,7 @@ async function logUnauthorizedAttempt(req, subAdmin, reason) {
         method: req.method,
         endpoint: req.originalUrl || req.url,
       },
-      ip: req.ip || req.connection?.remoteAddress || "",
+      ip: getClientIp(req),
       userAgent: req.headers["user-agent"] || "",
     });
   } catch (err) {

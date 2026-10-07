@@ -724,13 +724,23 @@ const parseCutmOcrText = (text, catalog = []) => {
           console.warn(`[ERP OCR] ${endpoint.label} returned empty/fallback:`, errMsg);
         }
       } catch (err) {
-        lastApiError = `Network error connecting to ${endpoint.label}: ${err.message}`;
+        const respMsg = err.response?.data?.message || err.response?.data?.error;
+        lastApiError = respMsg || `Network error connecting to ${endpoint.label}: ${err.message}`;
         console.warn(`[ERP OCR] ${endpoint.label} failed:`, err.message);
+        if (err.response?.status === 429 || err.response?.status === 401 || err.response?.status === 403) {
+          break;
+        }
       }
     }
 
-    // 2. If Serverless didn't extract, try client OCR only if no explicit auth error
-    if (extracted.length === 0 && !lastApiError.includes("Authentication Failed")) {
+    // 2. If Serverless didn't extract, try client OCR only if no explicit auth error or quota limit reached
+    const isTerminalError =
+      lastApiError.includes("Authentication") ||
+      lastApiError.includes("Daily scan limit") ||
+      lastApiError.includes("limit reached") ||
+      lastApiError.includes("Access Denied");
+
+    if (extracted.length === 0 && !isTerminalError) {
       try {
         setProcessingStatus("Enhancing contrast & running local OCR engine...");
         const preprocessedBase64 = await preprocessImageForOcr(imageBase64);

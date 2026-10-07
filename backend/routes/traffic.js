@@ -17,6 +17,8 @@ const PageAnalytics = require("../models/PageAnalytics");
 const LiveVisitor = require("../models/LiveVisitor");
 const TrafficQueueConfig = require("../models/TrafficQueueConfig");
 const { publishAdminRealtimeEvent } = require("../utils/ablyService");
+const { getDeveloperRegNo, isDeveloperOrSpecialStudent } = require("../utils/developerHelper");
+const { getClientIp } = require("../utils/ipHelper");
 
 function getIstHour() {
   const now = new Date();
@@ -133,9 +135,9 @@ router.post("/page-view", async (req, res) => {
       });
     }
 
-    // Special student 230301120327 is strictly exempt from student route activity table
+    // Special developer/student is strictly exempt from student route activity table
     const cleanReg = regNo ? String(regNo).toUpperCase().trim() : null;
-    if (cleanReg === "230301120327") {
+    if (isDeveloperOrSpecialStudent(cleanReg)) {
       return res.json({ success: true, skipped: true });
     }
 
@@ -286,7 +288,7 @@ router.post("/page-view", async (req, res) => {
         deviceType,
         os,
         browser,
-        ip: req.ip,
+        ip: getClientIp(req),
       });
       return res.json({
         success: true,
@@ -306,7 +308,7 @@ router.post("/page-view", async (req, res) => {
         deviceType,
         os,
         browser,
-        ip: req.ip,
+        ip: getClientIp(req),
       });
 
       return res.json({
@@ -328,7 +330,7 @@ router.post("/page-view", async (req, res) => {
       deviceType,
       os,
       browser,
-      ip: req.ip,
+      ip: getClientIp(req),
     });
 
     // Record page view in MongoDB analytics
@@ -353,7 +355,7 @@ router.post("/heartbeat", async (req, res) => {
       await registerOrUpdateActiveUser({
         token,
         route,
-        ip: req.ip,
+        ip: getClientIp(req),
       });
     }
     res.json({ success: true });
@@ -383,7 +385,7 @@ const handleQueueStatus = async (req, res) => {
     const config = (await TrafficQueueConfig.findOne({ key: "global_traffic_config" }).lean()) || currentConfig;
 
     const activeCount = await StudentRouteActivity.countDocuments({
-      regNo: { $ne: "230301120327" },
+      regNo: { $ne: getDeveloperRegNo() },
       lastActiveAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) },
     });
 

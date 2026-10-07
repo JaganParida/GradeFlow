@@ -5,6 +5,7 @@ import { decodeStudentId, encodeStudentId } from "../utils/studentIdEncoder";
 import { motion, AnimatePresence } from "framer-motion";
 import StudentAuthModal from "./StudentAuthModal";
 import NotificationBell from "./NotificationBell";
+import { isDeveloperOrSpecialStudent } from "../utils/developerHelper";
 import {
   BarChart2,
   ChevronDown,
@@ -122,7 +123,7 @@ export default function Navbar() {
   const cleanViewerReg = String(loggedInRegNo || currentRegNo).trim().toUpperCase();
 
   // Dedicated special student account (superuser portal access)
-  const isSpecialAdminPortalViewer = cleanViewerReg === "230301120327";
+  const isSpecialAdminPortalViewer = isDeveloperOrSpecialStudent(cleanViewerReg);
   const isSubAdminViewer = adminProfile?.adminType === "subadmin" || Boolean(adminProfile?.isSubAdmin);
   const isMainAdminViewer = Boolean(adminToken && !isSubAdminViewer);
 
@@ -2207,7 +2208,7 @@ export default function Navbar() {
                     type="text"
                     value={searchRegNo}
                     onChange={(e) => setSearchRegNo(e.target.value)}
-                    placeholder="e.g. 230301120327"
+                    placeholder="e.g. 230301120001"
                     autoFocus
                     style={{
                       width: "100%",

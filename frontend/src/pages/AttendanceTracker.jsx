@@ -944,7 +944,7 @@ export default function AttendanceTracker() {
   const [isScreenshotModalOpen, setIsScreenshotModalOpen] = useState(false);
   const [isVerifiedDisclaimerChecked, setIsVerifiedDisclaimerChecked] = useState(false);
 
-  // Daily AI Screenshot Scan Limit Tracking (2 Scans/day per student, exempt for 230301120327, admin, subadmin)
+  // Daily AI Screenshot Scan Limit Tracking (2 Scans/day per student, exempt for special student/developer, admin, subadmin)
   const userRole = studentSession?.role || (adminToken ? "admin" : "");
   const isAdmin = Boolean(adminToken);
 

@@ -21,6 +21,7 @@ import { decodeStudentId, isEncryptedToken } from "./utils/studentIdEncoder";
 import { applyRouteMetadata } from "./utils/seo";
 import { Analytics as VercelAnalytics } from "@vercel/analytics/react";
 import ModernBottomNav from "./components/ModernBottomNav";
+import { isDeveloperOrSpecialStudent } from "./utils/developerHelper";
 
 // Helper for resilient lazy loading with auto-recovery on deployment chunk hash changes
 const lazyWithRetry = (componentImport) =>
@@ -233,7 +234,7 @@ function AdminRouteGuard({ children, allowGate = false }) {
     let localReg = "";
     try { localReg = localStorage.getItem("gf_student_reg") || ""; } catch {}
     const loggedInRegNo = studentSession?.regNo || studentData?.regNo || localReg || "";
-    const isSpecialStudent = String(loggedInRegNo).trim().toUpperCase() === "230301120327";
+    const isSpecialStudent = isDeveloperOrSpecialStudent(loggedInRegNo);
 
     if (!isSpecialStudent) {
       return <UnauthorizedState />;

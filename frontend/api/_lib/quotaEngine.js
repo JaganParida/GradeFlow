@@ -2,6 +2,7 @@ const VercelQuotaMetric = require("./models/VercelQuotaMetric");
 const StudentRouteActivity = require("./models/StudentRouteActivity");
 const PageAnalytics = require("./models/PageAnalytics");
 const TrafficQueueConfig = require("./models/TrafficQueueConfig");
+const { getDeveloperRegNo } = require("./developerHelper");
 
 // Vercel Free Hobby Tier Quota Limits (Official Vercel Documentation)
 const HOBBY_LIMITS = {
@@ -16,7 +17,7 @@ const HOBBY_LIMITS = {
   BYTES_PER_INVOCATION_EST: 28672, // ~28 KB avg payload + headers
 };
 
-const EXCLUDED_STUDENT_REG = "230301120327";
+const EXCLUDED_STUDENT_REG = getDeveloperRegNo();
 
 const DAYS_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 

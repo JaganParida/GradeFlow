@@ -46,6 +46,14 @@ const {
   touchSubAdminSession,
 } = require("./_lib/sessionManager");
 
+const {
+  isDeveloperOrSpecialStudent,
+  getDeveloperRegNo,
+  getDeveloperDailyOtpMax,
+  getDeveloperMaxDevices,
+} = require("./_lib/developerHelper");
+const { getClientIp } = require("./_lib/ipHelper");
+
 const { broadcastRealtimeEvent } = require("./_lib/ablyService");
 const { applyCors } = require("./_lib/cors");
 
@@ -61,14 +69,53 @@ function parseCookies(cookieHeader) {
   return cookies;
 }
 
-function setStudentCookie(res, token, customMaxAge = null) {
+function setDeviceIdCookie(res, deviceId) {
+  if (!res || !deviceId) return;
+  const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+  const secureFlag = isProd ? " Secure;" : "";
+  const oneYear = 365 * 24 * 60 * 60;
+  const cookieStr = `gf_device_id=${deviceId}; Path=/; HttpOnly;${secureFlag} SameSite=Lax; Max-Age=${oneYear}`;
+  const existing = res.getHeader ? res.getHeader("Set-Cookie") : null;
+  if (existing) {
+    const existingArray = Array.isArray(existing) ? existing : [existing];
+    res.setHeader("Set-Cookie", [...existingArray.filter((c) => !c.startsWith("gf_device_id=")), cookieStr]);
+  } else {
+    res.setHeader("Set-Cookie", [cookieStr]);
+  }
+}
+
+function getOrCreateDeviceId(req, res) {
+  const cookies = parseCookies(req.headers.cookie);
+  let deviceId = cookies.gf_device_id || req.headers["x-device-id"];
+  if (deviceId && typeof deviceId === "string" && /^[a-zA-Z0-9_-]{16,64}$/.test(deviceId.trim())) {
+    deviceId = deviceId.trim();
+  } else {
+    deviceId = crypto.randomUUID();
+  }
+  setDeviceIdCookie(res, deviceId);
+  return deviceId;
+}
+
+function setStudentCookie(res, token, customMaxAge = null, deviceId = null) {
   const maxAge = customMaxAge !== null ? customMaxAge : 60 * 24 * 60 * 60; // 60 days
   const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
   const secureFlag = isProd ? " Secure;" : "";
-  res.setHeader("Set-Cookie", [
+  const cookies = [
     `student_jwt=${token}; Path=/; HttpOnly;${secureFlag} SameSite=Lax; Max-Age=${maxAge}`,
     `gf_auth_present=1; Path=/;${secureFlag} SameSite=Lax; Max-Age=${maxAge}`,
-  ]);
+  ];
+  if (deviceId) {
+    const oneYear = 365 * 24 * 60 * 60;
+    cookies.push(`gf_device_id=${deviceId}; Path=/; HttpOnly;${secureFlag} SameSite=Lax; Max-Age=${oneYear}`);
+  }
+  const existing = res.getHeader ? res.getHeader("Set-Cookie") : null;
+  if (existing) {
+    const existingArray = Array.isArray(existing) ? existing : [existing];
+    const filteredExisting = existingArray.filter((c) => !c.startsWith("student_jwt=") && !c.startsWith("gf_auth_present=") && (!deviceId || !c.startsWith("gf_device_id=")));
+    res.setHeader("Set-Cookie", [...filteredExisting, ...cookies]);
+  } else {
+    res.setHeader("Set-Cookie", cookies);
+  }
 }
 
 function clearStudentCookie(res, cookies = {}) {
@@ -83,15 +130,26 @@ function clearStudentCookie(res, cookies = {}) {
   res.setHeader("Set-Cookie", setCookies);
 }
 
-function setAdminCookie(res, token) {
-  const maxAge = 100 * 365 * 24 * 60 * 60;
+function setAdminCookie(res, token, deviceId = null, customMaxAge = null) {
+  const maxAge = customMaxAge !== null ? customMaxAge : 30 * 24 * 60 * 60; // 30 days
   const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
   const secureFlag = isProd ? " Secure;" : "";
   const expiresDate = new Date(Date.now() + maxAge * 1000).toUTCString();
-  res.setHeader("Set-Cookie", [
+  const cookies = [
     `jwt=${token}; Path=/; HttpOnly;${secureFlag} SameSite=Lax; Max-Age=${maxAge}; Expires=${expiresDate}`,
     `gf_auth_present=1; Path=/;${secureFlag} SameSite=Lax; Max-Age=${maxAge}; Expires=${expiresDate}`,
-  ]);
+  ];
+  if (deviceId) {
+    cookies.push(`gf_device_id=${deviceId}; Path=/; HttpOnly;${secureFlag} SameSite=Lax; Max-Age=${maxAge}; Expires=${expiresDate}`);
+  }
+  const existing = res.getHeader ? res.getHeader("Set-Cookie") : null;
+  if (existing) {
+    const existingArray = Array.isArray(existing) ? existing : [existing];
+    const filteredExisting = existingArray.filter((c) => !c.startsWith("jwt=") && !c.startsWith("gf_auth_present=") && (!deviceId || !c.startsWith("gf_device_id=")));
+    res.setHeader("Set-Cookie", [...filteredExisting, ...cookies]);
+  } else {
+    res.setHeader("Set-Cookie", cookies);
+  }
 }
 
 function clearAdminCookie(res, cookies = {}) {
@@ -108,14 +166,7 @@ function clearAdminCookie(res, cookies = {}) {
 
 function extractRequestDeviceInfo(req) {
   const userAgent = String(req.headers["user-agent"] || "");
-  const ip = String(
-    req.headers["x-forwarded-for"] ||
-      req.connection?.remoteAddress ||
-      req.socket?.remoteAddress ||
-      ""
-  )
-    .split(",")[0]
-    .trim();
+  const ip = getClientIp(req);
 
   let deviceType = "Desktop";
   if (/mobile|iphone|ipod|android.*mobile|windows phone/i.test(userAgent)) {
@@ -151,49 +202,65 @@ function extractRequestDeviceInfo(req) {
   };
 }
 
-function findMatchingSessionByDevice(activeSessions, req) {
-  if (!Array.isArray(activeSessions) || activeSessions.length === 0) return null;
-  const currentDev = extractRequestDeviceInfo(req);
-
-  // 1. Exact or prefix userAgent match (highest fidelity: same browser version & platform build)
-  if (currentDev.userAgent) {
-    const curUA = currentDev.userAgent.trim();
-    const matchUA = activeSessions.find((s) => {
-      const dbUA = String(s.deviceInfo?.userAgent || "").trim();
-      return dbUA && (dbUA === curUA || dbUA.startsWith(curUA) || curUA.startsWith(dbUA));
-    });
-    if (matchUA) return matchUA;
+/**
+ * Cryptographic device identity resolver.
+ * Replaces User-Agent/OS guessing with cryptographic JWT validation and persistent HttpOnly device binding.
+ * Guarantees zero bypass via User-Agent or device header spoofing.
+ */
+function resolveCurrentDeviceSession(activeSessions, req, options = {}) {
+  if (!Array.isArray(activeSessions) || activeSessions.length === 0) {
+    return { isCurrentDevice: false, matchedSession: null };
   }
 
-  // 2. High-fidelity match: OS family + deviceType + browser family
-  const curOs = String(currentDev.os || "").toLowerCase();
-  const curType = String(currentDev.deviceType || "").toLowerCase();
-  const curBrowser = String(currentDev.browser || "").toLowerCase();
+  const { expectedRegNo, role = "student" } = options;
+  const cookies = parseCookies(req.headers.cookie);
 
-  const matchHighFidelity = activeSessions.find((s) => {
-    const dev = s.deviceInfo || {};
-    const dbOs = String(dev.os || "").toLowerCase();
-    const dbType = String(dev.deviceType || "").toLowerCase();
-    const dbBrowser = String(dev.browser || "").toLowerCase();
+  // 1. Primary: Cryptographic JWT Verification
+  let incomingToken = role === "admin"
+    ? (cookies.jwt || req.headers["x-admin-token"])
+    : (cookies.student_jwt || req.headers["x-student-token"]);
 
-    const sameType = curType && dbType && curType === dbType;
-    const sameOs = curOs && dbOs && (curOs === dbOs || (curOs.includes("android") && dbOs.includes("android")) || (curOs.includes("windows") && dbOs.includes("windows")) || (curOs.includes("ios") && dbOs.includes("ios")) || (curOs.includes("mac") && dbOs.includes("mac")));
-    const sameBrowser = curBrowser && dbBrowser && (curBrowser === dbBrowser || curBrowser.includes(dbBrowser) || dbBrowser.includes(curBrowser));
+  if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+    incomingToken = req.headers.authorization.split(" ")[1];
+  }
 
-    return sameType && sameOs && sameBrowser;
-  });
-  if (matchHighFidelity) return matchHighFidelity;
+  if (incomingToken && incomingToken !== "none") {
+    try {
+      const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+      const regMatches = !expectedRegNo || decoded.regNo === expectedRegNo;
+      const roleMatches = role === "admin" ? (decoded.role === "admin" || decoded.isAdmin) : (decoded.role === "student" || !decoded.role);
+      if (regMatches && roleMatches) {
+        const match = activeSessions.find((s) => s.sessionId === decoded.sessionId);
+        if (match) {
+          return { isCurrentDevice: true, matchedSession: match };
+        }
+      }
+    } catch {}
+  }
 
-  // 3. Fallback match: OS family + deviceType
-  return activeSessions.find((s) => {
-    const dev = s.deviceInfo || {};
-    const dbOs = String(dev.os || "").toLowerCase();
-    const dbType = String(dev.deviceType || "").toLowerCase();
+  // 2. Cryptographic Device ID Binding (Persistent HttpOnly Cookie or Verified Header)
+  const incomingDeviceId = (cookies.gf_device_id || req.headers["x-device-id"] || "").trim();
+  if (incomingDeviceId) {
+    const match = activeSessions.find((s) => s.deviceId && s.deviceId === incomingDeviceId);
+    if (match) {
+      return { isCurrentDevice: true, matchedSession: match };
+    }
+  }
 
-    const sameType = curType && dbType && curType === dbType;
-    const sameOs = curOs && dbOs && (curOs === dbOs || (curOs.includes("android") && dbOs.includes("android")) || (curOs.includes("windows") && dbOs.includes("windows")));
-    return sameType && sameOs;
-  }) || null;
+  // 3. Last Session Header (Only valid if matching cryptographic deviceId)
+  const lastSessionHeader = (role === "admin"
+    ? (req.headers["x-admin-last-session"] || req.headers["x-admin-session"])
+    : (req.headers["x-student-last-session"] || req.headers["x-student-session"]) || "").trim();
+
+  if (lastSessionHeader && incomingDeviceId) {
+    const match = activeSessions.find((s) => s.sessionId === lastSessionHeader);
+    if (match && match.deviceId && match.deviceId === incomingDeviceId) {
+      return { isCurrentDevice: true, matchedSession: match };
+    }
+  }
+
+  // ZERO User-Agent or OS guessing: If neither cryptographic token nor deviceId matches, treat as new device
+  return { isCurrentDevice: false, matchedSession: null };
 }
 
 
@@ -401,7 +468,7 @@ module.exports = async function handler(req, res) {
       // 1. Authenticated Admin Token Request (Priority for admin-control channel capabilities)
       if (adminToken && adminToken !== "none") {
         try {
-          const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
+          const decoded = jwt.verify(adminToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
           if (decoded.role === "admin" && decoded.sessionId) {
             let session = null;
             if (decoded.adminType === "subadmin") {
@@ -436,7 +503,7 @@ module.exports = async function handler(req, res) {
       // 2. Authenticated Student Token Request
       if (incomingToken && incomingToken !== "none") {
         try {
-          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
           if (decoded.role === "student" && decoded.regNo && decoded.sessionId) {
             const cleanReg = String(decoded.regNo).trim().toUpperCase();
             const session = await StudentSession.findOne({
@@ -528,46 +595,17 @@ module.exports = async function handler(req, res) {
       const maxAllowedDevices = getMaxAllowedDevices(rawReg);
       const activeSessions = await getActiveSessions(StudentSession, rawReg);
 
-      let incomingToken = req.headers["x-student-token"];
-      if (!incomingToken && cookies.student_jwt && cookies.student_jwt !== "none") {
-        incomingToken = cookies.student_jwt;
-      }
-      if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-        incomingToken = req.headers.authorization.split(" ")[1];
-      }
-
       let isCurrentDevice = false;
       let currentSessionId = null;
-      if (hasPassword && incomingToken && incomingToken !== "none") {
-        try {
-          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
-          if (decoded.regNo === rawReg && activeSessions.some((s) => s.sessionId === decoded.sessionId)) {
-            isCurrentDevice = true;
-            currentSessionId = decoded.sessionId;
-          }
-        } catch {}
-      }
-
-      // Fallback 1: Header hint
-      const lastSessionHeader = req.headers["x-student-last-session"] || req.headers["x-student-session"];
-      if (!isCurrentDevice && hasPassword && lastSessionHeader) {
-        const match = activeSessions.find((s) => s.sessionId === lastSessionHeader);
-        if (match) {
+      if (hasPassword && activeSessions.length > 0) {
+        const devRes = resolveCurrentDeviceSession(activeSessions, req, { expectedRegNo: rawReg, role: "student" });
+        if (devRes.isCurrentDevice) {
           isCurrentDevice = true;
-          currentSessionId = match.sessionId;
+          currentSessionId = devRes.matchedSession?.sessionId || null;
         }
       }
 
-      // Fallback 2: Match active session by physical device info if cookies/storage were cleared
-      if (!isCurrentDevice && hasPassword && activeSessions.length > 0) {
-        const match = findMatchingSessionByDevice(activeSessions, req);
-        if (match) {
-          isCurrentDevice = true;
-          currentSessionId = match.sessionId;
-        }
-      }
-
-      const maxDailyLimit = rawReg === "230301120327" ? 5 : 3;
+      const maxDailyLimit = isDeveloperOrSpecialStudent(rawReg) ? getDeveloperDailyOtpMax() : 3;
       const quota = await getAccountOtpQuotaState(rawReg, maxDailyLimit);
 
       const isCooldownActive = quota.isCooldownActive;
@@ -584,8 +622,8 @@ module.exports = async function handler(req, res) {
       let otpFallbackAllowed = true;
 
       const now = new Date();
-      // ── Normal Student 2-Failed-Password & 24h Lockout Check (Anti-Bypass Protection) ──
-      if (rawReg !== "230301120327" && studentAccount) {
+      // ── Brute-Force & 24h Lockout Check (Anti-Bypass Protection) ──
+      if (studentAccount) {
         // 1. If 24h lockout period has naturally expired, reset counters
         if (studentAccount.recoveryRestrictedUntil && new Date(studentAccount.recoveryRestrictedUntil) <= now) {
           studentAccount.failedPasswordAttempts = 0;
@@ -676,8 +714,7 @@ module.exports = async function handler(req, res) {
 
       const sessionDetails = activeSessions.map((s, idx) => ({
         deviceIndex: idx + 1,
-        sessionId: s.sessionId,
-        isCurrentDevice: s.sessionId === currentSessionId,
+        isCurrentDevice: Boolean(currentSessionId && s.sessionId === currentSessionId),
         platform: s.deviceInfo?.platform || "Unknown",
         userAgent: s.deviceInfo?.userAgent || "Unknown",
         ip: s.deviceInfo?.ip || "",
@@ -696,6 +733,8 @@ module.exports = async function handler(req, res) {
         isCurrentDevice,
         activeDeviceCount: activeSessions.length,
         maxAllowedDevices,
+        isSpecialStudent: isDeveloperOrSpecialStudent(rawReg),
+        isDeveloper: isDeveloperOrSpecialStudent(rawReg),
         isBlocked,
         isLocked: isBlocked && blockReason === "ACCOUNT_TEMPORARILY_LOCKED",
         code: blockReason,
@@ -732,7 +771,7 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      if (rawReg === "230301120327") {
+      if (isDeveloperOrSpecialStudent(rawReg)) {
         return res.status(400).json({
           success: false,
           message: "This endpoint is only for normal student password recovery.",
@@ -944,7 +983,7 @@ module.exports = async function handler(req, res) {
       const isLocked = Boolean(studentAccount?.lockedUntil && new Date() < new Date(studentAccount.lockedUntil));
 
       const maxAllowedDevices = getMaxAllowedDevices(rawReg);
-      const isUnlimited = rawReg === "230301120327";
+      const isUnlimited = isDeveloperOrSpecialStudent(rawReg);
       const activeSessions = await getActiveSessions(StudentSession, rawReg);
 
       // Check alreadyLoggedIn ONLY if student already has a password
@@ -959,7 +998,7 @@ module.exports = async function handler(req, res) {
       let isCurrentDevice = false;
       if (hasPassword && incomingToken && incomingToken !== "none") {
         try {
-          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
           if (decoded.regNo === rawReg && activeSessions.some((s) => s.sessionId === decoded.sessionId)) {
             isCurrentDevice = true;
           }
@@ -1013,7 +1052,7 @@ module.exports = async function handler(req, res) {
           });
         }
 
-        if (rawReg !== "230301120327" && (studentAccount.failedPasswordAttempts || 0) >= 3) {
+        if ((studentAccount.failedPasswordAttempts || 0) >= 3) {
           return res.status(400).json({
             success: false,
             code: "RECOVERY_PROMPT_REQUIRED",
@@ -1054,7 +1093,7 @@ module.exports = async function handler(req, res) {
       }
 
       const isForgotPassword = Boolean(req.body.isForgotPassword || req.body.forceOtp);
-      const maxDailyLimit = rawReg === "230301120327" ? 5 : 3;
+      const maxDailyLimit = isDeveloperOrSpecialStudent(rawReg) ? getDeveloperDailyOtpMax() : 3;
       let quota = null;
 
       if (!isForgotPassword) {
@@ -1280,7 +1319,7 @@ module.exports = async function handler(req, res) {
       const studentName = studentRecord?.studentName || "Student";
 
       const isSpecialStudentLogin =
-        (otpRecord.purpose === "SPECIAL_STUDENT_LOGIN" || (rawReg === "230301120327" && otpRecord.purpose !== "PASSWORD_RESET")) &&
+        (otpRecord.purpose === "SPECIAL_STUDENT_LOGIN" || (isDeveloperOrSpecialStudent(rawReg) && otpRecord.purpose !== "PASSWORD_RESET")) &&
         Boolean(studentAccount && studentAccount.passwordHash) &&
         !req.body.isForgotPassword;
 
@@ -1291,41 +1330,9 @@ module.exports = async function handler(req, res) {
         const maxAllowedDevices = getMaxAllowedDevices(rawReg);
         const activeSessions = await getActiveSessions(StudentSession, rawReg);
 
-        let incomingToken = req.headers["x-student-token"] || cookies.student_jwt;
-        if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-          incomingToken = req.headers.authorization.split(" ")[1];
-        }
-
-        let isCurrentDevice = false;
-        let matchedSession = null;
-        if (incomingToken && incomingToken !== "none") {
-          try {
-            const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
-            if (decoded.regNo === rawReg) {
-              matchedSession = activeSessions.find((s) => s.sessionId === decoded.sessionId);
-              if (matchedSession) isCurrentDevice = true;
-            }
-          } catch {}
-        }
-
-        // Fallback 1: Header hint
-        const lastSessionHeader = req.headers["x-student-last-session"] || req.headers["x-student-session"];
-        if (!isCurrentDevice && lastSessionHeader) {
-          const match = activeSessions.find((s) => s.sessionId === lastSessionHeader);
-          if (match) {
-            isCurrentDevice = true;
-            matchedSession = match;
-          }
-        }
-
-        // Fallback 2: Match active session by physical device info if cookies/storage were cleared
-        if (!isCurrentDevice && activeSessions.length > 0) {
-          const match = findMatchingSessionByDevice(activeSessions, req);
-          if (match) {
-            isCurrentDevice = true;
-            matchedSession = match;
-          }
-        }
+        const devRes = resolveCurrentDeviceSession(activeSessions, req, { expectedRegNo: rawReg, role: "student" });
+        const isCurrentDevice = devRes.isCurrentDevice;
+        const matchedSession = devRes.matchedSession;
 
         if (isCurrentDevice && matchedSession) {
           matchedSession.isActive = false;
@@ -1358,6 +1365,7 @@ module.exports = async function handler(req, res) {
           });
         }
 
+        const currentDeviceId = getOrCreateDeviceId(req, res);
         const sessionId = crypto.randomUUID();
         const now = Date.now();
         const expiresAt = new Date(now + PERMANENT_SESSION_MS);
@@ -1365,7 +1373,7 @@ module.exports = async function handler(req, res) {
         await StudentSession.create({
           regNo: rawReg,
           sessionId,
-          deviceId: crypto.randomUUID(),
+          deviceId: currentDeviceId,
           deviceInfo: extractRequestDeviceInfo(req),
           loggedInAt: new Date(now),
           lastActiveAt: new Date(now),
@@ -1379,13 +1387,20 @@ module.exports = async function handler(req, res) {
           { expiresIn: "60d" }
         );
 
-        setStudentCookie(res, studentToken);
+        setStudentCookie(res, studentToken, null, currentDeviceId);
 
         return res.json({
           success: true,
           authenticated: true,
           message: "Login successful.",
-          student: { regNo: rawReg, studentName, sessionId },
+          student: {
+            regNo: rawReg,
+            studentName,
+            sessionId,
+            deviceId: currentDeviceId,
+            isSpecialStudent: isDeveloperOrSpecialStudent(rawReg),
+            isDeveloper: isDeveloperOrSpecialStudent(rawReg),
+          },
         });
       }
 
@@ -1482,8 +1497,10 @@ module.exports = async function handler(req, res) {
       const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
       const studentName = studentRecord?.studentName || "Student";
 
+      const currentDeviceId = getOrCreateDeviceId(req, res);
       // Atomically create authorized session
       const { newSession } = await replaceStudentSession(StudentSession, rawReg, {
+        deviceId: currentDeviceId,
         deviceInfo: extractRequestDeviceInfo(req),
       });
 
@@ -1493,7 +1510,7 @@ module.exports = async function handler(req, res) {
         { expiresIn: "60d" }
       );
 
-      setStudentCookie(res, studentToken);
+      setStudentCookie(res, studentToken, null, currentDeviceId);
 
       return res.json({
         success: true,
@@ -1502,6 +1519,7 @@ module.exports = async function handler(req, res) {
           regNo: rawReg,
           studentName,
           sessionId: newSession.sessionId,
+          deviceId: currentDeviceId,
         },
       });
     }
@@ -1551,8 +1569,8 @@ module.exports = async function handler(req, res) {
       // ── Brute-Force Defense: Verify lockout state BEFORE evaluating password ──
       const now = new Date();
       if (studentAccount.recoveryRestrictedUntil && new Date(studentAccount.recoveryRestrictedUntil) > now) {
-        // For normal student: check if 5-minute recovery OTP is still active
-        if (rawReg !== "230301120327" && studentAccount.failedPasswordAttempts >= 3) {
+        // Check if 5-minute recovery OTP is still active
+        if (studentAccount.failedPasswordAttempts >= 3) {
           const activeRecoveryOtp = await OtpVerification.findOne({
             regNo: rawReg,
             purpose: "FAILED_PASSWORD_RECOVERY",
@@ -1616,8 +1634,8 @@ module.exports = async function handler(req, res) {
       const maxAllowedDevices = getMaxAllowedDevices(rawReg);
       const activeSessions = await getActiveSessions(StudentSession, rawReg);
 
-      // Anti-Bypass: If normal student has already reached 3 failed attempts, prevent further password evaluations
-      if (rawReg !== "230301120327" && (studentAccount.failedPasswordAttempts || 0) >= 3) {
+      // Anti-Bypass: If student has already reached 3 failed attempts, prevent further password evaluations
+      if ((studentAccount.failedPasswordAttempts || 0) >= 3) {
         const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
         return res.status(200).json({
           success: true,
@@ -1658,41 +1676,9 @@ module.exports = async function handler(req, res) {
           }
         );
 
-        let incomingToken = req.headers["x-student-token"] || cookies.student_jwt;
-        if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-          incomingToken = req.headers.authorization.split(" ")[1];
-        }
-
-        let isCurrentDevice = false;
-        let matchedSession = null;
-        if (incomingToken && incomingToken !== "none") {
-          try {
-            const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
-            if (decoded.regNo === rawReg) {
-              matchedSession = activeSessions.find((s) => s.sessionId === decoded.sessionId);
-              if (matchedSession) isCurrentDevice = true;
-            }
-          } catch {}
-        }
-
-        // Fallback 1: Header hint
-        const lastSessionHeader = req.headers["x-student-last-session"] || req.headers["x-student-session"];
-        if (!isCurrentDevice && lastSessionHeader) {
-          const match = activeSessions.find((s) => s.sessionId === lastSessionHeader);
-          if (match) {
-            isCurrentDevice = true;
-            matchedSession = match;
-          }
-        }
-
-        // Fallback 2: Match active session by physical device info if cookies/storage were cleared
-        if (!isCurrentDevice && activeSessions.length > 0) {
-          const match = findMatchingSessionByDevice(activeSessions, req);
-          if (match) {
-            isCurrentDevice = true;
-            matchedSession = match;
-          }
-        }
+        const devRes = resolveCurrentDeviceSession(activeSessions, req, { expectedRegNo: rawReg, role: "student" });
+        const isCurrentDevice = devRes.isCurrentDevice;
+        const matchedSession = devRes.matchedSession;
 
         // CASE A: Normal Single-Device Student (limit = 1)
         if (maxAllowedDevices === 1) {
@@ -1709,8 +1695,10 @@ module.exports = async function handler(req, res) {
             : activeSessions;
 
           if (remainingActiveSessions.length === 0) {
+            const currentDeviceId = getOrCreateDeviceId(req, res);
             // Direct login! Issue fresh session & JWT
             const { newSession } = await replaceStudentSession(StudentSession, rawReg, {
+              deviceId: currentDeviceId,
               deviceInfo: extractRequestDeviceInfo(req),
             });
 
@@ -1720,12 +1708,19 @@ module.exports = async function handler(req, res) {
               { expiresIn: "60d" }
             );
 
-            setStudentCookie(res, studentToken);
+            setStudentCookie(res, studentToken, null, currentDeviceId);
 
             return res.json({
               success: true,
               message: "Login successful.",
-              student: { regNo: rawReg, studentName, sessionId: newSession.sessionId },
+              student: {
+                regNo: rawReg,
+                studentName,
+                sessionId: newSession.sessionId,
+                deviceId: currentDeviceId,
+                isSpecialStudent: isDeveloperOrSpecialStudent(rawReg),
+                isDeveloper: isDeveloperOrSpecialStudent(rawReg),
+              },
             });
           }
 
@@ -1755,7 +1750,7 @@ module.exports = async function handler(req, res) {
             },
           });
         } else {
-          // CASE B: 2-Device Account (Special Student 230301120327): Strict 2-Device Cap (Device 3 Blocked)
+          // CASE B: Multi-Device Account (Developer / Special Student): Strict Cap
           // Check active authenticated device sessions ONLY AFTER password is verified
           // If current device matches an active session, exclude it so re-authentication proceeds to OTP
           const remainingActiveSessions = (isCurrentDevice && matchedSession)
@@ -1782,19 +1777,20 @@ module.exports = async function handler(req, res) {
             });
           }
 
-          // Active devices < 2: Check 5-send 24-hour OTP quota & 180s cooldown
-          const quota = await getAccountOtpQuotaState(rawReg, 5);
+          // Active devices < cap: Check multi-device OTP quota & 180s cooldown
+          const devOtpMax = getDeveloperDailyOtpMax();
+          const quota = await getAccountOtpQuotaState(rawReg, devOtpMax);
           if (quota.isLimitReached) {
             return res.status(429).json({
               success: false,
               code: "DAILY_LIMIT_EXCEEDED",
-              message: `OTP limit reached (maximum 5 requests per 24 hours). You can request another OTP after ${formatUnlockTime(quota.unlockAt)}.`,
+              message: `OTP limit reached (maximum ${devOtpMax} requests per 24 hours). You can request another OTP after ${formatUnlockTime(quota.unlockAt)}.`,
               remainingSeconds: quota.secondsUntilUnlock,
               secondsUntilUnlock: quota.secondsUntilUnlock,
               unlockAt: quota.unlockAt,
               unlockTime: formatUnlockTime(quota.unlockAt),
               remainingDailyAttempts: 0,
-              maxDailyAttempts: 5,
+              maxDailyAttempts: devOtpMax,
             });
           }
 
@@ -1807,7 +1803,7 @@ module.exports = async function handler(req, res) {
               secondsRemaining: quota.cooldownRemainingSeconds,
               cooldownRemainingSeconds: quota.cooldownRemainingSeconds,
               remainingDailyAttempts: quota.remainingAttempts,
-              maxDailyAttempts: 5,
+              maxDailyAttempts: devOtpMax,
             });
           }
 
@@ -1867,10 +1863,8 @@ module.exports = async function handler(req, res) {
       studentAccount.failedPasswordAttempts = (studentAccount.failedPasswordAttempts || 0) + 1;
       studentAccount.lastFailedPasswordAt = new Date();
 
-      if (rawReg !== "230301120327" && studentAccount.failedPasswordAttempts >= 3) {
-        // ── NORMAL STUDENT: 3 Failed Password Attempts Reached! ──
-        // Do NOT dispatch OTP automatically! Transition to dedicated RECOVERY_PROMPT instruction page.
-        // The student must explicitly click "Send One-Time OTP to Email" to dispatch the 5-min OTP.
+      if (studentAccount.failedPasswordAttempts >= 3) {
+        // 3 Failed Password Attempts Reached!
         studentAccount.failedPasswordAttempts = 3;
         await Student.updateOne(
           { _id: studentAccount._id },
@@ -1896,8 +1890,8 @@ module.exports = async function handler(req, res) {
             studentName,
           },
         });
-      } else if (rawReg !== "230301120327") {
-        // Failed attempt 1 or 2 for normal student
+      } else {
+        // Failed attempt 1 or 2
         const attemptsCount = studentAccount.failedPasswordAttempts;
         const remainingAttempts = Math.max(0, 3 - attemptsCount);
 
@@ -1917,75 +1911,6 @@ module.exports = async function handler(req, res) {
           message: `Incorrect password. ${remainingAttempts} attempt${remainingAttempts === 1 ? "" : "s"} remaining.`,
           remainingAttempts,
           failedAttempts: attemptsCount,
-        });
-      } else {
-        // Special student logic
-        if (studentAccount.failedPasswordAttempts >= 3) {
-          const restrictionDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24-hour restriction window
-          studentAccount.recoveryRestrictedUntil = restrictionDate;
-          studentAccount.recoveryOtpCount = 0;
-          await Student.updateOne(
-            { _id: studentAccount._id },
-            {
-              $set: {
-                failedPasswordAttempts: studentAccount.failedPasswordAttempts,
-                lastFailedPasswordAt: studentAccount.lastFailedPasswordAt,
-                recoveryRestrictedUntil: restrictionDate,
-                recoveryOtpCount: 0,
-                lockedUntil: restrictionDate,
-              },
-            }
-          );
-
-          if (maxAllowedDevices === 1 && activeSessions.length >= 1) {
-            const sanitizedDevices = activeSessions.map((s, idx) => ({
-              deviceIndex: idx + 1,
-              platform: s.deviceInfo?.platform || "Unknown",
-              userAgent: s.deviceInfo?.userAgent || "Unknown",
-              loggedInAt: s.loggedInAt,
-              lastActiveAt: s.lastActiveAt,
-              status: "ACTIVE",
-            }));
-
-            return res.status(403).json({
-              success: false,
-              code: "BLOCKED_DEVICE_ACTIVE",
-              message: `Maximum password attempts reached (3/3). Registration number ${rawReg} is currently active on another device. Single-device security policy: OTP recovery is blocked while your account is logged in on another device.`,
-              isBlocked: true,
-              activeDeviceCount: activeSessions.length,
-              maxAllowedDevices: 1,
-              activeDevices: sanitizedDevices,
-            });
-          }
-
-          return res.status(429).json({
-            success: false,
-            code: "ACCOUNT_TEMPORARILY_LOCKED",
-            message: "Maximum password attempts reached (3/3). Account is restricted for 24 hours. You can request a single-use recovery code via email.",
-            recoveryRestrictedUntil: restrictionDate,
-            remainingHours: 24,
-            otpFallbackAllowed: true,
-            failedAttempts: 3,
-          });
-        }
-
-        await Student.updateOne(
-          { _id: studentAccount._id },
-          {
-            $set: {
-              failedPasswordAttempts: studentAccount.failedPasswordAttempts,
-              lastFailedPasswordAt: studentAccount.lastFailedPasswordAt,
-            },
-          }
-        );
-        const remainingAttempts = Math.max(0, 3 - studentAccount.failedPasswordAttempts);
-
-        return res.status(401).json({
-          success: false,
-          code: "INVALID_PASSWORD",
-          message: `Incorrect password. ${remainingAttempts} attempt${remainingAttempts === 1 ? "" : "s"} remaining before account is temporarily locked.`,
-          failedAttempts: studentAccount.failedPasswordAttempts,
-          remainingAttempts,
         });
       }
     }
@@ -2015,7 +1940,9 @@ module.exports = async function handler(req, res) {
         return res.status(401).json({ success: false, message: "Invalid password.", code: "INVALID_PASSWORD" });
       }
 
+      const currentDeviceId = getOrCreateDeviceId(req, res);
       const { newSession, wasReplaced } = await replaceStudentSession(StudentSession, rawReg, {
+        deviceId: currentDeviceId,
         deviceInfo: extractRequestDeviceInfo(req),
       });
 
@@ -2037,12 +1964,12 @@ module.exports = async function handler(req, res) {
         { $set: { status: "EXPIRED" } }
       );
 
-      setStudentCookie(res, studentToken);
+      setStudentCookie(res, studentToken, null, currentDeviceId);
 
       return res.json({
         success: true,
         message: wasReplaced ? "Session successfully transferred to this device." : "Logged in successfully.",
-        student: { regNo: rawReg, studentName, sessionId: newSession.sessionId },
+        student: { regNo: rawReg, studentName, sessionId: newSession.sessionId, deviceId: currentDeviceId },
       });
     }
 
@@ -2066,7 +1993,7 @@ module.exports = async function handler(req, res) {
         return res.status(400).json(result);
       }
 
-      setStudentCookie(res, result.token);
+      setStudentCookie(res, result.token, null, result.deviceId);
 
       const studentRecord = await SemesterResult.findOne({ regNo: result.regNo }).sort({ semester: -1 });
 
@@ -2078,6 +2005,7 @@ module.exports = async function handler(req, res) {
           regNo: result.regNo,
           studentName: studentRecord?.studentName || "Student",
           sessionId: result.sessionId,
+          deviceId: result.deviceId,
         },
       });
     }
@@ -2250,7 +2178,7 @@ module.exports = async function handler(req, res) {
       // 1. Passive / Read-only Student Session Validation
       if (studentToken && studentToken !== "none") {
         try {
-          const decoded = jwt.verify(studentToken, process.env.JWT_SECRET);
+          const decoded = jwt.verify(studentToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
           if (decoded?.regNo && decoded?.sessionId) {
             const session = await StudentSession.findOne({
               regNo: decoded.regNo,
@@ -2276,7 +2204,7 @@ module.exports = async function handler(req, res) {
       // 2. Passive / Read-only Admin & Sub-Admin Session Validation
       if (adminToken && adminToken !== "none") {
         try {
-          const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
+          const decoded = jwt.verify(adminToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
           if (decoded?.role === "admin") {
             if (decoded.adminType === "subadmin" && decoded.subAdminId) {
               const session = await SubAdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
@@ -2393,7 +2321,7 @@ module.exports = async function handler(req, res) {
         const roles = buttonVisibilityConfig.allowedRoles || {};
         if (adminAuth) {
           resolvedButtonVisible = adminAuth.isSubAdmin ? (roles.subAdmin !== false) : (roles.mainAdmin !== false);
-        } else if (studentAuth?.regNo === "230301120327") {
+        } else if (isDeveloperOrSpecialStudent(studentAuth?.regNo)) {
           resolvedButtonVisible = roles.specialStudent !== false;
         } else if (studentAuth?.regNo) {
           resolvedButtonVisible = Boolean(roles.allStudents);
@@ -2442,7 +2370,7 @@ module.exports = async function handler(req, res) {
 
       let decoded;
       try {
-        decoded = jwt.verify(token, process.env.JWT_SECRET);
+        decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
       } catch {
         return res.status(401).json({ success: false, message: "Token invalid or expired" });
       }
@@ -2494,7 +2422,7 @@ module.exports = async function handler(req, res) {
 
       if (token && token !== "none") {
         try {
-          const decoded = jwt.verify(token, process.env.JWT_SECRET);
+          const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
           sessionId = decoded?.sessionId;
           decodedRegNo = decoded?.regNo;
         } catch {}
@@ -2509,9 +2437,12 @@ module.exports = async function handler(req, res) {
       if (!sessionId && targetReg) {
         try {
           const activeSessions = await getActiveSessions(StudentSession, targetReg);
-          const match = findMatchingSessionByDevice(activeSessions, req);
-          if (match) {
-            sessionId = match.sessionId;
+          const incomingDeviceId = (cookies.gf_device_id || req.headers["x-device-id"] || "").trim();
+          if (incomingDeviceId) {
+            const match = activeSessions.find((s) => s.deviceId && s.deviceId === incomingDeviceId);
+            if (match) {
+              sessionId = match.sessionId;
+            }
           }
         } catch {}
       }
@@ -2551,34 +2482,18 @@ module.exports = async function handler(req, res) {
       let decodedAdmin = null;
       if (incomingToken && incomingToken !== "none") {
         try {
-          decodedAdmin = jwt.verify(incomingToken, process.env.JWT_SECRET);
+          decodedAdmin = jwt.verify(incomingToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
         } catch {}
       }
 
       const activeSessions = await getActiveAdminSessions(AdminSession);
 
       let isCurrentDevice = false;
-      if (decodedAdmin && decodedAdmin.role === "admin" && decodedAdmin.sessionId) {
-        const matching = activeSessions.find((s) => s.sessionId === decodedAdmin.sessionId);
-        if (matching) {
+      if (activeSessions.length > 0) {
+        const devRes = resolveCurrentDeviceSession(activeSessions, req, { role: "admin" });
+        if (devRes.isCurrentDevice) {
           isCurrentDevice = true;
-          touchAdminSession(matching).catch(() => {});
-        }
-      }
-
-      // Fallback 1: Header hint
-      if (!isCurrentDevice && clientLastSession) {
-        const match = activeSessions.find((s) => s.sessionId === clientLastSession);
-        if (match) {
-          isCurrentDevice = true;
-        }
-      }
-
-      // Fallback 2: Match active session by physical device info if cookies/storage were cleared
-      if (!isCurrentDevice && activeSessions.length > 0) {
-        const match = findMatchingSessionByDevice(activeSessions, req);
-        if (match) {
-          isCurrentDevice = true;
+          touchAdminSession(devRes.matchedSession).catch(() => {});
         }
       }
 
@@ -2737,41 +2652,13 @@ module.exports = async function handler(req, res) {
 
       const activeSessions = await getActiveAdminSessions(AdminSession);
 
-      let incomingToken = cookies.jwt || req.headers["x-admin-token"];
-      if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-        incomingToken = req.headers.authorization.split(" ")[1];
-      }
       let isCurrentDevice = false;
       let matchedSession = null;
-      if (incomingToken && incomingToken !== "none") {
-        try {
-          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
-          if (decoded.role === "admin" && decoded.sessionId) {
-            const match = activeSessions.find((s) => s.sessionId === decoded.sessionId);
-            if (match) {
-              isCurrentDevice = true;
-              matchedSession = match;
-            }
-          }
-        } catch {}
-      }
-
-      // Fallback 1: Header hint
-      const lastAdminSessionHeader = req.headers["x-admin-last-session"] || req.headers["x-admin-session"];
-      if (!isCurrentDevice && lastAdminSessionHeader) {
-        const match = activeSessions.find((s) => s.sessionId === lastAdminSessionHeader);
-        if (match && isAdminSessionValid(match)) {
+      if (activeSessions.length > 0) {
+        const devRes = resolveCurrentDeviceSession(activeSessions, req, { role: "admin" });
+        if (devRes.isCurrentDevice && devRes.matchedSession && isAdminSessionValid(devRes.matchedSession)) {
           isCurrentDevice = true;
-          matchedSession = match;
-        }
-      }
-
-      // Fallback 2: Match active session by physical device info if cookies/storage were cleared
-      if (!isCurrentDevice && activeSessions.length > 0) {
-        const match = findMatchingSessionByDevice(activeSessions, req);
-        if (match && isAdminSessionValid(match)) {
-          isCurrentDevice = true;
-          matchedSession = match;
+          matchedSession = devRes.matchedSession;
         }
       }
 
@@ -2787,11 +2674,16 @@ module.exports = async function handler(req, res) {
           message: "Maximum active administrator sessions reached (2 devices). Access denied.",
           activeDeviceCount: remainingActiveSessions.length,
           maxAllowedDevices: MAX_ADMIN_DEVICES,
-          activeDevices: remainingActiveSessions.map((s) => ({
-            sessionId: s.sessionId,
-            deviceInfo: s.deviceInfo,
-            lastActiveAt: s.lastActiveAt,
+          activeDevices: remainingActiveSessions.map((s, idx) => ({
+            deviceIndex: idx + 1,
+            deviceType: s.deviceInfo?.deviceType || "Desktop",
+            os: s.deviceInfo?.os || "Windows",
+            browser: s.deviceInfo?.browser || "Chrome",
+            platform: s.deviceInfo?.platform || `${s.deviceInfo?.os || "Windows"} • ${s.deviceInfo?.browser || "Chrome"}`,
+            userAgent: s.deviceInfo?.userAgent || "Standard Browser",
             loggedInAt: s.loggedInAt,
+            lastActiveAt: s.lastActiveAt,
+            status: "ACTIVE",
           })),
         });
       }
@@ -2886,40 +2778,9 @@ module.exports = async function handler(req, res) {
       // Enforce strict 2-device limit (Device 3 rejected with HTTP 403; NEVER silently evict Device 1)
       const activeSessions = await getActiveAdminSessions(AdminSession);
 
-      let incomingToken = cookies.jwt || req.headers["x-admin-token"];
-      if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-        incomingToken = req.headers.authorization.split(" ")[1];
-      }
-      let isCurrentDevice = false;
-      let matchedSession = null;
-      if (incomingToken && incomingToken !== "none") {
-        try {
-          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
-          if (decoded.role === "admin" && decoded.sessionId) {
-            matchedSession = activeSessions.find((s) => s.sessionId === decoded.sessionId);
-            if (matchedSession) isCurrentDevice = true;
-          }
-        } catch {}
-      }
-
-      // Fallback 1: Header hint
-      const lastAdminSessionHeader = req.headers["x-admin-last-session"] || req.headers["x-admin-session"];
-      if (!isCurrentDevice && lastAdminSessionHeader) {
-        const match = activeSessions.find((s) => s.sessionId === lastAdminSessionHeader);
-        if (match) {
-          isCurrentDevice = true;
-          matchedSession = match;
-        }
-      }
-
-      // Fallback 2: Match active session by physical device info if cookies/storage were cleared
-      if (!isCurrentDevice && activeSessions.length > 0) {
-        const match = findMatchingSessionByDevice(activeSessions, req);
-        if (match) {
-          isCurrentDevice = true;
-          matchedSession = match;
-        }
-      }
+      const devRes = resolveCurrentDeviceSession(activeSessions, req, { role: "admin" });
+      const isCurrentDevice = devRes.isCurrentDevice;
+      const matchedSession = devRes.matchedSession;
 
       if (isCurrentDevice && matchedSession) {
         matchedSession.isActive = false;
@@ -2939,21 +2800,28 @@ module.exports = async function handler(req, res) {
           message: "Maximum active administrator sessions reached (2 devices). Access denied.",
           activeDeviceCount: remainingActiveSessions.length,
           maxAllowedDevices: MAX_ADMIN_DEVICES,
-          activeDevices: remainingActiveSessions.map((s) => ({
-            sessionId: s.sessionId,
-            deviceInfo: s.deviceInfo,
-            lastActiveAt: s.lastActiveAt,
+          activeDevices: remainingActiveSessions.map((s, idx) => ({
+            deviceIndex: idx + 1,
+            deviceType: s.deviceInfo?.deviceType || "Desktop",
+            os: s.deviceInfo?.os || "Windows",
+            browser: s.deviceInfo?.browser || "Chrome",
+            platform: s.deviceInfo?.platform || `${s.deviceInfo?.os || "Windows"} • ${s.deviceInfo?.browser || "Chrome"}`,
+            userAgent: s.deviceInfo?.userAgent || "Standard Browser",
             loggedInAt: s.loggedInAt,
+            lastActiveAt: s.lastActiveAt,
+            status: "ACTIVE",
           })),
         });
       }
 
+      const currentDeviceId = getOrCreateDeviceId(req, res);
       const sessionId = crypto.randomUUID();
       const now = new Date();
       const expiresAt = new Date(Date.now() + ADMIN_PERMANENT_SESSION_MS);
 
       await AdminSession.create({
         sessionId,
+        deviceId: currentDeviceId,
         deviceInfo: extractRequestDeviceInfo(req),
         loggedInAt: now,
         lastActiveAt: now,
@@ -2964,10 +2832,10 @@ module.exports = async function handler(req, res) {
       const token = jwt.sign(
         { role: "admin", sessionId, loggedInAt: now },
         process.env.JWT_SECRET,
-        { expiresIn: "36500d" }
+        { expiresIn: "30d" }
       );
 
-      setAdminCookie(res, token);
+      setAdminCookie(res, token, currentDeviceId);
 
       // Broadcast live availability to all clients
       let liveAdminCount = 1;
@@ -2986,6 +2854,7 @@ module.exports = async function handler(req, res) {
         role: "admin",
         adminType: "main",
         sessionId,
+        deviceId: currentDeviceId,
         activeDeviceCount: liveAdminCount,
         isAdminButtonVisible: liveAdminCount < MAX_ADMIN_DEVICES,
         message: "Admin authenticated successfully.",
@@ -3031,7 +2900,7 @@ module.exports = async function handler(req, res) {
       let isCurrentDevice = false;
       if (incomingToken && incomingToken !== "none") {
         try {
-          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
           if (decoded.adminType === "subadmin" && decoded.sessionId) {
             const match = activeSessions.find((s) => s.sessionId === decoded.sessionId);
             if (match && match.isActive) {
@@ -3059,11 +2928,16 @@ module.exports = async function handler(req, res) {
           message: `Sub-Admin portal is currently active on ${activeSessions.length} authorized devices (maximum limit: ${MAX_SUBADMIN_DEVICES || 2} devices). Please log out from another device to continue.`,
           activeDeviceCount: activeSessions.length,
           maxAllowedDevices: MAX_SUBADMIN_DEVICES || 2,
-          activeDevices: activeSessions.map((s) => ({
-            sessionId: s.sessionId,
-            deviceInfo: s.deviceInfo,
-            lastActiveAt: s.lastActiveAt,
+          activeDevices: activeSessions.map((s, idx) => ({
+            deviceIndex: idx + 1,
+            deviceType: s.deviceInfo?.deviceType || "Desktop",
+            os: s.deviceInfo?.os || "Windows",
+            browser: s.deviceInfo?.browser || "Chrome",
+            platform: s.deviceInfo?.platform || `${s.deviceInfo?.os || "Windows"} • ${s.deviceInfo?.browser || "Chrome"}`,
+            userAgent: s.deviceInfo?.userAgent || "Standard Browser",
             loggedInAt: s.loggedInAt,
+            lastActiveAt: s.lastActiveAt,
+            status: "ACTIVE",
           })),
         });
       }
@@ -3164,15 +3038,21 @@ module.exports = async function handler(req, res) {
           message: `Sub-Admin portal is currently active on ${activeSessions.length} authorized devices (maximum limit: ${MAX_SUBADMIN_DEVICES || 2} devices). Access denied.`,
           activeDeviceCount: activeSessions.length,
           maxAllowedDevices: MAX_SUBADMIN_DEVICES || 2,
-          activeDevices: activeSessions.map((s) => ({
-            sessionId: s.sessionId,
-            deviceInfo: s.deviceInfo,
-            lastActiveAt: s.lastActiveAt,
+          activeDevices: activeSessions.map((s, idx) => ({
+            deviceIndex: idx + 1,
+            deviceType: s.deviceInfo?.deviceType || "Desktop",
+            os: s.deviceInfo?.os || "Windows",
+            browser: s.deviceInfo?.browser || "Chrome",
+            platform: s.deviceInfo?.platform || `${s.deviceInfo?.os || "Windows"} • ${s.deviceInfo?.browser || "Chrome"}`,
+            userAgent: s.deviceInfo?.userAgent || "Standard Browser",
             loggedInAt: s.loggedInAt,
+            lastActiveAt: s.lastActiveAt,
+            status: "ACTIVE",
           })),
         });
       }
 
+      const currentDeviceId = getOrCreateDeviceId(req, res);
       const sessionId = crypto.randomUUID();
       const now = new Date();
       const expiresAt = new Date(Date.now() + ADMIN_PERMANENT_SESSION_MS);
@@ -3180,6 +3060,7 @@ module.exports = async function handler(req, res) {
       await SubAdminSession.create({
         subAdminId: subAdmin._id,
         sessionId,
+        deviceId: currentDeviceId,
         deviceInfo: extractRequestDeviceInfo(req),
         loggedInAt: now,
         lastActiveAt: now,
@@ -3198,10 +3079,10 @@ module.exports = async function handler(req, res) {
           loggedInAt: now,
         },
         process.env.JWT_SECRET,
-        { expiresIn: "36500d" }
+        { expiresIn: "30d" }
       );
 
-      setAdminCookie(res, token);
+      setAdminCookie(res, token, currentDeviceId);
 
       return res.json({
         success: true,
@@ -3228,7 +3109,7 @@ module.exports = async function handler(req, res) {
       }
 
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
         if (decoded.role === "student") {
           return res.status(403).json({ message: "Forbidden: Admin privileges required" });
         }
@@ -3285,24 +3166,27 @@ module.exports = async function handler(req, res) {
 
       if (token && token !== "none") {
         try {
-          const decoded = jwt.verify(token, process.env.JWT_SECRET);
+          const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
           targetSessionId = decoded?.sessionId;
           isAdminTypeSub = decoded?.adminType === "subadmin";
         } catch {}
       }
 
       if (!targetSessionId) {
-        targetSessionId = req.headers["x-admin-last-session"] || req.body?.sessionId || null;
-      }
-
-      if (!targetSessionId) {
-        try {
-          const activeSessions = await getActiveAdminSessions(AdminSession);
-          const match = findMatchingSessionByDevice(activeSessions, req);
-          if (match) {
-            targetSessionId = match.sessionId;
-          }
-        } catch {}
+        const candidateId = req.headers["x-admin-last-session"] || req.body?.sessionId || null;
+        const incomingDeviceId = (cookies.gf_device_id || req.headers["x-device-id"] || "").trim();
+        if (incomingDeviceId) {
+          try {
+            const activeSessions = await getActiveAdminSessions(AdminSession);
+            if (candidateId) {
+              const match = activeSessions.find((s) => s.sessionId === candidateId && s.deviceId === incomingDeviceId);
+              if (match) targetSessionId = match.sessionId;
+            } else {
+              const match = activeSessions.find((s) => s.deviceId && s.deviceId === incomingDeviceId);
+              if (match) targetSessionId = match.sessionId;
+            }
+          } catch {}
+        }
       }
 
       if (targetSessionId) {
@@ -3343,16 +3227,31 @@ module.exports = async function handler(req, res) {
        18. ADMIN EXPLICIT RELEASE SESSION (/admin/release-session)
     ═══════════════════════════════════════════════════════════════════ */
     if ((action === "admin-release-session" || action === "release-session") && req.method === "POST") {
-      let targetSessionId = req.body?.sessionId || req.headers["x-admin-last-session"] || null;
+      let targetSessionId = null;
+      let token = cookies.jwt || req.headers["x-admin-token"];
+      if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+        token = req.headers.authorization.split(" ")[1];
+      }
+      if (token && token !== "none") {
+        try {
+          const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+          targetSessionId = decoded?.sessionId;
+        } catch {}
+      }
+
       if (!targetSessionId) {
-        let token = cookies.jwt || req.headers["x-admin-token"];
-        if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-          token = req.headers.authorization.split(" ")[1];
-        }
-        if (token && token !== "none") {
+        const candidateId = req.body?.sessionId || req.headers["x-admin-last-session"] || null;
+        const incomingDeviceId = (cookies.gf_device_id || req.headers["x-device-id"] || "").trim();
+        if (incomingDeviceId) {
           try {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            targetSessionId = decoded?.sessionId;
+            const activeSessions = await getActiveAdminSessions(AdminSession);
+            if (candidateId) {
+              const match = activeSessions.find((s) => s.sessionId === candidateId && s.deviceId === incomingDeviceId);
+              if (match) targetSessionId = match.sessionId;
+            } else {
+              const match = activeSessions.find((s) => s.deviceId && s.deviceId === incomingDeviceId);
+              if (match) targetSessionId = match.sessionId;
+            }
           } catch {}
         }
       }
@@ -3403,7 +3302,7 @@ module.exports = async function handler(req, res) {
 
       if (incomingToken && incomingToken !== "none") {
         try {
-          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
           if (decoded.role === "admin" && decoded.sessionId) {
             const session = await AdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
             if (session) {

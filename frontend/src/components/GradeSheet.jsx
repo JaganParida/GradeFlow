@@ -7,6 +7,7 @@ import {
   calculateSemesterMetrics,
 } from "../utils/gradeCalculations";
 import { useApp } from "../context/AppContext";
+import { isDeveloperOrSpecialStudent } from "../utils/developerHelper";
 
 function getDynamicBranch(regNo, fallbackBranch) {
   if (!regNo) return fallbackBranch || "—";
@@ -143,7 +144,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject, se
     }
   }, [studentData?.hasSubmittedFeedback]);
 
-  const isExempt = cleanRegNo === "230301120327";
+  const isExempt = isDeveloperOrSpecialStudent(cleanRegNo);
   const isUnlocked = Boolean(
     isExempt ||
     studentData?.hasSubmittedFeedback ||

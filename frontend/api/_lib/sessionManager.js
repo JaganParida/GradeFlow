@@ -21,14 +21,15 @@ const APPROVAL_TTL_MS = 3 * 60 * 1000; // 3 minutes TTL for device approval requ
 const authEventBus = new EventEmitter();
 authEventBus.setMaxListeners(200);
 
+const { isDeveloperOrSpecialStudent, getDeveloperMaxDevices } = require("./developerHelper");
+
 /**
  * Returns the maximum allowed simultaneous active devices for a student registration number.
- * 230301120327 = 2 devices
+ * Developer / Special student = configured via environment (default: 2 devices)
  * All other registration numbers = 1 device
  */
 function getMaxAllowedDevices(regNo) {
-  const clean = String(regNo || "").trim().toUpperCase();
-  return clean === "230301120327" ? 2 : 1;
+  return isDeveloperOrSpecialStudent(regNo) ? getDeveloperMaxDevices() : 1;
 }
 
 /**
@@ -494,7 +495,7 @@ async function completeDeviceApproval(StudentSession, requestId, exchangeSecret,
 
     // 1. Create new active session for the approved device
     const newSessionId = crypto.randomUUID();
-    const newDeviceId = crypto.randomUUID();
+    const newDeviceId = (req?.cookies?.gf_device_id || req?.headers?.["x-device-id"] || crypto.randomUUID());
     const expiresAt = new Date(Date.now() + DEFAULT_SESSION_TTL_MS);
 
     const newSession = await StudentSession.create({
@@ -528,6 +529,7 @@ async function completeDeviceApproval(StudentSession, requestId, exchangeSecret,
       session: newSession,
       regNo: cleanReg,
       sessionId: newSessionId,
+      deviceId: newDeviceId,
     };
   });
 }
@@ -617,24 +619,61 @@ async function cleanExpiredAdminSessions(AdminSession) {
   } catch (_) {}
 }
 
-const ADMIN_PERMANENT_SESSION_MS = 100 * 365 * 24 * 60 * 60 * 1000; // 100 years - truly permanent until explicit logout
-const ADMIN_ACTIVITY_TTL_MS = ADMIN_PERMANENT_SESSION_MS; // Permanent: Admin & Sub-Admin never auto-expire from inactivity
+const ADMIN_SESSION_TTL_MS = (parseInt(process.env.ADMIN_SESSION_TTL_DAYS, 10) || 30) * 24 * 60 * 60 * 1000; // 30 days rolling session window
+const ADMIN_INACTIVITY_TTL_MS = (parseInt(process.env.ADMIN_INACTIVITY_TTL_DAYS, 10) || 14) * 24 * 60 * 60 * 1000; // 14 days continuous rolling inactivity timeout
+const ADMIN_PERMANENT_SESSION_MS = ADMIN_SESSION_TTL_MS; // Backward-compatible alias
+const ADMIN_ACTIVITY_TTL_MS = ADMIN_INACTIVITY_TTL_MS; // Backward-compatible alias
+
+async function cleanExpiredAdminSessions(AdminSession) {
+  try {
+    const activeCutoff = new Date(Date.now() - ADMIN_INACTIVITY_TTL_MS);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    await AdminSession.updateMany(
+      {
+        isActive: true,
+        $or: [
+          { expiresAt: { $lte: new Date() } },
+          { lastActiveAt: { $lt: activeCutoff } },
+        ],
+      },
+      {
+        $set: {
+          isActive: false,
+          revokedAt: new Date(),
+          revokeReason: "EXPIRED_OR_INACTIVE",
+        },
+      }
+    );
+
+    await AdminSession.deleteMany({
+      $or: [
+        { isActive: false, updatedAt: { $lt: thirtyDaysAgo } },
+        { expiresAt: { $lte: thirtyDaysAgo } },
+      ],
+    });
+  } catch (_) {}
+}
 
 /**
  * Authoritative Server-Side Query for Active Admin Sessions.
  * Pure read-only query; zero write locks on read.
- * Sessions remain active permanently until explicit manual logout or manual dashboard revocation.
+ * Queries active, unexpired sessions within the inactivity window.
  */
 async function getActiveAdminSessions(AdminSession) {
+  const activeCutoff = new Date(Date.now() - ADMIN_INACTIVITY_TTL_MS);
   return AdminSession.find({
     isActive: true,
     expiresAt: { $gt: new Date() },
+    lastActiveAt: { $gte: activeCutoff },
   }).sort({ lastActiveAt: -1 });
 }
 
 function isAdminSessionValid(session) {
   if (!session || !session.isActive) return false;
   if (session.expiresAt && new Date(session.expiresAt) <= new Date()) return false;
+  const activeCutoff = new Date(Date.now() - ADMIN_INACTIVITY_TTL_MS);
+  if (session.lastActiveAt && new Date(session.lastActiveAt) < activeCutoff) return false;
   return true;
 }
 
@@ -650,9 +689,9 @@ async function touchAdminSession(session) {
       lastActiveAt: new Date(now),
     },
   };
-  const oneYearFromNow = now + 365 * 24 * 60 * 60 * 1000;
-  if (!session.expiresAt || new Date(session.expiresAt).getTime() < oneYearFromNow) {
-    update.$set.expiresAt = new Date(now + ADMIN_PERMANENT_SESSION_MS);
+  const sevenDaysFromNow = now + 7 * 24 * 60 * 60 * 1000;
+  if (!session.expiresAt || new Date(session.expiresAt).getTime() < sevenDaysFromNow) {
+    update.$set.expiresAt = new Date(now + ADMIN_SESSION_TTL_MS);
   }
   // Atomic query: update only if isActive is still true, preventing resurrection of revoked sessions
   await session.constructor.updateOne({ _id: session._id, isActive: true }, update);
@@ -662,29 +701,57 @@ async function touchAdminSession(session) {
 }
 
 async function cleanExpiredSubAdminSessions(SubAdminSession, subAdminId = null) {
-  const filter = {
-    $or: [
-      { isActive: false },
-      { expiresAt: { $lte: new Date() } },
-    ],
-  };
-  if (subAdminId) {
-    filter.subAdminId = subAdminId;
-  }
-  await SubAdminSession.deleteMany(filter);
+  try {
+    const activeCutoff = new Date(Date.now() - ADMIN_INACTIVITY_TTL_MS);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const filter = {
+      isActive: true,
+      $or: [
+        { expiresAt: { $lte: new Date() } },
+        { lastActiveAt: { $lt: activeCutoff } },
+      ],
+    };
+    if (subAdminId) {
+      filter.subAdminId = subAdminId;
+    }
+
+    await SubAdminSession.updateMany(filter, {
+      $set: {
+        isActive: false,
+        revokedAt: new Date(),
+        revokeReason: "EXPIRED_OR_INACTIVE",
+      },
+    });
+
+    const purgeFilter = {
+      $or: [
+        { isActive: false, updatedAt: { $lt: thirtyDaysAgo } },
+        { expiresAt: { $lte: thirtyDaysAgo } },
+      ],
+    };
+    if (subAdminId) {
+      purgeFilter.subAdminId = subAdminId;
+    }
+    await SubAdminSession.deleteMany(purgeFilter);
+  } catch (_) {}
 }
 
 async function getActiveSubAdminSessions(SubAdminSession, subAdminId) {
+  const activeCutoff = new Date(Date.now() - ADMIN_INACTIVITY_TTL_MS);
   return SubAdminSession.find({
     subAdminId,
     isActive: true,
     expiresAt: { $gt: new Date() },
+    lastActiveAt: { $gte: activeCutoff },
   }).sort({ lastActiveAt: -1 });
 }
 
 function isSubAdminSessionValid(session) {
   if (!session || !session.isActive) return false;
   if (session.expiresAt && new Date(session.expiresAt) <= new Date()) return false;
+  const activeCutoff = new Date(Date.now() - ADMIN_INACTIVITY_TTL_MS);
+  if (session.lastActiveAt && new Date(session.lastActiveAt) < activeCutoff) return false;
   return true;
 }
 
@@ -699,9 +766,9 @@ async function touchSubAdminSession(session) {
       lastActiveAt: new Date(now),
     },
   };
-  const oneYearFromNow = now + 365 * 24 * 60 * 60 * 1000;
-  if (!session.expiresAt || new Date(session.expiresAt).getTime() < oneYearFromNow) {
-    update.$set.expiresAt = new Date(now + ADMIN_PERMANENT_SESSION_MS);
+  const sevenDaysFromNow = now + 7 * 24 * 60 * 60 * 1000;
+  if (!session.expiresAt || new Date(session.expiresAt).getTime() < sevenDaysFromNow) {
+    update.$set.expiresAt = new Date(now + ADMIN_SESSION_TTL_MS);
   }
   await session.constructor.updateOne({ _id: session._id, isActive: true }, update);
   session.lastActiveAt = update.$set.lastActiveAt;
@@ -712,6 +779,8 @@ async function touchSubAdminSession(session) {
 module.exports = {
   DEFAULT_SESSION_TTL_MS,
   PERMANENT_SESSION_MS,
+  ADMIN_SESSION_TTL_MS,
+  ADMIN_INACTIVITY_TTL_MS,
   ADMIN_PERMANENT_SESSION_MS,
   STUDENT_INACTIVITY_TTL_MS,
   ADMIN_ACTIVITY_TTL_MS,

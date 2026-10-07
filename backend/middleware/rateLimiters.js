@@ -1,16 +1,18 @@
 const rateLimit = require("express-rate-limit");
 const jwt = require("jsonwebtoken");
+const { getClientIp } = require("../utils/ipHelper");
 
 /**
  * Multi-Layer Endpoint-Aware Rate Limiters with Shared Wi-Fi / NAT Partitioning
  * - Never trusts unverified client headers for authenticated routes
- * - Composite keys: Server-verified identity + Client IP
+ * - Composite keys: Server-verified identity + Secure Client IP
+ * - Hardened against IP Spoofing & Header Tampering
  * - Prevents 1 abusive student from blocking an entire college campus
  */
 
 // Helper to extract verified or sanitized identity from request
 function getClientIdentityKey(req) {
-  const ip = req.ip || req.headers["x-forwarded-for"] || "127.0.0.1";
+  const ip = getClientIp(req);
 
   // 1. Check verified JWT from Authorization header or cookie
   const authHeader = req.headers.authorization;
@@ -43,6 +45,32 @@ function getClientIdentityKey(req) {
   return `${ip}_${sanitizedId}`;
 }
 
+function getPublicLimiterKey(req) {
+  return getClientIp(req);
+}
+
+function getOtpSendLimiterKey(req) {
+  const ip = getClientIp(req);
+  const reg = req.body && req.body.regNo ? String(req.body.regNo).trim().toUpperCase() : "anon";
+  return `otp_send_${ip}_${reg}`;
+}
+
+function getOtpLimiterKey(req) {
+  const ip = getClientIp(req);
+  const reg = req.body && req.body.regNo ? String(req.body.regNo).trim().toUpperCase() : "anon";
+  return `otp_verify_${ip}_${reg}`;
+}
+
+function getAdminLimiterKey(req) {
+  const ip = getClientIp(req);
+  const adminEmail = req.admin?.email || req.subAdmin?.email || "admin";
+  return `admin_${ip}_${adminEmail}`;
+}
+
+function getEmailLimiterKey(req) {
+  return getClientIp(req);
+}
+
 const standardRateLimitMessage = {
   success: false,
   message: "Too many requests. Please wait a moment and try again.",
@@ -72,11 +100,7 @@ const otpSendLimiter = rateLimit({
     message: "Too many OTP requests. Please wait a moment before trying again.",
     code: "OTP_FLOOD_PROTECTION",
   },
-  keyGenerator: (req) => {
-    const ip = req.ip || req.headers["x-forwarded-for"] || "127.0.0.1";
-    const reg = (req.body && req.body.regNo ? String(req.body.regNo).trim().toUpperCase() : "anon");
-    return `otp_send_${ip}_${reg}`;
-  },
+  keyGenerator: (req) => getOtpSendLimiterKey(req),
 });
 
 // ── 3. Dedicated OTP Verification Attempt Limiter ────────────────────
@@ -90,11 +114,7 @@ const otpLimiter = rateLimit({
     message: "Too many verification attempts. Please wait 10 minutes or request a new code.",
     code: "OTP_VERIFY_RATE_LIMITED",
   },
-  keyGenerator: (req) => {
-    const ip = req.ip || req.headers["x-forwarded-for"] || "127.0.0.1";
-    const reg = (req.body && req.body.regNo ? String(req.body.regNo).trim().toUpperCase() : "anon");
-    return `otp_verify_${ip}_${reg}`;
-  },
+  keyGenerator: (req) => getOtpLimiterKey(req),
 });
 
 // ── 4. Student Search & Data Limiter ─────────────────────────────────
@@ -114,7 +134,7 @@ const publicLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: standardRateLimitMessage,
-  keyGenerator: (req) => req.ip || req.headers["x-forwarded-for"] || "127.0.0.1",
+  keyGenerator: (req) => getPublicLimiterKey(req),
 });
 
 // ── 6. Authenticated Admin Actions Limiter ───────────────────────────
@@ -124,11 +144,7 @@ const adminLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: standardRateLimitMessage,
-  keyGenerator: (req) => {
-    const ip = req.ip || req.headers["x-forwarded-for"] || "127.0.0.1";
-    const adminEmail = req.admin?.email || req.subAdmin?.email || "admin";
-    return `admin_${ip}_${adminEmail}`;
-  },
+  keyGenerator: (req) => getAdminLimiterKey(req),
 });
 
 // ── 7. Email Batch Dispatch Limiter ──────────────────────────────────
@@ -142,10 +158,17 @@ const emailLimiter = rateLimit({
     message: "Email dispatch rate limit reached. Please wait a moment before sending more emails.",
     code: "EMAIL_RATE_LIMITED",
   },
+  keyGenerator: (req) => getEmailLimiterKey(req),
 });
 
 module.exports = {
   getClientIdentityKey,
+  getClientIp,
+  getPublicLimiterKey,
+  getOtpSendLimiterKey,
+  getOtpLimiterKey,
+  getAdminLimiterKey,
+  getEmailLimiterKey,
   authLimiter,
   otpSendLimiter,
   otpLimiter,

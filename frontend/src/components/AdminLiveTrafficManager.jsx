@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAdminCache, setAdminCache, onAdminCacheDirty, AdminCacheScopes } from "../utils/adminRealtimeCache";
+import { isDeveloperOrSpecialStudent } from "../utils/developerHelper";
 import {
   Activity,
   Users,
@@ -221,8 +222,8 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
     const query = searchTerm.toLowerCase().trim();
 
     return list.filter((st) => {
-      // 1. Strictly exclude developer/owner special student 230301120327
-      if (st.regNo === "230301120327") return false;
+      // 1. Strictly exclude developer/owner special student
+      if (isDeveloperOrSpecialStudent(st.regNo)) return false;
 
       // 2. User type filter
       if (filterUserType === "STUDENTS" && st.isGuest) return false;
@@ -390,7 +391,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
               </span>
             </div>
             <p style={{ fontSize: isMobile ? 11.5 : 12.5, color: "#64748b", margin: "4px 0 0 0", lineHeight: 1.4 }}>
-              Student device identification, route duration analytics, and top visited pages. Excludes Admin and 230301120327.
+              Student device identification, route duration analytics, and top visited pages. Excludes Admin and Special Student.
             </p>
           </div>
         </div>
@@ -502,7 +503,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
               <span className="skeleton" style={{ width: "75%", maxWidth: "100%", height: 12, borderRadius: 4, display: "inline-block" }} />
             ) : (
               <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                <span>Excludes Admin & 230301120327</span>
+                <span>Excludes Admin & Special Student</span>
               </div>
             )}
           </div>
@@ -773,7 +774,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
               </div>
             </div>
             <p style={{ fontSize: 12, color: "#64748b", margin: "6px 0 0 0" }}>
-              Showing real students with device details, visited routes, time spent, and top pages. Strictly excludes Admin and 230301120327.
+              Showing real students with device details, visited routes, time spent, and top pages. Strictly excludes Admin and Special Student.
             </p>
           </div>
 

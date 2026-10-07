@@ -11,7 +11,7 @@ const subAdminSessionSchema = new mongoose.Schema(
     },
     loggedInAt: { type: Date, default: Date.now },
     lastActiveAt: { type: Date, default: Date.now },
-    expiresAt: { type: Date, default: () => new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000) }, // Permanent session (no auto-expiration)
+    expiresAt: { type: Date, default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
     revokedAt: { type: Date, default: null },
     revokeReason: { type: String, default: null },
     isActive: { type: Boolean, default: true, index: true },
@@ -22,5 +22,6 @@ const subAdminSessionSchema = new mongoose.Schema(
 subAdminSessionSchema.index({ sessionId: 1, isActive: 1 });
 subAdminSessionSchema.index({ subAdminId: 1, isActive: 1, expiresAt: 1 });
 subAdminSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+subAdminSessionSchema.index({ revokedAt: 1 }, { expireAfterSeconds: 30 * 24 * 3600, sparse: true });
 
 module.exports = mongoose.models.SubAdminSession || mongoose.model("SubAdminSession", subAdminSessionSchema);

@@ -1,11 +1,10 @@
-// GradeFlow Daily AI Screenshot Scan Limit Utility (2 Scans per student/day, resets at midnight 12:00 AM)
-// Excluded from limits: Reg No 230301120327, Admin, Subadmin, and Superadmin accounts.
+import { getDeveloperRegNo, isDeveloperOrSpecialStudent } from "./developerHelper";
 
 export const MAX_DAILY_SCANS = 2;
 
 // List of registration numbers with permanent unlimited scan access (Only Master/Developer accounts)
 export const UNLIMITED_REG_NOS = [
-  "230301120327",
+  getDeveloperRegNo(),
 ];
 
 // Registry of one-time daily scan resets for specific normal students (resets their used count to 0 so they get fresh 2 scans today)
@@ -15,6 +14,10 @@ export const TODAY_RESET_REG_NOS = {
 
 export function isExemptFromScanLimit(studentId = "", userRole = "", isAdminToken = false) {
   if (Boolean(isAdminToken)) return true;
+
+  if (isDeveloperOrSpecialStudent(studentId)) {
+    return true;
+  }
 
   const cleanId = String(studentId || "").trim().toLowerCase();
   if (UNLIMITED_REG_NOS.some((reg) => reg.toLowerCase() === cleanId)) {
@@ -67,7 +70,7 @@ export async function fetchServerScanQuota(studentId = "", userRole = "", isAdmi
   if (!cleanId) return getDailyScanStatus(studentId, userRole, isAdminToken);
 
   try {
-    const res = await fetch(`${API}/attendance/scan-quota?studentId=${cleanId}`);
+    const res = await fetch(`${API}/attendance/scan-quota?studentId=${cleanId}`, { credentials: "include" });
     if (res.ok) {
       const data = await res.json();
       if (data && data.success) {

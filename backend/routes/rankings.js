@@ -60,8 +60,8 @@ function getSectionFromRegNo(regNo) {
 // Top 50 rankers
 router.get("/top", publicLimiter, requireStudentOrAdmin, validateAcademicFilters, async (req, res) => {
   try {
-    // Set safe public edge cache headers for ranking aggregations
-    res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=300");
+    // Set safe private client cache headers for ranking aggregations
+    res.setHeader("Cache-Control", "private, max-age=120, stale-while-revalidate=300");
 
     const { semester, branch, search, limit = 50, sortBy = "sgpa", section, batch } = req.query;
     const query = {};

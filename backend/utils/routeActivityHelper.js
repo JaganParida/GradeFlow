@@ -2,8 +2,9 @@ const StudentRouteActivity = require("../models/StudentRouteActivity");
 const Ranking = require("../models/Ranking");
 const PageAnalytics = require("../models/PageAnalytics");
 const { publishAdminRealtimeEvent } = require("./ablyService");
+const { getDeveloperRegNo } = require("./developerHelper");
 
-const EXCLUDED_STUDENT_REG = "230301120327";
+const EXCLUDED_STUDENT_REG = getDeveloperRegNo();
 
 const DAYS_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 

@@ -4,9 +4,10 @@ import axios from "axios";
 import { parseDeviceDetails } from "./deviceHelper";
 import { isOldDomainEnvironment } from "./domainHelper";
 import { API_BASE } from "../context/AppContext";
+import { getDeveloperRegNo, isDeveloperOrSpecialStudent } from "./developerHelper";
 
 // Special student regNo to strictly NEVER track
-const EXCLUDED_STUDENT_REG = "230301120327";
+const EXCLUDED_STUDENT_REG = getDeveloperRegNo();
 
 export function useTrafficTracker({ studentSession, studentData, adminToken }) {
   const location = useLocation();
@@ -96,7 +97,7 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
     if (isOldDomainEnvironment()) return;
 
     const regNo = resolveRegNo();
-    if (!regNo || regNo === EXCLUDED_STUDENT_REG) return;
+    if (!regNo || isDeveloperOrSpecialStudent(regNo)) return;
 
     // 1. Add final active route time to buffer if >= 5s
     const now = Date.now();
@@ -178,7 +179,7 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
     if (isOldDomainEnvironment()) return;
 
     const regNo = resolveRegNo();
-    if (!regNo || regNo === EXCLUDED_STUDENT_REG) return;
+    if (!regNo || isDeveloperOrSpecialStudent(regNo)) return;
 
     const newRoute = location.pathname;
     const previousRoute = currentRouteRef.current;

@@ -160,7 +160,7 @@ const protectStudent = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
     if (!decoded.regNo || !decoded.sessionId) {
       return res.status(401).json({ success: false, message: "Invalid session token. Please log in again." });
     }
@@ -207,7 +207,14 @@ const protectStudent = async (req, res, next) => {
 
 // Strict Data Isolation Guard: Admin can view any student; Student can ONLY view their own data
 const requireStudentOrAdmin = async (req, res, next) => {
-  const targetRegNo = (req.params.regNo || "").trim().toUpperCase();
+  const targetRegNo = (
+    req.params.regNo ||
+    req.body?.studentId ||
+    req.body?.regNo ||
+    req.query?.studentId ||
+    req.query?.regNo ||
+    ""
+  ).trim().toUpperCase();
 
   // 1. Check if valid Admin Token (Bearer header / x-admin-token / cookie)
   let adminToken = null;
@@ -221,19 +228,65 @@ const requireStudentOrAdmin = async (req, res, next) => {
 
   if (adminToken && adminToken !== "none" && adminToken !== "") {
     try {
-      const decodedAdmin = jwt.verify(adminToken, process.env.JWT_SECRET);
-      if (decodedAdmin && decodedAdmin.role !== "student") {
-        if (decodedAdmin.sessionId) {
+      const decodedAdmin = jwt.verify(adminToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+      if (decodedAdmin && decodedAdmin.role !== "student" && !decodedAdmin.regNo) {
+        if (!decodedAdmin.sessionId) {
+          return res.status(401).json({
+            success: false,
+            message: "Administrative session token invalid or missing session identifier.",
+            code: "AUTH_SESSION_INVALID",
+          });
+        }
+
+        if (decodedAdmin.adminType === "subadmin") {
+          const subSession = await SubAdminSession.findOne({
+            sessionId: decodedAdmin.sessionId,
+            isActive: true,
+          });
+
+          if (!subSession || !isSubAdminSessionValid(subSession)) {
+            return res.status(401).json({
+              success: false,
+              message: "Sub-Admin session ended because this device was logged out or inactive.",
+              code: "ADMIN_SESSION_TERMINATED",
+            });
+          }
+
+          const subAdmin = await SubAdmin.findById(decodedAdmin.subAdminId).lean();
+          if (!subAdmin) {
+            return res.status(403).json({
+              success: false,
+              message: "Sub-Admin account not found.",
+              code: "SUBADMIN_NOT_FOUND",
+            });
+          }
+
+          if (subAdmin.status !== "active") {
+            return res.status(403).json({
+              success: false,
+              message: `Sub-Admin account is currently ${subAdmin.status}. Access denied.`,
+              code: `SUBADMIN_${subAdmin.status.toUpperCase()}`,
+            });
+          }
+
+          await touchSubAdminSession(subSession);
+          req.admin = decodedAdmin;
+          return next();
+        } else {
           const adminSession = await AdminSession.findOne({
             sessionId: decodedAdmin.sessionId,
             isActive: true,
           });
-          if (adminSession && isAdminSessionValid(adminSession)) {
-            await touchAdminSession(adminSession);
-            req.admin = decodedAdmin;
-            return next();
+
+          if (!adminSession || !isAdminSessionValid(adminSession)) {
+            return res.status(401).json({
+              success: false,
+              message: "Admin session ended because this device was logged out.",
+              code: "ADMIN_SESSION_TERMINATED",
+            });
           }
-        } else {
+
+          await touchAdminSession(adminSession);
           req.admin = decodedAdmin;
           return next();
         }
@@ -260,7 +313,7 @@ const requireStudentOrAdmin = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(studentToken, process.env.JWT_SECRET);
+    const decoded = jwt.verify(studentToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
     if (!decoded.regNo || !decoded.sessionId) {
       return res.status(401).json({ message: "Invalid session token." });
     }

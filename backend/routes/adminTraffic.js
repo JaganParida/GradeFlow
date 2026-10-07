@@ -19,13 +19,14 @@ const liveTrafficManager = require("../utils/liveTrafficManager");
 router.use(protect);
 
 const StudentRouteActivity = require("../models/StudentRouteActivity");
+const { getDeveloperRegNo } = require("../utils/developerHelper");
 
 // ─── GET /api/admin/traffic/live-overview ─────────────────────────────────────
-// Returns student activity and route analytics (strictly excluding 230301120327)
+// Returns student activity and route analytics (strictly excluding developer)
 router.get("/live-overview", async (req, res) => {
   try {
     const studentActivities = await StudentRouteActivity.find({
-      regNo: { $ne: "230301120327" },
+      regNo: { $ne: getDeveloperRegNo() },
     })
       .sort({ lastActiveAt: -1 })
       .limit(200)

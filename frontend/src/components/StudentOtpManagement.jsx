@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAdminCache, setAdminCache, onAdminCacheDirty, invalidateAdminCache, AdminCacheScopes } from "../utils/adminRealtimeCache";
+import { isDeveloperOrSpecialStudent, getDeveloperRegNo } from "../utils/developerHelper";
 import {
   Search,
   ShieldAlert,
@@ -626,14 +627,15 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
     setHistoryPage(1);
 
     if (newTab === "normal-student") {
-      if (studentData?.regNo === "230301120327") {
+      if (isDeveloperOrSpecialStudent(studentData?.regNo)) {
         setStudentData(null);
         setTimeline([]);
         setSearchReg("");
       }
     } else if (newTab === "special-student") {
-      setSearchReg("230301120327");
-      handleSearchWithReg("230301120327");
+      const devReg = getDeveloperRegNo();
+      setSearchReg(devReg);
+      handleSearchWithReg(devReg);
     } else if (newTab === "admin") {
       fetchAdminDetails();
     } else if (newTab === "subadmin") {
@@ -1008,7 +1010,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 15, fontWeight: 800, color: "#581c87" }}>
-                  Special Student Profile: 230301120327 (JAGAN PARIDA)
+                  Special Student Profile: {getDeveloperRegNo()} (JAGAN PARIDA)
                 </span>
                 <span
                   style={{
@@ -1031,7 +1033,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
           </div>
           <button
             type="button"
-            onClick={() => handleSearchWithReg("230301120327")}
+            onClick={() => handleSearchWithReg(getDeveloperRegNo())}
             disabled={loading}
             style={{
               width: isMob ? "100%" : "auto",

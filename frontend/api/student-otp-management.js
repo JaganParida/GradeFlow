@@ -14,6 +14,8 @@ const jwt = require("jsonwebtoken");
 const { globalDbQueue } = require("./_lib/dbProtection");
 const { getActiveSessions, getMaxAllowedDevices } = require("./_lib/sessionManager");
 const { publishAdminRealtimeEvent, publishStudentRealtimeEvent } = require("./_lib/ablyService");
+const { isDeveloperOrSpecialStudent, getDeveloperDailyOtpMax } = require("./_lib/developerHelper");
+const { getClientIp } = require("./_lib/ipHelper");
 
 const { applyCors } = require("./_lib/cors");
 
@@ -82,7 +84,7 @@ async function authenticateMainAdmin(req) {
           route: req.url || "/api/admin/student-otp-management",
           result: "FORBIDDEN",
           details: { subAdminId: decoded.subAdminId },
-          ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
+          ip: getClientIp(req),
           userAgent: req.headers["user-agent"] || "",
         });
       } catch {}
@@ -246,7 +248,7 @@ module.exports = async (req, res) => {
               dateKey: todayKey,
               deletedDailyLimitRecords: deleteResult.deletedCount,
             },
-            ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
+            ip: getClientIp(req),
             userAgent: req.headers["user-agent"] || "",
           })
         );
@@ -539,7 +541,7 @@ module.exports = async (req, res) => {
               deviceInfo: revokedSession.deviceInfo,
               reason,
             },
-            ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
+            ip: getClientIp(req),
             userAgent: req.headers["user-agent"] || "",
           })
         );
@@ -606,7 +608,7 @@ module.exports = async (req, res) => {
               keptCurrent: !revokeCurrent,
               reason,
             },
-            ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
+            ip: getClientIp(req),
             userAgent: req.headers["user-agent"] || "",
           })
         );
@@ -985,9 +987,9 @@ module.exports = async (req, res) => {
   }
 
   const todayKey = getIstDateKey();
-  const isSpecialStudent = rawReg === "230301120327";
+  const isSpecialStudent = isDeveloperOrSpecialStudent(rawReg);
   const isUnlimited = isSpecialStudent;
-  const maxDailyLimit = isSpecialStudent ? 5 : 3;
+  const maxDailyLimit = isSpecialStudent ? getDeveloperDailyOtpMax() : 3;
 
   // ── 1. GET /history ──
   if (req.method === "GET" || action === "history") {
@@ -1198,7 +1200,7 @@ module.exports = async (req, res) => {
               loggedInAt: sessionToRevoke.loggedInAt,
               reason: safeReason,
             },
-            ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
+            ip: getClientIp(req),
             userAgent: req.headers["user-agent"] || "",
           })
         );
@@ -1282,7 +1284,7 @@ module.exports = async (req, res) => {
               })),
               reason: safeReason,
             },
-            ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
+            ip: getClientIp(req),
             userAgent: req.headers["user-agent"] || "",
           })
         );
@@ -1385,7 +1387,7 @@ module.exports = async (req, res) => {
               dateKey: todayKey,
               reason: safeReason,
             },
-            ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
+            ip: getClientIp(req),
             userAgent: req.headers["user-agent"] || "",
           })
         );

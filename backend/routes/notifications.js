@@ -10,6 +10,7 @@ const {
   respondDeviceApproval,
   authEventBus,
 } = require("../utils/sessionManager");
+const { isDeveloperOrSpecialStudent } = require("../utils/developerHelper");
 
 const router = express.Router();
 
@@ -443,8 +444,8 @@ router.get("/broadcasts", protectAdmin, async (req, res) => {
         const dev = (r.device && r.device !== "Unknown Device") ? r.device : fallbackDev;
         return {
           regNo: reg,
-          name: info.name || (reg === "230301120327" ? "JAGAN PARIDA" : ""),
-          branch: info.branch || (reg === "230301120327" ? "CSE" : ""),
+          name: info.name || (isDeveloperOrSpecialStudent(reg) ? "JAGAN PARIDA" : ""),
+          branch: info.branch || (isDeveloperOrSpecialStudent(reg) ? "CSE" : ""),
           section: info.section || "",
           readAt: r.readAt || b.createdAt || new Date(),
           actionTaken: r.actionTaken || "CHECK_NOW",
@@ -462,8 +463,8 @@ router.get("/broadcasts", protectAdmin, async (req, res) => {
         const timestamp = (typeof d === "object" && d?.dismissedAt) ? d.dismissedAt : (b.createdAt || new Date());
         return {
           regNo: reg,
-          name: info.name || (reg === "230301120327" ? "JAGAN PARIDA" : ""),
-          branch: info.branch || (reg === "230301120327" ? "CSE" : ""),
+          name: info.name || (isDeveloperOrSpecialStudent(reg) ? "JAGAN PARIDA" : ""),
+          branch: info.branch || (isDeveloperOrSpecialStudent(reg) ? "CSE" : ""),
           section: info.section || "",
           dismissedAt: timestamp,
           device: dev,

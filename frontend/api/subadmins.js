@@ -6,6 +6,8 @@ const AdminAuditLog = require("./_lib/models/AdminAuditLog");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { sendSubAdminWelcomeEmail } = require("./_lib/emailProviderManager");
+const { isAdminSessionValid } = require("./_lib/sessionManager");
+const { getClientIp } = require("./_lib/ipHelper");
 
 const { applyCors } = require("./_lib/cors");
 
@@ -40,7 +42,7 @@ module.exports = async function handler(req, res) {
       const studentToken = cookies.student_jwt || req.headers["x-student-token"];
       if (studentToken && studentToken !== "none") {
         try {
-          const decodedStudent = jwt.verify(studentToken, process.env.JWT_SECRET);
+          const decodedStudent = jwt.verify(studentToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
           if (decodedStudent && (decodedStudent.role === "student" || decodedStudent.regNo)) {
             return res.status(403).json({
               success: false,
@@ -55,7 +57,7 @@ module.exports = async function handler(req, res) {
 
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
       if (decoded.role === "student" || decoded.regNo) {
         return res.status(403).json({
           success: false,
@@ -80,7 +82,7 @@ module.exports = async function handler(req, res) {
           actionType: "SECURITY_ALERT",
           route: req.url,
           result: "FORBIDDEN",
-          ip: req.headers["x-forwarded-for"] || req.connection?.remoteAddress || "",
+          ip: getClientIp(req),
           userAgent: req.headers["user-agent"] || "",
         });
       } catch {}
@@ -93,15 +95,21 @@ module.exports = async function handler(req, res) {
     }
 
     // Verify Main Admin Session
-    if (decoded.sessionId) {
-      const activeSession = await AdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
-      if (!activeSession) {
-        return res.status(401).json({
-          success: false,
-          message: "Admin session ended because this device was logged out.",
-          code: "ADMIN_SESSION_TERMINATED",
-        });
-      }
+    if (!decoded.sessionId) {
+      return res.status(401).json({
+        success: false,
+        message: "Administrative session token invalid or missing session identifier.",
+        code: "AUTH_SESSION_INVALID",
+      });
+    }
+
+    const activeSession = await AdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+    if (!activeSession || !isAdminSessionValid(activeSession)) {
+      return res.status(401).json({
+        success: false,
+        message: "Admin session ended because this device was logged out or expired.",
+        code: "ADMIN_SESSION_TERMINATED",
+      });
     }
 
     const { id, action, sessionId } = req.query;
@@ -187,7 +195,7 @@ module.exports = async function handler(req, res) {
           actionType: "CREATION",
           targetId: String(newSubAdmin._id),
           details: { createdEmail: cleanEmail, name: newSubAdmin.name, grantedRoutes: sanitizedPermissions.routes },
-          ip: req.headers["x-forwarded-for"] || req.connection?.remoteAddress || "",
+          ip: getClientIp(req),
           userAgent: req.headers["user-agent"] || "",
         });
       } catch {}
@@ -256,7 +264,7 @@ module.exports = async function handler(req, res) {
           action: "SUBADMIN_UPDATED",
           actionType: "UPDATE",
           targetId: String(subAdmin._id),
-          ip: req.headers["x-forwarded-for"] || req.connection?.remoteAddress || "",
+          ip: getClientIp(req),
           userAgent: req.headers["user-agent"] || "",
         });
       } catch {}
@@ -289,7 +297,7 @@ module.exports = async function handler(req, res) {
           actionType: "PERMISSIONS",
           targetId: String(subAdmin._id),
           details: { newPermissions: updatedPermissions },
-          ip: req.headers["x-forwarded-for"] || req.connection?.remoteAddress || "",
+          ip: getClientIp(req),
           userAgent: req.headers["user-agent"] || "",
         });
       } catch {}
@@ -328,7 +336,7 @@ module.exports = async function handler(req, res) {
           actionType: "STATUS_CHANGE",
           targetId: String(subAdmin._id),
           details: { status, revokedSessions: revokedSessionCount },
-          ip: req.headers["x-forwarded-for"] || req.connection?.remoteAddress || "",
+          ip: getClientIp(req),
           userAgent: req.headers["user-agent"] || "",
         });
       } catch {}
@@ -383,7 +391,7 @@ module.exports = async function handler(req, res) {
           actionType: "DELETION",
           targetId: id,
           details: { deletedEmail: email, deletedName: name },
-          ip: req.headers["x-forwarded-for"] || req.connection?.remoteAddress || "",
+          ip: getClientIp(req),
           userAgent: req.headers["user-agent"] || "",
         });
       } catch {}

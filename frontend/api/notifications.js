@@ -1,6 +1,8 @@
 const connectToDatabase = require("./_lib/db");
 const StudentNotification = require("./_lib/models/StudentNotification");
 const StudentSession = require("./_lib/models/StudentSession");
+const AdminSession = require("./_lib/models/AdminSession");
+const SubAdminSession = require("./_lib/models/SubAdminSession");
 const Student = require("./_lib/models/Student");
 const SemesterResult = require("./_lib/models/SemesterResult");
 const Ranking = require("./_lib/models/Ranking");
@@ -8,8 +10,11 @@ const jwt = require("jsonwebtoken");
 const {
   respondDeviceApproval,
   authEventBus,
+  isAdminSessionValid,
+  isSubAdminSessionValid,
 } = require("./_lib/sessionManager");
 const { broadcastRealtimeEvent } = require("./_lib/ablyService");
+const { isDeveloperOrSpecialStudent } = require("./_lib/developerHelper");
 
 const { applyCors } = require("./_lib/cors");
 
@@ -35,7 +40,7 @@ async function authenticateStudent(req) {
   if (!token || token === "none") return null;
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
     if (!decoded.regNo || !decoded.sessionId) return null;
 
     const session = await StudentSession.findOne({
@@ -68,7 +73,16 @@ async function authenticateAdmin(req) {
     if (decoded.role === "student" || decoded.regNo) {
       return null;
     }
-    if (decoded.role === "admin" || decoded.adminType === "main" || decoded.adminType === "subadmin") {
+    if (!decoded.sessionId) return null;
+
+    await connectToDatabase();
+    if (decoded.adminType === "subadmin") {
+      const session = await SubAdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+      if (!session || !isSubAdminSessionValid(session)) return null;
+      return decoded;
+    } else if (decoded.role === "admin" || decoded.adminType === "main") {
+      const session = await AdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+      if (!session || !isAdminSessionValid(session)) return null;
       return decoded;
     }
     return null;
@@ -250,8 +264,8 @@ module.exports = async function handler(req, res) {
           const dev = (r.device && r.device !== "Unknown Device") ? r.device : fallbackDev;
           return {
             regNo: reg,
-            name: info.name || (reg === "230301120327" ? "JAGAN PARIDA" : ""),
-            branch: info.branch || (reg === "230301120327" ? "CSE" : ""),
+            name: info.name || (isDeveloperOrSpecialStudent(reg) ? "JAGAN PARIDA" : ""),
+            branch: info.branch || (isDeveloperOrSpecialStudent(reg) ? "CSE" : ""),
             section: info.section || "",
             readAt: r.readAt || b.createdAt || new Date(),
             actionTaken: r.actionTaken || "CHECK_NOW",
@@ -277,8 +291,8 @@ module.exports = async function handler(req, res) {
 
           return {
             regNo: reg,
-            name: info.name || (reg === "230301120327" ? "JAGAN PARIDA" : ""),
-            branch: info.branch || (reg === "230301120327" ? "CSE" : ""),
+            name: info.name || (isDeveloperOrSpecialStudent(reg) ? "JAGAN PARIDA" : ""),
+            branch: info.branch || (isDeveloperOrSpecialStudent(reg) ? "CSE" : ""),
             section: info.section || "",
             dismissedAt: timestamp,
             device: dev,

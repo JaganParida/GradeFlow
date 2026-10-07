@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
 import { LeaderboardSkeleton } from "../components/LoadingSpinner";
+import { isDeveloperOrSpecialStudent } from "../utils/developerHelper";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Trophy,
@@ -1178,7 +1179,7 @@ export default function Leaderboard() {
               const isSilver = r.displayRank === 2;
               const isBronze = r.displayRank === 3;
               const isHighlighted = highlightRegNo === r.regNo;
-              const isDeveloper = r.regNo === "230301120327";
+              const isDeveloper = isDeveloperOrSpecialStudent(r.regNo);
               const badges = getBadges(r);
 
               return (
@@ -1532,7 +1533,7 @@ export default function Leaderboard() {
                     const isSilver = r.displayRank === 2;
                     const isBronze = r.displayRank === 3;
                     const isHighlighted = highlightRegNo === r.regNo;
-                    const isDeveloper = r.regNo === "230301120327";
+                    const isDeveloper = isDeveloperOrSpecialStudent(r.regNo);
                     const badges = getBadges(r);
 
                     let rankBadge = (
