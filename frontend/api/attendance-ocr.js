@@ -104,7 +104,7 @@ module.exports = async function handler(req, res) {
   const action = req.query.action || req.body?.action;
 
   // 1. Quota Check Endpoint (Fast, GET or POST)
-  if (action === "quota" || req.url.includes("scan-quota")) {
+  if (action === "quota" || req.url?.includes("scan-quota")) {
     try {
       await connectToDatabase();
       const studentId = req.query.studentId || req.query.regNo || req.body?.studentId || req.body?.regNo || "";
@@ -136,7 +136,7 @@ module.exports = async function handler(req, res) {
   }
 
   // 2. Client Tesseract Fallback Scan Logger
-  if (action === "log-fallback" || req.url.includes("scan-log")) {
+  if (action === "log-fallback" || req.url?.includes("scan-log")) {
     const authResult = await authenticateCaller(req);
     if (authResult.error) {
       return res.status(authResult.error.status).json({

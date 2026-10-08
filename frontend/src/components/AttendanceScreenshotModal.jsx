@@ -29,6 +29,7 @@ import {
   ScanLine,
   Lock,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import {
   getSectionSubjectCatalog,
@@ -420,7 +421,9 @@ const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = []) => {
     let rawCode = normalizeCourseCode(item.code || "");
     let rawName = cleanSubjectName(item.name || "");
 
-    rawName = rawName.replace(new RegExp(rawCode, "gi"), "").trim();
+    if (rawCode) {
+      rawName = rawName.replace(new RegExp(rawCode, "gi"), "").trim();
+    }
 
     // Strict noise rejection (pure dates, percent symbols, slashes)
     if (/^[\/\s\%\.\-\–\—\d]+$/.test(rawName)) return;
@@ -775,12 +778,11 @@ const parseCutmOcrText = (text, catalog = []) => {
       }
     }
 
-    // 2. If Serverless didn't extract, try client OCR only if no explicit auth error or quota limit reached
+    // 2. If Serverless didn't extract, run client-side Tesseract WASM engine (always fallback unless scan quota exhausted)
     const isTerminalError =
-      lastApiError.includes("Authentication") ||
       lastApiError.includes("Daily scan limit") ||
-      lastApiError.includes("limit reached") ||
-      lastApiError.includes("Access Denied");
+      lastApiError.includes("Daily Screenshot Limit") ||
+      lastApiError.includes("SCAN_QUOTA_EXHAUSTED");
 
     if (extracted.length === 0 && !isTerminalError) {
       try {
