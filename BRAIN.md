@@ -2044,12 +2044,11 @@ The OCR Scanner allows students to photograph or upload screenshots of their off
 
 ### Vision AI Model Selection & Deprecation Safeguards:
 * **Active Official Model Tier:** Both `frontend/api/attendance-ocr.js` and `backend/server.js` prioritize Google's active, production-grade vision models:
-  1. `gemini-3.6-flash`: Primary high-speed multimodal vision model (~7–8s response time, zero hallucination on structured ERP grids).
-  2. `gemini-flash-latest`: Secondary production alias fallback.
-  3. `gemini-2.5-flash`: Tertiary vision model configured with `thinkingConfig: { thinkingBudget: 0 }` to avoid internal reasoning latency spikes.
-* **Deprecated Model Blacklist:** Never configure retired experimental preview models (e.g. `gemini-2.0-flash` or `gemini-2.5-flash-lite`), as Google returns HTTP 404 NOT_FOUND.
+  1. `gemini-3.5-flash`: Primary high-speed multimodal vision model (~2s response time, zero hallucination on structured ERP grids).
+  2. `gemini-3-flash-preview`: Secondary production alias fallback (~2s response time).
+* **Deprecated / Overloaded Model Blacklist:** Avoid models with heavy reasoning delays or exhausted quotas (`gemini-flash-latest` which incurs 30s+ thinking delays, `gemini-2.5-flash` with 429 quota limits, and `gemini-3.8-flash` with 503 capacity errors).
 * **Timeout & Execution Budget Architecture:**
-  - Each Gemini model invocation is bounded by a 25-second `AbortController` timeout (`setTimeout(() => controller.abort(), 25000)`).
+  - Each Gemini model invocation is bounded by a 12-second `AbortController` timeout (`setTimeout(() => controller.abort(), 12000)`).
   - The client Axios request in `AttendanceScreenshotModal.jsx` sets `timeout: 40000` (40 seconds).
   - Vercel function execution is explicitly configured with `maxDuration: 60` in `frontend/vercel.json` and `attendance-ocr.js`.
 * **Strict Alphabetic & Section Catalog Validation (Zero Noise Invariant):**

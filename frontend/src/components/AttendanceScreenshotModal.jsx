@@ -1018,16 +1018,11 @@ const parseCutmOcrText = (text, catalog = []) => {
     };
 
     const targetId = configuringElective.id;
-    const targetCode = configuringElective.code;
-    const targetName = configuringElective.name;
 
-    setParsedSubjects((prev) =>
-      prev.map((s) => {
-        if (
-          (targetId && s.id === targetId) ||
-          (targetCode && s.code === targetCode) ||
-          (targetName && s.name === targetName)
-        ) {
+    let nextUnconfigured = null;
+    setParsedSubjects((prev) => {
+      const updated = prev.map((s) => {
+        if (s.id === targetId) {
           return {
             ...s,
             isElective: true,
@@ -1035,19 +1030,19 @@ const parseCutmOcrText = (text, catalog = []) => {
           };
         }
         return s;
-      })
-    );
+      });
 
-    // Check if there is another elective that still needs configuration
-    const remainingUnconfigured = parsedSubjects.find(
-      (s) =>
-        s.id !== targetId &&
-        (s.code !== targetCode || !targetCode) &&
-        (s.isElective || isElectiveProjectSubject(s)) &&
-        (!Array.isArray(s.weeklyOccurrences) || s.weeklyOccurrences.length === 0)
-    );
+      nextUnconfigured = updated.find(
+        (s) =>
+          s.id !== targetId &&
+          (s.isElective || isElectiveProjectSubject(s)) &&
+          (!Array.isArray(s.weeklyOccurrences) || s.weeklyOccurrences.length === 0)
+      );
 
-    setConfiguringElective(remainingUnconfigured || null);
+      return updated;
+    });
+
+    setConfiguringElective(nextUnconfigured || null);
   };
 
   const handleSkipElectiveSlot = () => {
@@ -1127,7 +1122,7 @@ const parseCutmOcrText = (text, catalog = []) => {
           right: 0,
           bottom: 0,
           width: "100vw",
-          height: "100vh",
+          height: "100dvh",
           background: "rgba(15, 23, 42, 0.65)",
           backdropFilter: "blur(6px)",
           WebkitBackdropFilter: "blur(6px)",
@@ -1135,9 +1130,9 @@ const parseCutmOcrText = (text, catalog = []) => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: isMobile ? "12px 10px" : "24px 20px",
+          padding: isMobile ? "8px" : "24px 20px",
           boxSizing: "border-box",
-          overflowY: "auto",
+          overflow: "hidden",
         }}
         onClick={handleClose}
       >
@@ -1156,7 +1151,8 @@ const parseCutmOcrText = (text, catalog = []) => {
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
-            maxHeight: isMobile ? "92vh" : "88vh",
+            height: isMobile ? "calc(100dvh - 16px)" : "auto",
+            maxHeight: isMobile ? "calc(100dvh - 16px)" : "88vh",
             margin: "auto",
           }}
           onClick={(e) => e.stopPropagation()}
@@ -1168,6 +1164,7 @@ const parseCutmOcrText = (text, catalog = []) => {
               borderBottom: "1px solid #f1f5f9",
               display: "flex",
               alignItems: "center",
+              flexShrink: 0,
               justifyContent: "space-between",
               background: "#fafafa",
             }}
@@ -1239,7 +1236,16 @@ const parseCutmOcrText = (text, catalog = []) => {
           )}
 
           {/* Body */}
-          <div style={{ padding: isMobile ? "14px 12px" : "20px 24px", overflowY: "auto", flex: 1 }}>
+          <div
+            style={{
+              padding: isMobile ? "12px 10px" : "20px 24px",
+              overflowY: "auto",
+              overflowX: "hidden",
+              flex: "1 1 auto",
+              minHeight: 0,
+              WebkitOverflowScrolling: "touch",
+            }}
+          >
             {step === "upload" ? (
               <div>
                 {/* Clean Daily Scan Quota & Guidance Banner */}
@@ -2478,7 +2484,7 @@ const parseCutmOcrText = (text, catalog = []) => {
           {/* Footer (Clean Responsive Stacking) */}
           <div
             style={{
-              padding: isMobile ? "12px 14px" : "14px 24px",
+              padding: isMobile ? "10px 12px" : "14px 24px",
               borderTop: "1px solid #f1f5f9",
               background: "#fafafa",
               display: "flex",
@@ -2486,6 +2492,7 @@ const parseCutmOcrText = (text, catalog = []) => {
               justifyContent: "space-between",
               alignItems: isMobile ? "stretch" : "center",
               gap: isMobile ? 8 : 10,
+              flexShrink: 0,
             }}
           >
             {step === "review" ? (
@@ -2937,7 +2944,7 @@ const parseCutmOcrText = (text, catalog = []) => {
               right: 0,
               bottom: 0,
               width: "100vw",
-              height: "100vh",
+              height: "100dvh",
               background: "rgba(15, 23, 42, 0.72)",
               backdropFilter: "blur(6px)",
               WebkitBackdropFilter: "blur(6px)",
@@ -2947,6 +2954,7 @@ const parseCutmOcrText = (text, catalog = []) => {
               justifyContent: "center",
               padding: isMobile ? 8 : 20,
               boxSizing: "border-box",
+              overflow: "hidden",
             }}
             onClick={(e) => {
               if (e.target === e.currentTarget) handleSkipElectiveSlot();
@@ -2963,7 +2971,8 @@ const parseCutmOcrText = (text, catalog = []) => {
                 boxShadow: "0 25px 60px -15px rgba(15, 23, 42, 0.35)",
                 width: "100%",
                 maxWidth: 520,
-                maxHeight: isMobile ? "94vh" : "90vh",
+                height: isMobile ? "calc(100dvh - 20px)" : "auto",
+                maxHeight: isMobile ? "calc(100dvh - 20px)" : "90vh",
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
@@ -3062,10 +3071,13 @@ const parseCutmOcrText = (text, catalog = []) => {
                 style={{
                   padding: isMobile ? "12px 14px" : "16px 20px",
                   overflowY: "auto",
+                  overflowX: "hidden",
                   display: "flex",
                   flexDirection: "column",
                   gap: 12,
-                  flex: 1,
+                  flex: "1 1 auto",
+                  minHeight: 0,
+                  WebkitOverflowScrolling: "touch",
                 }}
               >
                 {/* Step 1: Select Day of Week */}
@@ -3073,7 +3085,7 @@ const parseCutmOcrText = (text, catalog = []) => {
                   <div style={{ fontSize: 11, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
                     1. Select Day of the Week:
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: isMobile ? 4 : 6 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: isMobile ? 4 : 6, width: "100%", boxSizing: "border-box" }}>
                     {DAYS_LIST.map((day) => {
                       const isSelected = selectedElectiveDay.toLowerCase() === day.toLowerCase();
                       return (
@@ -3113,7 +3125,7 @@ const parseCutmOcrText = (text, catalog = []) => {
                     </span>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 6 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 6, width: "100%", boxSizing: "border-box" }}>
                     {TIME_SLOTS.map((slot, sIdx) => {
                       const isSelected = selectedElectiveSlotIdx === sIdx;
                       const dayRoutine = getDaySchedule(currentSection, selectedElectiveDay) || [];
@@ -3125,7 +3137,7 @@ const parseCutmOcrText = (text, catalog = []) => {
                           key={sIdx}
                           onClick={() => setSelectedElectiveSlotIdx(sIdx)}
                           style={{
-                            padding: "8px 10px",
+                            padding: "9px 12px",
                             borderRadius: 10,
                             border: `1.5px solid ${isSelected ? "#2563eb" : isSlotFree ? "#86efac" : "#e2e8f0"}`,
                             background: isSelected ? "#eff6ff" : isSlotFree ? "#f0fdf4" : "#ffffff",
@@ -3133,11 +3145,14 @@ const parseCutmOcrText = (text, catalog = []) => {
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "center",
-                            gap: 8,
+                            gap: 10,
                             transition: "all 0.15s ease",
+                            width: "100%",
+                            maxWidth: "100%",
+                            boxSizing: "border-box",
                           }}
                         >
-                          <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                               <span
                                 style={{
@@ -3148,11 +3163,12 @@ const parseCutmOcrText = (text, catalog = []) => {
                                   padding: "1px 5px",
                                   borderRadius: 4,
                                   whiteSpace: "nowrap",
+                                  flexShrink: 0,
                                 }}
                               >
                                 P{sIdx + 1}
                               </span>
-                              <span style={{ fontSize: 11.5, fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
+                              <span style={{ fontSize: 11.5, fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                 {slot.label || `${slot.startTime} - ${slot.endTime}`}
                               </span>
                             </div>
@@ -3183,6 +3199,7 @@ const parseCutmOcrText = (text, catalog = []) => {
                               alignItems: "center",
                               justifyContent: "center",
                               flexShrink: 0,
+                              marginLeft: 6,
                             }}
                           >
                             {isSelected && (
@@ -3212,6 +3229,7 @@ const parseCutmOcrText = (text, catalog = []) => {
                     fontSize: 11,
                     color: "#64748b",
                     lineHeight: 1.45,
+                    boxSizing: "border-box",
                   }}
                 >
                   <strong style={{ color: "#334155" }}>Personal Routine Only:</strong> Saved strictly for your schedule and daily check-in. Master section timetable remains unchanged.
@@ -3229,6 +3247,7 @@ const parseCutmOcrText = (text, catalog = []) => {
                   justifyContent: "flex-end",
                   gap: 8,
                   flexShrink: 0,
+                  marginTop: "auto",
                 }}
               >
                 <button
