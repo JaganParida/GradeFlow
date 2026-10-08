@@ -2044,12 +2044,11 @@ const parseCutmOcrText = (text, catalog = []) => {
                                 gap: 6,
                               }}
                             >
-                              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-                                <Clock size={13} color={sub.weeklyOccurrences?.length > 0 ? "#16a34a" : "#d97706"} />
+                              <div style={{ minWidth: 0, flex: 1 }}>
                                 <span style={{ fontSize: 11, fontWeight: 700, color: sub.weeklyOccurrences?.length > 0 ? "#166534" : "#92400e" }}>
                                   {sub.weeklyOccurrences?.length > 0
                                     ? `Routine: ${sub.weeklyOccurrences[0].day} (${sub.weeklyOccurrences[0].timeSlot || `P${sub.weeklyOccurrences[0].slotIndex + 1}`})`
-                                    : "Elective: Not scheduled in personal routine"}
+                                    : "Elective: Not scheduled"}
                                 </span>
                               </div>
                               <button
@@ -2064,14 +2063,11 @@ const parseCutmOcrText = (text, catalog = []) => {
                                   fontSize: 10.5,
                                   fontWeight: 800,
                                   cursor: "pointer",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: 3,
+                                  whiteSpace: "nowrap",
                                   flexShrink: 0,
                                 }}
                               >
-                                <Clock size={11} />
-                                <span>{sub.weeklyOccurrences?.length > 0 ? "Change Slot" : "Set Slot"}</span>
+                                {sub.weeklyOccurrences?.length > 0 ? "Change Slot" : "Set Slot"}
                               </button>
                             </div>
                           )}
@@ -2261,7 +2257,6 @@ const parseCutmOcrText = (text, catalog = []) => {
                                       padding: "2px 7px",
                                     }}
                                   >
-                                    <Clock size={11} color={sub.weeklyOccurrences?.length > 0 ? "#16a34a" : "#d97706"} />
                                     <span style={{ fontSize: 10.5, fontWeight: 700, color: sub.weeklyOccurrences?.length > 0 ? "#166534" : "#92400e" }}>
                                       {sub.weeklyOccurrences?.length > 0
                                         ? `Routine: ${sub.weeklyOccurrences[0].day} (${sub.weeklyOccurrences[0].timeSlot || `P${sub.weeklyOccurrences[0].slotIndex + 1}`})`
@@ -2279,9 +2274,10 @@ const parseCutmOcrText = (text, catalog = []) => {
                                         textDecoration: "underline",
                                         cursor: "pointer",
                                         padding: "0 2px",
+                                        whiteSpace: "nowrap",
                                       }}
                                     >
-                                      {sub.weeklyOccurrences?.length > 0 ? "Change" : "Set Day/Time"}
+                                      {sub.weeklyOccurrences?.length > 0 ? "Change" : "Set Slot"}
                                     </button>
                                   </div>
                                 )}
@@ -2555,10 +2551,11 @@ const parseCutmOcrText = (text, catalog = []) => {
                     justifyContent: "center",
                     gap: 6,
                     boxShadow: "0 2px 6px rgba(15, 23, 42, 0.15)",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   <CheckCircle2 size={15} />
-                  <span>Confirm & Save to Cloud</span>
+                  <span>Confirm & Save</span>
                 </button>
               )}
             </div>
@@ -2942,13 +2939,13 @@ const parseCutmOcrText = (text, catalog = []) => {
               width: "100vw",
               height: "100vh",
               background: "rgba(15, 23, 42, 0.72)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
               zIndex: 1000005,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: isMobile ? 12 : 20,
+              padding: isMobile ? 8 : 20,
               boxSizing: "border-box",
             }}
             onClick={(e) => {
@@ -2956,17 +2953,17 @@ const parseCutmOcrText = (text, catalog = []) => {
             }}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.94, y: 14 }}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 14 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
               style={{
                 background: "#ffffff",
-                borderRadius: 20,
+                borderRadius: isMobile ? 16 : 20,
                 boxShadow: "0 25px 60px -15px rgba(15, 23, 42, 0.35)",
                 width: "100%",
-                maxWidth: 560,
-                maxHeight: "92vh",
+                maxWidth: 520,
+                maxHeight: isMobile ? "94vh" : "90vh",
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
@@ -2976,64 +2973,66 @@ const parseCutmOcrText = (text, catalog = []) => {
               {/* Modal Header */}
               <div
                 style={{
-                  padding: isMobile ? "16px 18px" : "20px 24px",
-                  background: "linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)",
+                  padding: isMobile ? "12px 14px" : "16px 20px",
+                  background: "#ffffff",
                   borderBottom: "1px solid #e2e8f0",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "flex-start",
-                  gap: 12,
+                  gap: 10,
+                  flexShrink: 0,
                 }}
               >
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
                     <span
                       style={{
-                        fontSize: 10.5,
+                        fontSize: 10,
                         fontWeight: 800,
-                        color: "#6d28d9",
-                        background: "#ede9fe",
-                        padding: "2px 8px",
-                        borderRadius: 999,
+                        color: "#4f46e5",
+                        background: "#eef2ff",
+                        padding: "2px 7px",
+                        borderRadius: 6,
                         textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 4,
+                        letterSpacing: "0.4px",
+                        whiteSpace: "nowrap",
                       }}
                     >
-                      <Sparkles size={11} />
-                      Registered Elective Detected
+                      Elective Detected
                     </span>
                     <span
                       style={{
-                        fontSize: 10.5,
-                        fontWeight: 800,
-                        color: "#1d4ed8",
-                        background: "#dbeafe",
-                        padding: "2px 8px",
-                        borderRadius: 999,
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: "#0369a1",
+                        background: "#e0f2fe",
+                        padding: "2px 7px",
+                        borderRadius: 6,
+                        whiteSpace: "nowrap",
                       }}
                     >
-                      2 Credits
+                      {configuringElective.credits || 2} Credits
                     </span>
                   </div>
 
                   <h3
                     style={{
-                      fontSize: isMobile ? 16 : 18,
+                      fontSize: isMobile ? 15 : 17,
                       fontWeight: 800,
                       color: "#0f172a",
                       margin: 0,
+                      lineHeight: 1.3,
                       wordBreak: "break-word",
                     }}
                   >
                     {configuringElective.name}
                   </h3>
 
-                  <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 4, lineHeight: 1.4 }}>
-                    Course Code: <strong style={{ color: "#334155", fontFamily: "'Space Mono', monospace" }}>{configuringElective.code || "ELECTIVE"}</strong>
-                    {" · "}Select which day & period this subject is held to add it to your personal routine & daily check-in.
+                  <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, lineHeight: 1.35 }}>
+                    {configuringElective.code ? (
+                      <strong style={{ color: "#334155", fontFamily: "'Space Mono', monospace" }}>{configuringElective.code} · </strong>
+                    ) : null}
+                    Choose day and slot to add this subject to your personal routine.
                   </div>
                 </div>
 
@@ -3041,10 +3040,10 @@ const parseCutmOcrText = (text, catalog = []) => {
                   type="button"
                   onClick={handleSkipElectiveSlot}
                   style={{
-                    background: "#ffffff",
+                    background: "#f8fafc",
                     border: "1px solid #cbd5e1",
                     borderRadius: 8,
-                    padding: 6,
+                    padding: 5,
                     cursor: "pointer",
                     color: "#64748b",
                     display: "flex",
@@ -3052,28 +3051,29 @@ const parseCutmOcrText = (text, catalog = []) => {
                     justifyContent: "center",
                     flexShrink: 0,
                   }}
-                  title="Close / Set later"
+                  title="Close"
                 >
-                  <X size={16} />
+                  <X size={15} />
                 </button>
               </div>
 
               {/* Modal Body */}
               <div
                 style={{
-                  padding: isMobile ? "14px 16px" : "18px 24px",
+                  padding: isMobile ? "12px 14px" : "16px 20px",
                   overflowY: "auto",
                   display: "flex",
                   flexDirection: "column",
-                  gap: 16,
+                  gap: 12,
+                  flex: 1,
                 }}
               >
                 {/* Step 1: Select Day of Week */}
                 <div>
-                  <label style={{ display: "block", fontSize: 11.5, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
                     1. Select Day of the Week:
-                  </label>
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3, 1fr)" : "repeat(6, 1fr)", gap: 6 }}>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: isMobile ? 4 : 6 }}>
                     {DAYS_LIST.map((day) => {
                       const isSelected = selectedElectiveDay.toLowerCase() === day.toLowerCase();
                       return (
@@ -3082,20 +3082,20 @@ const parseCutmOcrText = (text, catalog = []) => {
                           type="button"
                           onClick={() => setSelectedElectiveDay(day)}
                           style={{
-                            padding: "9px 6px",
-                            borderRadius: 10,
+                            padding: isMobile ? "8px 2px" : "8px 6px",
+                            borderRadius: 8,
                             border: `1.5px solid ${isSelected ? "#2563eb" : "#e2e8f0"}`,
                             background: isSelected ? "#eff6ff" : "#ffffff",
                             color: isSelected ? "#1d4ed8" : "#334155",
-                            fontSize: 12,
+                            fontSize: isMobile ? 11 : 12,
                             fontWeight: isSelected ? 800 : 600,
                             cursor: "pointer",
                             textAlign: "center",
                             transition: "all 0.15s ease",
-                            boxShadow: isSelected ? "0 2px 8px rgba(37, 99, 235, 0.18)" : "none",
+                            whiteSpace: "nowrap",
                           }}
                         >
-                          {isMobile ? day.slice(0, 3) : day}
+                          {day.slice(0, 3)}
                         </button>
                       );
                     })}
@@ -3104,16 +3104,16 @@ const parseCutmOcrText = (text, catalog = []) => {
 
                 {/* Step 2: Select Period / Slot */}
                 <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                    <label style={{ fontSize: 11.5, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                       2. Select Time Slot on {selectedElectiveDay}:
-                    </label>
-                    <span style={{ fontSize: 11, color: "#64748b" }}>
-                      Section {currentSection} Schedule
+                    </div>
+                    <span style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600 }}>
+                      Sec {currentSection} Schedule
                     </span>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 6 }}>
                     {TIME_SLOTS.map((slot, sIdx) => {
                       const isSelected = selectedElectiveSlotIdx === sIdx;
                       const dayRoutine = getDaySchedule(currentSection, selectedElectiveDay) || [];
@@ -3125,8 +3125,8 @@ const parseCutmOcrText = (text, catalog = []) => {
                           key={sIdx}
                           onClick={() => setSelectedElectiveSlotIdx(sIdx)}
                           style={{
-                            padding: "10px 12px",
-                            borderRadius: 12,
+                            padding: "8px 10px",
+                            borderRadius: 10,
                             border: `1.5px solid ${isSelected ? "#2563eb" : isSlotFree ? "#86efac" : "#e2e8f0"}`,
                             background: isSelected ? "#eff6ff" : isSlotFree ? "#f0fdf4" : "#ffffff",
                             cursor: "pointer",
@@ -3135,38 +3135,48 @@ const parseCutmOcrText = (text, catalog = []) => {
                             alignItems: "center",
                             gap: 8,
                             transition: "all 0.15s ease",
-                            boxShadow: isSelected ? "0 2px 8px rgba(37, 99, 235, 0.15)" : "none",
                           }}
                         >
                           <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                               <span
                                 style={{
-                                  fontSize: 10,
+                                  fontSize: 9.5,
                                   fontWeight: 800,
                                   color: isSelected ? "#1d4ed8" : "#64748b",
                                   background: isSelected ? "#dbeafe" : "#f1f5f9",
                                   padding: "1px 5px",
                                   borderRadius: 4,
+                                  whiteSpace: "nowrap",
                                 }}
                               >
                                 P{sIdx + 1}
                               </span>
-                              <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>
+                              <span style={{ fontSize: 11.5, fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
                                 {slot.label || `${slot.startTime} - ${slot.endTime}`}
                               </span>
                             </div>
 
-                            <div style={{ fontSize: 10.5, color: isSlotFree ? "#15803d" : "#64748b", marginTop: 3, fontWeight: 600 }}>
-                              {isSlotFree ? "✓ Section Free Slot (Recommended)" : `Section Class: ${cleanSubjectBaseName(periodOnDay?.subject) || periodOnDay?.subject}`}
+                            <div
+                              style={{
+                                fontSize: 10.5,
+                                color: isSlotFree ? "#15803d" : "#64748b",
+                                marginTop: 2,
+                                fontWeight: isSlotFree ? 700 : 500,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {isSlotFree ? "Section Free Slot (Recommended)" : `Section Class: ${cleanSubjectBaseName(periodOnDay?.subject) || periodOnDay?.subject}`}
                             </div>
                           </div>
 
                           <div
                             style={{
-                              width: 18,
-                              height: 18,
-                              borderRadius: 999,
+                              width: 16,
+                              height: 16,
+                              borderRadius: "50%",
                               border: `2px solid ${isSelected ? "#2563eb" : "#cbd5e1"}`,
                               background: isSelected ? "#2563eb" : "#ffffff",
                               display: "flex",
@@ -3175,7 +3185,16 @@ const parseCutmOcrText = (text, catalog = []) => {
                               flexShrink: 0,
                             }}
                           >
-                            {isSelected && <Check size={11} color="#ffffff" strokeWidth={3} />}
+                            {isSelected && (
+                              <div
+                                style={{
+                                  width: 6,
+                                  height: 6,
+                                  borderRadius: "50%",
+                                  background: "#ffffff",
+                                }}
+                              />
+                            )}
                           </div>
                         </div>
                       );
@@ -3186,70 +3205,71 @@ const parseCutmOcrText = (text, catalog = []) => {
                 {/* Informative Note */}
                 <div
                   style={{
-                    background: "#faf5ff",
-                    border: "1px solid #e9d5ff",
-                    borderRadius: 10,
-                    padding: "10px 12px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 8,
+                    padding: "8px 12px",
+                    fontSize: 11,
+                    color: "#64748b",
+                    lineHeight: 1.45,
                   }}
                 >
-                  <Sparkles size={16} color="#7c3aed" style={{ flexShrink: 0 }} />
-                  <div style={{ fontSize: 11.5, color: "#6b21a8", lineHeight: 1.4 }}>
-                    <strong>Personal Isolation:</strong> This elective slot will appear strictly on <em>your</em> timetable and daily check-in. It will never modify or impact the common timetable of other students in {currentSection}.
-                  </div>
+                  <strong style={{ color: "#334155" }}>Personal Routine Only:</strong> Saved strictly for your schedule and daily check-in. Master section timetable remains unchanged.
                 </div>
               </div>
 
               {/* Modal Actions */}
               <div
                 style={{
-                  padding: isMobile ? "12px 16px" : "14px 24px",
+                  padding: isMobile ? "10px 14px" : "12px 20px",
                   background: "#f8fafc",
                   borderTop: "1px solid #e2e8f0",
                   display: "flex",
-                  justifyContent: "space-between",
                   alignItems: "center",
-                  gap: 10,
+                  justifyContent: "flex-end",
+                  gap: 8,
+                  flexShrink: 0,
                 }}
               >
                 <button
                   type="button"
                   onClick={handleSkipElectiveSlot}
                   style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "#64748b",
+                    flex: isMobile ? 1 : "initial",
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 8,
+                    padding: "9px 12px",
                     fontSize: 12,
                     fontWeight: 700,
+                    color: "#475569",
                     cursor: "pointer",
-                    padding: "8px 10px",
+                    textAlign: "center",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  Skip / Set Later
+                  Skip
                 </button>
 
                 <button
                   type="button"
                   onClick={handleSaveElectiveSlot}
                   style={{
+                    flex: isMobile ? 2 : "initial",
                     background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
                     color: "#ffffff",
                     border: "none",
-                    borderRadius: 10,
-                    padding: "10px 20px",
-                    fontSize: 13,
+                    borderRadius: 8,
+                    padding: "9px 16px",
+                    fontSize: 12.5,
                     fontWeight: 800,
                     cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
+                    textAlign: "center",
+                    whiteSpace: "nowrap",
+                    boxShadow: "0 2px 6px rgba(37, 99, 235, 0.25)",
                   }}
                 >
-                  <CheckCircle2 size={16} />
-                  <span>Save to My Routine</span>
+                  Save to Routine
                 </button>
               </div>
             </motion.div>
