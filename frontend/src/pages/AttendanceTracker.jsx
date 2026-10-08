@@ -691,18 +691,29 @@ export default function AttendanceTracker() {
         classesPerWeek: catItem.classesPerWeek,
         weeklyOccurrences: catItem.weeklyOccurrences,
         isSaved: Boolean(saved),
+        isElective: Boolean(
+          catItem.isElective ||
+          saved?.isElective ||
+          isElectiveProjectSubject(catItem) ||
+          isElectiveProjectSubject(saved)
+        ),
       });
     });
 
     return Array.from(map.values());
   }, [sectionCatalog, savedSubjects, studentData]);
 
-  // Check if student has actual non-zero saved attendance data for ALL routine subjects
+  // Check if student has actual non-zero saved attendance data for ALL mandatory routine subjects
+  // (Optional electives/projects with 0/0 delivered classes never lock the dashboard)
   const hasSavedAttendance = useMemo(() => {
-    if (allSectionSubjects.length > 0) {
+    const mandatorySubjects = allSectionSubjects.filter(
+      (sub) => !sub.isElective && !isElectiveProjectSubject(sub)
+    );
+
+    if (mandatorySubjects.length > 0) {
       return (
         savedSubjects.length > 0 &&
-        allSectionSubjects.every(
+        mandatorySubjects.every(
           (sub) =>
             sub.isSaved &&
             (sub.components || []).some((c) => (Number(c.delivered) || 0) > 0)
@@ -711,9 +722,11 @@ export default function AttendanceTracker() {
     }
     return (
       savedSubjects.length > 0 &&
-      savedSubjects.every((s) =>
-        (s.components || []).some((c) => (Number(c.delivered) || 0) > 0)
-      )
+      savedSubjects
+        .filter((s) => !s.isElective && !isElectiveProjectSubject(s))
+        .every((s) =>
+          (s.components || []).some((c) => (Number(c.delivered) || 0) > 0)
+        )
     );
   }, [allSectionSubjects, savedSubjects]);
 
@@ -728,9 +741,10 @@ export default function AttendanceTracker() {
     const unfilledList = [];
 
     list.forEach((sub) => {
-      const isFilled =
-        sub.isSaved &&
-        (sub.components || []).some((c) => (Number(c.delivered) || 0) > 0);
+      const isElective = Boolean(sub.isElective || isElectiveProjectSubject(sub));
+      const hasDelivered = (sub.components || []).some((c) => (Number(c.delivered) || 0) > 0);
+      // Elective/project subjects configured or saved by the student count as filled even if delivered classes is 0
+      const isFilled = sub.isSaved && (isElective || hasDelivered);
       if (isFilled) {
         filledList.push(sub);
       } else {
