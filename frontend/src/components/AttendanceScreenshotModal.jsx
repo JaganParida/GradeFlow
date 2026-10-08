@@ -245,6 +245,77 @@ export default function AttendanceScreenshotModal({
     }
   };
 
+  // High-speed client-side canvas compressor for ultra-fast network transfer on mobile 3G/4G
+  const compressImageForUpload = (fileOrBase64, maxDim = 1400, quality = 0.82) => {
+    return new Promise((resolve) => {
+      try {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          try {
+            let width = img.naturalWidth || img.width;
+            let height = img.naturalHeight || img.height;
+            if (!width || !height) {
+              return resolve({ base64: typeof fileOrBase64 === "string" ? fileOrBase64 : "", mimeType: "image/jpeg" });
+            }
+
+            // Downscale if either dimension exceeds maxDim preserving exact aspect ratio
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) {
+              return resolve({ base64: typeof fileOrBase64 === "string" ? fileOrBase64 : "", mimeType: "image/jpeg" });
+            }
+
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const compressedData = canvas.toDataURL("image/jpeg", quality);
+            resolve({ base64: compressedData, mimeType: "image/jpeg" });
+          } catch (innerErr) {
+            console.warn("[OCR] Image compression canvas error:", innerErr);
+            resolve({ base64: typeof fileOrBase64 === "string" ? fileOrBase64 : "", mimeType: "image/jpeg" });
+          }
+        };
+
+        img.onerror = () => {
+          resolve({ base64: typeof fileOrBase64 === "string" ? fileOrBase64 : "", mimeType: "image/jpeg" });
+        };
+
+        if (typeof fileOrBase64 === "string") {
+          img.src = fileOrBase64;
+        } else if (fileOrBase64 instanceof Blob || fileOrBase64 instanceof File) {
+          const objectUrl = URL.createObjectURL(fileOrBase64);
+          img.src = objectUrl;
+          const prevOnload = img.onload;
+          img.onload = (ev) => {
+            URL.revokeObjectURL(objectUrl);
+            if (prevOnload) prevOnload.call(img, ev);
+          };
+        } else {
+          resolve({ base64: "", mimeType: "image/jpeg" });
+        }
+      } catch (err) {
+        console.warn("[OCR] compressImageForUpload failed:", err);
+        resolve({ base64: typeof fileOrBase64 === "string" ? fileOrBase64 : "", mimeType: "image/jpeg" });
+      }
+    });
+  };
+
   const processFile = (file) => {
     const currentLimit = getDailyScanStatus(studentId, userRole, isAdmin);
     if (currentLimit.isLimitReached) {
@@ -263,10 +334,14 @@ export default function AttendanceScreenshotModal({
     setSelectedFile(file);
 
     const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = reader.result;
-      setImagePreview(base64);
-      analyzeScreenshot(base64, file.type);
+    reader.onload = async () => {
+      const rawBase64 = reader.result;
+      setImagePreview(rawBase64);
+      setProcessingStatus("Optimizing image for fast upload...");
+
+      // Compress client-side to lightweight ~150KB JPEG for instant transfer over slow mobile connections
+      const { base64: compressedBase64, mimeType } = await compressImageForUpload(file);
+      analyzeScreenshot(compressedBase64 || rawBase64, mimeType || "image/jpeg");
     };
     reader.readAsDataURL(file);
   };
@@ -738,8 +813,21 @@ const parseCutmOcrText = (text, catalog = []) => {
     let extracted = [];
     let usedClientFallback = false;
 
-    // 1. Try Vercel Serverless Gemini Vision Endpoint
-    const ocrPayload = { imageBase64, mimeType: mimeType || "image/jpeg", studentId };
+    // 1. Try Vercel Serverless Gemini Vision Endpoint (Ensure lightweight transfer)
+    let payloadBase64 = imageBase64;
+    let payloadMime = mimeType || "image/jpeg";
+    if (payloadBase64 && payloadBase64.length > 500000) {
+      try {
+        const comp = await compressImageForUpload(payloadBase64);
+        if (comp.base64) {
+          payloadBase64 = comp.base64;
+          payloadMime = comp.mimeType || "image/jpeg";
+        }
+      } catch (cErr) {
+        console.warn("[OCR] pre-upload compression check warning:", cErr);
+      }
+    }
+    const ocrPayload = { imageBase64: payloadBase64, mimeType: payloadMime, studentId };
 
     const endpointsToTry = [
       { url: `${API}/attendance/ocr`, label: "Vercel OCR Route" },
@@ -1117,12 +1205,9 @@ const parseCutmOcrText = (text, catalog = []) => {
       <div
         style={{
           position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: "100vw",
-          height: "100dvh",
+          inset: 0,
+          width: "100%",
+          height: "100%",
           background: "rgba(15, 23, 42, 0.65)",
           backdropFilter: "blur(6px)",
           WebkitBackdropFilter: "blur(6px)",
@@ -1130,7 +1215,7 @@ const parseCutmOcrText = (text, catalog = []) => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: isMobile ? "8px" : "24px 20px",
+          padding: isMobile ? "8px 6px calc(8px + env(safe-area-inset-bottom, 0px)) 6px" : "24px 20px",
           boxSizing: "border-box",
           overflow: "hidden",
         }}
@@ -1151,9 +1236,10 @@ const parseCutmOcrText = (text, catalog = []) => {
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
-            height: isMobile ? "calc(100dvh - 16px)" : "auto",
-            maxHeight: isMobile ? "calc(100dvh - 16px)" : "88vh",
+            height: isMobile ? "min(92dvh, calc(100% - 16px))" : "auto",
+            maxHeight: isMobile ? "min(92dvh, calc(100% - 16px))" : "88vh",
             margin: "auto",
+            boxSizing: "border-box",
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -2578,12 +2664,9 @@ const parseCutmOcrText = (text, catalog = []) => {
           <div
             style={{
               position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              width: "100vw",
-              height: "100vh",
+              inset: 0,
+              width: "100%",
+              height: "100%",
               zIndex: 1000000,
               background: "rgba(15, 23, 42, 0.7)",
               backdropFilter: "blur(4px)",
@@ -2591,9 +2674,9 @@ const parseCutmOcrText = (text, catalog = []) => {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: isMobile ? 12 : 16,
+              padding: isMobile ? "12px 10px calc(12px + env(safe-area-inset-bottom, 0px)) 10px" : 16,
               boxSizing: "border-box",
-              overflowY: "auto",
+              overflow: "hidden",
             }}
           >
             <motion.div
@@ -2939,12 +3022,9 @@ const parseCutmOcrText = (text, catalog = []) => {
           <div
             style={{
               position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              width: "100vw",
-              height: "100dvh",
+              inset: 0,
+              width: "100%",
+              height: "100%",
               background: "rgba(15, 23, 42, 0.72)",
               backdropFilter: "blur(6px)",
               WebkitBackdropFilter: "blur(6px)",
@@ -2952,7 +3032,7 @@ const parseCutmOcrText = (text, catalog = []) => {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: isMobile ? 8 : 20,
+              padding: isMobile ? "10px 8px calc(10px + env(safe-area-inset-bottom, 0px)) 8px" : 20,
               boxSizing: "border-box",
               overflow: "hidden",
             }}
@@ -2971,12 +3051,13 @@ const parseCutmOcrText = (text, catalog = []) => {
                 boxShadow: "0 25px 60px -15px rgba(15, 23, 42, 0.35)",
                 width: "100%",
                 maxWidth: 520,
-                height: isMobile ? "calc(100dvh - 20px)" : "auto",
-                maxHeight: isMobile ? "calc(100dvh - 20px)" : "90vh",
+                height: isMobile ? "min(92dvh, calc(100% - 16px))" : "auto",
+                maxHeight: isMobile ? "min(92dvh, calc(100% - 16px))" : "90vh",
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
                 border: "1px solid #e2e8f0",
+                boxSizing: "border-box",
               }}
             >
               {/* Modal Header */}
@@ -2990,6 +3071,8 @@ const parseCutmOcrText = (text, catalog = []) => {
                   alignItems: "flex-start",
                   gap: 10,
                   flexShrink: 0,
+                  boxSizing: "border-box",
+                  width: "100%",
                 }}
               >
                 <div style={{ minWidth: 0, flex: 1 }}>
@@ -3069,7 +3152,7 @@ const parseCutmOcrText = (text, catalog = []) => {
               {/* Modal Body */}
               <div
                 style={{
-                  padding: isMobile ? "12px 14px" : "16px 20px",
+                  padding: isMobile ? "12px 12px 30px 12px" : "16px 20px 30px 20px",
                   overflowY: "auto",
                   overflowX: "hidden",
                   display: "flex",
@@ -3078,6 +3161,8 @@ const parseCutmOcrText = (text, catalog = []) => {
                   flex: "1 1 auto",
                   minHeight: 0,
                   WebkitOverflowScrolling: "touch",
+                  boxSizing: "border-box",
+                  width: "100%",
                 }}
               >
                 {/* Step 1: Select Day of Week */}
@@ -3137,23 +3222,23 @@ const parseCutmOcrText = (text, catalog = []) => {
                           key={sIdx}
                           onClick={() => setSelectedElectiveSlotIdx(sIdx)}
                           style={{
-                            padding: "9px 12px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            width: "100%",
+                            maxWidth: "100%",
+                            boxSizing: "border-box",
+                            padding: isMobile ? "9px 11px" : "10px 14px",
                             borderRadius: 10,
                             border: `1.5px solid ${isSelected ? "#2563eb" : isSlotFree ? "#86efac" : "#e2e8f0"}`,
                             background: isSelected ? "#eff6ff" : isSlotFree ? "#f0fdf4" : "#ffffff",
                             cursor: "pointer",
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            gap: 10,
+                            overflow: "hidden",
                             transition: "all 0.15s ease",
-                            width: "100%",
-                            maxWidth: "100%",
-                            boxSizing: "border-box",
                           }}
                         >
-                          <div style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                          <div style={{ flex: "1 1 0%", minWidth: 0, overflow: "hidden", paddingRight: 8 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
                               <span
                                 style={{
                                   fontSize: 9.5,
@@ -3168,7 +3253,17 @@ const parseCutmOcrText = (text, catalog = []) => {
                               >
                                 P{sIdx + 1}
                               </span>
-                              <span style={{ fontSize: 11.5, fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              <span
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  color: "#0f172a",
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  minWidth: 0,
+                                }}
+                              >
                                 {slot.label || `${slot.startTime} - ${slot.endTime}`}
                               </span>
                             </div>
@@ -3179,10 +3274,12 @@ const parseCutmOcrText = (text, catalog = []) => {
                                 color: isSlotFree ? "#15803d" : "#64748b",
                                 marginTop: 2,
                                 fontWeight: isSlotFree ? 700 : 500,
+                                whiteSpace: "nowrap",
                                 overflow: "hidden",
                                 textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
+                                minWidth: 0,
                               }}
+                              title={isSlotFree ? "Section Free Slot (Recommended)" : `Section Class: ${cleanSubjectBaseName(periodOnDay?.subject) || periodOnDay?.subject}`}
                             >
                               {isSlotFree ? "Section Free Slot (Recommended)" : `Section Class: ${cleanSubjectBaseName(periodOnDay?.subject) || periodOnDay?.subject}`}
                             </div>
@@ -3190,8 +3287,10 @@ const parseCutmOcrText = (text, catalog = []) => {
 
                           <div
                             style={{
-                              width: 16,
-                              height: 16,
+                              width: 18,
+                              height: 18,
+                              minWidth: 18,
+                              minHeight: 18,
                               borderRadius: "50%",
                               border: `2px solid ${isSelected ? "#2563eb" : "#cbd5e1"}`,
                               background: isSelected ? "#2563eb" : "#ffffff",
@@ -3199,14 +3298,13 @@ const parseCutmOcrText = (text, catalog = []) => {
                               alignItems: "center",
                               justifyContent: "center",
                               flexShrink: 0,
-                              marginLeft: 6,
                             }}
                           >
                             {isSelected && (
                               <div
                                 style={{
-                                  width: 6,
-                                  height: 6,
+                                  width: 7,
+                                  height: 7,
                                   borderRadius: "50%",
                                   background: "#ffffff",
                                 }}
@@ -3239,7 +3337,7 @@ const parseCutmOcrText = (text, catalog = []) => {
               {/* Modal Actions */}
               <div
                 style={{
-                  padding: isMobile ? "10px 14px" : "12px 20px",
+                  padding: isMobile ? "10px 14px calc(10px + env(safe-area-inset-bottom, 0px)) 14px" : "12px 20px",
                   background: "#f8fafc",
                   borderTop: "1px solid #e2e8f0",
                   display: "flex",
@@ -3247,7 +3345,8 @@ const parseCutmOcrText = (text, catalog = []) => {
                   justifyContent: "flex-end",
                   gap: 8,
                   flexShrink: 0,
-                  marginTop: "auto",
+                  boxSizing: "border-box",
+                  width: "100%",
                 }}
               >
                 <button

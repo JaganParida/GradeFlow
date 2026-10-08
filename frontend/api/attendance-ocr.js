@@ -276,15 +276,16 @@ module.exports = async function handler(req, res) {
 
     if (GEMINI_API_KEY) {
       const modelsToTry = [
-        "gemini-3.5-flash",
         "gemini-3-flash-preview",
+        "gemini-3.5-flash",
+        "gemini-3.1-flash-lite",
       ];
 
       let lastError = null;
 
       for (const model of modelsToTry) {
         const controller = new AbortController();
-        const timeoutTimer = setTimeout(() => controller.abort(), 12000);
+        const timeoutTimer = setTimeout(() => controller.abort(), 18000);
         try {
           const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
@@ -352,6 +353,8 @@ OUTPUT FORMAT (JSON Schema):
                 generationConfig: {
                   temperature: 0.0,
                   response_mime_type: "application/json",
+                  thinkingConfig: { thinkingBudget: 0 },
+                  thinking_config: { thinking_budget: 0 },
                 },
               }),
             }
