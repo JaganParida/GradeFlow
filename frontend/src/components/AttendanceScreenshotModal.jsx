@@ -30,7 +30,16 @@ import {
   Lock,
   AlertTriangle,
 } from "lucide-react";
-import { getSectionSubjectCatalog, cleanSubjectBaseName } from "../utils/timetableHelper";
+import {
+  getSectionSubjectCatalog,
+  cleanSubjectBaseName,
+  ELECTIVE_PROJECT_SUBJECTS,
+  isElectiveProjectSubject,
+  getElectiveProjectInfo,
+  TIME_SLOTS,
+  DAYS_LIST,
+  getDaySchedule,
+} from "../utils/timetableHelper";
 import {
   getDailyScanStatus,
   incrementDailyScanCount,
@@ -78,6 +87,26 @@ export default function AttendanceScreenshotModal({
   const [editingSubject, setEditingSubject] = useState(null); // Sub-modal for editing components (PP, PR, TUT)
   const [scanStepIndex, setScanStepIndex] = useState(0);
   const [scanProgress, setScanProgress] = useState(15);
+
+  // Dedicated Elective / Project Subject Schedule Configuration Overlay State
+  const [configuringElective, setConfiguringElective] = useState(null);
+  const [selectedElectiveDay, setSelectedElectiveDay] = useState("Tuesday");
+  const [selectedElectiveSlotIdx, setSelectedElectiveSlotIdx] = useState(4); // Default Slot 5 (1.30PM-2.30PM)
+  const [bypassElectivePrompt, setBypassElectivePrompt] = useState(false);
+
+  useEffect(() => {
+    if (configuringElective) {
+      if (Array.isArray(configuringElective.weeklyOccurrences) && configuringElective.weeklyOccurrences.length > 0) {
+        const occ = configuringElective.weeklyOccurrences[0];
+        if (occ.day) setSelectedElectiveDay(occ.day);
+        if (occ.slotIndex !== undefined) setSelectedElectiveSlotIdx(Number(occ.slotIndex));
+      } else {
+        const schedule = getDaySchedule(currentSection, "Tuesday") || [];
+        const freeIdx = schedule.findIndex((p) => p.isFree || !p.subject || p.subject === "No Class / Free");
+        setSelectedElectiveSlotIdx(freeIdx !== -1 ? freeIdx : 4);
+      }
+    }
+  }, [configuringElective, currentSection]);
 
   // Monotonic progressive stepper for AI OCR scanning (Never loops back to 0)
   useEffect(() => {
@@ -388,7 +417,7 @@ const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = []) => {
   rawList.forEach((item) => {
     if (!item) return;
 
-    const rawCode = normalizeCourseCode(item.code || "");
+    let rawCode = normalizeCourseCode(item.code || "");
     let rawName = cleanSubjectName(item.name || "");
 
     rawName = rawName.replace(new RegExp(rawCode, "gi"), "").trim();
@@ -406,7 +435,10 @@ const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = []) => {
       );
     }
 
-    if (alphaCount < 3 && !catalogMatch) return;
+    const electiveInfo = getElectiveProjectInfo(rawCode || rawName);
+    const isElective = Boolean(electiveInfo || isElectiveProjectSubject(rawCode || rawName));
+
+    if (alphaCount < 3 && !catalogMatch && !isElective) return;
 
     let existing = subjects.find((s) => {
       if (rawCode && s.code && s.code === rawCode) return true;
@@ -420,7 +452,10 @@ const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = []) => {
 
     if (!existing) {
       let finalName = rawName;
-      if ((!finalName || alphaCount < 3) && catalogMatch && catalogMatch.subjectName) {
+      if (electiveInfo) {
+        finalName = electiveInfo.name;
+        if (!rawCode) rawCode = electiveInfo.code;
+      } else if ((!finalName || alphaCount < 3) && catalogMatch && catalogMatch.subjectName) {
         finalName = catalogMatch.subjectName;
       }
       if (!finalName && rawCode) {
@@ -439,23 +474,30 @@ const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = []) => {
       existing = {
         id: item.id || `ocr_sub_${Date.now()}_${subjects.length}`,
         name: finalName,
-        code: rawCode,
+        code: rawCode || (electiveInfo?.code || ""),
         components: [],
         attendedClasses: 0,
         totalClasses: 0,
         percentage: 0,
         detectedFromImage: true,
+        isElective,
+        weeklyOccurrences: Array.isArray(item.weeklyOccurrences) ? item.weeklyOccurrences : [],
       };
       subjects.push(existing);
     }
 
     if (!existing.code && rawCode) existing.code = rawCode;
     if (rawName && (!existing.name || existing.name === existing.code)) existing.name = rawName;
+    if (isElective) existing.isElective = true;
+    if (Array.isArray(item.weeklyOccurrences) && item.weeklyOccurrences.length > 0) {
+      existing.weeklyOccurrences = item.weeklyOccurrences;
+    }
 
+    const defaultCompType = isElective ? (electiveInfo?.defaultType || "PR") : "PP";
     const comps = Array.isArray(item.components) && item.components.length > 0
       ? item.components
       : [{
-          type: "PP",
+          type: defaultCompType,
           attended: item.attendedClasses !== undefined ? item.attendedClasses : (item.attended || 0),
           delivered: item.totalClasses !== undefined ? item.totalClasses : (item.delivered || item.total || 0),
         }];
@@ -802,6 +844,17 @@ const parseCutmOcrText = (text, catalog = []) => {
       }
       setErrorMsg(""); // Extraction was successful; clear any transient backend errors
       setStep("review");
+      setBypassElectivePrompt(false);
+
+      // Auto-prompt overlay for the first detected elective that is not yet scheduled!
+      const unconfiguredElective = finalCleanList.find(
+        (s) =>
+          (s.isElective || isElectiveProjectSubject(s)) &&
+          (!Array.isArray(s.weeklyOccurrences) || s.weeklyOccurrences.length === 0)
+      );
+      if (unconfiguredElective) {
+        setConfiguringElective(unconfiguredElective);
+      }
     } else {
       setErrorMsg(
         lastApiError && !lastApiError.includes("{") && !lastApiError.includes("404") && !lastApiError.includes("503")
@@ -947,33 +1000,103 @@ const parseCutmOcrText = (text, catalog = []) => {
     setEditingSubject(null);
   };
 
+  // ── Save chosen Day & Slot to the active Elective Subject ──
+  const handleSaveElectiveSlot = () => {
+    if (!configuringElective) return;
+
+    const slotObj = TIME_SLOTS[selectedElectiveSlotIdx] || {};
+    const occ = {
+      day: selectedElectiveDay,
+      slotIndex: selectedElectiveSlotIdx,
+      periodIndex: selectedElectiveSlotIdx + 1,
+      timeSlot: slotObj.label || `${slotObj.startTime} - ${slotObj.endTime}`,
+      type: "PR",
+      room: "Project Lab",
+      faculty: "Project Mentor",
+    };
+
+    const targetId = configuringElective.id;
+    const targetCode = configuringElective.code;
+    const targetName = configuringElective.name;
+
+    setParsedSubjects((prev) =>
+      prev.map((s) => {
+        if (
+          (targetId && s.id === targetId) ||
+          (targetCode && s.code === targetCode) ||
+          (targetName && s.name === targetName)
+        ) {
+          return {
+            ...s,
+            isElective: true,
+            weeklyOccurrences: [occ],
+          };
+        }
+        return s;
+      })
+    );
+
+    // Check if there is another elective that still needs configuration
+    const remainingUnconfigured = parsedSubjects.find(
+      (s) =>
+        s.id !== targetId &&
+        (s.code !== targetCode || !targetCode) &&
+        (s.isElective || isElectiveProjectSubject(s)) &&
+        (!Array.isArray(s.weeklyOccurrences) || s.weeklyOccurrences.length === 0)
+    );
+
+    setConfiguringElective(remainingUnconfigured || null);
+  };
+
+  const handleSkipElectiveSlot = () => {
+    setBypassElectivePrompt(true);
+    setConfiguringElective(null);
+  };
+
   const handleConfirmAndApply = () => {
     if (parsedSubjects.length === 0) {
       setErrorMsg("Please add at least one subject before applying.");
       return;
     }
 
-    const formatted = parsedSubjects.map((s, idx) => ({
-      id: `imported_sub_${Date.now()}_${idx}`,
-      name: s.name.trim() || `Subject ${idx + 1}`,
-      code: s.code || "",
-      attendedClasses: s.attendedClasses || 0,
-      totalClasses: s.totalClasses || 0,
-      components:
-        Array.isArray(s.components) && s.components.length > 0
-          ? s.components.map((c) => ({
-              type: (c.type || "PP").toUpperCase(),
-              attended: Number(c.attended) || 0,
-              delivered: Number(c.delivered !== undefined ? c.delivered : c.total) || 0,
-            }))
-          : [
-              {
-                type: "PP",
-                attended: s.attendedClasses || 0,
-                delivered: s.totalClasses || 0,
-              },
-            ],
-    }));
+    // Check if there's any unconfigured elective and prompt student unless bypassed
+    const unconfiguredElective = parsedSubjects.find(
+      (s) =>
+        (s.isElective || isElectiveProjectSubject(s)) &&
+        (!Array.isArray(s.weeklyOccurrences) || s.weeklyOccurrences.length === 0)
+    );
+    if (unconfiguredElective && !bypassElectivePrompt) {
+      setConfiguringElective(unconfiguredElective);
+      return;
+    }
+
+    const formatted = parsedSubjects.map((s, idx) => {
+      const isElective = Boolean(s.isElective || isElectiveProjectSubject(s));
+      const defType = isElective ? "PR" : "PP";
+      return {
+        id: `imported_sub_${Date.now()}_${idx}`,
+        name: s.name.trim() || `Subject ${idx + 1}`,
+        code: s.code || "",
+        attendedClasses: s.attendedClasses || 0,
+        totalClasses: s.totalClasses || 0,
+        isElective,
+        weeklyOccurrences: Array.isArray(s.weeklyOccurrences) ? s.weeklyOccurrences : [],
+        components:
+          Array.isArray(s.components) && s.components.length > 0
+            ? s.components.map((c) => ({
+                type: (c.type || defType).toUpperCase(),
+                attended: Number(c.attended) || 0,
+                delivered: Number(c.delivered !== undefined ? c.delivered : c.total) || 0,
+              }))
+            : [
+                {
+                  type: defType,
+                  attended: s.attendedClasses || 0,
+                  delivered: s.totalClasses || 0,
+                },
+              ],
+      };
+    });
 
     onApply(formatted);
     handleClose();
@@ -1905,6 +2028,52 @@ const parseCutmOcrText = (text, catalog = []) => {
                             </button>
                           </div>
 
+                          {/* Elective Schedule Status & Day/Time Configuration Badge */}
+                          {(isElectiveProjectSubject(sub) || sub.isElective) && (
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                background: sub.weeklyOccurrences?.length > 0 ? "#f0fdf4" : "#fffbeb",
+                                border: `1px dashed ${sub.weeklyOccurrences?.length > 0 ? "#86efac" : "#fde68a"}`,
+                                borderRadius: 8,
+                                padding: "6px 10px",
+                                gap: 6,
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
+                                <Clock size={13} color={sub.weeklyOccurrences?.length > 0 ? "#16a34a" : "#d97706"} />
+                                <span style={{ fontSize: 11, fontWeight: 700, color: sub.weeklyOccurrences?.length > 0 ? "#166534" : "#92400e" }}>
+                                  {sub.weeklyOccurrences?.length > 0
+                                    ? `Routine: ${sub.weeklyOccurrences[0].day} (${sub.weeklyOccurrences[0].timeSlot || `P${sub.weeklyOccurrences[0].slotIndex + 1}`})`
+                                    : "Elective: Not scheduled in personal routine"}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setConfiguringElective(sub)}
+                                style={{
+                                  background: sub.weeklyOccurrences?.length > 0 ? "#dcfce7" : "#fef3c7",
+                                  border: `1px solid ${sub.weeklyOccurrences?.length > 0 ? "#86efac" : "#fde68a"}`,
+                                  color: sub.weeklyOccurrences?.length > 0 ? "#15803d" : "#b45309",
+                                  borderRadius: 6,
+                                  padding: "3px 8px",
+                                  fontSize: 10.5,
+                                  fontWeight: 800,
+                                  cursor: "pointer",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 3,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <Clock size={11} />
+                                <span>{sub.weeklyOccurrences?.length > 0 ? "Change Slot" : "Set Slot"}</span>
+                              </button>
+                            </div>
+                          )}
+
                           {/* Attended, Total, Status Percentage Controls */}
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 10, alignItems: "center", paddingTop: 6, borderTop: "1px solid #f1f5f9" }}>
                             <div>
@@ -2075,6 +2244,43 @@ const parseCutmOcrText = (text, catalog = []) => {
                                         {comp.type}: {comp.attended}/{comp.delivered || comp.total} ({Number(comp.delivered) > 0 ? `${comp.percentage || ((comp.attended / comp.delivered) * 100).toFixed(0)}%` : "0%"})
                                       </span>
                                     ))}
+                                  </div>
+                                )}
+                                {(isElectiveProjectSubject(sub) || sub.isElective) && (
+                                  <div
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 6,
+                                      marginTop: 4,
+                                      background: sub.weeklyOccurrences?.length > 0 ? "#f0fdf4" : "#fffbeb",
+                                      border: `1px dashed ${sub.weeklyOccurrences?.length > 0 ? "#86efac" : "#fde68a"}`,
+                                      borderRadius: 6,
+                                      padding: "2px 7px",
+                                    }}
+                                  >
+                                    <Clock size={11} color={sub.weeklyOccurrences?.length > 0 ? "#16a34a" : "#d97706"} />
+                                    <span style={{ fontSize: 10.5, fontWeight: 700, color: sub.weeklyOccurrences?.length > 0 ? "#166534" : "#92400e" }}>
+                                      {sub.weeklyOccurrences?.length > 0
+                                        ? `Routine: ${sub.weeklyOccurrences[0].day} (${sub.weeklyOccurrences[0].timeSlot || `P${sub.weeklyOccurrences[0].slotIndex + 1}`})`
+                                        : "Elective: Unscheduled"}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setConfiguringElective(sub)}
+                                      style={{
+                                        background: "transparent",
+                                        border: "none",
+                                        color: "#2563eb",
+                                        fontSize: 10,
+                                        fontWeight: 800,
+                                        textDecoration: "underline",
+                                        cursor: "pointer",
+                                        padding: "0 2px",
+                                      }}
+                                    >
+                                      {sub.weeklyOccurrences?.length > 0 ? "Change" : "Set Day/Time"}
+                                    </button>
                                   </div>
                                 )}
                               </td>
@@ -2714,6 +2920,334 @@ const parseCutmOcrText = (text, catalog = []) => {
                 >
                   <Check size={14} />
                   <span>Apply & Update Subject</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Overlay Modal: Student Elective Day & Time Slot Picker ── */}
+      <AnimatePresence>
+        {configuringElective && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              width: "100vw",
+              height: "100vh",
+              background: "rgba(15, 23, 42, 0.72)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              zIndex: 1000005,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: isMobile ? 12 : 20,
+              boxSizing: "border-box",
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) handleSkipElectiveSlot();
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 14 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 14 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              style={{
+                background: "#ffffff",
+                borderRadius: 20,
+                boxShadow: "0 25px 60px -15px rgba(15, 23, 42, 0.35)",
+                width: "100%",
+                maxWidth: 560,
+                maxHeight: "92vh",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              {/* Modal Header */}
+              <div
+                style={{
+                  padding: isMobile ? "16px 18px" : "20px 24px",
+                  background: "linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)",
+                  borderBottom: "1px solid #e2e8f0",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: 12,
+                }}
+              >
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 800,
+                        color: "#6d28d9",
+                        background: "#ede9fe",
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                      }}
+                    >
+                      <Sparkles size={11} />
+                      Registered Elective Detected
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 800,
+                        color: "#1d4ed8",
+                        background: "#dbeafe",
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                      }}
+                    >
+                      2 Credits
+                    </span>
+                  </div>
+
+                  <h3
+                    style={{
+                      fontSize: isMobile ? 16 : 18,
+                      fontWeight: 800,
+                      color: "#0f172a",
+                      margin: 0,
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {configuringElective.name}
+                  </h3>
+
+                  <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 4, lineHeight: 1.4 }}>
+                    Course Code: <strong style={{ color: "#334155", fontFamily: "'Space Mono', monospace" }}>{configuringElective.code || "ELECTIVE"}</strong>
+                    {" · "}Select which day & period this subject is held to add it to your personal routine & daily check-in.
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSkipElectiveSlot}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 8,
+                    padding: 6,
+                    cursor: "pointer",
+                    color: "#64748b",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                  title="Close / Set later"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div
+                style={{
+                  padding: isMobile ? "14px 16px" : "18px 24px",
+                  overflowY: "auto",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 16,
+                }}
+              >
+                {/* Step 1: Select Day of Week */}
+                <div>
+                  <label style={{ display: "block", fontSize: 11.5, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>
+                    1. Select Day of the Week:
+                  </label>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3, 1fr)" : "repeat(6, 1fr)", gap: 6 }}>
+                    {DAYS_LIST.map((day) => {
+                      const isSelected = selectedElectiveDay.toLowerCase() === day.toLowerCase();
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => setSelectedElectiveDay(day)}
+                          style={{
+                            padding: "9px 6px",
+                            borderRadius: 10,
+                            border: `1.5px solid ${isSelected ? "#2563eb" : "#e2e8f0"}`,
+                            background: isSelected ? "#eff6ff" : "#ffffff",
+                            color: isSelected ? "#1d4ed8" : "#334155",
+                            fontSize: 12,
+                            fontWeight: isSelected ? 800 : 600,
+                            cursor: "pointer",
+                            textAlign: "center",
+                            transition: "all 0.15s ease",
+                            boxShadow: isSelected ? "0 2px 8px rgba(37, 99, 235, 0.18)" : "none",
+                          }}
+                        >
+                          {isMobile ? day.slice(0, 3) : day}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Step 2: Select Period / Slot */}
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <label style={{ fontSize: 11.5, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      2. Select Time Slot on {selectedElectiveDay}:
+                    </label>
+                    <span style={{ fontSize: 11, color: "#64748b" }}>
+                      Section {currentSection} Schedule
+                    </span>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
+                    {TIME_SLOTS.map((slot, sIdx) => {
+                      const isSelected = selectedElectiveSlotIdx === sIdx;
+                      const dayRoutine = getDaySchedule(currentSection, selectedElectiveDay) || [];
+                      const periodOnDay = dayRoutine[sIdx];
+                      const isSlotFree = !periodOnDay || periodOnDay.isFree || !periodOnDay.subject || periodOnDay.subject === "No Class / Free";
+
+                      return (
+                        <div
+                          key={sIdx}
+                          onClick={() => setSelectedElectiveSlotIdx(sIdx)}
+                          style={{
+                            padding: "10px 12px",
+                            borderRadius: 12,
+                            border: `1.5px solid ${isSelected ? "#2563eb" : isSlotFree ? "#86efac" : "#e2e8f0"}`,
+                            background: isSelected ? "#eff6ff" : isSlotFree ? "#f0fdf4" : "#ffffff",
+                            cursor: "pointer",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: 8,
+                            transition: "all 0.15s ease",
+                            boxShadow: isSelected ? "0 2px 8px rgba(37, 99, 235, 0.15)" : "none",
+                          }}
+                        >
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 800,
+                                  color: isSelected ? "#1d4ed8" : "#64748b",
+                                  background: isSelected ? "#dbeafe" : "#f1f5f9",
+                                  padding: "1px 5px",
+                                  borderRadius: 4,
+                                }}
+                              >
+                                P{sIdx + 1}
+                              </span>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>
+                                {slot.label || `${slot.startTime} - ${slot.endTime}`}
+                              </span>
+                            </div>
+
+                            <div style={{ fontSize: 10.5, color: isSlotFree ? "#15803d" : "#64748b", marginTop: 3, fontWeight: 600 }}>
+                              {isSlotFree ? "✓ Section Free Slot (Recommended)" : `Section Class: ${cleanSubjectBaseName(periodOnDay?.subject) || periodOnDay?.subject}`}
+                            </div>
+                          </div>
+
+                          <div
+                            style={{
+                              width: 18,
+                              height: 18,
+                              borderRadius: 999,
+                              border: `2px solid ${isSelected ? "#2563eb" : "#cbd5e1"}`,
+                              background: isSelected ? "#2563eb" : "#ffffff",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                            }}
+                          >
+                            {isSelected && <Check size={11} color="#ffffff" strokeWidth={3} />}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Informative Note */}
+                <div
+                  style={{
+                    background: "#faf5ff",
+                    border: "1px solid #e9d5ff",
+                    borderRadius: 10,
+                    padding: "10px 12px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <Sparkles size={16} color="#7c3aed" style={{ flexShrink: 0 }} />
+                  <div style={{ fontSize: 11.5, color: "#6b21a8", lineHeight: 1.4 }}>
+                    <strong>Personal Isolation:</strong> This elective slot will appear strictly on <em>your</em> timetable and daily check-in. It will never modify or impact the common timetable of other students in {currentSection}.
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div
+                style={{
+                  padding: isMobile ? "12px 16px" : "14px 24px",
+                  background: "#f8fafc",
+                  borderTop: "1px solid #e2e8f0",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={handleSkipElectiveSlot}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "#64748b",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    padding: "8px 10px",
+                  }}
+                >
+                  Skip / Set Later
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveElectiveSlot}
+                  style={{
+                    background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: 10,
+                    padding: "10px 20px",
+                    fontSize: 13,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
+                  }}
+                >
+                  <CheckCircle2 size={16} />
+                  <span>Save to My Routine</span>
                 </button>
               </div>
             </motion.div>

@@ -49,6 +49,7 @@ import {
   CUTM_OPTIONAL_HOLIDAYS_RULES,
   getDayName,
   getDaySchedule,
+  mergeStudentElectiveOccurrences,
   getHolidayInfo,
   getAcademicCalendarDateStatus,
   getLivePeriodStatus,
@@ -469,17 +470,29 @@ export default function Timetable() {
   const holidayInfo = useMemo(() => getHolidayInfo(selectedDate), [selectedDate, dynamicSchedules]);
   const academicDateStatus = useMemo(() => getAcademicCalendarDateStatus(selectedDate), [selectedDate, dynamicSchedules]);
 
-  const daySchedule = useMemo(() => {
-    if (activeCustomSchedule?.schedule?.[selectedDayName]?.length > 0) {
-      return activeCustomSchedule.schedule[selectedDayName];
+  const studentOwnSection = useMemo(() => {
+    return normalizeSection(studentData?.section || studentData?.branch || "", currentRegNo);
+  }, [studentData, currentRegNo]);
+
+  const studentSavedSubjects = useMemo(() => {
+    // Only overlay personal electives when viewing the student's own section
+    if (studentOwnSection && selectedSection && studentOwnSection !== selectedSection) {
+      return [];
     }
-    return getDaySchedule(selectedSection, selectedDayName);
-  }, [activeCustomSchedule, selectedSection, selectedDayName]);
+    return studentData?.attendance?.savedSubjects || [];
+  }, [studentOwnSection, selectedSection, studentData?.attendance?.savedSubjects]);
+
+  const daySchedule = useMemo(() => {
+    const base = (activeCustomSchedule?.schedule?.[selectedDayName]?.length > 0)
+      ? activeCustomSchedule.schedule[selectedDayName]
+      : getDaySchedule(selectedSection, selectedDayName);
+    return mergeStudentElectiveOccurrences(base, selectedDayName, studentSavedSubjects);
+  }, [activeCustomSchedule, selectedSection, selectedDayName, studentSavedSubjects]);
 
   // Live class overview for today (passing activeCustomSchedule for 100% batch consistency)
   const liveOverview = useMemo(() => {
-    return getLiveScheduleOverview(selectedSection, currentTime, activeCustomSchedule);
-  }, [selectedSection, currentTime, activeCustomSchedule]);
+    return getLiveScheduleOverview(selectedSection, currentTime, activeCustomSchedule, studentSavedSubjects);
+  }, [selectedSection, currentTime, activeCustomSchedule, studentSavedSubjects]);
 
   // Date Navigation Steppers
   function changeDateByOffset(offset) {
@@ -1983,6 +1996,22 @@ export default function Timetable() {
                             </span>
                           )}
 
+                          {period.isElective && (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 900,
+                                background: "#ede9fe",
+                                color: "#6d28d9",
+                                border: "1px solid #ddd6fe",
+                                padding: "2px 7px",
+                                borderRadius: 6,
+                              }}
+                            >
+                              ELECTIVE / PROJECT
+                            </span>
+                          )}
+
                           {period.type && (
                             <span
                               style={{
@@ -2259,9 +2288,10 @@ export default function Timetable() {
                   </thead>
                   <tbody>
                     {DAYS_LIST.map((day) => {
-                      const schedule = (activeCustomSchedule?.schedule?.[day]?.length > 0)
+                      const baseSchedule = (activeCustomSchedule?.schedule?.[day]?.length > 0)
                         ? activeCustomSchedule.schedule[day]
                         : getDaySchedule(selectedSection, day);
+                      const schedule = mergeStudentElectiveOccurrences(baseSchedule, day, studentSavedSubjects);
                       const isCurrentDay = day === getDayName(currentTime);
 
                       return (
@@ -2390,7 +2420,20 @@ export default function Timetable() {
                                         <span />
                                       )}
 
-                                      {period.type && (
+                                      {period.isElective ? (
+                                        <span
+                                          style={{
+                                            fontSize: 8.5,
+                                            fontWeight: 900,
+                                            background: "#6d28d9",
+                                            color: "#ffffff",
+                                            padding: "1px 4px",
+                                            borderRadius: 4,
+                                          }}
+                                        >
+                                          ELECTIVE
+                                        </span>
+                                      ) : period.type ? (
                                         <span
                                           style={{
                                             fontSize: 8.5,
@@ -2403,7 +2446,7 @@ export default function Timetable() {
                                         >
                                           {period.type}
                                         </span>
-                                      )}
+                                      ) : null}
                                     </div>
                                   </div>
                                 )}
@@ -2419,10 +2462,13 @@ export default function Timetable() {
             ) : (
               /* Mobile View: Clean Divided Schedule List (No Nested Boxes) */
               <div style={{ display: "flex", flexDirection: "column" }}>
-                {((activeCustomSchedule?.schedule?.[mobileWeekDay]?.length > 0)
-                  ? activeCustomSchedule.schedule[mobileWeekDay]
-                  : getDaySchedule(selectedSection, mobileWeekDay)
-                ).map((period, idx, arr) => {
+                {(mergeStudentElectiveOccurrences(
+                  (activeCustomSchedule?.schedule?.[mobileWeekDay]?.length > 0)
+                    ? activeCustomSchedule.schedule[mobileWeekDay]
+                    : getDaySchedule(selectedSection, mobileWeekDay),
+                  mobileWeekDay,
+                  studentSavedSubjects
+                )).map((period, idx, arr) => {
                   const slot = TIME_SLOTS[idx] || {};
                   const isLast = idx === arr.length - 1;
                   return (
@@ -2484,11 +2530,15 @@ export default function Timetable() {
                         </div>
                       </div>
 
-                      {period.type && (
+                      {period.isElective ? (
+                        <span style={{ fontSize: 9.5, fontWeight: 900, color: "#6d28d9", background: "#ede9fe", border: "1px solid #ddd6fe", padding: "2px 6px", borderRadius: 4, flexShrink: 0 }}>
+                          ELECTIVE
+                        </span>
+                      ) : period.type ? (
                         <span style={{ fontSize: 9.5, fontWeight: 800, color: "#475569", background: "#f1f5f9", padding: "2px 6px", borderRadius: 4, flexShrink: 0 }}>
                           {period.type}
                         </span>
-                      )}
+                      ) : null}
                     </div>
                   );
                 })}

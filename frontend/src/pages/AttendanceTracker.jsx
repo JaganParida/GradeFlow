@@ -84,6 +84,8 @@ import {
   CUTM_SESSION_BOUNDARIES,
   getCachedTimetableBundle,
   saveCachedTimetableBundle,
+  isElectiveProjectSubject,
+  getElectiveProjectInfo,
 } from "../utils/timetableHelper";
 import { isMatch } from "../utils/basketLogic";
 import FuturePredictor from "../components/FuturePredictor";
@@ -312,6 +314,15 @@ export default function AttendanceTracker() {
   // Minimum allowed date (allows historical navigation up to 180 days back)
   const [minTrackingDateKey, setMinTrackingDateKey] = useState(() => defaultMinTrackingDateKey);
 
+  // Saved Subjects (In-Memory React State, synced direct to MongoDB Atlas)
+  const [savedSubjects, setSavedSubjects] = useState(() => {
+    return Array.isArray(studentData?.attendance?.savedSubjects)
+      ? studentData.attendance.savedSubjects
+      : [];
+  });
+  const savedSubjectsRef = useRef(savedSubjects);
+  savedSubjectsRef.current = savedSubjects;
+
   // Computed Date Properties for Selected Check-in Day
   const selectedDateObj = useMemo(() => new Date(selectedCheckInDateKey + "T00:00:00"), [selectedCheckInDateKey]);
   const isSelectedToday = selectedCheckInDateKey === todayDateKey;
@@ -319,8 +330,8 @@ export default function AttendanceTracker() {
 
   // Single Master Engine Call: Evaluates section routine, Sundays, 2nd Saturdays, official holidays, optional holidays & exams
   const selectedDateScheduleCtx = useMemo(() => {
-    return getSectionScheduleForDate(selectedSection, selectedDateObj);
-  }, [selectedSection, selectedDateObj, timetableVersion]);
+    return getSectionScheduleForDate(selectedSection, selectedDateObj, null, savedSubjects);
+  }, [selectedSection, selectedDateObj, timetableVersion, savedSubjects]);
 
   const selectedDayName = selectedDateScheduleCtx.dayName;
   const isSelectedSunday = selectedDateScheduleCtx.isSunday;
@@ -437,8 +448,8 @@ export default function AttendanceTracker() {
   const advisorDateInputRef = useRef(null);
 
   const advisorScheduleCtx = useMemo(() => {
-    return getSectionScheduleForDate(selectedSection, selectedAdvisorDateObj);
-  }, [selectedSection, selectedAdvisorDateObj, timetableVersion]);
+    return getSectionScheduleForDate(selectedSection, selectedAdvisorDateObj, null, savedSubjects);
+  }, [selectedSection, selectedAdvisorDateObj, timetableVersion, savedSubjects]);
 
   const advisorDayName = advisorScheduleCtx.dayName;
   const isAdvisorSunday = advisorScheduleCtx.isSunday;
@@ -452,8 +463,8 @@ export default function AttendanceTracker() {
 
   // Dedicated Today's routine context (independent of check-in stepper date)
   const todayDateScheduleCtx = useMemo(() => {
-    return getSectionScheduleForDate(selectedSection, todayDateObj);
-  }, [selectedSection, todayDateObj, timetableVersion]);
+    return getSectionScheduleForDate(selectedSection, todayDateObj, null, savedSubjects);
+  }, [selectedSection, todayDateObj, timetableVersion, savedSubjects]);
   const actualTodayClasses = todayDateScheduleCtx.classes || [];
 
   // Interactive Day Simulator State for Daily Attendance Advisor (slotIndex -> boolean)
@@ -614,10 +625,10 @@ export default function AttendanceTracker() {
   const urlTabParam = searchParams.get("tab") || searchParams.get("view");
   const urlSectionParam = searchParams.get("section") || searchParams.get("sec");
 
-  // Section Subjects Catalog from Timetable Database
+  // Section Subjects Catalog from Timetable Database (augmented with student electives)
   const sectionCatalog = useMemo(() => {
-    return getSectionSubjectCatalog(selectedSection);
-  }, [selectedSection, timetableVersion]);
+    return getSectionSubjectCatalog(selectedSection, savedSubjects);
+  }, [selectedSection, timetableVersion, savedSubjects]);
 
   // Active Subject Simulation State
   const [selectedSubjectName, setSelectedSubjectName] = useState("");
@@ -635,12 +646,6 @@ export default function AttendanceTracker() {
     return totalDelivered <= 0;
   }, [componentInputs]);
 
-  // Saved Subjects (In-Memory React State, synced direct to MongoDB Atlas)
-  const [savedSubjects, setSavedSubjects] = useState(() => {
-    return Array.isArray(studentData?.attendance?.savedSubjects)
-      ? studentData.attendance.savedSubjects
-      : [];
-  });
   // Unified Loading State (Single smooth continuous loader, zero flicker)
   const [pageLoading, setPageLoading] = useState(() => {
     const targetReg = decodedParam || studentSession?.regNo || studentData?.regNo;
@@ -650,8 +655,6 @@ export default function AttendanceTracker() {
   const lastAttendanceEtagRef = useRef("");
 
   // Synchronous mutable refs to guarantee zero race conditions on rapid (2-5x) multi-clicks
-  const savedSubjectsRef = useRef(savedSubjects);
-  savedSubjectsRef.current = savedSubjects;
   const allDailyLogsRef = useRef(allDailyLogs);
   allDailyLogsRef.current = allDailyLogs;
 
@@ -1023,15 +1026,17 @@ export default function AttendanceTracker() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Handler for applying OCR extracted subjects with full PP/PR/TUT components
-  // Handler for applying OCR extracted subjects with full PP/PR/TUT components
+  // Handler for applying OCR extracted subjects with full PP/PR/TUT components and Elective integration
   const handleApplyScreenshotSubjects = (extracted) => {
     if (!Array.isArray(extracted) || extracted.length === 0) return;
 
-    // Filter and map incoming extracted subjects strictly to the section timetable catalog
+    // Filter and map incoming extracted subjects strictly to the section timetable catalog or elective list
     const formatted = [];
     extracted.forEach((s) => {
       const catMatch = sectionCatalog.find((c) => isSameSubject(c, s));
+      const isElective = Boolean(s.isElective || isElectiveProjectSubject(s) || (Array.isArray(s.weeklyOccurrences) && s.weeklyOccurrences.length > 0));
+      const electiveInfo = getElectiveProjectInfo(s);
+
       if (catMatch) {
         const cleanName = catMatch.subjectName;
         const subCode = s.code || catMatch.code || resolveSubjectCode({ subject: cleanName }, studentData) || "";
@@ -1041,7 +1046,7 @@ export default function AttendanceTracker() {
             ? s.components.map((c) => ({
                 type: (c.type || "PP").toUpperCase(),
                 attended: Number(c.attended) || 0,
-                delivered: Number(c.delivered) || 0,
+                delivered: Number(c.delivered !== undefined ? c.delivered : c.total) || 0,
               }))
             : [
                 {
@@ -1056,9 +1061,41 @@ export default function AttendanceTracker() {
           code: subCode,
           components: comps,
           section: selectedSection,
+          isElective: Boolean(s.isElective || catMatch.isElective || isElective),
+          weeklyOccurrences: (Array.isArray(s.weeklyOccurrences) && s.weeklyOccurrences.length > 0)
+            ? s.weeklyOccurrences
+            : (catMatch.weeklyOccurrences || []),
+        });
+      } else if (isElective) {
+        // Dedicated handling for recognized elective project subjects (CUTM1577, CUTM1905, CUTM1906, CUTM1578, CUTM2598)
+        const cleanName = electiveInfo?.name || cleanSubjectBaseName(s.name) || s.name;
+        const subCode = s.code || electiveInfo?.code || "";
+
+        const comps =
+          Array.isArray(s.components) && s.components.length > 0
+            ? s.components.map((c) => ({
+                type: (c.type || "PR").toUpperCase(),
+                attended: Number(c.attended) || 0,
+                delivered: Number(c.delivered !== undefined ? c.delivered : c.total) || 0,
+              }))
+            : [
+                {
+                  type: "PR",
+                  attended: Number(s.attendedClasses) || 0,
+                  delivered: Number(s.totalClasses) || 0,
+                },
+              ];
+
+        formatted.push({
+          subjectName: cleanName,
+          code: subCode,
+          components: comps,
+          section: selectedSection,
+          isElective: true,
+          weeklyOccurrences: Array.isArray(s.weeklyOccurrences) ? s.weeklyOccurrences : [],
         });
       } else {
-        // Preserve valid elective/minor subjects detected from ERP that may not be in the default section timetable
+        // Other subjects
         const cleanName = cleanSubjectBaseName(s.name) || s.name;
         if (cleanName && (cleanName.match(/[a-zA-Z]/g) || []).length >= 3) {
           const comps =
@@ -1066,7 +1103,7 @@ export default function AttendanceTracker() {
               ? s.components.map((c) => ({
                   type: (c.type || "PP").toUpperCase(),
                   attended: Number(c.attended) || 0,
-                  delivered: Number(c.delivered) || 0,
+                  delivered: Number(c.delivered !== undefined ? c.delivered : c.total) || 0,
                 }))
               : [
                   {
@@ -1081,6 +1118,7 @@ export default function AttendanceTracker() {
             code: s.code || "",
             components: comps,
             section: selectedSection,
+            weeklyOccurrences: Array.isArray(s.weeklyOccurrences) ? s.weeklyOccurrences : [],
           });
         }
       }
@@ -1090,19 +1128,24 @@ export default function AttendanceTracker() {
     if (formatted.length === 0 && sectionCatalog.length === 0) {
       extracted.forEach((s) => {
         const cleanName = cleanSubjectBaseName(s.name) || s.name;
+        const isElective = Boolean(s.isElective || isElectiveProjectSubject(s));
         formatted.push({
           subjectName: cleanName,
           code: s.code || "",
-          components: s.components || [{ type: "PP", attended: Number(s.attendedClasses) || 0, delivered: Number(s.totalClasses) || 0 }],
+          components: s.components || [{ type: isElective ? "PR" : "PP", attended: Number(s.attendedClasses) || 0, delivered: Number(s.totalClasses) || 0 }],
           section: selectedSection,
+          isElective,
+          weeklyOccurrences: Array.isArray(s.weeklyOccurrences) ? s.weeklyOccurrences : [],
         });
       });
     }
 
-    // Filter out 0/0 subjects so they never get saved to database
-    const validFormatted = formatted.filter((s) =>
-      (s.components || []).some((c) => (Number(c.delivered) || 0) > 0)
-    );
+    // Filter out 0/0 subjects so they never get saved to database, EXCEPT registered electives / scheduled subjects
+    const validFormatted = formatted.filter((s) => {
+      const isElective = Boolean(s.isElective || isElectiveProjectSubject(s) || (Array.isArray(s.weeklyOccurrences) && s.weeklyOccurrences.length > 0));
+      if (isElective) return true; // Always retain registered electives even if delivered classes is 0!
+      return (s.components || []).some((c) => (Number(c.delivered) || 0) > 0);
+    });
 
     // Smart merge: Update matched subjects with latest attendance counts and keep any existing subjects
     // so previous data and records are completely preserved
@@ -1116,6 +1159,10 @@ export default function AttendanceTracker() {
           code: newSub.code || mergedSaved[existingIdx].code || "",
           components: newSub.components,
           section: selectedSection,
+          isElective: Boolean(newSub.isElective || mergedSaved[existingIdx].isElective),
+          weeklyOccurrences: (Array.isArray(newSub.weeklyOccurrences) && newSub.weeklyOccurrences.length > 0)
+            ? newSub.weeklyOccurrences
+            : (mergedSaved[existingIdx].weeklyOccurrences || []),
           lastUpdated: new Date().toISOString(),
         };
       } else {
@@ -1792,7 +1839,7 @@ export default function AttendanceTracker() {
     if (!dateLogs || Object.keys(dateLogs).length === 0) return;
 
     const targetDateObj = new Date(dateKey + "T00:00:00");
-    const targetSchedCtx = getSectionScheduleForDate(selectedSection, targetDateObj);
+    const targetSchedCtx = getSectionScheduleForDate(selectedSection, targetDateObj, null, savedSubjectsRef.current || savedSubjects);
     const dayClasses = targetSchedCtx.classes || [];
 
     let nextSavedList = [...(savedSubjectsRef.current || savedSubjects)];

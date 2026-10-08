@@ -222,6 +222,108 @@ export const ALL_SECTIONS = [
   "CSE-J",
 ];
 
+// ── Optional Elective / Project Curriculum Requirements ─────────────────────
+// Student-registered courses that are not in the static section routine
+export const ELECTIVE_PROJECT_SUBJECTS = [
+  { code: "CUTM1577", name: "MINOR PROJECT II", credits: 2, defaultType: "PR", category: "Curriculum Requirement" },
+  { code: "CUTM1905", name: "INTERNSHIP", credits: 2, defaultType: "PR", category: "Curriculum Requirement" },
+  { code: "CUTM1906", name: "MINOR PROJECT", credits: 2, defaultType: "PR", category: "Curriculum Requirement" },
+  { code: "CUTM1578", name: "SUMMER INTERNSHIP I", credits: 2, defaultType: "PR", category: "Curriculum Requirement" },
+  { code: "CUTM2598", name: "MINOR PROJECT III", credits: 2, defaultType: "PR", category: "Curriculum Requirement" },
+];
+
+/**
+ * Checks whether a subject code or name matches any registered elective project course
+ */
+export function isElectiveProjectSubject(item) {
+  if (!item) return false;
+  const rawCode = (typeof item === "string" ? item : item.code || item.subCode || item.courseCode || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const rawName = (typeof item === "string" ? item : item.subjectName || item.name || item.subject || "").toUpperCase().trim();
+
+  const knownCodes = ["CUTM1577", "CUTM1905", "CUTM1906", "CUTM1578", "CUTM2598"];
+  if (knownCodes.some((c) => rawCode === c || rawCode.includes(c))) return true;
+
+  const knownNames = [
+    "MINOR PROJECT II",
+    "MINOR PROJECT III",
+    "MINOR PROJECT",
+    "SUMMER INTERNSHIP I",
+    "SUMMER INTERNSHIP",
+    "INTERNSHIP",
+  ];
+  return knownNames.some((n) => rawName === n || rawName.startsWith(n));
+}
+
+/**
+ * Get canonical metadata for an elective project course
+ */
+export function getElectiveProjectInfo(item) {
+  if (!item) return null;
+  const rawCode = (typeof item === "string" ? item : item.code || item.subCode || item.courseCode || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const rawName = (typeof item === "string" ? item : item.subjectName || item.name || item.subject || "").toUpperCase().trim();
+
+  return (
+    ELECTIVE_PROJECT_SUBJECTS.find((ep) => {
+      const epCode = ep.code.toUpperCase();
+      if (rawCode && (rawCode === epCode || rawCode.includes(epCode))) return true;
+      if (rawName && (rawName === ep.name.toUpperCase() || rawName.startsWith(ep.name.toUpperCase()))) return true;
+      return false;
+    }) || null
+  );
+}
+
+/**
+ * Merges a student's personal saved elective occurrences into a day's schedule array (slots 0..7).
+ * Pure function: Never mutates the source array.
+ */
+export function mergeStudentElectiveOccurrences(daySchedule = [], dayName = "", studentSavedSubjects = []) {
+  if (!Array.isArray(daySchedule)) return [];
+  const merged = daySchedule.map((p) => ({ ...p }));
+  if (!dayName || !Array.isArray(studentSavedSubjects) || studentSavedSubjects.length === 0) {
+    return merged;
+  }
+
+  const normalizedDay = String(dayName).trim().toLowerCase();
+
+  studentSavedSubjects.forEach((sub) => {
+    if (!sub) return;
+    const occs = Array.isArray(sub.weeklyOccurrences) ? sub.weeklyOccurrences : [];
+    if (occs.length === 0) return;
+
+    const subName = cleanSubjectBaseName(sub.subjectName || sub.name) || sub.subjectName || sub.name || "Elective";
+    const subCode = sub.code || "";
+
+    occs.forEach((occ) => {
+      if (!occ || !occ.day) return;
+      if (String(occ.day).trim().toLowerCase() === normalizedDay) {
+        const sIdx = Number(
+          occ.slotIndex !== undefined
+            ? occ.slotIndex
+            : occ.periodIndex !== undefined
+            ? occ.periodIndex - 1
+            : occ.period !== undefined
+            ? occ.period - 1
+            : -1
+        );
+        if (sIdx >= 0 && sIdx < 8) {
+          merged[sIdx] = {
+            subject: subName,
+            code: subCode || occ.code || "",
+            type: (occ.type || "PR").toUpperCase(),
+            room: occ.room || "Project Lab",
+            faculty: occ.faculty || "Project Mentor",
+            isFree: false,
+            isBreak: false,
+            isElective: true,
+          };
+        }
+      }
+    });
+  });
+
+  return merged;
+}
+
 // ── CUTM Official Academic Session 2026–27 Holiday Calendar ──────────────────
 export const ACADEMIC_HOLIDAYS_2026_27 = [
   { date: "2026-07-16", day: "Thursday", name: "Ratha Yatra", type: "holiday", color: "#e11d48", bg: "#ffe4e6" },
@@ -995,7 +1097,12 @@ export function getDateInstructionalContext(dateObj = new Date(), section = null
  * Returns the exact scheduled classes and academic calendar context for any section and date.
  * Single source of truth for Daily Check-In, Predictor, Safe Bunk Analyzer, and Timetable.
  */
-export function getSectionScheduleForDate(section = "CSE-A", dateObj = new Date(), customScheduleObj = null) {
+export function getSectionScheduleForDate(
+  section = "CSE-A",
+  dateObj = new Date(),
+  customScheduleObj = null,
+  studentSavedSubjects = []
+) {
   const normSec = normalizeSection(section);
   const context = getDateInstructionalContext(dateObj, normSec);
 
@@ -1016,7 +1123,15 @@ export function getSectionScheduleForDate(section = "CSE-A", dateObj = new Date(
   } else {
     daySchedule = getDaySchedule(normSec, context.dayName) || [];
   }
-  const classes = daySchedule
+
+  // Purely overlay student's personal saved elective occurrences for this day
+  const effectiveDaySchedule = mergeStudentElectiveOccurrences(
+    daySchedule,
+    context.dayName,
+    studentSavedSubjects
+  );
+
+  const classes = effectiveDaySchedule
     .map((period, idx) => ({
       ...period,
       slotIndex: idx,
@@ -1037,15 +1152,20 @@ export function getSectionScheduleForDate(section = "CSE-A", dateObj = new Date(
     section: normSec,
     classes,
     totalClasses: classes.length,
-    rawSchedule: daySchedule,
+    rawSchedule: effectiveDaySchedule,
   };
 }
 
 /**
  * Find Current Active Period & Next Upcoming Period (Strictly aligned with unified master schedule)
  */
-export function getLiveScheduleOverview(section, dateObj = new Date(), customScheduleObj = null) {
-  const schedCtx = getSectionScheduleForDate(section, dateObj, customScheduleObj);
+export function getLiveScheduleOverview(
+  section,
+  dateObj = new Date(),
+  customScheduleObj = null,
+  studentSavedSubjects = []
+) {
+  const schedCtx = getSectionScheduleForDate(section, dateObj, customScheduleObj, studentSavedSubjects);
 
   if (!schedCtx.isInstructional) {
     return {
@@ -1126,7 +1246,7 @@ export function cleanSubjectBaseName(rawSubject) {
 /**
  * Scan section schedule and return all unique subjects with components, weekly frequency, and slots
  */
-export function getSectionSubjectCatalog(sectionName = "CSE-A") {
+export function getSectionSubjectCatalog(sectionName = "CSE-A", studentSavedSubjects = []) {
   const secData = getActiveSectionSchedule(sectionName);
   if (!secData) return [];
 
@@ -1146,6 +1266,7 @@ export function getSectionSubjectCatalog(sectionName = "CSE-A") {
       if (!catalogMap.has(baseName)) {
         catalogMap.set(baseName, {
           subjectName: baseName,
+          code: period.code || "",
           components: new Set(),
           weeklyOccurrences: [],
           faculties: new Set(),
@@ -1154,6 +1275,7 @@ export function getSectionSubjectCatalog(sectionName = "CSE-A") {
       }
 
       const entry = catalogMap.get(baseName);
+      if (!entry.code && period.code) entry.code = period.code;
       entry.components.add(componentType);
       if (period.faculty) entry.faculties.add(period.faculty.trim());
       if (period.room) entry.rooms.add(period.room.trim());
@@ -1168,9 +1290,68 @@ export function getSectionSubjectCatalog(sectionName = "CSE-A") {
     });
   });
 
+  // Merge student's personal saved elective/project subjects if present
+  if (Array.isArray(studentSavedSubjects) && studentSavedSubjects.length > 0) {
+    studentSavedSubjects.forEach((s) => {
+      if (!s) return;
+      const subName = cleanSubjectBaseName(s.subjectName || s.name);
+      if (!subName) return;
+
+      const occs = Array.isArray(s.weeklyOccurrences) ? s.weeklyOccurrences : [];
+      const isElective = isElectiveProjectSubject(s) || Boolean(s.isElective) || occs.length > 0;
+      if (!isElective) return;
+
+      const electiveInfo = getElectiveProjectInfo(s);
+
+      if (!catalogMap.has(subName)) {
+        const comps = new Set((s.components || []).map((c) => String(c.type || "PR").toUpperCase()));
+        if (comps.size === 0) comps.add(electiveInfo?.defaultType || "PR");
+
+        catalogMap.set(subName, {
+          subjectName: subName,
+          code: s.code || electiveInfo?.code || "",
+          isElective: true,
+          components: comps,
+          weeklyOccurrences: occs.map((o) => ({
+            day: o.day,
+            periodIndex: (o.slotIndex !== undefined ? o.slotIndex + 1 : o.periodIndex) || 1,
+            timeSlot: o.timeSlot || (TIME_SLOTS[o.slotIndex]?.label) || "",
+            type: o.type || "PR",
+            room: o.room || "Project Lab",
+            faculty: o.faculty || "Project Mentor",
+          })),
+          faculties: new Set(["Project Mentor"]),
+          rooms: new Set(["Project Lab"]),
+        });
+      } else {
+        const entry = catalogMap.get(subName);
+        if (s.code && !entry.code) entry.code = s.code;
+        entry.isElective = true;
+        occs.forEach((o) => {
+          const pIdx = (o.slotIndex !== undefined ? o.slotIndex + 1 : o.periodIndex) || 1;
+          const exists = entry.weeklyOccurrences.some(
+            (wo) => wo.day === o.day && wo.periodIndex === pIdx
+          );
+          if (!exists) {
+            entry.weeklyOccurrences.push({
+              day: o.day,
+              periodIndex: pIdx,
+              timeSlot: o.timeSlot || (TIME_SLOTS[o.slotIndex]?.label) || "",
+              type: o.type || "PR",
+              room: o.room || "Project Lab",
+              faculty: o.faculty || "Project Mentor",
+            });
+          }
+        });
+      }
+    });
+  }
+
   return Array.from(catalogMap.values())
     .map((item) => ({
       subjectName: item.subjectName,
+      code: item.code || "",
+      isElective: Boolean(item.isElective),
       components: Array.from(item.components),
       classesPerWeek: item.weeklyOccurrences.length,
       weeklyOccurrences: item.weeklyOccurrences,

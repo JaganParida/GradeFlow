@@ -331,6 +331,7 @@ router.post("/:regNo/attendance", validateRegNo, requireStudentOrAdmin, async (r
           code: String(s.code || s.subCode || "").trim(),
           section: String(s.section || section || "").trim(),
           weeklyOccurrences: Array.isArray(s.weeklyOccurrences) ? s.weeklyOccurrences : [],
+          isElective: Boolean(s.isElective),
           components: Array.isArray(s.components)
             ? s.components.map((c) => ({
                 type: String(c.type || "PP").trim().toUpperCase(),

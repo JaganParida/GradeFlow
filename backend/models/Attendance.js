@@ -16,6 +16,7 @@ const savedSubjectSchema = new mongoose.Schema(
     components: [attendanceComponentSchema],
     section: { type: String, default: "" },
     weeklyOccurrences: { type: Array, default: [] },
+    isElective: { type: Boolean, default: false },
     lastUpdated: { type: Date, default: Date.now },
   },
   { _id: false }
