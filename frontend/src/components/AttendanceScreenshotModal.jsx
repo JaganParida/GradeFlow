@@ -57,6 +57,7 @@ export default function AttendanceScreenshotModal({
   userRole = "",
   isAdmin = false,
   API = "/api",
+  existingSubjects = [],
 }) {
   const [scanStatus, setScanStatus] = useState(() => getDailyScanStatus(studentId, userRole, isAdmin));
 
@@ -487,7 +488,7 @@ const cleanSubjectName = (name) => {
 };
 
 // Deduplicate and Canonicalize Subjects (Dynamically merges multi-components without hardcoded subjects)
-const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = []) => {
+const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = [], existingSubjects = []) => {
   const subjects = [];
 
   rawList.forEach((item) => {
@@ -569,6 +570,28 @@ const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = []) => {
     if (isElective) existing.isElective = true;
     if (Array.isArray(item.weeklyOccurrences) && item.weeklyOccurrences.length > 0) {
       existing.weeklyOccurrences = item.weeklyOccurrences;
+    } else if (!existing.weeklyOccurrences || existing.weeklyOccurrences.length === 0) {
+      // Check if student already has this subject saved in DB with configured routine slot!
+      const matchedSaved = (existingSubjects || []).find((s) => {
+        if (!s) return false;
+        if (rawCode && s.code && normalizeCourseCode(s.code) === rawCode) return true;
+        const sName = cleanSubjectName(s.subjectName || s.name || "");
+        if (sName && existing.name && sName.toLowerCase() === existing.name.toLowerCase()) return true;
+        if (isElective && (isElectiveProjectSubject(s) || s.isElective)) {
+          if (electiveInfo && getElectiveProjectInfo(s)?.name === electiveInfo.name) return true;
+          const codeA = (s.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+          const codeB = (rawCode || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+          if (codeA && codeB && codeA === codeB) return true;
+        }
+        return false;
+      });
+
+      if (matchedSaved && Array.isArray(matchedSaved.weeklyOccurrences) && matchedSaved.weeklyOccurrences.length > 0) {
+        existing.weeklyOccurrences = matchedSaved.weeklyOccurrences;
+        if (matchedSaved.isElective !== undefined) {
+          existing.isElective = matchedSaved.isElective;
+        }
+      }
     }
 
     const defaultCompType = isElective ? (electiveInfo?.defaultType || "PR") : "PP";
@@ -649,7 +672,7 @@ const extractFractionFromLine = (line) => {
 };
 
 // Universal Dynamic CUTM ERP Text Parser (Website ERP Tables & Mobile ERP Cards)
-const parseCutmOcrText = (text, catalog = []) => {
+const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
   if (!text || typeof text !== "string") return [];
 
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -800,7 +823,7 @@ const parseCutmOcrText = (text, catalog = []) => {
     }
   }
 
-  return deduplicateAndCanonicalizeSubjects(rawRows, catalog);
+  return deduplicateAndCanonicalizeSubjects(rawRows, catalog, existingSubjects);
 };
 
   // Analyze Screenshot via Dual AI (Gemini Vision + Client-Side Tesseract WASM Engine with High-Quality Canvas Preprocessing)
@@ -850,7 +873,7 @@ const parseCutmOcrText = (text, catalog = []) => {
           console.log(
             `[ERP OCR] ${endpoint.label} returned ${res.data.subjects.length} subjects via engine: ${res.data.engine || "unknown"}, model: ${res.data.modelUsed || "unknown"}`
           );
-          extracted = deduplicateAndCanonicalizeSubjects(res.data.subjects, sectionCatalog);
+          extracted = deduplicateAndCanonicalizeSubjects(res.data.subjects, sectionCatalog, existingSubjects);
         } else {
           const errMsg = res?.data?.error || `engine=${res?.data?.engine}, subjects=${res?.data?.subjects?.length || 0}`;
           if (res?.data?.error) lastApiError = res.data.error;
@@ -886,7 +909,7 @@ const parseCutmOcrText = (text, catalog = []) => {
         await worker.terminate();
 
         const rawText = ret.data?.text || "";
-        const clientParsed = parseCutmOcrText(rawText, sectionCatalog);
+        const clientParsed = parseCutmOcrText(rawText, sectionCatalog, existingSubjects);
         const validClientSubjects = (clientParsed || []).filter(
           (s) => (s.name.match(/[a-zA-Z]/g) || []).length >= 3
         );
@@ -917,7 +940,7 @@ const parseCutmOcrText = (text, catalog = []) => {
     if (currentReqId !== activeRequestIdRef.current) return;
 
     // Ensure final canonical deduplication
-    const finalCleanList = deduplicateAndCanonicalizeSubjects(extracted, sectionCatalog);
+    const finalCleanList = deduplicateAndCanonicalizeSubjects(extracted, sectionCatalog, existingSubjects);
 
     // Final 100% completion milestone with smooth transition
     setScanStepIndex(4);

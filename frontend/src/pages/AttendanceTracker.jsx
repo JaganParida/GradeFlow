@@ -1125,13 +1125,26 @@ export default function AttendanceTracker() {
                 },
               ];
 
+        // Check if student already has this subject saved in DB with configured weeklyOccurrences
+        const currentSavedList = savedSubjectsRef.current || savedSubjects || [];
+        const alreadySaved = currentSavedList.find((sv) => {
+          if (!sv) return false;
+          if (isSameSubject(sv, { subjectName: cleanName, code: subCode, name: s.name })) return true;
+          if (isProject && isElectiveProjectSubject(sv)) return true;
+          return false;
+        });
+        const resolvedOccs =
+          Array.isArray(s.weeklyOccurrences) && s.weeklyOccurrences.length > 0
+            ? s.weeklyOccurrences
+            : (alreadySaved?.weeklyOccurrences || []);
+
         formatted.push({
           subjectName: cleanName,
           code: subCode,
           components: comps,
           section: selectedSection,
           isElective: true,
-          weeklyOccurrences: Array.isArray(s.weeklyOccurrences) ? s.weeklyOccurrences : [],
+          weeklyOccurrences: resolvedOccs,
         });
       } else {
         // Other subjects
@@ -1190,7 +1203,16 @@ export default function AttendanceTracker() {
     // so previous data and records are completely preserved
     const mergedSaved = [...savedSubjects];
     validFormatted.forEach((newSub) => {
-      const existingIdx = mergedSaved.findIndex((s) => isSameSubject(s, newSub));
+      const existingIdx = mergedSaved.findIndex((s) => {
+        if (isSameSubject(s, newSub)) return true;
+        if (isElectiveProjectSubject(s) && isElectiveProjectSubject(newSub)) {
+          const c1 = (s.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+          const c2 = (newSub.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+          if (c1 && c2 && c1 === c2) return true;
+          return true;
+        }
+        return false;
+      });
       if (existingIdx !== -1) {
         mergedSaved[existingIdx] = {
           ...mergedSaved[existingIdx],
@@ -8455,6 +8477,7 @@ export default function AttendanceTracker() {
         userRole={userRole}
         isAdmin={isAdmin}
         API={API}
+        existingSubjects={savedSubjects}
       />
 
       {/* ── Perfectly Centered Reset Attendance Modal (All Devices & Viewports) ── */}
