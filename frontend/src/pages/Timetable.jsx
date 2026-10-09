@@ -50,6 +50,7 @@ import {
   getDayName,
   getDaySchedule,
   mergeStudentElectiveOccurrences,
+  isElectiveProjectSubject,
   getHolidayInfo,
   getAcademicCalendarDateStatus,
   getLivePeriodStatus,
@@ -479,7 +480,25 @@ export default function Timetable() {
     if (studentOwnSection && selectedSection && studentOwnSection !== selectedSection) {
       return [];
     }
-    return studentData?.attendance?.savedSubjects || [];
+    const rawSubs = studentData?.attendance?.savedSubjects || [];
+    // Only pass genuine elective / project subjects to mergeStudentElectiveOccurrences
+    // Core section subjects must never be overlaid as electives
+    return rawSubs.filter((s) => {
+      if (!s) return false;
+      if (isElectiveProjectSubject(s)) return true;
+      const subName = (cleanSubjectBaseName(s.subjectName || s.name) || "").toUpperCase();
+      const isCore = [
+        "DATA STRUCTURE",
+        "THEORY OF COMPUTATION",
+        "COMPILER DESIGN",
+        "NETWORK AND PROTOCOLS",
+        "ROBOTIC AUTOMATION",
+        "INFORMATION SECURITY",
+        "CLOUD FUNDAMENTALS",
+        "PROMPT ENGINEERING",
+      ].some((core) => subName.includes(core));
+      return Boolean(s.isElective && !isCore);
+    });
   }, [studentOwnSection, selectedSection, studentData?.attendance?.savedSubjects]);
 
   const daySchedule = useMemo(() => {

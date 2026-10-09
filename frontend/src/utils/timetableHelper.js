@@ -287,10 +287,22 @@ export function mergeStudentElectiveOccurrences(daySchedule = [], dayName = "", 
 
   studentSavedSubjects.forEach((sub) => {
     if (!sub) return;
+
+    // CRITICAL: Only overlay genuine student elective or project courses!
+    // Core scheduled section subjects (e.g. Data Structure, TOC, ROS, Cisco, Network)
+    // already have their real timetable slots, faculty, and room in daySchedule and must NEVER be overwritten.
+    const isProject = isElectiveProjectSubject(sub);
+    const subClean = cleanSubjectBaseName(sub.subjectName || sub.name);
+    const isExistingCoreSubject = daySchedule.some(
+      (p) => p && !p.isFree && cleanSubjectBaseName(p.subject) === subClean
+    );
+    const isPersonalElective = isProject || (Boolean(sub.isElective) && !isExistingCoreSubject);
+    if (!isPersonalElective) return;
+
     const occs = Array.isArray(sub.weeklyOccurrences) ? sub.weeklyOccurrences : [];
     if (occs.length === 0) return;
 
-    const subName = cleanSubjectBaseName(sub.subjectName || sub.name) || sub.subjectName || sub.name || "Elective";
+    const subName = subClean || sub.subjectName || sub.name || "Elective";
     const subCode = sub.code || "";
 
     occs.forEach((occ) => {
@@ -1298,8 +1310,9 @@ export function getSectionSubjectCatalog(sectionName = "CSE-A", studentSavedSubj
       if (!subName) return;
 
       const occs = Array.isArray(s.weeklyOccurrences) ? s.weeklyOccurrences : [];
-      const isElective = isElectiveProjectSubject(s) || Boolean(s.isElective) || occs.length > 0;
-      if (!isElective) return;
+      const isProject = isElectiveProjectSubject(s);
+      const isPersonalElective = isProject || (Boolean(s.isElective) && !catalogMap.has(subName));
+      if (!isPersonalElective) return;
 
       const electiveInfo = getElectiveProjectInfo(s);
 
@@ -1326,7 +1339,7 @@ export function getSectionSubjectCatalog(sectionName = "CSE-A", studentSavedSubj
       } else {
         const entry = catalogMap.get(subName);
         if (s.code && !entry.code) entry.code = s.code;
-        entry.isElective = true;
+        if (isProject) entry.isElective = true;
         occs.forEach((o) => {
           const pIdx = (o.slotIndex !== undefined ? o.slotIndex + 1 : o.periodIndex) || 1;
           const exists = entry.weeklyOccurrences.some(
