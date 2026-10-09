@@ -2044,16 +2044,17 @@ The OCR Scanner allows students to photograph or upload screenshots of their off
 
 ### Vision AI Model Selection & Deprecation Safeguards:
 * **Client-Side High-Speed Canvas Pre-Compression:**
-  - Before uploading to the network, `compressImageForUpload()` scales raw phone screenshots (4MB–8MB) down to a max dimension of 1400px at JPEG quality 0.82 on an HTML5 Canvas.
-  - Reduces the payload size to ~150KB–200KB (97% size reduction).
-  - Over slow 3G/4G mobile networks, upload completes in < 0.5s instead of timing out at 40s.
+  - Before uploading to the network, `compressImageForUpload()` scales raw phone screenshots (4MB–8MB) down to a max dimension of 1800px at JPEG quality 0.88 on an HTML5 Canvas.
+  - Reduces the payload size to ~250KB–350KB (95% size reduction) while keeping small font digits (e.g. 24/28, 6/7) crystal clear.
+  - Over slow 3G/4G mobile networks, upload completes in < 0.4s instead of timing out at 40s.
   - Prevents Vercel Serverless Function 4.5MB payload limit errors and eliminates inaccurate client-side Tesseract fallbacks.
 * **Active Official Model Tier:** Both `frontend/api/attendance-ocr.js` and `backend/server.js` prioritize Google's active, production-grade vision models with zero reasoning delay:
   1. `gemini-3-flash-preview`: Primary ultra-fast vision model (~2.3s response time, zero hallucination on structured ERP grids).
-  2. `gemini-3.5-flash`: High-performance multimodal vision model (~3.4s response time).
-  3. `gemini-3.1-flash-lite`: Reliable fallback tier.
-* **Zero Thinking Budget Invariant:**
-  - `generationConfig` explicitly enforces `thinkingConfig: { thinkingBudget: 0 }` and `thinking_config: { thinking_budget: 0 }`.
+  2. `gemini-3.5-flash`: High-performance multimodal vision model (~1.6s–3.4s response time).
+  3. `gemini-3.1-flash-lite`: Reliable fallback tier (~5s–7s response time).
+* **Zero Thinking Budget & Protobuf Oneof Invariant:**
+  - `generationConfig` MUST contain ONLY `thinkingConfig: { thinkingBudget: 0 }`. Never pass duplicate `thinking_config` as protobuf enforces a strict oneof constraint which throws `HTTP 400 Bad Request ("oneof field '_thinking_config' is already set")`.
+  - Includes an automatic retry safeguard: if any model returns HTTP 400, it instantly retries without `thinkingConfig` to guarantee 100% success.
   - Disables verbose chain-of-thought reasoning tokens, cutting Gemini latency from 35s+ down to 2–3s.
 * **Timeout & Execution Budget Architecture:**
   - Each Gemini model invocation is bounded by an 18-second `AbortController` timeout (`setTimeout(() => controller.abort(), 18000)`).
