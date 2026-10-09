@@ -248,6 +248,10 @@ export default function Navbar() {
     if (e) e.preventDefault();
     const target = await getResolvedStudentTarget();
     if (!target) {
+      if (adminToken) {
+        navigate("/timetable");
+        return;
+      }
       requireAuthFor({ type: "timetable" });
     } else {
       navigate(`/timetable/${encodeStudentId(target)}`);
@@ -258,6 +262,10 @@ export default function Navbar() {
     if (e) e.preventDefault();
     const target = await getResolvedStudentTarget();
     if (!target) {
+      if (adminToken) {
+        navigate("/attendance");
+        return;
+      }
       requireAuthFor({ type: "attendance" });
     } else {
       navigate(`/attendance/${encodeStudentId(target)}`);

@@ -1371,12 +1371,14 @@ export default function AttendanceTracker() {
 
   // ── Handlers & Logic for Student Elective Routine Configuration ──
   const handleSkipElectivePopup = useCallback(() => {
-    const skipKey = `gf_skip_elective_prompt_${currentRegNo || "guest"}`;
-    try {
-      sessionStorage.setItem(skipKey, "true");
-    } catch (_) {}
+    if (!adminToken && !isAdmin) {
+      const skipKey = `gf_skip_elective_prompt_${currentRegNo || "guest"}`;
+      try {
+        sessionStorage.setItem(skipKey, "true");
+      } catch (_) {}
+    }
     setConfiguringElectiveSubject(null);
-  }, [currentRegNo]);
+  }, [currentRegNo, adminToken, isAdmin]);
 
   const handleSaveElectivePopupSlot = useCallback(() => {
     if (!configuringElectiveSubject) return;
@@ -1425,9 +1427,10 @@ export default function AttendanceTracker() {
     setTimeout(() => setElectiveSavedToast(""), 4500);
 
     // If another elective remains unconfigured in this student's DB, prompt next
+    const baseSecCat = getSectionSubjectCatalog(selectedSection);
     const nextUnconfigured = updatedSaved.find((s) => {
       if (!s || isSameSubject(s, targetSub)) return false;
-      const isCore = sectionCatalog.some((c) => isSameSubject(c, s) && !c.isElective);
+      const isCore = baseSecCat.some((c) => isSameSubject(c, s));
       if (isCore) return false;
       const isGenuinelyElective = isElectiveProjectSubject(s) || Boolean(s.isElective) || true;
       return isGenuinelyElective && (!Array.isArray(s.weeklyOccurrences) || s.weeklyOccurrences.length === 0);
@@ -1476,31 +1479,71 @@ export default function AttendanceTracker() {
     return { attended: att, conducted: del, percentage: pct };
   }, [configuringElectiveSubject]);
 
+  const unconfiguredElectiveSubject = useMemo(() => {
+    if (!savedSubjects || savedSubjects.length === 0) return null;
+    const baseSectionCat = getSectionSubjectCatalog(selectedSection);
+    return (
+      savedSubjects.find((s) => {
+        if (!s) return false;
+        const isCore = baseSectionCat.some((c) => isSameSubject(c, s));
+        if (isCore) return false;
+        const isGenuinelyElective = isElectiveProjectSubject(s) || Boolean(s.isElective) || true;
+        return isGenuinelyElective && (!Array.isArray(s.weeklyOccurrences) || s.weeklyOccurrences.length === 0);
+      }) || null
+    );
+  }, [savedSubjects, selectedSection]);
+
   // Auto-prompt modal for unconfigured elective subjects saved in DB
   useEffect(() => {
     if (pageLoading || isScreenshotModalOpen) return;
     if (!savedSubjects || savedSubjects.length === 0) return;
 
-    const skipKey = `gf_skip_elective_prompt_${currentRegNo || "guest"}`;
-    try {
-      const isSkippedInSession = sessionStorage.getItem(skipKey) === "true";
-      if (isSkippedInSession) return;
-    } catch (_) {}
+    // For regular students, respect session skip so we don't prompt repeatedly in the same browser session.
+    // For Admins (adminToken present / isAdmin true), NEVER block by sessionStorage so Admins can inspect and test!
+    if (!adminToken && !isAdmin) {
+      const skipKey = `gf_skip_elective_prompt_${currentRegNo || "guest"}`;
+      try {
+        const isSkippedInSession = sessionStorage.getItem(skipKey) === "true";
+        if (isSkippedInSession) return;
+      } catch (_) {}
+    }
+
+    // Pure base static routine catalog for the selected section (core mandatory subjects)
+    const baseSectionCatalog = getSectionSubjectCatalog(selectedSection);
 
     const unconfigured = savedSubjects.find((s) => {
       if (!s) return false;
-      const isCore = sectionCatalog.some((c) => isSameSubject(c, s) && !c.isElective);
+      // Core section schedule subjects (DSA, ROS, TOC, Cisco, etc.) are never electives
+      const isCore = baseSectionCatalog.some((c) => isSameSubject(c, s));
       if (isCore) return false;
+
+      // Any subject in student's DB not in the base routine is an elective/project!
       const isGenuinelyElective = isElectiveProjectSubject(s) || Boolean(s.isElective) || true;
-      return isGenuinelyElective && (!Array.isArray(s.weeklyOccurrences) || s.weeklyOccurrences.length === 0);
+      const hasNoOccurrences = !Array.isArray(s.weeklyOccurrences) || s.weeklyOccurrences.length === 0;
+      return isGenuinelyElective && hasNoOccurrences;
     });
 
     if (unconfigured && !configuringElectiveSubject) {
       setConfiguringElectiveSubject(unconfigured);
-      setSelectedElectiveDay("Monday");
-      setSelectedElectiveSlotIdx(0);
+      const existingOcc = unconfigured.weeklyOccurrences?.[0];
+      if (existingOcc?.day && existingOcc?.slotIndex !== undefined) {
+        setSelectedElectiveDay(existingOcc.day);
+        setSelectedElectiveSlotIdx(Number(existingOcc.slotIndex) || 0);
+      } else {
+        setSelectedElectiveDay("Monday");
+        setSelectedElectiveSlotIdx(0);
+      }
     }
-  }, [pageLoading, savedSubjects, isScreenshotModalOpen, currentRegNo, configuringElectiveSubject, sectionCatalog]);
+  }, [
+    pageLoading,
+    savedSubjects,
+    isScreenshotModalOpen,
+    currentRegNo,
+    configuringElectiveSubject,
+    selectedSection,
+    adminToken,
+    isAdmin,
+  ]);
 
   // Load student profile & saved Attendance from MongoDB Atlas in one smooth pass
   useEffect(() => {
@@ -1547,7 +1590,7 @@ export default function AttendanceTracker() {
         if (inCatalog) {
           return { ...s, isElective: false };
         }
-        return s;
+        return { ...s, isElective: true };
       });
 
       savedSubjectsRef.current = loadedSubs;
@@ -3726,6 +3769,165 @@ export default function AttendanceTracker() {
                   </span>
                   <ArrowRight size={13} color="#ffffff" />
                 </div>
+              </button>
+            </div>
+          )}
+
+          {/* Admin Student Inspection Search Bar */}
+          {isAdmin && (
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 12,
+                padding: isMobile ? "10px 12px" : "12px 18px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 10,
+                boxSizing: "border-box",
+                width: "100%",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 200, flex: 1 }}>
+                <Search size={16} color="#64748b" style={{ flexShrink: 0 }} />
+                <input
+                  type="text"
+                  placeholder="Admin Inspection: Enter Reg No (e.g. 230301120328)..."
+                  value={searchRegInput}
+                  onChange={(e) => setSearchRegInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSearchStudent(e);
+                  }}
+                  style={{
+                    border: "none",
+                    outline: "none",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#0f172a",
+                    width: "100%",
+                    background: "transparent",
+                    fontFamily: "'DM Sans', sans-serif",
+                  }}
+                />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={handleSearchStudent}
+                  disabled={!searchRegInput.trim() || isSearching}
+                  style={{
+                    background: "#0f172a",
+                    color: "#ffffff",
+                    border: "none",
+                    padding: "7px 14px",
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: !searchRegInput.trim() || isSearching ? "not-allowed" : "pointer",
+                    opacity: !searchRegInput.trim() || isSearching ? 0.6 : 1,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontFamily: "'DM Sans', sans-serif",
+                  }}
+                >
+                  <span>Inspect Student</span>
+                  <ArrowRight size={13} color="#ffffff" />
+                </button>
+                {currentRegNo ? (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "#475569",
+                      background: "#f1f5f9",
+                      padding: "4px 8px",
+                      borderRadius: 6,
+                      fontWeight: 700,
+                      fontFamily: "'Space Mono', monospace",
+                    }}
+                  >
+                    Current: {currentRegNo}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          )}
+
+          {/* Unscheduled Elective Routine Slot Alert Banner */}
+          {unconfiguredElectiveSubject && (
+            <div
+              style={{
+                background: "#f0fdf4",
+                border: "1.5px solid #86efac",
+                borderRadius: 12,
+                padding: isMobile ? "10px 12px" : "12px 18px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 10,
+                boxSizing: "border-box",
+                width: "100%",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    background: "#dcfce7",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Sparkles size={16} color="#16a34a" />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#14532d", lineHeight: 1.3 }}>
+                    Unscheduled Elective Routine Slot
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "#166534", lineHeight: 1.35, marginTop: 2 }}>
+                    <strong>{unconfiguredElectiveSubject.subjectName || unconfiguredElectiveSubject.name}</strong>{" "}
+                    {unconfiguredElectiveSubject.code ? `(${unconfiguredElectiveSubject.code}) ` : ""}is saved in DB but needs a day &amp; time slot.
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfiguringElectiveSubject(unconfiguredElectiveSubject);
+                  const existingOcc = unconfiguredElectiveSubject.weeklyOccurrences?.[0];
+                  if (existingOcc?.day && existingOcc?.slotIndex !== undefined) {
+                    setSelectedElectiveDay(existingOcc.day);
+                    setSelectedElectiveSlotIdx(Number(existingOcc.slotIndex) || 0);
+                  } else {
+                    setSelectedElectiveDay("Monday");
+                    setSelectedElectiveSlotIdx(0);
+                  }
+                }}
+                style={{
+                  background: "#16a34a",
+                  color: "#ffffff",
+                  border: "none",
+                  padding: "7px 15px",
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  whiteSpace: "nowrap",
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
+              >
+                <Clock size={13} color="#ffffff" />
+                <span>Set Routine Slot</span>
               </button>
             </div>
           )}
