@@ -354,11 +354,46 @@ OUTPUT FORMAT (JSON Schema):
                   temperature: 0.0,
                   response_mime_type: "application/json",
                   thinkingConfig: { thinkingBudget: 0 },
-                  thinking_config: { thinking_budget: 0 },
                 },
               }),
             }
           );
+
+          // Safeguard: If model rejects thinkingConfig with 400, retry once cleanly without it
+          if (response.status === 400) {
+            response = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-goog-api-key": GEMINI_API_KEY,
+                },
+                signal: controller.signal,
+                body: JSON.stringify({
+                  contents: [
+                    {
+                      parts: [
+                        {
+                          text: `You are an expert Document AI OCR engine for university student ERP attendance portals. Extract all course attendance rows visible in the screenshot. Return JSON: { "erpFormat": "website" or "mobile", "rows": [ { "courseName": "...", "courseCode": "...", "component": "PP" | "PR" | "TUT", "attended": 0, "delivered": 0, "percent": 0.0 } ] }`,
+                        },
+                        {
+                          inline_data: {
+                            mime_type: mimeType || "image/jpeg",
+                            data: cleanBase64,
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                  generationConfig: {
+                    temperature: 0.0,
+                    response_mime_type: "application/json",
+                  },
+                }),
+              }
+            );
+          }
 
           if (response.ok) {
             const result = await response.json();

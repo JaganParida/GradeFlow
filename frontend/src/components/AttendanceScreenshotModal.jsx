@@ -246,7 +246,7 @@ export default function AttendanceScreenshotModal({
   };
 
   // High-speed client-side canvas compressor for ultra-fast network transfer on mobile 3G/4G
-  const compressImageForUpload = (fileOrBase64, maxDim = 1400, quality = 0.82) => {
+  const compressImageForUpload = (fileOrBase64, maxDim = 1800, quality = 0.88) => {
     return new Promise((resolve) => {
       try {
         const img = new Image();
