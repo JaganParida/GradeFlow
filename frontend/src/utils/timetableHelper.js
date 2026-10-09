@@ -241,7 +241,7 @@ export function isElectiveProjectSubject(item) {
   const rawName = (typeof item === "string" ? item : item.subjectName || item.name || item.subject || "").toUpperCase().trim();
 
   const knownCodes = ["CUTM1577", "CUTM1905", "CUTM1906", "CUTM1578", "CUTM2598"];
-  if (knownCodes.some((c) => rawCode === c || rawCode.includes(c))) return true;
+  if (knownCodes.some((c) => rawCode === c || rawCode.includes(c) || rawName.includes(c))) return true;
 
   const knownNames = [
     "MINOR PROJECT II",
@@ -251,7 +251,7 @@ export function isElectiveProjectSubject(item) {
     "SUMMER INTERNSHIP",
     "INTERNSHIP",
   ];
-  return knownNames.some((n) => rawName === n || rawName.startsWith(n));
+  return knownNames.some((n) => rawName === n || rawName.includes(n));
 }
 
 /**
@@ -266,7 +266,7 @@ export function getElectiveProjectInfo(item) {
     ELECTIVE_PROJECT_SUBJECTS.find((ep) => {
       const epCode = ep.code.toUpperCase();
       if (rawCode && (rawCode === epCode || rawCode.includes(epCode))) return true;
-      if (rawName && (rawName === ep.name.toUpperCase() || rawName.startsWith(ep.name.toUpperCase()))) return true;
+      if (rawName && (rawName.includes(epCode) || rawName === ep.name.toUpperCase() || rawName.includes(ep.name.toUpperCase()))) return true;
       return false;
     }) || null
   );

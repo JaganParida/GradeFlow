@@ -1427,8 +1427,9 @@ export default function AttendanceTracker() {
     // If another elective remains unconfigured in this student's DB, prompt next
     const nextUnconfigured = updatedSaved.find((s) => {
       if (!s || isSameSubject(s, targetSub)) return false;
-      const isCore = sectionCatalog.some((c) => isSameSubject(c, s));
-      const isGenuinelyElective = isElectiveProjectSubject(s) || (Boolean(s.isElective) && !isCore);
+      const isCore = sectionCatalog.some((c) => isSameSubject(c, s) && !c.isElective);
+      if (isCore) return false;
+      const isGenuinelyElective = isElectiveProjectSubject(s) || Boolean(s.isElective) || true;
       return isGenuinelyElective && (!Array.isArray(s.weeklyOccurrences) || s.weeklyOccurrences.length === 0);
     });
 
@@ -1488,8 +1489,9 @@ export default function AttendanceTracker() {
 
     const unconfigured = savedSubjects.find((s) => {
       if (!s) return false;
-      const isCore = sectionCatalog.some((c) => isSameSubject(c, s));
-      const isGenuinelyElective = isElectiveProjectSubject(s) || (Boolean(s.isElective) && !isCore);
+      const isCore = sectionCatalog.some((c) => isSameSubject(c, s) && !c.isElective);
+      if (isCore) return false;
+      const isGenuinelyElective = isElectiveProjectSubject(s) || Boolean(s.isElective) || true;
       return isGenuinelyElective && (!Array.isArray(s.weeklyOccurrences) || s.weeklyOccurrences.length === 0);
     });
 
@@ -5548,7 +5550,7 @@ export default function AttendanceTracker() {
                                 <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>
                                   {subCalc.totalAttended} / {subCalc.totalDelivered} classes
                                 </span>
-                                {Boolean(isElectiveProjectSubject(sub) || (sub.isElective && !sectionCatalog.some((c) => isSameSubject(c, sub)))) && (
+                                {Boolean(isElectiveProjectSubject(sub) || (sub.isElective && !sectionCatalog.some((c) => isSameSubject(c, sub) && !c.isElective))) && (
                                   <button
                                     type="button"
                                     onClick={(e) => {
