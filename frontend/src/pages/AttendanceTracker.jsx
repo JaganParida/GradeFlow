@@ -984,6 +984,11 @@ export default function AttendanceTracker() {
   const [selectedElectiveDay, setSelectedElectiveDay] = useState("Monday");
   const [selectedElectiveSlotIdx, setSelectedElectiveSlotIdx] = useState(0);
   const [electiveSavedToast, setElectiveSavedToast] = useState("");
+  const hasDismissedElectivePromptRef = useRef(false);
+
+  useEffect(() => {
+    hasDismissedElectivePromptRef.current = false;
+  }, [currentRegNo]);
 
   // Daily AI Screenshot Scan Limit Tracking (2 Scans/day per student, exempt for special student/developer, admin, subadmin)
   const userRole = studentSession?.role || (adminToken ? "admin" : "");
@@ -1371,14 +1376,13 @@ export default function AttendanceTracker() {
 
   // ── Handlers & Logic for Student Elective Routine Configuration ──
   const handleSkipElectivePopup = useCallback(() => {
-    if (!adminToken && !isAdmin) {
-      const skipKey = `gf_skip_elective_prompt_${currentRegNo || "guest"}`;
-      try {
-        sessionStorage.setItem(skipKey, "true");
-      } catch (_) {}
-    }
+    hasDismissedElectivePromptRef.current = true;
+    const skipKey = `gf_skip_elective_prompt_${currentRegNo || "guest"}`;
+    try {
+      sessionStorage.setItem(skipKey, "true");
+    } catch (_) {}
     setConfiguringElectiveSubject(null);
-  }, [currentRegNo, adminToken, isAdmin]);
+  }, [currentRegNo]);
 
   const handleSaveElectivePopupSlot = useCallback(() => {
     if (!configuringElectiveSubject) return;
@@ -1493,13 +1497,13 @@ export default function AttendanceTracker() {
     );
   }, [savedSubjects, selectedSection]);
 
-  // Auto-prompt modal for unconfigured elective subjects saved in DB
+  // Auto-prompt modal for unconfigured elective subjects saved in DB (runs once on load/student change)
   useEffect(() => {
     if (pageLoading || isScreenshotModalOpen) return;
     if (!savedSubjects || savedSubjects.length === 0) return;
+    if (hasDismissedElectivePromptRef.current) return;
 
     // For regular students, respect session skip so we don't prompt repeatedly in the same browser session.
-    // For Admins (adminToken present / isAdmin true), NEVER block by sessionStorage so Admins can inspect and test!
     if (!adminToken && !isAdmin) {
       const skipKey = `gf_skip_elective_prompt_${currentRegNo || "guest"}`;
       try {
@@ -1523,7 +1527,7 @@ export default function AttendanceTracker() {
       return isGenuinelyElective && hasNoOccurrences;
     });
 
-    if (unconfigured && !configuringElectiveSubject) {
+    if (unconfigured) {
       setConfiguringElectiveSubject(unconfigured);
       const existingOcc = unconfigured.weeklyOccurrences?.[0];
       if (existingOcc?.day && existingOcc?.slotIndex !== undefined) {
@@ -1539,7 +1543,6 @@ export default function AttendanceTracker() {
     savedSubjects,
     isScreenshotModalOpen,
     currentRegNo,
-    configuringElectiveSubject,
     selectedSection,
     adminToken,
     isAdmin,
@@ -3773,88 +3776,6 @@ export default function AttendanceTracker() {
             </div>
           )}
 
-          {/* Admin Student Inspection Search Bar */}
-          {isAdmin && (
-            <div
-              style={{
-                background: "#ffffff",
-                border: "1px solid #e2e8f0",
-                borderRadius: 12,
-                padding: isMobile ? "10px 12px" : "12px 18px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: 10,
-                boxSizing: "border-box",
-                width: "100%",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 200, flex: 1 }}>
-                <Search size={16} color="#64748b" style={{ flexShrink: 0 }} />
-                <input
-                  type="text"
-                  placeholder="Admin Inspection: Enter Reg No (e.g. 230301120328)..."
-                  value={searchRegInput}
-                  onChange={(e) => setSearchRegInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSearchStudent(e);
-                  }}
-                  style={{
-                    border: "none",
-                    outline: "none",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "#0f172a",
-                    width: "100%",
-                    background: "transparent",
-                    fontFamily: "'DM Sans', sans-serif",
-                  }}
-                />
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  onClick={handleSearchStudent}
-                  disabled={!searchRegInput.trim() || isSearching}
-                  style={{
-                    background: "#0f172a",
-                    color: "#ffffff",
-                    border: "none",
-                    padding: "7px 14px",
-                    borderRadius: 8,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: !searchRegInput.trim() || isSearching ? "not-allowed" : "pointer",
-                    opacity: !searchRegInput.trim() || isSearching ? 0.6 : 1,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontFamily: "'DM Sans', sans-serif",
-                  }}
-                >
-                  <span>Inspect Student</span>
-                  <ArrowRight size={13} color="#ffffff" />
-                </button>
-                {currentRegNo ? (
-                  <span
-                    style={{
-                      fontSize: 11,
-                      color: "#475569",
-                      background: "#f1f5f9",
-                      padding: "4px 8px",
-                      borderRadius: 6,
-                      fontWeight: 700,
-                      fontFamily: "'Space Mono', monospace",
-                    }}
-                  >
-                    Current: {currentRegNo}
-                  </span>
-                ) : null}
-              </div>
-            </div>
-          )}
-
           {/* Unscheduled Elective Routine Slot Alert Banner */}
           {unconfiguredElectiveSubject && (
             <div
@@ -3900,6 +3821,7 @@ export default function AttendanceTracker() {
               <button
                 type="button"
                 onClick={() => {
+                  hasDismissedElectivePromptRef.current = false;
                   setConfiguringElectiveSubject(unconfiguredElectiveSubject);
                   const existingOcc = unconfiguredElectiveSubject.weeklyOccurrences?.[0];
                   if (existingOcc?.day && existingOcc?.slotIndex !== undefined) {
