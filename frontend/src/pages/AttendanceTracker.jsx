@@ -3776,84 +3776,6 @@ export default function AttendanceTracker() {
             </div>
           )}
 
-          {/* Unscheduled Elective Routine Slot Alert Banner */}
-          {unconfiguredElectiveSubject && (
-            <div
-              style={{
-                background: "#f0fdf4",
-                border: "1.5px solid #86efac",
-                borderRadius: 12,
-                padding: isMobile ? "10px 12px" : "12px 18px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: 10,
-                boxSizing: "border-box",
-                width: "100%",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    background: "#dcfce7",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  <Sparkles size={16} color="#16a34a" />
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: "#14532d", lineHeight: 1.3 }}>
-                    Unscheduled Elective Routine Slot
-                  </div>
-                  <div style={{ fontSize: 11.5, color: "#166534", lineHeight: 1.35, marginTop: 2 }}>
-                    <strong>{unconfiguredElectiveSubject.subjectName || unconfiguredElectiveSubject.name}</strong>{" "}
-                    {unconfiguredElectiveSubject.code ? `(${unconfiguredElectiveSubject.code}) ` : ""}is saved in DB but needs a day &amp; time slot.
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  hasDismissedElectivePromptRef.current = false;
-                  setConfiguringElectiveSubject(unconfiguredElectiveSubject);
-                  const existingOcc = unconfiguredElectiveSubject.weeklyOccurrences?.[0];
-                  if (existingOcc?.day && existingOcc?.slotIndex !== undefined) {
-                    setSelectedElectiveDay(existingOcc.day);
-                    setSelectedElectiveSlotIdx(Number(existingOcc.slotIndex) || 0);
-                  } else {
-                    setSelectedElectiveDay("Monday");
-                    setSelectedElectiveSlotIdx(0);
-                  }
-                }}
-                style={{
-                  background: "#16a34a",
-                  color: "#ffffff",
-                  border: "none",
-                  padding: "7px 15px",
-                  borderRadius: 8,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  whiteSpace: "nowrap",
-                  fontFamily: "'DM Sans', sans-serif",
-                }}
-              >
-                <Clock size={13} color="#ffffff" />
-                <span>Set Routine Slot</span>
-              </button>
-            </div>
-          )}
-
           {/* Top Academic & Attendance Overview Header (Clean Canvas - Unboxed) */}
           <header
             style={{
@@ -5528,6 +5450,85 @@ export default function AttendanceTracker() {
                 </p>
               </div>
 
+              {/* Unscheduled Elective Routine Alert (Subject-wise Attendance Tab Only) */}
+              {unconfiguredElectiveSubject && (
+                <div
+                  style={{
+                    background: "#f0fdf4",
+                    border: "1.5px solid #86efac",
+                    borderRadius: 12,
+                    padding: isMobile ? "11px 13px" : "13px 18px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: 10,
+                    boxSizing: "border-box",
+                    width: "100%",
+                    marginBottom: 12,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 8,
+                        background: "#dcfce7",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <CalendarCheck size={16} color="#16a34a" />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: "#14532d", lineHeight: 1.3 }}>
+                        Elective Routine Slot Setup Required
+                      </div>
+                      <div style={{ fontSize: 11.5, color: "#166534", lineHeight: 1.35, marginTop: 2 }}>
+                        <strong>{unconfiguredElectiveSubject.subjectName || unconfiguredElectiveSubject.name}</strong>{" "}
+                        {unconfiguredElectiveSubject.code ? `(${unconfiguredElectiveSubject.code}) ` : ""}is saved in your attendance records but needs a weekly day &amp; time slot.
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      hasDismissedElectivePromptRef.current = false;
+                      setConfiguringElectiveSubject(unconfiguredElectiveSubject);
+                      const existingOcc = unconfiguredElectiveSubject.weeklyOccurrences?.[0];
+                      if (existingOcc?.day && existingOcc?.slotIndex !== undefined) {
+                        setSelectedElectiveDay(existingOcc.day);
+                        setSelectedElectiveSlotIdx(Number(existingOcc.slotIndex) || 0);
+                      } else {
+                        setSelectedElectiveDay("Monday");
+                        setSelectedElectiveSlotIdx(0);
+                      }
+                    }}
+                    style={{
+                      background: "#16a34a",
+                      color: "#ffffff",
+                      border: "none",
+                      padding: "7px 15px",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      whiteSpace: "nowrap",
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}
+                  >
+                    <Clock size={13} color="#ffffff" />
+                    <span>Set Routine Slot</span>
+                  </button>
+                </div>
+              )}
+
               {/* Subject Cards Grid */}
               {matrixSubjectsAnalysis.length === 0 ? (
                 <div
@@ -5679,6 +5680,7 @@ export default function AttendanceTracker() {
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
+                                      hasDismissedElectivePromptRef.current = false;
                                       const existingOcc = sub.weeklyOccurrences?.[0];
                                       if (existingOcc) {
                                         setSelectedElectiveDay(existingOcc.day || "Monday");
@@ -5713,7 +5715,7 @@ export default function AttendanceTracker() {
                                       </>
                                     ) : (
                                       <>
-                                        <AlertTriangle size={10.5} strokeWidth={2.5} />
+                                        <Clock size={10.5} strokeWidth={2.5} />
                                         <span>Set Routine Slot</span>
                                       </>
                                     )}
