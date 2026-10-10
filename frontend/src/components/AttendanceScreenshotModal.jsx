@@ -100,15 +100,25 @@ export default function AttendanceScreenshotModal({
     if (configuringElective) {
       if (Array.isArray(configuringElective.weeklyOccurrences) && configuringElective.weeklyOccurrences.length > 0) {
         const occ = configuringElective.weeklyOccurrences[0];
+        const occSlotIdx = occ?.slotIndex !== undefined
+          ? Number(occ.slotIndex)
+          : occ?.periodIndex !== undefined
+          ? Number(occ.periodIndex) - 1
+          : undefined;
         if (occ.day) setSelectedElectiveDay(occ.day);
-        if (occ.slotIndex !== undefined) setSelectedElectiveSlotIdx(Number(occ.slotIndex));
+        if (occSlotIdx !== undefined && occSlotIdx >= 0) setSelectedElectiveSlotIdx(occSlotIdx);
       } else {
-        const schedule = getDaySchedule(currentSection, "Tuesday") || [];
-        const freeIdx = schedule.findIndex((p) => p.isFree || !p.subject || p.subject === "No Class / Free");
+        const targetDay = selectedElectiveDay || "Tuesday";
+        const schedule = getDaySchedule(currentSection, targetDay) || [];
+        const freeIdx = schedule.findIndex((p, idx) => {
+          const sl = TIME_SLOTS[idx];
+          if (sl?.isBreak || p?.isBreak || /lunch|break|recess/i.test(p?.subject || "")) return false;
+          return p.isFree || !p.subject || p.subject === "No Class / Free";
+        });
         setSelectedElectiveSlotIdx(freeIdx !== -1 ? freeIdx : 4);
       }
     }
-  }, [configuringElective, currentSection]);
+  }, [configuringElective, currentSection, selectedElectiveDay]);
 
   // Monotonic progressive stepper for AI OCR scanning (Never loops back to 0)
   useEffect(() => {
@@ -520,7 +530,12 @@ const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = [], existing
     if (alphaCount < 3 && !catalogMatch && !isElective) return;
 
     let existing = subjects.find((s) => {
-      if (rawCode && s.code && s.code === rawCode) return true;
+      const sCode = normalizeCourseCode(s.code);
+      if (rawCode && sCode) {
+        return rawCode === sCode;
+      }
+      if (rawCode && !sCode) return false;
+      if (!rawCode && sCode) return false;
       if (rawName && s.name && rawName.length > 2 && s.name.length > 2) {
         const n1 = rawName.toLowerCase().replace(/[^a-z0-9]/g, "");
         const n2 = s.name.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -574,15 +589,20 @@ const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = [], existing
       // Check if student already has this subject saved in DB with configured routine slot!
       const matchedSaved = (existingSubjects || []).find((s) => {
         if (!s) return false;
-        if (rawCode && s.code && normalizeCourseCode(s.code) === rawCode) return true;
+        const sCode = normalizeCourseCode(s.code);
+        if (rawCode && sCode) {
+          if (rawCode === sCode) return true;
+          return false;
+        }
+        if (isElective || isElectiveProjectSubject(s)) {
+          if (!isElective || !isElectiveProjectSubject(s)) return false;
+          const infoS = getElectiveProjectInfo(s);
+          if (electiveInfo && infoS) {
+            return electiveInfo.code === infoS.code || electiveInfo.name.toUpperCase() === infoS.name.toUpperCase();
+          }
+        }
         const sName = cleanSubjectName(s.subjectName || s.name || "");
         if (sName && existing.name && sName.toLowerCase() === existing.name.toLowerCase()) return true;
-        if (isElective && (isElectiveProjectSubject(s) || s.isElective)) {
-          if (electiveInfo && getElectiveProjectInfo(s)?.name === electiveInfo.name) return true;
-          const codeA = (s.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-          const codeB = (rawCode || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-          if (codeA && codeB && codeA === codeB) return true;
-        }
         return false;
       });
 
@@ -1129,31 +1149,50 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
     };
 
     const targetId = configuringElective.id;
+    const targetCode = (configuringElective.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 
-    let nextUnconfigured = null;
-    setParsedSubjects((prev) => {
-      const updated = prev.map((s) => {
-        if (s.id === targetId) {
-          return {
-            ...s,
-            isElective: true,
-            weeklyOccurrences: [occ],
-          };
-        }
-        return s;
-      });
-
-      nextUnconfigured = updated.find(
-        (s) =>
-          s.id !== targetId &&
-          (s.isElective || isElectiveProjectSubject(s)) &&
-          (!Array.isArray(s.weeklyOccurrences) || s.weeklyOccurrences.length === 0)
-      );
-
-      return updated;
+    const updated = parsedSubjects.map((s) => {
+      const sCode = (s.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const isTarget = s.id === targetId || (targetCode && sCode ? targetCode === sCode : false);
+      if (isTarget) {
+        return {
+          ...s,
+          isElective: true,
+          weeklyOccurrences: [occ],
+        };
+      }
+      return s;
     });
 
-    setConfiguringElective(nextUnconfigured || null);
+    setParsedSubjects(updated);
+
+    const nextUnconfigured = updated.find((s) => {
+      if (s.id === targetId) return false;
+      const sCode = (s.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (targetCode && sCode && targetCode === sCode) return false;
+      const isElective = Boolean(s.isElective || isElectiveProjectSubject(s));
+      return isElective && (!Array.isArray(s.weeklyOccurrences) || s.weeklyOccurrences.length === 0);
+    });
+
+    if (nextUnconfigured) {
+      setConfiguringElective(nextUnconfigured);
+      const existingOcc = nextUnconfigured.weeklyOccurrences?.[0];
+      if (existingOcc?.day && existingOcc?.slotIndex !== undefined) {
+        setSelectedElectiveDay(existingOcc.day);
+        setSelectedElectiveSlotIdx(Number(existingOcc.slotIndex));
+      } else {
+        const schedule = getDaySchedule(currentSection, "Tuesday") || [];
+        const freeIdx = schedule.findIndex((p, idx) => {
+          const sl = TIME_SLOTS[idx];
+          if (sl?.isBreak || p?.isBreak || /lunch|break|recess/i.test(p?.subject || "")) return false;
+          return p.isFree || !p.subject || p.subject === "No Class / Free";
+        });
+        setSelectedElectiveDay("Tuesday");
+        setSelectedElectiveSlotIdx(freeIdx !== -1 ? freeIdx : 4);
+      }
+    } else {
+      setConfiguringElective(null);
+    }
   };
 
   const handleSkipElectiveSlot = () => {
@@ -3200,7 +3239,16 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
                         <button
                           key={day}
                           type="button"
-                          onClick={() => setSelectedElectiveDay(day)}
+                          onClick={() => {
+                            setSelectedElectiveDay(day);
+                            const daySch = getDaySchedule(currentSection, day) || [];
+                            const firstFree = daySch.findIndex((p, idx) => {
+                              const sl = TIME_SLOTS[idx];
+                              if (sl?.isBreak || p?.isBreak || /lunch|break|recess/i.test(p?.subject || "")) return false;
+                              return p.isFree || !p.subject || p.subject === "No Class / Free";
+                            });
+                            if (firstFree !== -1) setSelectedElectiveSlotIdx(firstFree);
+                          }}
                           style={{
                             padding: isMobile ? "8px 2px" : "8px 6px",
                             borderRadius: 8,
@@ -3238,12 +3286,22 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
                       const isSelected = selectedElectiveSlotIdx === sIdx;
                       const dayRoutine = getDaySchedule(currentSection, selectedElectiveDay) || [];
                       const periodOnDay = dayRoutine[sIdx];
-                      const isSlotFree = !periodOnDay || periodOnDay.isFree || !periodOnDay.subject || periodOnDay.subject === "No Class / Free";
+                      const isBreakSlot = Boolean(
+                        slot.isBreak ||
+                        periodOnDay?.isBreak ||
+                        /lunch|break|recess/i.test(periodOnDay?.subject || "")
+                      );
+                      const isSlotFree =
+                        !isBreakSlot &&
+                        (!periodOnDay ||
+                          periodOnDay.isFree ||
+                          !periodOnDay.subject ||
+                          periodOnDay.subject === "No Class / Free");
 
                       return (
                         <div
                           key={sIdx}
-                          onClick={() => setSelectedElectiveSlotIdx(sIdx)}
+                          onClick={isBreakSlot ? undefined : () => setSelectedElectiveSlotIdx(sIdx)}
                           style={{
                             display: "flex",
                             alignItems: "center",
@@ -3253,9 +3311,18 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
                             boxSizing: "border-box",
                             padding: isMobile ? "9px 11px" : "10px 14px",
                             borderRadius: 10,
-                            border: `1.5px solid ${isSelected ? "#2563eb" : isSlotFree ? "#86efac" : "#e2e8f0"}`,
-                            background: isSelected ? "#eff6ff" : isSlotFree ? "#f0fdf4" : "#ffffff",
-                            cursor: "pointer",
+                            border: isBreakSlot
+                              ? "1px dashed #cbd5e1"
+                              : `1.5px solid ${isSelected ? "#2563eb" : isSlotFree ? "#86efac" : "#e2e8f0"}`,
+                            background: isSelected
+                              ? "#eff6ff"
+                              : isBreakSlot
+                              ? "#f8fafc"
+                              : isSlotFree
+                              ? "#f0fdf4"
+                              : "#ffffff",
+                            cursor: isBreakSlot ? "not-allowed" : "pointer",
+                            opacity: isBreakSlot ? 0.65 : 1,
                             overflow: "hidden",
                             transition: "all 0.15s ease",
                           }}
@@ -3266,21 +3333,21 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
                                 style={{
                                   fontSize: 9.5,
                                   fontWeight: 800,
-                                  color: isSelected ? "#1d4ed8" : "#64748b",
-                                  background: isSelected ? "#dbeafe" : "#f1f5f9",
+                                  color: isBreakSlot ? "#94a3b8" : isSelected ? "#1d4ed8" : "#64748b",
+                                  background: isBreakSlot ? "#e2e8f0" : isSelected ? "#dbeafe" : "#f1f5f9",
                                   padding: "1px 5px",
                                   borderRadius: 4,
                                   whiteSpace: "nowrap",
                                   flexShrink: 0,
                                 }}
                               >
-                                P{sIdx + 1}
+                                {isBreakSlot ? "RECESS" : `P${sIdx + 1}`}
                               </span>
                               <span
                                 style={{
                                   fontSize: 12,
                                   fontWeight: 700,
-                                  color: "#0f172a",
+                                  color: isBreakSlot ? "#64748b" : "#0f172a",
                                   whiteSpace: "nowrap",
                                   overflow: "hidden",
                                   textOverflow: "ellipsis",
@@ -3294,7 +3361,7 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
                             <div
                               style={{
                                 fontSize: 10.5,
-                                color: isSlotFree ? "#15803d" : "#64748b",
+                                color: isBreakSlot ? "#94a3b8" : isSlotFree ? "#15803d" : "#64748b",
                                 marginTop: 2,
                                 fontWeight: isSlotFree ? 700 : 500,
                                 whiteSpace: "nowrap",
@@ -3302,9 +3369,23 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
                                 textOverflow: "ellipsis",
                                 minWidth: 0,
                               }}
-                              title={isSlotFree ? "Section Free Slot (Recommended)" : `Section Class: ${cleanSubjectBaseName(periodOnDay?.subject) || periodOnDay?.subject}`}
+                              title={
+                                isBreakSlot
+                                  ? "Lunch Break / Recess (Classes cannot be scheduled)"
+                                  : isSlotFree
+                                  ? "Section Free Slot (Recommended)"
+                                  : `Section Class: ${
+                                      cleanSubjectBaseName(periodOnDay?.subject) || periodOnDay?.subject
+                                    }`
+                              }
                             >
-                              {isSlotFree ? "Section Free Slot (Recommended)" : `Section Class: ${cleanSubjectBaseName(periodOnDay?.subject) || periodOnDay?.subject}`}
+                              {isBreakSlot
+                                ? "Lunch Break / Recess"
+                                : isSlotFree
+                                ? "Section Free Slot (Recommended)"
+                                : `Section Class: ${
+                                    cleanSubjectBaseName(periodOnDay?.subject) || periodOnDay?.subject
+                                  }`}
                             </div>
                           </div>
 

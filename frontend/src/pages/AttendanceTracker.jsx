@@ -104,27 +104,52 @@ function isSameSubject(a, b) {
   const codeA = typeof a === "object" ? (a.code || a.subCode || "") : "";
   const codeB = typeof b === "object" ? (b.code || b.subCode || "") : "";
 
+  // 1. Strict Course Code Disambiguation:
+  // If both have explicit non-empty course codes, they MUST match. Different codes can NEVER be the same subject!
+  if (codeA && codeB) {
+    const normCodeA = codeA.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    const normCodeB = codeB.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    if (normCodeA && normCodeB) {
+      if (normCodeA === normCodeB || normCodeA.includes(normCodeB) || normCodeB.includes(normCodeA)) {
+        return true;
+      }
+      // Both have valid codes (e.g. CUTM1577 vs CUTM1578, CUCS1008 vs CUCS1015) and do not match
+      if (normCodeA.length >= 4 && normCodeB.length >= 4 && normCodeA !== normCodeB) {
+        return false;
+      }
+    }
+  }
+
+  // 2. Strict Project / Elective Disambiguation:
+  // Distinct project courses (e.g. MINOR PROJECT II vs SUMMER INTERNSHIP I) must never be collapsed
+  const isProjA = isElectiveProjectSubject(a);
+  const isProjB = isElectiveProjectSubject(b);
+  if (isProjA || isProjB) {
+    if (isProjA !== isProjB) return false; // One is project, one is regular class -> never the same
+    const infoA = getElectiveProjectInfo(a);
+    const infoB = getElectiveProjectInfo(b);
+    if (infoA && infoB) {
+      return infoA.code === infoB.code || infoA.name.toUpperCase() === infoB.name.toUpperCase();
+    }
+  }
+
+  // 3. Exact name match
   if (nameA && nameB && nameA.trim().toLowerCase() === nameB.trim().toLowerCase()) return true;
 
+  // 4. Clean base name match
   const cleanA = cleanSubjectBaseName(nameA).toLowerCase();
   const cleanB = cleanSubjectBaseName(nameB).toLowerCase();
   if (cleanA && cleanB && cleanA === cleanB) return true;
 
-  if (codeA && codeB) {
-    const normCodeA = codeA.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-    const normCodeB = codeB.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-    if (normCodeA && normCodeB && (normCodeA === normCodeB || normCodeA.includes(normCodeB) || normCodeB.includes(normCodeA))) {
-      return true;
-    }
-  }
-
+  // 5. Syllabus basket logic match
   if (isMatch({ subName: nameA, subCode: codeA }, { subName: nameB, subCode: codeB })) {
     return true;
   }
 
+  // 6. Normalized character sequence match
   const norm1 = nameA.toLowerCase().replace(/and/g, "").replace(/[^a-z0-9]/g, "");
   const norm2 = nameB.toLowerCase().replace(/and/g, "").replace(/[^a-z0-9]/g, "");
-  if (norm1 && norm2 && (norm1 === norm2 || norm1.includes(norm2) || norm2.includes(norm1))) {
+  if (norm1 && norm2 && (norm1 === norm2 || (norm1.length >= 6 && norm2.length >= 6 && (norm1.includes(norm2) || norm2.includes(norm1))))) {
     return true;
   }
 
@@ -1076,41 +1101,11 @@ export default function AttendanceTracker() {
     // Filter and map incoming extracted subjects strictly to the section timetable catalog or elective list
     const formatted = [];
     extracted.forEach((s) => {
-      const catMatch = sectionCatalog.find((c) => isSameSubject(c, s));
       const isProject = isElectiveProjectSubject(s);
-      const isElective = Boolean(isProject || (!catMatch && s.isElective));
       const electiveInfo = getElectiveProjectInfo(s);
+      const isElective = Boolean(isProject || electiveInfo || s.isElective);
 
-      if (catMatch) {
-        const cleanName = catMatch.subjectName;
-        const subCode = s.code || catMatch.code || resolveSubjectCode({ subject: cleanName }, studentData) || "";
-
-        const comps =
-          Array.isArray(s.components) && s.components.length > 0
-            ? s.components.map((c) => ({
-                type: (c.type || "PP").toUpperCase(),
-                attended: Number(c.attended) || 0,
-                delivered: Number(c.delivered !== undefined ? c.delivered : c.total) || 0,
-              }))
-            : [
-                {
-                  type: "PP",
-                  attended: Number(s.attendedClasses) || 0,
-                  delivered: Number(s.totalClasses) || 0,
-                },
-              ];
-
-        formatted.push({
-          subjectName: cleanName,
-          code: subCode,
-          components: comps,
-          section: selectedSection,
-          isElective: Boolean(isProject),
-          weeklyOccurrences: (Array.isArray(s.weeklyOccurrences) && s.weeklyOccurrences.length > 0)
-            ? s.weeklyOccurrences
-            : (catMatch.weeklyOccurrences || []),
-        });
-      } else if (isElective) {
+      if (isElective) {
         // Dedicated handling for recognized elective project subjects (CUTM1577, CUTM1905, CUTM1906, CUTM1578, CUTM2598)
         const cleanName = electiveInfo?.name || cleanSubjectBaseName(s.name) || s.name;
         const subCode = s.code || electiveInfo?.code || "";
@@ -1130,13 +1125,14 @@ export default function AttendanceTracker() {
                 },
               ];
 
-        // Check if student already has this subject saved in DB with configured weeklyOccurrences
+        // Check if student already has this specific subject saved in DB with configured weeklyOccurrences
         const currentSavedList = savedSubjectsRef.current || savedSubjects || [];
         const alreadySaved = currentSavedList.find((sv) => {
           if (!sv) return false;
-          if (isSameSubject(sv, { subjectName: cleanName, code: subCode, name: s.name })) return true;
-          if (isProject && isElectiveProjectSubject(sv)) return true;
-          return false;
+          const c1 = (sv.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+          const c2 = subCode.toUpperCase().replace(/[^A-Z0-9]/g, "");
+          if (c1 && c2) return c1 === c2;
+          return isSameSubject(sv, { subjectName: cleanName, code: subCode, name: s.name });
         });
         const resolvedOccs =
           Array.isArray(s.weeklyOccurrences) && s.weeklyOccurrences.length > 0
@@ -1152,9 +1148,12 @@ export default function AttendanceTracker() {
           weeklyOccurrences: resolvedOccs,
         });
       } else {
-        // Other subjects
-        const cleanName = cleanSubjectBaseName(s.name) || s.name;
-        if (cleanName && (cleanName.match(/[a-zA-Z]/g) || []).length >= 3) {
+        // Core section catalog subjects
+        const catMatch = sectionCatalog.find((c) => isSameSubject(c, s));
+        if (catMatch) {
+          const cleanName = catMatch.subjectName;
+          const subCode = s.code || catMatch.code || resolveSubjectCode({ subject: cleanName }, studentData) || "";
+
           const comps =
             Array.isArray(s.components) && s.components.length > 0
               ? s.components.map((c) => ({
@@ -1172,11 +1171,42 @@ export default function AttendanceTracker() {
 
           formatted.push({
             subjectName: cleanName,
-            code: s.code || "",
+            code: subCode,
             components: comps,
             section: selectedSection,
-            weeklyOccurrences: Array.isArray(s.weeklyOccurrences) ? s.weeklyOccurrences : [],
+            isElective: false,
+            weeklyOccurrences: (Array.isArray(s.weeklyOccurrences) && s.weeklyOccurrences.length > 0)
+              ? s.weeklyOccurrences
+              : (catMatch.weeklyOccurrences || []),
           });
+        } else {
+          // Other subjects
+          const cleanName = cleanSubjectBaseName(s.name) || s.name;
+          if (cleanName && (cleanName.match(/[a-zA-Z]/g) || []).length >= 3) {
+            const comps =
+              Array.isArray(s.components) && s.components.length > 0
+                ? s.components.map((c) => ({
+                    type: (c.type || "PP").toUpperCase(),
+                    attended: Number(c.attended) || 0,
+                    delivered: Number(c.delivered !== undefined ? c.delivered : c.total) || 0,
+                  }))
+                : [
+                    {
+                      type: "PP",
+                      attended: Number(s.attendedClasses) || 0,
+                      delivered: Number(s.totalClasses) || 0,
+                    },
+                  ];
+
+            formatted.push({
+              subjectName: cleanName,
+              code: s.code || "",
+              components: comps,
+              section: selectedSection,
+              isElective: false,
+              weeklyOccurrences: Array.isArray(s.weeklyOccurrences) ? s.weeklyOccurrences : [],
+            });
+          }
         }
       }
     });
@@ -1209,14 +1239,13 @@ export default function AttendanceTracker() {
     const mergedSaved = [...savedSubjects];
     validFormatted.forEach((newSub) => {
       const existingIdx = mergedSaved.findIndex((s) => {
-        if (isSameSubject(s, newSub)) return true;
-        if (isElectiveProjectSubject(s) && isElectiveProjectSubject(newSub)) {
-          const c1 = (s.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-          const c2 = (newSub.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-          if (c1 && c2 && c1 === c2) return true;
-          return true;
+        if (!s) return false;
+        const c1 = (s.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+        const c2 = (newSub.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+        if (c1 && c2) {
+          return c1 === c2;
         }
-        return false;
+        return isSameSubject(s, newSub);
       });
       if (existingIdx !== -1) {
         mergedSaved[existingIdx] = {
@@ -1399,9 +1428,12 @@ export default function AttendanceTracker() {
     };
 
     const targetSub = configuringElectiveSubject;
+    const targetCode = (targetSub.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
     const currentSaved = savedSubjectsRef.current || savedSubjects;
     const updatedSaved = currentSaved.map((s) => {
-      if (isSameSubject(s, targetSub)) {
+      const sCode = (s.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const isTarget = targetCode && sCode ? targetCode === sCode : isSameSubject(s, targetSub);
+      if (isTarget) {
         return {
           ...s,
           isElective: true,
@@ -1433,22 +1465,37 @@ export default function AttendanceTracker() {
     // If another elective remains unconfigured in this student's DB, prompt next
     const baseSecCat = getSectionSubjectCatalog(selectedSection);
     const nextUnconfigured = updatedSaved.find((s) => {
-      if (!s || isSameSubject(s, targetSub)) return false;
+      if (!s) return false;
+      const sCode = (s.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (targetCode && sCode && targetCode === sCode) return false;
+      if (isSameSubject(s, targetSub)) return false;
       const isCore = baseSecCat.some((c) => isSameSubject(c, s));
       if (isCore) return false;
-      const isGenuinelyElective = isElectiveProjectSubject(s) || Boolean(s.isElective) || true;
+      const isGenuinelyElective = isElectiveProjectSubject(s) || Boolean(s.isElective);
       return isGenuinelyElective && (!Array.isArray(s.weeklyOccurrences) || s.weeklyOccurrences.length === 0);
     });
 
     if (nextUnconfigured) {
       setConfiguringElectiveSubject(nextUnconfigured);
       const existingOcc = nextUnconfigured.weeklyOccurrences?.[0];
-      if (existingOcc) {
-        setSelectedElectiveDay(existingOcc.day || "Monday");
-        setSelectedElectiveSlotIdx(Number(existingOcc.slotIndex) || 0);
+      const occSlotIdx = existingOcc?.slotIndex !== undefined
+        ? Number(existingOcc.slotIndex)
+        : existingOcc?.periodIndex !== undefined
+        ? Number(existingOcc.periodIndex) - 1
+        : undefined;
+
+      if (existingOcc?.day && occSlotIdx !== undefined && occSlotIdx >= 0) {
+        setSelectedElectiveDay(existingOcc.day);
+        setSelectedElectiveSlotIdx(occSlotIdx);
       } else {
-        setSelectedElectiveDay("Monday");
-        setSelectedElectiveSlotIdx(0);
+        const sch = getDaySchedule(selectedSection, "Tuesday") || [];
+        const fIdx = sch.findIndex((p, idx) => {
+          const sl = TIME_SLOTS[idx];
+          if (sl?.isBreak || p?.isBreak || /lunch|break|recess/i.test(p?.subject || "")) return false;
+          return p.isFree || !p.subject || p.subject === "No Class / Free";
+        });
+        setSelectedElectiveDay("Tuesday");
+        setSelectedElectiveSlotIdx(fIdx !== -1 ? fIdx : 4);
       }
     } else {
       setConfiguringElectiveSubject(null);
@@ -1491,7 +1538,7 @@ export default function AttendanceTracker() {
         if (!s) return false;
         const isCore = baseSectionCat.some((c) => isSameSubject(c, s));
         if (isCore) return false;
-        const isGenuinelyElective = isElectiveProjectSubject(s) || Boolean(s.isElective) || true;
+        const isGenuinelyElective = isElectiveProjectSubject(s) || Boolean(s.isElective);
         return isGenuinelyElective && (!Array.isArray(s.weeklyOccurrences) || s.weeklyOccurrences.length === 0);
       }) || null
     );
@@ -1503,14 +1550,12 @@ export default function AttendanceTracker() {
     if (!savedSubjects || savedSubjects.length === 0) return;
     if (hasDismissedElectivePromptRef.current) return;
 
-    // For regular students, respect session skip so we don't prompt repeatedly in the same browser session.
-    if (!adminToken && !isAdmin) {
-      const skipKey = `gf_skip_elective_prompt_${currentRegNo || "guest"}`;
-      try {
-        const isSkippedInSession = sessionStorage.getItem(skipKey) === "true";
-        if (isSkippedInSession) return;
-      } catch (_) {}
-    }
+    // Respect session skip so we don't prompt repeatedly in the same browser session.
+    const skipKey = `gf_skip_elective_prompt_${currentRegNo || "guest"}`;
+    try {
+      const isSkippedInSession = sessionStorage.getItem(skipKey) === "true";
+      if (isSkippedInSession) return;
+    } catch (_) {}
 
     // Pure base static routine catalog for the selected section (core mandatory subjects)
     const baseSectionCatalog = getSectionSubjectCatalog(selectedSection);
@@ -1522,7 +1567,7 @@ export default function AttendanceTracker() {
       if (isCore) return false;
 
       // Any subject in student's DB not in the base routine is an elective/project!
-      const isGenuinelyElective = isElectiveProjectSubject(s) || Boolean(s.isElective) || true;
+      const isGenuinelyElective = isElectiveProjectSubject(s) || Boolean(s.isElective);
       const hasNoOccurrences = !Array.isArray(s.weeklyOccurrences) || s.weeklyOccurrences.length === 0;
       return isGenuinelyElective && hasNoOccurrences;
     });
@@ -1530,12 +1575,24 @@ export default function AttendanceTracker() {
     if (unconfigured) {
       setConfiguringElectiveSubject(unconfigured);
       const existingOcc = unconfigured.weeklyOccurrences?.[0];
-      if (existingOcc?.day && existingOcc?.slotIndex !== undefined) {
+      const occSlotIdx = existingOcc?.slotIndex !== undefined
+        ? Number(existingOcc.slotIndex)
+        : existingOcc?.periodIndex !== undefined
+        ? Number(existingOcc.periodIndex) - 1
+        : undefined;
+
+      if (existingOcc?.day && occSlotIdx !== undefined && occSlotIdx >= 0) {
         setSelectedElectiveDay(existingOcc.day);
-        setSelectedElectiveSlotIdx(Number(existingOcc.slotIndex) || 0);
+        setSelectedElectiveSlotIdx(occSlotIdx);
       } else {
-        setSelectedElectiveDay("Monday");
-        setSelectedElectiveSlotIdx(0);
+        const sch = getDaySchedule(selectedSection, "Tuesday") || [];
+        const fIdx = sch.findIndex((p, idx) => {
+          const sl = TIME_SLOTS[idx];
+          if (sl?.isBreak || p?.isBreak || /lunch|break|recess/i.test(p?.subject || "")) return false;
+          return p.isFree || !p.subject || p.subject === "No Class / Free";
+        });
+        setSelectedElectiveDay("Tuesday");
+        setSelectedElectiveSlotIdx(fIdx !== -1 ? fIdx : 4);
       }
     }
   }, [
@@ -2163,6 +2220,7 @@ export default function AttendanceTracker() {
     if (!selectedSubjectName) return;
 
     const currentSaved = savedSubjectsRef.current || savedSubjects;
+    const existingEntry = currentSaved.find((s) => isSameSubject(s, selectedSubjectName));
     const filtered = currentSaved.filter((s) => !isSameSubject(s, selectedSubjectName));
     const cleanComps = (componentInputs || []).map((c) => ({
       type: (c.type || "PP").toUpperCase(),
@@ -2170,21 +2228,33 @@ export default function AttendanceTracker() {
       delivered: Math.max(0, parseInt(c.delivered, 10) || 0),
     }));
 
-    // Strictly disallow saving 0 by 0 subjects to cloud / MongoDB
+    const isElective = Boolean(
+      existingEntry?.isElective ||
+      isElectiveProjectSubject(selectedSubjectName) ||
+      (existingEntry && isElectiveProjectSubject(existingEntry))
+    );
+
+    // Strictly disallow saving 0 by 0 subjects to cloud / MongoDB EXCEPT electives
     const totalDelivered = cleanComps.reduce((sum, c) => sum + (Number(c.delivered) || 0), 0);
-    if (totalDelivered <= 0) {
+    if (totalDelivered <= 0 && !isElective) {
       return;
     }
+
+    const occurrencesToKeep =
+      Array.isArray(existingEntry?.weeklyOccurrences) && existingEntry.weeklyOccurrences.length > 0
+        ? existingEntry.weeklyOccurrences
+        : (activeCatalogItem?.weeklyOccurrences || []);
 
     const updatedList = [
       ...filtered,
       {
         subjectName: selectedSubjectName,
-        code: activeCatalogItem?.code || resolveSubjectCode({ subject: selectedSubjectName }, studentData) || "",
+        code: activeCatalogItem?.code || existingEntry?.code || resolveSubjectCode({ subject: selectedSubjectName }, studentData) || "",
         components: cleanComps,
         lastUpdated: new Date().toISOString(),
         section: selectedSection,
-        weeklyOccurrences: activeCatalogItem?.weeklyOccurrences || [],
+        isElective,
+        weeklyOccurrences: occurrencesToKeep,
       },
     ];
 
@@ -5499,12 +5569,24 @@ export default function AttendanceTracker() {
                       hasDismissedElectivePromptRef.current = false;
                       setConfiguringElectiveSubject(unconfiguredElectiveSubject);
                       const existingOcc = unconfiguredElectiveSubject.weeklyOccurrences?.[0];
-                      if (existingOcc?.day && existingOcc?.slotIndex !== undefined) {
+                      const occSlotIdx = existingOcc?.slotIndex !== undefined
+                        ? Number(existingOcc.slotIndex)
+                        : existingOcc?.periodIndex !== undefined
+                        ? Number(existingOcc.periodIndex) - 1
+                        : undefined;
+
+                      if (existingOcc?.day && occSlotIdx !== undefined && occSlotIdx >= 0) {
                         setSelectedElectiveDay(existingOcc.day);
-                        setSelectedElectiveSlotIdx(Number(existingOcc.slotIndex) || 0);
+                        setSelectedElectiveSlotIdx(occSlotIdx);
                       } else {
-                        setSelectedElectiveDay("Monday");
-                        setSelectedElectiveSlotIdx(0);
+                        const sch = getDaySchedule(selectedSection, "Tuesday") || [];
+                        const fIdx = sch.findIndex((p, idx) => {
+                          const sl = TIME_SLOTS[idx];
+                          if (sl?.isBreak || p?.isBreak || /lunch|break|recess/i.test(p?.subject || "")) return false;
+                          return p.isFree || !p.subject || p.subject === "No Class / Free";
+                        });
+                        setSelectedElectiveDay("Tuesday");
+                        setSelectedElectiveSlotIdx(fIdx !== -1 ? fIdx : 4);
                       }
                     }}
                     style={{
@@ -5682,12 +5764,24 @@ export default function AttendanceTracker() {
                                       e.stopPropagation();
                                       hasDismissedElectivePromptRef.current = false;
                                       const existingOcc = sub.weeklyOccurrences?.[0];
-                                      if (existingOcc) {
-                                        setSelectedElectiveDay(existingOcc.day || "Monday");
-                                        setSelectedElectiveSlotIdx(Number(existingOcc.slotIndex) || 0);
+                                      const occSlotIdx = existingOcc?.slotIndex !== undefined
+                                        ? Number(existingOcc.slotIndex)
+                                        : existingOcc?.periodIndex !== undefined
+                                        ? Number(existingOcc.periodIndex) - 1
+                                        : undefined;
+
+                                      if (existingOcc?.day && occSlotIdx !== undefined && occSlotIdx >= 0) {
+                                        setSelectedElectiveDay(existingOcc.day);
+                                        setSelectedElectiveSlotIdx(occSlotIdx);
                                       } else {
-                                        setSelectedElectiveDay("Monday");
-                                        setSelectedElectiveSlotIdx(0);
+                                        const sch = getDaySchedule(selectedSection, "Tuesday") || [];
+                                        const fIdx = sch.findIndex((p, idx) => {
+                                          const sl = TIME_SLOTS[idx];
+                                          if (sl?.isBreak || p?.isBreak || /lunch|break|recess/i.test(p?.subject || "")) return false;
+                                          return p.isFree || !p.subject || p.subject === "No Class / Free";
+                                        });
+                                        setSelectedElectiveDay("Tuesday");
+                                        setSelectedElectiveSlotIdx(fIdx !== -1 ? fIdx : 4);
                                       }
                                       setConfiguringElectiveSubject(sub);
                                     }}
@@ -9216,7 +9310,16 @@ export default function AttendanceTracker() {
                             <button
                               key={day}
                               type="button"
-                              onClick={() => setSelectedElectiveDay(day)}
+                              onClick={() => {
+                                setSelectedElectiveDay(day);
+                                const daySch = getDaySchedule(selectedSection, day) || [];
+                                const firstFree = daySch.findIndex((p, idx) => {
+                                  const sl = TIME_SLOTS[idx];
+                                  if (sl?.isBreak || p?.isBreak || /lunch|break|recess/i.test(p?.subject || "")) return false;
+                                  return p.isFree || !p.subject || p.subject === "No Class / Free";
+                                });
+                                if (firstFree !== -1) setSelectedElectiveSlotIdx(firstFree);
+                              }}
                               style={{
                                 padding: isMobile ? "8px 2px" : "8px 6px",
                                 borderRadius: 8,
@@ -9277,16 +9380,22 @@ export default function AttendanceTracker() {
                           const isSelected = selectedElectiveSlotIdx === sIdx;
                           const dayRoutine = getDaySchedule(selectedSection, selectedElectiveDay) || [];
                           const periodOnDay = dayRoutine[sIdx];
+                          const isBreakSlot = Boolean(
+                            slot.isBreak ||
+                            periodOnDay?.isBreak ||
+                            /lunch|break|recess/i.test(periodOnDay?.subject || "")
+                          );
                           const isSlotFree =
-                            !periodOnDay ||
-                            periodOnDay.isFree ||
-                            !periodOnDay.subject ||
-                            periodOnDay.subject === "No Class / Free";
+                            !isBreakSlot &&
+                            (!periodOnDay ||
+                              periodOnDay.isFree ||
+                              !periodOnDay.subject ||
+                              periodOnDay.subject === "No Class / Free");
 
                           return (
                             <div
                               key={sIdx}
-                              onClick={() => setSelectedElectiveSlotIdx(sIdx)}
+                              onClick={isBreakSlot ? undefined : () => setSelectedElectiveSlotIdx(sIdx)}
                               style={{
                                 display: "flex",
                                 alignItems: "center",
@@ -9296,9 +9405,18 @@ export default function AttendanceTracker() {
                                 boxSizing: "border-box",
                                 padding: isMobile ? "9px 11px" : "10px 14px",
                                 borderRadius: 10,
-                                border: `1.5px solid ${isSelected ? "#2563eb" : isSlotFree ? "#86efac" : "#e2e8f0"}`,
-                                background: isSelected ? "#eff6ff" : isSlotFree ? "#f0fdf4" : "#ffffff",
-                                cursor: "pointer",
+                                border: isBreakSlot
+                                  ? "1px dashed #cbd5e1"
+                                  : `1.5px solid ${isSelected ? "#2563eb" : isSlotFree ? "#86efac" : "#e2e8f0"}`,
+                                background: isSelected
+                                  ? "#eff6ff"
+                                  : isBreakSlot
+                                  ? "#f8fafc"
+                                  : isSlotFree
+                                  ? "#f0fdf4"
+                                  : "#ffffff",
+                                cursor: isBreakSlot ? "not-allowed" : "pointer",
+                                opacity: isBreakSlot ? 0.65 : 1,
                                 overflow: "hidden",
                                 transition: "all 0.15s ease",
                               }}
@@ -9309,21 +9427,21 @@ export default function AttendanceTracker() {
                                     style={{
                                       fontSize: 9.5,
                                       fontWeight: 800,
-                                      color: isSelected ? "#1d4ed8" : "#64748b",
-                                      background: isSelected ? "#dbeafe" : "#f1f5f9",
+                                      color: isBreakSlot ? "#94a3b8" : isSelected ? "#1d4ed8" : "#64748b",
+                                      background: isBreakSlot ? "#e2e8f0" : isSelected ? "#dbeafe" : "#f1f5f9",
                                       padding: "1px 5px",
                                       borderRadius: 4,
                                       whiteSpace: "nowrap",
                                       flexShrink: 0,
                                     }}
                                   >
-                                    P{sIdx + 1}
+                                    {isBreakSlot ? "RECESS" : `P${sIdx + 1}`}
                                   </span>
                                   <span
                                     style={{
                                       fontSize: 12,
                                       fontWeight: 700,
-                                      color: "#0f172a",
+                                      color: isBreakSlot ? "#64748b" : "#0f172a",
                                       whiteSpace: "nowrap",
                                       overflow: "hidden",
                                       textOverflow: "ellipsis",
@@ -9337,7 +9455,7 @@ export default function AttendanceTracker() {
                                 <div
                                   style={{
                                     fontSize: 10.5,
-                                    color: isSlotFree ? "#15803d" : "#64748b",
+                                    color: isBreakSlot ? "#94a3b8" : isSlotFree ? "#15803d" : "#64748b",
                                     marginTop: 2,
                                     fontWeight: isSlotFree ? 700 : 500,
                                     whiteSpace: "nowrap",
@@ -9346,14 +9464,18 @@ export default function AttendanceTracker() {
                                     minWidth: 0,
                                   }}
                                   title={
-                                    isSlotFree
+                                    isBreakSlot
+                                      ? "Lunch Break / Recess (Classes cannot be scheduled)"
+                                      : isSlotFree
                                       ? "Section Free Slot (Recommended)"
                                       : `Section Class: ${
                                           cleanSubjectBaseName(periodOnDay?.subject) || periodOnDay?.subject
                                         }`
                                   }
                                 >
-                                  {isSlotFree
+                                  {isBreakSlot
+                                    ? "Lunch Break / Recess"
+                                    : isSlotFree
                                     ? "Section Free Slot (Recommended)"
                                     : `Section Class: ${
                                         cleanSubjectBaseName(periodOnDay?.subject) || periodOnDay?.subject
