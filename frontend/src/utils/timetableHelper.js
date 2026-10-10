@@ -690,6 +690,15 @@ export function getAcademicHolidaysData() {
 export function isSecondSaturday(dateObj) {
   const d = new Date(dateObj);
   if (d.getDay() !== 6) return false;
+
+  // Specific working day exemption: Oct 10, 2026 is an instructional regular class day
+  if (
+    (d.getFullYear() === 2026 && d.getMonth() === 9 && d.getDate() === 10) ||
+    formatDateKey(d) === "2026-10-10"
+  ) {
+    return false;
+  }
+
   const dayOfMonth = d.getDate();
   return dayOfMonth >= 8 && dayOfMonth <= 14;
 }
