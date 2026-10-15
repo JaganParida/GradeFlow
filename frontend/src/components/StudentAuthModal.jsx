@@ -4,7 +4,10 @@ import { useNavigate } from "react-router-dom";
 import { useApp, API_BASE } from "../context/AppContext";
 import axios from "axios";
 import { encodeStudentId } from "../utils/studentIdEncoder";
-import { createAblyRealtime, createApprovalAblyRealtime } from "../services/ablyClient";
+import {
+  createAblyRealtime,
+  createApprovalAblyRealtime,
+} from "../services/ablyClient";
 import {
   GraduationCap,
   Mail,
@@ -33,7 +36,10 @@ import {
   ArrowRightLeft,
 } from "lucide-react";
 import BlockedLoginDeviceModal from "./BlockedLoginDeviceModal";
-import { isDeveloperOrSpecialStudent, getDeveloperMaxDevices } from "../utils/developerHelper";
+import {
+  isDeveloperOrSpecialStudent,
+  getDeveloperMaxDevices,
+} from "../utils/developerHelper";
 
 export default function StudentAuthModal({ isOpen, onClose }) {
   const {
@@ -70,7 +76,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const [setupPasswordToken, setSetupPasswordToken] = useState("");
   const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
   const [isOneTimeRecoveryOtp, setIsOneTimeRecoveryOtp] = useState(false);
-  const [failedPasswordAttemptsCount, setFailedPasswordAttemptsCount] = useState(0);
+  const [failedPasswordAttemptsCount, setFailedPasswordAttemptsCount] =
+    useState(0);
 
   // Sync otp string from digits
   useEffect(() => {
@@ -136,7 +143,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
   const handleOtpPaste = (e) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    const pastedData = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, 6);
     if (pastedData) {
       const newDigits = ["", "", "", "", "", ""];
       pastedData.split("").forEach((char, i) => {
@@ -177,7 +187,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   // Protection against closing modal when password creation is mandatory
   const handleModalClose = () => {
     if (step === "CREATE_PASSWORD") {
-      setErrorMsg("Password creation is mandatory to secure your account and cannot be skipped.");
+      setErrorMsg(
+        "Password creation is mandatory to secure your account and cannot be skipped.",
+      );
       return;
     }
     onClose();
@@ -189,7 +201,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       if (e.key === "Escape" && isOpen) {
         if (step === "CREATE_PASSWORD") {
           e.preventDefault();
-          setErrorMsg("Password creation is mandatory to secure your account and cannot be skipped.");
+          setErrorMsg(
+            "Password creation is mandatory to secure your account and cannot be skipped.",
+          );
         } else {
           onClose();
         }
@@ -206,18 +220,28 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const hasNumber = /[0-9]/.test(password);
   const isMatch = password.length > 0 && password === confirmPassword;
 
-  const strengthScore = [hasMinLength, (hasUpper && hasLower), hasNumber].filter(Boolean).length;
+  const strengthScore = [hasMinLength, hasUpper && hasLower, hasNumber].filter(
+    Boolean,
+  ).length;
 
   const getStrengthMeta = () => {
     if (!password) return { label: "", color: "#cbd5e1", width: "0%" };
-    if (password.length < 8) return { label: "Too short (min 8 chars)", color: "#ef4444", width: "25%" };
-    if (strengthScore <= 1) return { label: "Weak", color: "#f97316", width: "45%" };
-    if (strengthScore === 2) return { label: "Medium", color: "#eab308", width: "75%" };
+    if (password.length < 8)
+      return {
+        label: "Too short (min 8 chars)",
+        color: "#ef4444",
+        width: "25%",
+      };
+    if (strengthScore <= 1)
+      return { label: "Weak", color: "#f97316", width: "45%" };
+    if (strengthScore === 2)
+      return { label: "Medium", color: "#eab308", width: "75%" };
     return { label: "Strong & Secure", color: "#10b981", width: "100%" };
   };
 
   const strengthMeta = getStrengthMeta();
-  const isPasswordFormValid = hasMinLength && hasUpper && hasLower && hasNumber && isMatch;
+  const isPasswordFormValid =
+    hasMinLength && hasUpper && hasLower && hasNumber && isMatch;
 
   // Helper to route to intended destination after auth
   const navigateToDestination = (targetReg) => {
@@ -229,7 +253,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       if (dest.type === "feedback") {
         setTimeout(() => {
           window.dispatchEvent(
-            new CustomEvent("open-feedback-modal", { detail: { source: "auth_success" } })
+            new CustomEvent("open-feedback-modal", {
+              detail: { source: "auth_success" },
+            }),
           );
         }, 120);
         return;
@@ -263,7 +289,6 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       navigate(`/dashboard/${encodeStudentId(destReg)}`);
     }
   };
-
 
   // Clean state whenever modal opens or closes
   useEffect(() => {
@@ -339,10 +364,13 @@ export default function StudentAuthModal({ isOpen, onClose }) {
           const hint = localStorage.getItem("gf_student_session_hint");
           if (hint) studentHeaders["x-student-last-session"] = hint;
         } catch (_) {}
-        const res = await axios.get(`${API_BASE}/auth/student/check-status?regNo=${encodeURIComponent(clean)}`, {
-          withCredentials: true,
-          headers: studentHeaders,
-        });
+        const res = await axios.get(
+          `${API_BASE}/auth/student/check-status?regNo=${encodeURIComponent(clean)}`,
+          {
+            withCredentials: true,
+            headers: studentHeaders,
+          },
+        );
 
         if (res.data?.success) {
           if (!res.data.exists) {
@@ -353,14 +381,23 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               blockedReason: res.data.blockedReason,
             });
             if (res.data.isSuspended) {
-              const reasonText = res.data.blockedReason || "Portal access suspended by administration";
-              setErrorMsg(`Student not found\n(Suspended by admin: ${reasonText})`);
+              const reasonText =
+                res.data.blockedReason ||
+                "Portal access suspended by administration";
+              setErrorMsg(
+                `Student not found\n(Suspended by admin: ${reasonText})`,
+              );
               setErrorCode("STUDENT_SUSPENDED");
             } else {
-              setErrorMsg(`Registration number ${clean} not found in university student records.`);
+              setErrorMsg(
+                `Registration number ${clean} not found in university student records.`,
+              );
               setErrorCode("STUDENT_NOT_FOUND");
             }
-          } else if (res.data.step === "OTP" || res.data.pendingRecoveryOtpActive) {
+          } else if (
+            res.data.step === "OTP" ||
+            res.data.pendingRecoveryOtpActive
+          ) {
             setDeviceStatus({
               ...res.data,
               exists: true,
@@ -373,7 +410,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             }
             setErrorMsg("");
             setErrorCode("");
-          } else if (res.data.step === "RECOVERY_PROMPT" || res.data.pendingRecoveryPrompt) {
+          } else if (
+            res.data.step === "RECOVERY_PROMPT" ||
+            res.data.pendingRecoveryPrompt
+          ) {
             setDeviceStatus({
               ...res.data,
               exists: true,
@@ -387,7 +427,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             setErrorMsg("");
             setErrorCode("");
           } else if (res.data.isBlocked) {
-            const isLockout = res.data.code === "ACCOUNT_TEMPORARILY_LOCKED" || res.data.blockReason === "ACCOUNT_TEMPORARILY_LOCKED";
+            const isLockout =
+              res.data.code === "ACCOUNT_TEMPORARILY_LOCKED" ||
+              res.data.blockReason === "ACCOUNT_TEMPORARILY_LOCKED";
             const devices = res.data.sessions || [];
             setDeviceStatus({
               exists: true,
@@ -406,7 +448,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               setUnlockTime(res.data.unlockAt);
             }
             setErrorMsg(res.data.blockMessage);
-            setErrorCode(res.data.blockReason || res.data.code || "DEVICE_LIMIT_REACHED");
+            setErrorCode(
+              res.data.blockReason || res.data.code || "DEVICE_LIMIT_REACHED",
+            );
           } else if (res.data.isCurrentDevice && res.data.hasPassword) {
             setDeviceStatus({
               exists: true,
@@ -442,7 +486,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             if (res.data.unlockAt) {
               setUnlockTime(res.data.unlockAt);
             }
-            if (res.data.isCooldownActive && res.data.cooldownRemainingSeconds) {
+            if (
+              res.data.isCooldownActive &&
+              res.data.cooldownRemainingSeconds
+            ) {
               setResendCooldown(res.data.cooldownRemainingSeconds + 2);
             }
             setErrorMsg("");
@@ -472,7 +519,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setTimerActive(false);
       clearInterval(interval);
       if (isOneTimeRecoveryOtp && step === "OTP") {
-        setErrorMsg("The 5-minute recovery verification code has expired. Your account is temporarily locked for 24 hours.");
+        setErrorMsg(
+          "The 5-minute recovery verification code has expired. Your account is temporarily locked for 24 hours.",
+        );
         setErrorCode("ACCOUNT_TEMPORARILY_LOCKED");
       }
     }
@@ -486,8 +535,12 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       interval = setInterval(() => {
         setResendCooldown((prev) => {
           if (prev <= 1) {
-            setErrorMsg((curr) => (curr && curr.includes("before requesting another") ? "" : curr));
-            setErrorCode((curr) => (curr === "OTP_COOLDOWN_ACTIVE" ? "" : curr));
+            setErrorMsg((curr) =>
+              curr && curr.includes("before requesting another") ? "" : curr,
+            );
+            setErrorCode((curr) =>
+              curr === "OTP_COOLDOWN_ACTIVE" ? "" : curr,
+            );
             return 0;
           }
           const nextVal = prev - 1;
@@ -516,7 +569,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         setApprovalTimerSeconds((prev) => {
           if (prev <= 1) {
             clearInterval(timerInterval);
-            setErrorMsg("Approval request timed out. Please try logging in again.");
+            setErrorMsg(
+              "Approval request timed out. Please try logging in again.",
+            );
             setErrorCode("APPROVAL_EXPIRED");
             return 0;
           }
@@ -529,7 +584,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         setStatusNotice("Approval granted! Setting up your session...");
         let res = null;
         if (approvalExchangeSecret) {
-          res = await studentCompleteApproval(approvalRequestId, approvalExchangeSecret);
+          res = await studentCompleteApproval(
+            approvalRequestId,
+            approvalExchangeSecret,
+          );
         } else {
           res = await checkApprovalStatus(approvalRequestId);
         }
@@ -538,7 +596,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             navigateToDestination(cleanReg);
           }, 350);
         } else {
-          setErrorMsg(res?.error || res?.message || "Failed to finalize session.");
+          setErrorMsg(
+            res?.error || res?.message || "Failed to finalize session.",
+          );
         }
       };
 
@@ -559,12 +619,17 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             setErrorCode("APPROVAL_DENIED");
           } else if (data.status === "EXPIRED") {
             clearInterval(timerInterval);
-            setErrorMsg("Approval request timed out. Please try logging in again.");
+            setErrorMsg(
+              "Approval request timed out. Please try logging in again.",
+            );
             setErrorCode("APPROVAL_EXPIRED");
           }
         });
       } catch (err) {
-        console.warn("[Ably] Approval channel subscription warning:", err?.message || err);
+        console.warn(
+          "[Ably] Approval channel subscription warning:",
+          err?.message || err,
+        );
       }
 
       // Ensure Ably socket stays connected on visibility change without HTTP polling
@@ -581,7 +646,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
       return () => {
         clearInterval(timerInterval);
-        document.removeEventListener("visibilitychange", handleVisibilityChange);
+        document.removeEventListener(
+          "visibilitychange",
+          handleVisibilityChange,
+        );
         try {
           if (approvalChannel) approvalChannel.unsubscribe();
           if (ably) {
@@ -636,10 +704,13 @@ export default function StudentAuthModal({ isOpen, onClose }) {
           const hint = localStorage.getItem("gf_student_session_hint");
           if (hint) studentHeaders["x-student-last-session"] = hint;
         } catch (_) {}
-        const res = await axios.get(`${API_BASE}/auth/student/check-status?regNo=${encodeURIComponent(cleanReg)}`, {
-          withCredentials: true,
-          headers: studentHeaders,
-        });
+        const res = await axios.get(
+          `${API_BASE}/auth/student/check-status?regNo=${encodeURIComponent(cleanReg)}`,
+          {
+            withCredentials: true,
+            headers: studentHeaders,
+          },
+        );
         if (res.data?.success) {
           status = {
             ...res.data,
@@ -648,17 +719,25 @@ export default function StudentAuthModal({ isOpen, onClose }) {
           };
           setDeviceStatus(status);
           if (res.data.studentName) setStudentName(res.data.studentName);
-          if (res.data.attemptsUsedToday !== undefined) setAttemptsUsed(res.data.attemptsUsedToday);
-          if (res.data.remainingDailyAttempts !== undefined) setRemainingDailyAttempts(res.data.remainingDailyAttempts);
+          if (res.data.attemptsUsedToday !== undefined)
+            setAttemptsUsed(res.data.attemptsUsedToday);
+          if (res.data.remainingDailyAttempts !== undefined)
+            setRemainingDailyAttempts(res.data.remainingDailyAttempts);
           if (res.data.unlockAt) setUnlockTime(res.data.unlockAt);
-          if (res.data.isCooldownActive && res.data.cooldownRemainingSeconds) setResendCooldown(res.data.cooldownRemainingSeconds + 2);
+          if (res.data.isCooldownActive && res.data.cooldownRemainingSeconds)
+            setResendCooldown(res.data.cooldownRemainingSeconds + 2);
         } else {
-          setErrorMsg(res.data?.message || "Unable to verify registration number.");
+          setErrorMsg(
+            res.data?.message || "Unable to verify registration number.",
+          );
           setLoading(false);
           return;
         }
       } catch (err) {
-        setErrorMsg(err.response?.data?.message || "Server connection error. Please try again.");
+        setErrorMsg(
+          err.response?.data?.message ||
+            "Server connection error. Please try again.",
+        );
         setLoading(false);
         return;
       } finally {
@@ -668,11 +747,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
     if (status?.exists === false) {
       if (status?.isSuspended) {
-        const reasonText = status.blockedReason || "Portal access suspended by administration";
+        const reasonText =
+          status.blockedReason || "Portal access suspended by administration";
         setErrorMsg(`Student not found\n(Suspended by admin: ${reasonText})`);
         setErrorCode("STUDENT_SUSPENDED");
       } else {
-        setErrorMsg(`Registration number ${cleanReg} not found in university student records.`);
+        setErrorMsg(
+          `Registration number ${cleanReg} not found in university student records.`,
+        );
         setErrorCode("STUDENT_NOT_FOUND");
       }
       return;
@@ -680,7 +762,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
     // ── ANTI-BYPASS: If Recovery OTP is currently active (within 5-min window) ──
     if (status?.step === "OTP" || status?.pendingRecoveryOtpActive) {
-      const authoritativeEmail = status.email || (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
+      const authoritativeEmail =
+        status.email ||
+        (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
       setAccountEmail(authoritativeEmail);
       setMaskedEmail(status.maskedEmail || authoritativeEmail);
       if (status.studentName) setStudentName(status.studentName);
@@ -689,7 +773,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setResendCooldown(status.expiresInSeconds || 300);
       setIsForgotPasswordMode(true);
       setIsOneTimeRecoveryOtp(true);
-      setStatusNotice("A one-time verification code is active for password reset (5-minute validity). Resend is disabled.");
+      setStatusNotice(
+        "A one-time verification code is active for password reset (5-minute validity). Resend is disabled.",
+      );
       setErrorMsg("");
       setErrorCode("");
       setStep("OTP");
@@ -698,7 +784,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
     // ── ANTI-BYPASS: If 3 failed attempts reached (OTP not yet dispatched) ──
     if (status?.step === "RECOVERY_PROMPT" || status?.pendingRecoveryPrompt) {
-      const authoritativeEmail = status.email || (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
+      const authoritativeEmail =
+        status.email ||
+        (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
       setAccountEmail(authoritativeEmail);
       setMaskedEmail(status.maskedEmail || authoritativeEmail);
       if (status.studentName) setStudentName(status.studentName);
@@ -710,9 +798,15 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     }
 
     if (status?.isBlocked) {
-      const isLockout = status.code === "ACCOUNT_TEMPORARILY_LOCKED" || status.blockReason === "ACCOUNT_TEMPORARILY_LOCKED";
+      const isLockout =
+        status.code === "ACCOUNT_TEMPORARILY_LOCKED" ||
+        status.blockReason === "ACCOUNT_TEMPORARILY_LOCKED";
       if (isLockout) {
-        setErrorMsg(status.blockMessage || status.message || "Account is temporarily locked. Try again after 24 hours.");
+        setErrorMsg(
+          status.blockMessage ||
+            status.message ||
+            "Account is temporarily locked. Try again after 24 hours.",
+        );
         setErrorCode("ACCOUNT_TEMPORARILY_LOCKED");
         if (status.unlockAt) setUnlockTime(status.unlockAt);
         return;
@@ -740,22 +834,29 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const triggerSendOtp = async (isForgot = false) => {
     if (loading) return;
     if (resendCooldown > 0) {
-      setErrorMsg(`Please wait ${resendCooldown} seconds before requesting another verification code.`);
+      setErrorMsg(
+        `Please wait ${resendCooldown} seconds before requesting another verification code.`,
+      );
       setErrorCode("OTP_COOLDOWN_ACTIVE");
       return;
     }
 
-    const isForgotMode = typeof isForgot === "boolean" ? isForgot : isForgotPasswordMode;
+    const isForgotMode =
+      typeof isForgot === "boolean" ? isForgot : isForgotPasswordMode;
     setLoading(true);
     setErrorMsg("");
     setErrorCode("");
     setIsForgotPasswordMode(isForgotMode);
 
-    const result = await sendStudentOtp(cleanReg, { isForgotPassword: isForgotMode });
+    const result = await sendStudentOtp(cleanReg, {
+      isForgotPassword: isForgotMode,
+    });
     setLoading(false);
 
     if (result.success) {
-      const authoritativeEmail = result.data?.email || (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
+      const authoritativeEmail =
+        result.data?.email ||
+        (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
       setAccountEmail(authoritativeEmail);
       setMaskedEmail(result.data?.maskedEmail || authoritativeEmail);
       setStudentName(result.data?.studentName || "Student");
@@ -776,11 +877,21 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         setRemainingDailyAttempts(0);
       }
       if (result.code === "OTP_COOLDOWN_ACTIVE") {
-        const cd = result.details?.cooldownRemainingSeconds || result.details?.remainingSeconds || 180;
+        const cd =
+          result.details?.cooldownRemainingSeconds ||
+          result.details?.remainingSeconds ||
+          180;
         setResendCooldown(cd + 2);
       }
-      if (result.code === "BLOCKED_DEVICE_ACTIVE" || result.code === "DEVICE_LIMIT_REACHED") {
-        const devs = result.details?.activeDevices || result.details?.sessions || deviceStatus?.devices || [];
+      if (
+        result.code === "BLOCKED_DEVICE_ACTIVE" ||
+        result.code === "DEVICE_LIMIT_REACHED"
+      ) {
+        const devs =
+          result.details?.activeDevices ||
+          result.details?.sessions ||
+          deviceStatus?.devices ||
+          [];
         setBlockedDevicesData(devs);
         setIsBlockedModalOpen(true);
       }
@@ -798,7 +909,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
     // Client-Side Throttling: If OTP cooldown is active, prevent unnecessary server calls
     if (resendCooldown > 0) {
-      setErrorMsg(`Please wait ${resendCooldown} seconds before requesting another verification code.`);
+      setErrorMsg(
+        `Please wait ${resendCooldown} seconds before requesting another verification code.`,
+      );
       setErrorCode("OTP_COOLDOWN_ACTIVE");
       return;
     }
@@ -821,10 +934,13 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     }
 
     if (result.step === "RECOVERY_PROMPT") {
-      const authoritativeEmail = result.email || (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
+      const authoritativeEmail =
+        result.email ||
+        (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
       setAccountEmail(authoritativeEmail);
       setMaskedEmail(result.maskedEmail || authoritativeEmail);
-      if (result.student?.studentName) setStudentName(result.student.studentName);
+      if (result.student?.studentName)
+        setStudentName(result.student.studentName);
       setStep("RECOVERY_PROMPT");
       setStatusNotice("");
       setErrorMsg("");
@@ -833,17 +949,26 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     }
 
     if (result.step === "OTP") {
-      const authoritativeEmail = result.email || (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
+      const authoritativeEmail =
+        result.email ||
+        (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
       setAccountEmail(authoritativeEmail);
       setMaskedEmail(result.maskedEmail || authoritativeEmail);
       setTimerSeconds(result.expiresInSeconds || 300);
       setTimerActive(true);
-      setResendCooldown(result.cooldownSeconds || result.expiresInSeconds || 300);
-      setRemainingDailyAttempts(result.remainingDailyAttempts ?? (result.isFailedPasswordTransfer ? 0 : 4));
+      setResendCooldown(
+        result.cooldownSeconds || result.expiresInSeconds || 300,
+      );
+      setRemainingDailyAttempts(
+        result.remainingDailyAttempts ??
+          (result.isFailedPasswordTransfer ? 0 : 4),
+      );
       if (result.isFailedPasswordTransfer) {
         setIsForgotPasswordMode(true);
         setIsOneTimeRecoveryOtp(true);
-        setStatusNotice("Maximum password attempts reached (3/3). A one-time verification code has been dispatched to your email (5 min validity).");
+        setStatusNotice(
+          "Maximum password attempts reached (3/3). A one-time verification code has been dispatched to your email (5 min validity).",
+        );
       }
       if (result.unlockAt) setUnlockTime(result.unlockAt);
       setStep("OTP");
@@ -858,29 +983,56 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
       // If server returns OTP cooldown, sync frontend cooldown timer with a 2-second safety buffer
       if (result.code === "OTP_COOLDOWN_ACTIVE") {
-        const cd = result.details?.cooldownRemainingSeconds || result.details?.remainingSeconds || 60;
+        const cd =
+          result.details?.cooldownRemainingSeconds ||
+          result.details?.remainingSeconds ||
+          60;
         setResendCooldown(cd + 2);
       }
 
       // ONLY count attempts on real password verification failure (never for OTP cooldown or rate limits)
-      if (result.code === "INVALID_PASSWORD" || result.code === "PASSWORD_ATTEMPTS_EXCEEDED" || result.details?.failedAttempts !== undefined) {
-        const attempts = (result.details?.failedAttempts ?? result.failedAttempts ?? (failedPasswordAttemptsCount + 1));
+      if (
+        result.code === "INVALID_PASSWORD" ||
+        result.code === "PASSWORD_ATTEMPTS_EXCEEDED" ||
+        result.details?.failedAttempts !== undefined
+      ) {
+        const attempts =
+          result.details?.failedAttempts ??
+          result.failedAttempts ??
+          failedPasswordAttemptsCount + 1;
         setFailedPasswordAttemptsCount(attempts);
 
         const lockThreshold = 3;
-        if (attempts >= lockThreshold || result.code === "OTP_FALLBACK_ALLOWED" || result.code === "PASSWORD_ATTEMPTS_EXCEEDED") {
-          setDeviceStatus((prev) => ({ ...(prev || {}), otpFallbackAllowed: true, isLocked: true }));
+        if (
+          attempts >= lockThreshold ||
+          result.code === "OTP_FALLBACK_ALLOWED" ||
+          result.code === "PASSWORD_ATTEMPTS_EXCEEDED"
+        ) {
+          setDeviceStatus((prev) => ({
+            ...(prev || {}),
+            otpFallbackAllowed: true,
+            isLocked: true,
+          }));
         }
       }
 
       if (result.code === "ACCOUNT_TEMPORARILY_LOCKED") {
-        if (result.details?.unlockAt || result.details?.recoveryRestrictedUntil) {
-          setUnlockTime(result.details?.unlockAt || result.details?.recoveryRestrictedUntil);
+        if (
+          result.details?.unlockAt ||
+          result.details?.recoveryRestrictedUntil
+        ) {
+          setUnlockTime(
+            result.details?.unlockAt || result.details?.recoveryRestrictedUntil,
+          );
         }
       }
 
-      if (result.code === "BLOCKED_DEVICE_ACTIVE" || result.code === "DEVICE_LIMIT_REACHED") {
-        const devs = result.details?.activeDevices || result.details?.sessions || [];
+      if (
+        result.code === "BLOCKED_DEVICE_ACTIVE" ||
+        result.code === "DEVICE_LIMIT_REACHED"
+      ) {
+        const devs =
+          result.details?.activeDevices || result.details?.sessions || [];
         setBlockedDevicesData(devs);
         setIsBlockedModalOpen(true);
       }
@@ -903,7 +1055,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       if (result.success) {
         navigateToDestination(cleanReg);
       } else {
-        setErrorMsg(result.error || "Failed to transfer session to this device.");
+        setErrorMsg(
+          result.error || "Failed to transfer session to this device.",
+        );
         setErrorCode(result.code || "TRANSFER_FAILED");
       }
     } catch (err) {
@@ -924,7 +1078,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         setMaskedEmail(res.data?.maskedEmail || "");
         setTimerSeconds(res.data?.expiresInSeconds || 180);
         setTimerActive(true);
-        setStatusNotice(`A 6-digit verification code has been dispatched to your university email.`);
+        setStatusNotice(
+          `A 6-digit verification code has been dispatched to your university email.`,
+        );
       } else {
         setErrorMsg(res.error || "Failed to send email verification code.");
       }
@@ -943,20 +1099,27 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     try {
       const res = await studentSendRecoveryOtp(cleanReg);
       if (res.success) {
-        const authoritativeEmail = res.data?.email || (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
+        const authoritativeEmail =
+          res.data?.email ||
+          (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "");
         setAccountEmail(authoritativeEmail);
         setMaskedEmail(res.data?.maskedEmail || authoritativeEmail);
-        if (res.data?.student?.studentName) setStudentName(res.data.student.studentName);
+        if (res.data?.student?.studentName)
+          setStudentName(res.data.student.studentName);
         setTimerSeconds(res.data?.expiresInSeconds || 300);
         setTimerActive(true);
         setResendCooldown(res.data?.cooldownSeconds || 300);
         setIsForgotPasswordMode(true);
         setIsOneTimeRecoveryOtp(true);
         if (res.data?.unlockAt) setUnlockTime(res.data.unlockAt);
-        setStatusNotice("A one-time verification code has been dispatched to your email (valid for 5 minutes).");
+        setStatusNotice(
+          "A one-time verification code has been dispatched to your email (valid for 5 minutes).",
+        );
         setStep("OTP");
       } else {
-        setErrorMsg(res.error || "Failed to dispatch recovery code. Please try again.");
+        setErrorMsg(
+          res.error || "Failed to dispatch recovery code. Please try again.",
+        );
         setErrorCode(res.code || "RECOVERY_ERROR");
         if (res.details?.unlockAt) setUnlockTime(res.details.unlockAt);
       }
@@ -981,21 +1144,28 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     setErrorMsg("");
     setErrorCode("");
 
-    const result = await verifyStudentOtp(cleanReg, cleanOtp, { isForgotPassword: isForgotPasswordMode });
+    const result = await verifyStudentOtp(cleanReg, cleanOtp, {
+      isForgotPassword: isForgotPasswordMode,
+    });
     setLoading(false);
 
     if (result.success) {
       if (result.step === "CREATE_PASSWORD") {
         setSetupPasswordToken(result.setupPasswordToken);
         setStep("CREATE_PASSWORD");
-        setStatusNotice("OTP verified successfully. Please create a new password to secure your account.");
+        setStatusNotice(
+          "OTP verified successfully. Please create a new password to secure your account.",
+        );
       } else {
         navigateToDestination(cleanReg);
       }
     } else {
       setErrorMsg(result.error);
       setErrorCode(result.code);
-      if (result.code === "ACCOUNT_TEMPORARILY_LOCKED" || result.details?.unlockAt) {
+      if (
+        result.code === "ACCOUNT_TEMPORARILY_LOCKED" ||
+        result.details?.unlockAt
+      ) {
         if (result.details?.unlockAt) {
           setUnlockTime(result.details.unlockAt);
         }
@@ -1020,7 +1190,11 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     setErrorMsg("");
     setErrorCode("");
 
-    const result = await studentCreatePassword(cleanReg, password, setupPasswordToken);
+    const result = await studentCreatePassword(
+      cleanReg,
+      password,
+      setupPasswordToken,
+    );
     setLoading(false);
 
     if (result.success) {
@@ -1092,48 +1266,169 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               }}
             >
               {/* Stepper */}
-              <div style={{ display: "flex", alignItems: "center", gap: "clamp(3px, 1vw, 5px)", flexShrink: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: "clamp(9.5px, 2.2vw, 10.5px)", fontWeight: 800, color: step === "REGNO" ? "#2563eb" : "#16a34a", whiteSpace: "nowrap" }}>
-                  <div style={{ width: 16, height: 16, borderRadius: "50%", background: step === "REGNO" ? "#2563eb" : "#16a34a", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900, flexShrink: 0 }}>
-                    {step === "REGNO" ? "1" : <Check size={10} strokeWidth={3} />}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "clamp(3px, 1vw, 5px)",
+                  flexShrink: 1,
+                  minWidth: 0,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 3,
+                    fontSize: "clamp(9.5px, 2.2vw, 10.5px)",
+                    fontWeight: 800,
+                    color: step === "REGNO" ? "#2563eb" : "#16a34a",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      background: step === "REGNO" ? "#2563eb" : "#16a34a",
+                      color: "#fff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 9,
+                      fontWeight: 900,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {step === "REGNO" ? (
+                      "1"
+                    ) : (
+                      <Check size={10} strokeWidth={3} />
+                    )}
                   </div>
                   <span>Identifier</span>
                 </div>
 
-                <div style={{ width: "clamp(6px, 1.5vw, 12px)", height: 2, background: step === "REGNO" ? "#e2e8f0" : (step === "RECOVERY_PROMPT" ? "#fca5a5" : "#16a34a"), borderRadius: 1, flexShrink: 0 }} />
+                <div
+                  style={{
+                    width: "clamp(6px, 1.5vw, 12px)",
+                    height: 2,
+                    background:
+                      step === "REGNO"
+                        ? "#e2e8f0"
+                        : step === "RECOVERY_PROMPT"
+                          ? "#fca5a5"
+                          : "#16a34a",
+                    borderRadius: 1,
+                    flexShrink: 0,
+                  }}
+                />
 
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 3,
-                  fontSize: "clamp(9.5px, 2.2vw, 10.5px)",
-                  fontWeight: 800,
-                  color: step === "RECOVERY_PROMPT" ? "#dc2626" : (step === "OTP" || step === "PASSWORD") ? "#2563eb" : (step === "CREATE_PASSWORD") ? "#16a34a" : "#94a3b8",
-                  whiteSpace: "nowrap"
-                }}>
-                  <div style={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: "50%",
-                    background: step === "RECOVERY_PROMPT" ? "#dc2626" : (step === "OTP" || step === "PASSWORD") ? "#2563eb" : (step === "CREATE_PASSWORD") ? "#16a34a" : "#e2e8f0",
-                    color: (step === "OTP" || step === "PASSWORD" || step === "CREATE_PASSWORD" || step === "RECOVERY_PROMPT") ? "#fff" : "#64748b",
+                <div
+                  style={{
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 9,
-                    fontWeight: 900,
-                    flexShrink: 0
-                  }}>
-                    {step === "CREATE_PASSWORD" ? <Check size={10} strokeWidth={3} /> : "2"}
+                    gap: 3,
+                    fontSize: "clamp(9.5px, 2.2vw, 10.5px)",
+                    fontWeight: 800,
+                    color:
+                      step === "RECOVERY_PROMPT"
+                        ? "#dc2626"
+                        : step === "OTP" || step === "PASSWORD"
+                          ? "#2563eb"
+                          : step === "CREATE_PASSWORD"
+                            ? "#16a34a"
+                            : "#94a3b8",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      background:
+                        step === "RECOVERY_PROMPT"
+                          ? "#dc2626"
+                          : step === "OTP" || step === "PASSWORD"
+                            ? "#2563eb"
+                            : step === "CREATE_PASSWORD"
+                              ? "#16a34a"
+                              : "#e2e8f0",
+                      color:
+                        step === "OTP" ||
+                        step === "PASSWORD" ||
+                        step === "CREATE_PASSWORD" ||
+                        step === "RECOVERY_PROMPT"
+                          ? "#fff"
+                          : "#64748b",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 9,
+                      fontWeight: 900,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {step === "CREATE_PASSWORD" ? (
+                      <Check size={10} strokeWidth={3} />
+                    ) : (
+                      "2"
+                    )}
                   </div>
-                  <span>{step === "RECOVERY_PROMPT" ? "Recovery" : step === "PASSWORD" ? "Password" : "OTP"}</span>
+                  <span>
+                    {step === "RECOVERY_PROMPT"
+                      ? "Recovery"
+                      : step === "PASSWORD"
+                        ? "Password"
+                        : "OTP"}
+                  </span>
                 </div>
 
-                {(!deviceStatus?.hasPassword || step === "CREATE_PASSWORD" || step === "RECOVERY_PROMPT") && (
+                {(!deviceStatus?.hasPassword ||
+                  step === "CREATE_PASSWORD" ||
+                  step === "RECOVERY_PROMPT") && (
                   <>
-                    <div style={{ width: "clamp(6px, 1.5vw, 12px)", height: 2, background: (step === "CREATE_PASSWORD") ? "#2563eb" : "#e2e8f0", borderRadius: 1, flexShrink: 0 }} />
-                    <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: "clamp(9.5px, 2.2vw, 10.5px)", fontWeight: 800, color: step === "CREATE_PASSWORD" ? "#2563eb" : "#94a3b8", whiteSpace: "nowrap" }}>
-                      <div style={{ width: 16, height: 16, borderRadius: "50%", background: step === "CREATE_PASSWORD" ? "#2563eb" : "#e2e8f0", color: step === "CREATE_PASSWORD" ? "#fff" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900, flexShrink: 0 }}>
+                    <div
+                      style={{
+                        width: "clamp(6px, 1.5vw, 12px)",
+                        height: 2,
+                        background:
+                          step === "CREATE_PASSWORD" ? "#2563eb" : "#e2e8f0",
+                        borderRadius: 1,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 3,
+                        fontSize: "clamp(9.5px, 2.2vw, 10.5px)",
+                        fontWeight: 800,
+                        color:
+                          step === "CREATE_PASSWORD" ? "#2563eb" : "#94a3b8",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 16,
+                          height: 16,
+                          borderRadius: "50%",
+                          background:
+                            step === "CREATE_PASSWORD" ? "#2563eb" : "#e2e8f0",
+                          color:
+                            step === "CREATE_PASSWORD" ? "#fff" : "#64748b",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 9,
+                          fontWeight: 900,
+                          flexShrink: 0,
+                        }}
+                      >
                         3
                       </div>
                       <span>Password</span>
@@ -1190,14 +1485,23 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
           {/* Modal Header */}
           {step !== "PASSWORD_SUCCESS" && step !== "APPROVAL_PENDING" && (
-            <div style={{ textAlign: "center", marginBottom: "clamp(8px, 2vw, 12px)" }}>
+            <div
+              style={{
+                textAlign: "center",
+                marginBottom: "clamp(8px, 2vw, 12px)",
+              }}
+            >
               <div
                 style={{
                   width: "clamp(34px, 8vw, 38px)",
                   height: "clamp(34px, 8vw, 38px)",
                   borderRadius: 10,
-                  background: step === "RECOVERY_PROMPT" ? "#fef2f2" : "#eff6ff",
-                  border: step === "RECOVERY_PROMPT" ? "1px solid #fecaca" : "1px solid #dbeafe",
+                  background:
+                    step === "RECOVERY_PROMPT" ? "#fef2f2" : "#eff6ff",
+                  border:
+                    step === "RECOVERY_PROMPT"
+                      ? "1px solid #fecaca"
+                      : "1px solid #dbeafe",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -1229,12 +1533,12 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 {step === "CREATE_PASSWORD"
                   ? "Create Account Password"
                   : step === "PASSWORD"
-                  ? "Student Password Login"
-                  : step === "OTP"
-                  ? "Email Verification"
-                  : step === "RECOVERY_PROMPT"
-                  ? "Account Recovery"
-                  : "Student Portal Login"}
+                    ? "Student Password Login"
+                    : step === "OTP"
+                      ? "Email Verification"
+                      : step === "RECOVERY_PROMPT"
+                        ? "Account Recovery"
+                        : "Student Portal Login"}
               </h3>
               <p
                 style={{
@@ -1247,12 +1551,12 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 {step === "CREATE_PASSWORD"
                   ? `Set a mandatory password to secure your account (${cleanReg})`
                   : step === "PASSWORD"
-                  ? `Enter your account password for ${cleanReg}`
-                  : step === "OTP"
-                  ? `Enter the 6-digit verification code sent to your email`
-                  : step === "RECOVERY_PROMPT"
-                  ? `Password login suspended for ${cleanReg}`
-                  : "Enter your official university registration number"}
+                    ? `Enter your account password for ${cleanReg}`
+                    : step === "OTP"
+                      ? `Enter the 6-digit verification code sent to your email`
+                      : step === "RECOVERY_PROMPT"
+                        ? `Password login suspended for ${cleanReg}`
+                        : "Enter your official university registration number"}
               </p>
             </div>
           )}
@@ -1287,7 +1591,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               >
                 {errorCode === "ACCOUNT_TEMPORARILY_LOCKED" ? (
                   <Lock size={13} color="#dc2626" />
-                ) : errorCode === "BLOCKED_DEVICE_ACTIVE" || errorCode === "DEVICE_LIMIT_REACHED" ? (
+                ) : errorCode === "BLOCKED_DEVICE_ACTIVE" ||
+                  errorCode === "DEVICE_LIMIT_REACHED" ? (
                   <Smartphone size={13} color="#dc2626" />
                 ) : errorCode === "STUDENT_SUSPENDED" ? (
                   <ShieldAlert size={14} color="#dc2626" />
@@ -1296,22 +1601,37 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 )}
               </div>
               <div style={{ flex: 1 }}>
-                <span style={{ fontSize: 11.5, color: "#991b1b", fontWeight: 700, display: "block", marginBottom: 1 }}>
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    color: "#991b1b",
+                    fontWeight: 700,
+                    display: "block",
+                    marginBottom: 1,
+                  }}
+                >
                   {errorCode === "ACCOUNT_TEMPORARILY_LOCKED"
                     ? "Account Temporarily Locked (24 Hours)"
                     : errorCode === "BLOCKED_DEVICE_ACTIVE"
-                    ? "Device Slot Occupied"
-                    : errorCode === "DEVICE_LIMIT_REACHED"
-                    ? "Device Limit Reached"
-                    : errorCode === "APPROVAL_DENIED"
-                    ? "Login Request Denied"
-                    : errorCode === "APPROVAL_EXPIRED"
-                    ? "Approval Timed Out"
-                    : errorCode === "STUDENT_SUSPENDED"
-                    ? "Portal Access Restricted"
-                    : "Authentication Notice"}
+                      ? "Device Slot Occupied"
+                      : errorCode === "DEVICE_LIMIT_REACHED"
+                        ? "Device Limit Reached"
+                        : errorCode === "APPROVAL_DENIED"
+                          ? "Login Request Denied"
+                          : errorCode === "APPROVAL_EXPIRED"
+                            ? "Approval Timed Out"
+                            : errorCode === "STUDENT_SUSPENDED"
+                              ? "Portal Access Restricted"
+                              : "Authentication Notice"}
                 </span>
-                <div style={{ fontSize: 11.5, color: "#7f1d1d", lineHeight: 1.45, margin: 0 }}>
+                <div
+                  style={{
+                    fontSize: 11.5,
+                    color: "#7f1d1d",
+                    lineHeight: 1.45,
+                    margin: 0,
+                  }}
+                >
                   {String(errorMsg || "")
                     .split("\n")
                     .map((line, idx) => (
@@ -1328,7 +1648,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     ))}
                 </div>
 
-                {(errorCode === "BLOCKED_DEVICE_ACTIVE" || errorCode === "DEVICE_LIMIT_REACHED") && (
+                {(errorCode === "BLOCKED_DEVICE_ACTIVE" ||
+                  errorCode === "DEVICE_LIMIT_REACHED") && (
                   <button
                     type="button"
                     onClick={() => setIsBlockedModalOpen(true)}
@@ -1353,7 +1674,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 )}
               </div>
             </div>
-          ) : statusNotice && step !== "PASSWORD_SUCCESS" && step !== "OTP" && step !== "RECOVERY_PROMPT" ? (
+          ) : statusNotice &&
+            step !== "PASSWORD_SUCCESS" &&
+            step !== "OTP" &&
+            step !== "RECOVERY_PROMPT" ? (
             <div
               style={{
                 background: "#f0fdf4",
@@ -1376,7 +1700,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
           {/* STEP 1: Registration Number */}
           {step === "REGNO" && (
-            <form onSubmit={handleRegSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <form
+              onSubmit={handleRegSubmit}
+              style={{ display: "flex", flexDirection: "column", gap: 14 }}
+            >
               <div>
                 <label
                   style={{
@@ -1394,9 +1721,16 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 <input
                   type="text"
                   value={regNo}
-                  onChange={(e) => setRegNo(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 16))}
+                  onChange={(e) =>
+                    setRegNo(
+                      e.target.value
+                        .toUpperCase()
+                        .replace(/[^A-Z0-9]/g, "")
+                        .slice(0, 16),
+                    )
+                  }
                   maxLength={16}
-                  placeholder="e.g. 230101120001"
+                  placeholder="e.g. 23XXXXXXX001"
                   autoFocus
                   required
                   style={{
@@ -1431,27 +1765,33 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   </div>
                 )}
 
-                {isRegValid && !isChecking && deviceStatus && deviceStatus.exists === true && !deviceStatus.isSuspended && (
-                  <div
-                    style={{
-                      fontSize: 11.5,
-                      color: "#2563eb",
-                      marginTop: 6,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                      fontWeight: 600,
-                    }}
-                  >
-                    <ShieldCheck size={13} color="#2563eb" />
-                    <span>
-                      {deviceStatus?.hasPassword
-                        ? "Account password security active"
-                        : "New account — First-time verification will create a password"}
-                      {studentName && studentName !== "Student" ? ` (${studentName})` : ""}
-                    </span>
-                  </div>
-                )}
+                {isRegValid &&
+                  !isChecking &&
+                  deviceStatus &&
+                  deviceStatus.exists === true &&
+                  !deviceStatus.isSuspended && (
+                    <div
+                      style={{
+                        fontSize: 11.5,
+                        color: "#2563eb",
+                        marginTop: 6,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 5,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <ShieldCheck size={13} color="#2563eb" />
+                      <span>
+                        {deviceStatus?.hasPassword
+                          ? "Account password security active"
+                          : "New account — First-time verification will create a password"}
+                        {studentName && studentName !== "Student"
+                          ? ` (${studentName})`
+                          : ""}
+                      </span>
+                    </div>
+                  )}
               </div>
 
               {/* Security Policy Highlights */}
@@ -1466,16 +1806,41 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   gap: 6,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "#475569" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 7,
+                    fontSize: 11.5,
+                    color: "#475569",
+                  }}
+                >
                   <ShieldCheck size={13} color="#16a34a" />
                   <span>
-                    <strong>{isDeveloperOrSpecialStudent(cleanReg) ? "Multi-Device Policy:" : "Single-Device Policy:"}</strong>{" "}
-                    {isDeveloperOrSpecialStudent(cleanReg) ? `Max ${getDeveloperMaxDevices()} devices allowed.` : "1 active logged-in device allowed."}
+                    <strong>
+                      {isDeveloperOrSpecialStudent(cleanReg)
+                        ? "Multi-Device Policy:"
+                        : "Single-Device Policy:"}
+                    </strong>{" "}
+                    {isDeveloperOrSpecialStudent(cleanReg)
+                      ? `Max ${getDeveloperMaxDevices()} devices allowed.`
+                      : "1 active logged-in device allowed."}
                   </span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "#475569" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 7,
+                    fontSize: 11.5,
+                    color: "#475569",
+                  }}
+                >
                   <Lock size={13} color="#2563eb" />
-                  <span><strong>Device Approvals:</strong> In-website device transfer approval supported.</span>
+                  <span>
+                    <strong>Device Approvals:</strong> In-website device
+                    transfer approval supported.
+                  </span>
                 </div>
               </div>
 
@@ -1545,252 +1910,329 @@ export default function StudentAuthModal({ isOpen, onClose }) {
           )}
 
           {/* STEP 2: Password Input */}
-          {step === "PASSWORD" && (() => {
-            const maxAttempts = 3;
-            const isPasswordBlocked = failedPasswordAttemptsCount >= maxAttempts || (deviceStatus?.failedPasswordAttempts >= maxAttempts) || deviceStatus?.isLocked;
+          {step === "PASSWORD" &&
+            (() => {
+              const maxAttempts = 3;
+              const isPasswordBlocked =
+                failedPasswordAttemptsCount >= maxAttempts ||
+                deviceStatus?.failedPasswordAttempts >= maxAttempts ||
+                deviceStatus?.isLocked;
 
-            return (
-              <form onSubmit={handlePasswordSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <label
+              return (
+                <form
+                  onSubmit={handlePasswordSubmit}
+                  style={{ display: "flex", flexDirection: "column", gap: 14 }}
+                >
+                  <div>
+                    <div
                       style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: isPasswordBlocked ? "#dc2626" : "#475569",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 6,
                       }}
                     >
-                      Account Password
-                    </label>
-                    {isPasswordBlocked ? (
-                      <span
+                      <label
                         style={{
-                          fontSize: 11,
-                          fontWeight: 800,
-                          color: "#dc2626",
-                          background: "#fef2f2",
-                          padding: "2.5px 8px",
-                          borderRadius: 999,
-                          border: "1px solid #fecaca",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
-                      >
-                        <Lock size={11} strokeWidth={2.5} />
-                        <span>Locked ({maxAttempts}/{maxAttempts} Failed)</span>
-                      </span>
-                    ) : failedPasswordAttemptsCount > 0 ? (
-                      <span
-                        style={{
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: 700,
-                          color: "#d97706",
-                          background: "#fffbeb",
-                          padding: "2.5px 8px",
-                          borderRadius: 999,
-                          border: "1px solid #fde68a",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
+                          color: isPasswordBlocked ? "#dc2626" : "#475569",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
                         }}
                       >
-                        <ShieldAlert size={11} strokeWidth={2.5} />
-                        <span>{Math.max(0, maxAttempts - failedPasswordAttemptsCount)} attempt(s) remaining</span>
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <div style={{ position: "relative" }}>
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      disabled={isPasswordBlocked}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder={isPasswordBlocked ? `Input locked due to ${maxAttempts} failed attempts` : "Enter your account password"}
-                      autoFocus={!isPasswordBlocked}
-                      required={!isPasswordBlocked}
-                      style={{
-                        width: "100%",
-                        padding: "11px 42px 11px 14px",
-                        fontSize: 14,
-                        color: isPasswordBlocked ? "#94a3b8" : "#0f172a",
-                        background: isPasswordBlocked ? "#f1f5f9" : "#f8fafc",
-                        border: isPasswordBlocked ? "1.5px solid #fecaca" : "1.5px solid #cbd5e1",
-                        borderRadius: 10,
-                        outline: "none",
-                        boxSizing: "border-box",
-                        cursor: isPasswordBlocked ? "not-allowed" : "text",
-                      }}
-                    />
-                    {!isPasswordBlocked && (
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        style={{
-                          position: "absolute",
-                          right: 12,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          background: "none",
-                          border: "none",
-                          color: "#64748b",
-                          cursor: "pointer",
-                          padding: 4,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* 1-Time Recovery OTP Card — ONLY visible when 3 password attempts have failed */}
-                {isPasswordBlocked && (
-                  <div
-                    style={{
-                      background: "linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%)",
-                      border: "1.5px solid #bfdbfe",
-                      borderRadius: 14,
-                      padding: "14px 15px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 12,
-                      boxShadow: "0 2px 10px rgba(37, 99, 235, 0.06)",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                      <div
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 8,
-                          background: "#dbeafe",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                      >
-                        <ShieldAlert size={18} color="#2563eb" strokeWidth={2.2} />
-                      </div>
-                      <div>
-                        <span style={{ fontSize: 13, color: "#1e40af", fontWeight: 800, display: "block" }}>
-                          Password Locked — 1-Time Email Verification
+                        Account Password
+                      </label>
+                      {isPasswordBlocked ? (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 800,
+                            color: "#dc2626",
+                            background: "#fef2f2",
+                            padding: "2.5px 8px",
+                            borderRadius: 999,
+                            border: "1px solid #fecaca",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <Lock size={11} strokeWidth={2.5} />
+                          <span>
+                            Locked ({maxAttempts}/{maxAttempts} Failed)
+                          </span>
                         </span>
-                        <p style={{ fontSize: 11.5, color: "#3b82f6", margin: "3px 0 0 0", lineHeight: 1.45 }}>
-                          A single-use OTP will be sent to your university email. It is valid for <strong>5 minutes</strong>. Resend is disabled.
-                        </p>
-                      </div>
+                      ) : failedPasswordAttemptsCount > 0 ? (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "#d97706",
+                            background: "#fffbeb",
+                            padding: "2.5px 8px",
+                            borderRadius: 999,
+                            border: "1px solid #fde68a",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <ShieldAlert size={11} strokeWidth={2.5} />
+                          <span>
+                            {Math.max(
+                              0,
+                              maxAttempts - failedPasswordAttemptsCount,
+                            )}{" "}
+                            attempt(s) remaining
+                          </span>
+                        </span>
+                      ) : null}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={handleTriggerRecoveryOtp}
-                      disabled={loading}
+                    <div style={{ position: "relative" }}>
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        disabled={isPasswordBlocked}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder={
+                          isPasswordBlocked
+                            ? `Input locked due to ${maxAttempts} failed attempts`
+                            : "Enter your account password"
+                        }
+                        autoFocus={!isPasswordBlocked}
+                        required={!isPasswordBlocked}
+                        style={{
+                          width: "100%",
+                          padding: "11px 42px 11px 14px",
+                          fontSize: 14,
+                          color: isPasswordBlocked ? "#94a3b8" : "#0f172a",
+                          background: isPasswordBlocked ? "#f1f5f9" : "#f8fafc",
+                          border: isPasswordBlocked
+                            ? "1.5px solid #fecaca"
+                            : "1.5px solid #cbd5e1",
+                          borderRadius: 10,
+                          outline: "none",
+                          boxSizing: "border-box",
+                          cursor: isPasswordBlocked ? "not-allowed" : "text",
+                        }}
+                      />
+                      {!isPasswordBlocked && (
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          style={{
+                            position: "absolute",
+                            right: 12,
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            background: "none",
+                            border: "none",
+                            color: "#64748b",
+                            cursor: "pointer",
+                            padding: 4,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          {showPassword ? (
+                            <EyeOff size={16} />
+                          ) : (
+                            <Eye size={16} />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 1-Time Recovery OTP Card — ONLY visible when 3 password attempts have failed */}
+                  {isPasswordBlocked && (
+                    <div
                       style={{
-                        background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-                        color: "#ffffff",
-                        border: "none",
-                        borderRadius: 10,
-                        padding: "11px 16px",
-                        fontSize: 13,
-                        fontWeight: 800,
-                        cursor: loading ? "not-allowed" : "pointer",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 7,
-                        boxShadow: "0 3px 10px rgba(37, 99, 235, 0.28)",
-                        transition: "all 0.15s ease",
+                        background:
+                          "linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%)",
+                        border: "1.5px solid #bfdbfe",
+                        borderRadius: 14,
+                        padding: "14px 15px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 12,
+                        boxShadow: "0 2px 10px rgba(37, 99, 235, 0.06)",
                       }}
                     >
-                      {loading ? <Loader2 size={15} className="spin" /> : <Mail size={15} strokeWidth={2.2} />}
-                      <span>Send 1-Time Recovery Code (5 Min Expiry)</span>
-                    </button>
-                  </div>
-                )}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 10,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 8,
+                            background: "#dbeafe",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <ShieldAlert
+                            size={18}
+                            color="#2563eb"
+                            strokeWidth={2.2}
+                          />
+                        </div>
+                        <div>
+                          <span
+                            style={{
+                              fontSize: 13,
+                              color: "#1e40af",
+                              fontWeight: 800,
+                              display: "block",
+                            }}
+                          >
+                            Password Locked — 1-Time Email Verification
+                          </span>
+                          <p
+                            style={{
+                              fontSize: 11.5,
+                              color: "#3b82f6",
+                              margin: "3px 0 0 0",
+                              lineHeight: 1.45,
+                            }}
+                          >
+                            A single-use OTP will be sent to your university
+                            email. It is valid for <strong>5 minutes</strong>.
+                            Resend is disabled.
+                          </p>
+                        </div>
+                      </div>
 
-                {!isPasswordBlocked && (
+                      <button
+                        type="button"
+                        onClick={handleTriggerRecoveryOtp}
+                        disabled={loading}
+                        style={{
+                          background:
+                            "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                          color: "#ffffff",
+                          border: "none",
+                          borderRadius: 10,
+                          padding: "11px 16px",
+                          fontSize: 13,
+                          fontWeight: 800,
+                          cursor: loading ? "not-allowed" : "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 7,
+                          boxShadow: "0 3px 10px rgba(37, 99, 235, 0.28)",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        {loading ? (
+                          <Loader2 size={15} className="spin" />
+                        ) : (
+                          <Mail size={15} strokeWidth={2.2} />
+                        )}
+                        <span>Send 1-Time Recovery Code (5 Min Expiry)</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {!isPasswordBlocked && (
+                    <button
+                      type="submit"
+                      disabled={loading || !password || resendCooldown > 0}
+                      style={{
+                        width: "100%",
+                        padding: "11px 16px",
+                        borderRadius: 10,
+                        border: "none",
+                        background:
+                          loading || !password || resendCooldown > 0
+                            ? "#cbd5e1"
+                            : "#0f172a",
+                        color: "#ffffff",
+                        fontSize: 13.5,
+                        fontWeight: 700,
+                        cursor:
+                          loading || !password || resendCooldown > 0
+                            ? "not-allowed"
+                            : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                      }}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 size={15} className="spin" />
+                          <span>Signing in...</span>
+                        </>
+                      ) : resendCooldown > 0 ? (
+                        <>
+                          <Clock size={15} />
+                          <span>Please wait {resendCooldown}s</span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock size={15} />
+                          <span>Sign In</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+
                   <button
-                    type="submit"
-                    disabled={loading || !password || resendCooldown > 0}
+                    type="button"
+                    onClick={() => {
+                      setStep("REGNO");
+                      setPassword("");
+                      setFailedPasswordAttemptsCount(0);
+                      setErrorMsg("");
+                    }}
                     style={{
-                      width: "100%",
-                      padding: "11px 16px",
-                      borderRadius: 10,
+                      background: "none",
                       border: "none",
-                      background: loading || !password || resendCooldown > 0 ? "#cbd5e1" : "#0f172a",
-                      color: "#ffffff",
-                      fontSize: 13.5,
+                      color: "#64748b",
+                      fontSize: 12,
                       fontWeight: 700,
-                      cursor: loading || !password || resendCooldown > 0 ? "not-allowed" : "pointer",
-                      display: "flex",
+                      cursor: "pointer",
+                      padding: 0,
+                      display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: 6,
+                      gap: 4,
                     }}
                   >
-                    {loading ? (
-                      <>
-                        <Loader2 size={15} className="spin" />
-                        <span>Signing in...</span>
-                      </>
-                    ) : resendCooldown > 0 ? (
-                      <>
-                        <Clock size={15} />
-                        <span>Please wait {resendCooldown}s</span>
-                      </>
-                    ) : (
-                      <>
-                        <Lock size={15} />
-                        <span>Sign In</span>
-                      </>
-                    )}
+                    <ChevronLeft size={14} />
+                    <span>Change Registration Number</span>
                   </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep("REGNO");
-                    setPassword("");
-                    setFailedPasswordAttemptsCount(0);
-                    setErrorMsg("");
-                  }}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#64748b",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    padding: 0,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 4,
-                  }}
-                >
-                  <ChevronLeft size={14} />
-                  <span>Change Registration Number</span>
-                </button>
-              </form>
-            );
-          })()}
+                </form>
+              );
+            })()}
 
           {/* STEP 2C: DEDICATED RECOVERY INSTRUCTION SCREEN (3 FAILED PASSWORD ATTEMPTS) */}
           {step === "RECOVERY_PROMPT" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "clamp(8px, 2vw, 11px)" }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "clamp(8px, 2vw, 11px)",
+              }}
+            >
               {/* Main Security Card */}
               <div
                 style={{
-                  background: "linear-gradient(180deg, #fff7f7 0%, #fef2f2 100%)",
+                  background:
+                    "linear-gradient(180deg, #fff7f7 0%, #fef2f2 100%)",
                   border: "1.5px solid #fecaca",
                   borderRadius: 13,
                   padding: "clamp(9px, 2.4vw, 12px)",
@@ -1801,7 +2243,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 }}
               >
                 {/* Status Badge & Security Context */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 6,
+                  }}
+                >
                   <span
                     style={{
                       fontSize: "clamp(9.5px, 2.2vw, 10.5px)",
@@ -1822,13 +2271,27 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     <ShieldAlert size={11} strokeWidth={2.5} />
                     <span>3/3 Failed Attempts</span>
                   </span>
-                  <span style={{ fontSize: "clamp(10px, 2.2vw, 11px)", color: "#991b1b", fontWeight: 700 }}>
+                  <span
+                    style={{
+                      fontSize: "clamp(10px, 2.2vw, 11px)",
+                      color: "#991b1b",
+                      fontWeight: 700,
+                    }}
+                  >
                     Single-Use Verification
                   </span>
                 </div>
 
-                <p style={{ margin: 0, fontSize: "clamp(10.5px, 2.5vw, 11.5px)", color: "#7f1d1d", lineHeight: 1.35 }}>
-                  Password login is temporarily suspended. Request a single-use code to verify your identity and set a new password.
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: "clamp(10.5px, 2.5vw, 11.5px)",
+                    color: "#7f1d1d",
+                    lineHeight: 1.35,
+                  }}
+                >
+                  Password login is temporarily suspended. Request a single-use
+                  code to verify your identity and set a new password.
                 </p>
 
                 {/* Email Destination Box — 100% visible, ZERO truncation, stacked label & mono address */}
@@ -1844,8 +2307,23 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "clamp(10px, 2.2vw, 11px)", fontWeight: 700, color: "#64748b" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 5,
+                        fontSize: "clamp(10px, 2.2vw, 11px)",
+                        fontWeight: 700,
+                        color: "#64748b",
+                      }}
+                    >
                       <Mail size={11.5} color="#dc2626" />
                       <span>Code will be sent to:</span>
                     </div>
@@ -1875,7 +2353,11 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                       marginTop: 1,
                     }}
                   >
-                    {maskedEmail || accountEmail || (cleanReg ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in` : "")}
+                    {maskedEmail ||
+                      accountEmail ||
+                      (cleanReg
+                        ? `${cleanReg.toLowerCase()}@centurionuniv.edu.in`
+                        : "")}
                   </div>
                 </div>
 
@@ -1890,7 +2372,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     lineHeight: 1.35,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
                     <div
                       style={{
                         width: 17,
@@ -1905,9 +2389,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     >
                       <Clock size={10.5} color="#dc2626" />
                     </div>
-                    <span>The verification OTP is valid for <strong>5 minutes</strong> only.</span>
+                    <span>
+                      The verification OTP is valid for{" "}
+                      <strong>5 minutes</strong> only.
+                    </span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
                     <div
                       style={{
                         width: 17,
@@ -1922,9 +2411,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     >
                       <AlertTriangle size={10.5} color="#d97706" />
                     </div>
-                    <span>If not verified within 5 minutes, account locks for <strong>24 hours</strong>.</span>
+                    <span>
+                      If not verified within 5 minutes, account locks for{" "}
+                      <strong>24 hours</strong>.
+                    </span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
                     <div
                       style={{
                         width: 17,
@@ -1939,7 +2433,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     >
                       <KeyRound size={10.5} color="#16a34a" />
                     </div>
-                    <span>After verifying, you will create a <strong>new password</strong> to restore access.</span>
+                    <span>
+                      After verifying, you will create a{" "}
+                      <strong>new password</strong> to restore access.
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1965,14 +2462,20 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 7,
-                  boxShadow: loading ? "none" : "0 4px 14px rgba(220, 38, 38, 0.25)",
+                  boxShadow: loading
+                    ? "none"
+                    : "0 4px 14px rgba(220, 38, 38, 0.25)",
                   transition: "all 0.15s ease",
                 }}
                 onMouseEnter={(e) => {
-                  if (!loading) e.currentTarget.style.background = "linear-gradient(135deg, #b91c1c 0%, #991b1b 100%)";
+                  if (!loading)
+                    e.currentTarget.style.background =
+                      "linear-gradient(135deg, #b91c1c 0%, #991b1b 100%)";
                 }}
                 onMouseLeave={(e) => {
-                  if (!loading) e.currentTarget.style.background = "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)";
+                  if (!loading)
+                    e.currentTarget.style.background =
+                      "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)";
                 }}
               >
                 {loading ? (
@@ -2023,7 +2526,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
           {/* STEP 2B: APPROVAL PENDING SCREEN */}
           {step === "APPROVAL_PENDING" && (
-            <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 16 }}>
+            <div
+              style={{
+                textAlign: "center",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+              }}
+            >
               <div
                 style={{
                   width: 56,
@@ -2041,11 +2551,26 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               </div>
 
               <div>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
+                <h3
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    margin: "0 0 6px 0",
+                  }}
+                >
                   Approval Required
                 </h3>
-                <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.5, margin: 0 }}>
-                  You are currently logged in on another device. We sent an in-app approval request to your active session.
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: "#64748b",
+                    lineHeight: 1.5,
+                    margin: 0,
+                  }}
+                >
+                  You are currently logged in on another device. We sent an
+                  in-app approval request to your active session.
                 </p>
               </div>
 
@@ -2063,19 +2588,35 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     fontSize: 12.5,
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
                     <span style={{ color: "#64748b" }}>Active Device:</span>
                     <strong style={{ color: "#0f172a" }}>
-                      {approvalActiveDevice.deviceType} ({approvalActiveDevice.platform || approvalActiveDevice.os})
+                      {approvalActiveDevice.deviceType} (
+                      {approvalActiveDevice.platform || approvalActiveDevice.os}
+                      )
                     </strong>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
                     <span style={{ color: "#64748b" }}>Browser:</span>
-                    <span style={{ color: "#334155" }}>{approvalActiveDevice.browser}</span>
+                    <span style={{ color: "#334155" }}>
+                      {approvalActiveDevice.browser}
+                    </span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
                     <span style={{ color: "#64748b" }}>Expires In:</span>
-                    <strong style={{ color: approvalTimerSeconds < 30 ? "#dc2626" : "#2563eb", fontFamily: "'Space Mono', monospace" }}>
+                    <strong
+                      style={{
+                        color:
+                          approvalTimerSeconds < 30 ? "#dc2626" : "#2563eb",
+                        fontFamily: "'Space Mono', monospace",
+                      }}
+                    >
                       {formatTimer(approvalTimerSeconds)}
                     </strong>
                   </div>
@@ -2098,8 +2639,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     textAlign: "left",
                   }}
                 >
-                  <XCircle size={18} color="#dc2626" style={{ flexShrink: 0 }} />
-                  <span>Your login request was denied by the active device.</span>
+                  <XCircle
+                    size={18}
+                    color="#dc2626"
+                    style={{ flexShrink: 0 }}
+                  />
+                  <span>
+                    Your login request was denied by the active device.
+                  </span>
                 </div>
               ) : errorCode === "APPROVAL_EXPIRED" ? (
                 <div
@@ -2118,7 +2665,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   }}
                 >
                   <Clock size={18} color="#d97706" style={{ flexShrink: 0 }} />
-                  <span>Approval request timed out. Please try logging in again.</span>
+                  <span>
+                    Approval request timed out. Please try logging in again.
+                  </span>
                 </div>
               ) : (
                 <>
@@ -2136,11 +2685,28 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                       gap: 8,
                     }}
                   >
-                    <CheckCircle2 size={16} color="#16a34a" style={{ flexShrink: 0 }} />
-                    <span>Open GradeFlow on your active device and tap <strong>Allow This Device</strong> in the notification bell.</span>
+                    <CheckCircle2
+                      size={16}
+                      color="#16a34a"
+                      style={{ flexShrink: 0 }}
+                    />
+                    <span>
+                      Open GradeFlow on your active device and tap{" "}
+                      <strong>Allow This Device</strong> in the notification
+                      bell.
+                    </span>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#64748b", fontSize: 12 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                      color: "#64748b",
+                      fontSize: 12,
+                    }}
+                  >
                     <Loader2 size={14} className="spin" />
                     <span>Waiting for response from active device...</span>
                   </div>
@@ -2168,7 +2734,11 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   boxShadow: "0 2px 4px rgba(37, 99, 235, 0.2)",
                 }}
               >
-                {loading ? <Loader2 size={15} className="spin" /> : <ArrowRightLeft size={15} />}
+                {loading ? (
+                  <Loader2 size={15} className="spin" />
+                ) : (
+                  <ArrowRightLeft size={15} />
+                )}
                 <span>Take Over Session & Log In on this Device</span>
               </button>
 
@@ -2199,7 +2769,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               <button
                 type="button"
                 onClick={() => {
-                  if (errorCode !== "APPROVAL_DENIED" && errorCode !== "APPROVAL_EXPIRED") {
+                  if (
+                    errorCode !== "APPROVAL_DENIED" &&
+                    errorCode !== "APPROVAL_EXPIRED"
+                  ) {
                     cancelApprovalRequest(approvalRequestId);
                   }
                   setStep("PASSWORD");
@@ -2225,7 +2798,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
           {/* STEP 3: OTP Verification */}
           {step === "OTP" && (
-            <form onSubmit={handleVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <form
+              onSubmit={handleVerifyOtp}
+              style={{ display: "flex", flexDirection: "column", gap: 16 }}
+            >
               {/* 1-Time Security Recovery Code Banner */}
               {isOneTimeRecoveryOtp && (
                 <div
@@ -2239,13 +2815,35 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     gap: 10,
                   }}
                 >
-                  <ShieldAlert size={18} color="#d97706" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <ShieldAlert
+                    size={18}
+                    color="#d97706"
+                    style={{ flexShrink: 0, marginTop: 1 }}
+                  />
                   <div>
-                    <span style={{ fontSize: 12.5, color: "#92400e", fontWeight: 800, display: "block" }}>
+                    <span
+                      style={{
+                        fontSize: 12.5,
+                        color: "#92400e",
+                        fontWeight: 800,
+                        display: "block",
+                      }}
+                    >
                       1-Time Password Recovery Code
                     </span>
-                    <p style={{ fontSize: 11.5, color: "#b45309", margin: "3px 0 0 0", lineHeight: 1.45 }}>
-                      This single-use code is valid for <strong>5 minutes</strong> only. Resend is disabled. Once verified, you will set a new password. If not verified within 5 minutes, your account will be locked for 24 hours.
+                    <p
+                      style={{
+                        fontSize: 11.5,
+                        color: "#b45309",
+                        margin: "3px 0 0 0",
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      This single-use code is valid for{" "}
+                      <strong>5 minutes</strong> only. Resend is disabled. Once
+                      verified, you will set a new password. If not verified
+                      within 5 minutes, your account will be locked for 24
+                      hours.
                     </p>
                   </div>
                 </div>
@@ -2279,7 +2877,13 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   <Mail size={18} color="#16a34a" />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 11.5, color: "#166534", fontWeight: 700 }}>
+                  <div
+                    style={{
+                      fontSize: 11.5,
+                      color: "#166534",
+                      fontWeight: 700,
+                    }}
+                  >
                     Verification code dispatched to:
                   </div>
                   <div
@@ -2297,29 +2901,53 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   >
                     {accountEmail || maskedEmail || "your registered email"}
                   </div>
-                  {!isForgotPasswordMode && !isOneTimeRecoveryOtp && typeof remainingDailyAttempts === "number" && (
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: remainingDailyAttempts <= 0 ? "#dc2626" : "#166534",
-                        fontWeight: 600,
-                        marginTop: 4,
-                      }}
-                    >
-                      {remainingDailyAttempts > 0 ? (
-                        <span>OTP attempts remaining today: <strong>{remainingDailyAttempts}</strong></span>
-                      ) : (
-                        <span>Daily OTP limit reached.{unlockTime ? ` Unlocks at ${unlockTime}.` : ""}</span>
-                      )}
-                    </div>
-                  )}
+                  {!isForgotPasswordMode &&
+                    !isOneTimeRecoveryOtp &&
+                    typeof remainingDailyAttempts === "number" && (
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color:
+                            remainingDailyAttempts <= 0 ? "#dc2626" : "#166534",
+                          fontWeight: 600,
+                          marginTop: 4,
+                        }}
+                      >
+                        {remainingDailyAttempts > 0 ? (
+                          <span>
+                            OTP attempts remaining today:{" "}
+                            <strong>{remainingDailyAttempts}</strong>
+                          </span>
+                        ) : (
+                          <span>
+                            Daily OTP limit reached.
+                            {unlockTime ? ` Unlocks at ${unlockTime}.` : ""}
+                          </span>
+                        )}
+                      </div>
+                    )}
                 </div>
               </div>
 
               {/* 6-Digit Individual Split Input Boxes (Fully Responsive Grid) */}
               <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 8,
+                  }}
+                >
+                  <label
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: "#475569",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
                     Enter 6-Digit Code
                   </label>
                   <div
@@ -2338,7 +2966,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     }}
                   >
                     <Clock size={11} />
-                    <span>{timerActive ? formatTimer(timerSeconds) : "Expired"}</span>
+                    <span>
+                      {timerActive ? formatTimer(timerSeconds) : "Expired"}
+                    </span>
                   </div>
                 </div>
 
@@ -2378,18 +3008,27 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                         borderRadius: "10px",
                         outline: "none",
                         boxSizing: "border-box",
-                        boxShadow: otpDigits[index] ? "0 2px 8px rgba(37, 99, 235, 0.15)" : "none",
+                        boxShadow: otpDigits[index]
+                          ? "0 2px 8px rgba(37, 99, 235, 0.15)"
+                          : "none",
                         transition: "all 0.15s ease",
                       }}
                       onFocus={(e) => {
                         e.target.style.borderColor = "#2563eb";
-                        e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235, 0.15)";
+                        e.target.style.boxShadow =
+                          "0 0 0 3px rgba(37, 99, 235, 0.15)";
                         e.target.style.background = "#ffffff";
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = otpDigits[index] ? "#2563eb" : "#cbd5e1";
-                        e.target.style.boxShadow = otpDigits[index] ? "0 2px 8px rgba(37, 99, 235, 0.15)" : "none";
-                        e.target.style.background = otpDigits[index] ? "#ffffff" : "#f8fafc";
+                        e.target.style.borderColor = otpDigits[index]
+                          ? "#2563eb"
+                          : "#cbd5e1";
+                        e.target.style.boxShadow = otpDigits[index]
+                          ? "0 2px 8px rgba(37, 99, 235, 0.15)"
+                          : "none";
+                        e.target.style.background = otpDigits[index]
+                          ? "#ffffff"
+                          : "#f8fafc";
                       }}
                     />
                   ))}
@@ -2405,7 +3044,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   padding: "12px 16px",
                   borderRadius: 12,
                   border: "none",
-                  background: loading || otp.length < 6 ? "#cbd5e1" : "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                  background:
+                    loading || otp.length < 6
+                      ? "#cbd5e1"
+                      : "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
                   color: "#ffffff",
                   fontSize: 14,
                   fontWeight: 800,
@@ -2414,7 +3056,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 8,
-                  boxShadow: otp.length < 6 ? "none" : "0 4px 14px rgba(22, 163, 74, 0.25)",
+                  boxShadow:
+                    otp.length < 6
+                      ? "none"
+                      : "0 4px 14px rgba(22, 163, 74, 0.25)",
                   transition: "all 0.2s ease",
                 }}
               >
@@ -2431,7 +3076,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 )}
               </button>
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 4 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  paddingTop: 4,
+                }}
+              >
                 <button
                   type="button"
                   onClick={() => {
@@ -2460,9 +3112,17 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 {!isOneTimeRecoveryOtp ? (
                   <button
                     type="button"
-                    disabled={resendCooldown > 0 || (remainingDailyAttempts <= 0 && !isForgotPasswordMode) || loading}
+                    disabled={
+                      resendCooldown > 0 ||
+                      (remainingDailyAttempts <= 0 && !isForgotPasswordMode) ||
+                      loading
+                    }
                     onClick={() => {
-                      if (isDeveloperOrSpecialStudent(cleanReg) && password && !isForgotPasswordMode) {
+                      if (
+                        isDeveloperOrSpecialStudent(cleanReg) &&
+                        password &&
+                        !isForgotPasswordMode
+                      ) {
                         handlePasswordSubmit();
                       } else {
                         triggerSendOtp(isForgotPasswordMode);
@@ -2471,10 +3131,18 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     style={{
                       background: "none",
                       border: "none",
-                      color: resendCooldown > 0 || (remainingDailyAttempts <= 0 && !isForgotPasswordMode) ? "#94a3b8" : "#2563eb",
+                      color:
+                        resendCooldown > 0 ||
+                        (remainingDailyAttempts <= 0 && !isForgotPasswordMode)
+                          ? "#94a3b8"
+                          : "#2563eb",
                       fontSize: 12,
                       fontWeight: 700,
-                      cursor: resendCooldown > 0 || (remainingDailyAttempts <= 0 && !isForgotPasswordMode) ? "not-allowed" : "pointer",
+                      cursor:
+                        resendCooldown > 0 ||
+                        (remainingDailyAttempts <= 0 && !isForgotPasswordMode)
+                          ? "not-allowed"
+                          : "pointer",
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 4,
@@ -2486,12 +3154,21 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                       {remainingDailyAttempts <= 0 && !isForgotPasswordMode
                         ? "Daily Limit Reached"
                         : resendCooldown > 0
-                        ? `Resend Code (${resendCooldown}s)`
-                        : "Resend Code"}
+                          ? `Resend Code (${resendCooldown}s)`
+                          : "Resend Code"}
                     </span>
                   </button>
                 ) : (
-                  <span style={{ fontSize: 11.5, color: "#94a3b8", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <span
+                    style={{
+                      fontSize: 11.5,
+                      color: "#94a3b8",
+                      fontWeight: 700,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
                     <ShieldAlert size={12} color="#94a3b8" />
                     <span>Single-use code (No resend)</span>
                   </span>
@@ -2502,10 +3179,21 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
           {/* STEP 4: MANDATORY CREATE PASSWORD WITH REAL-TIME STRENGTH & CRITERIA CHECKLIST */}
           {step === "CREATE_PASSWORD" && (
-            <form onSubmit={handleCreatePasswordSubmit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <form
+              onSubmit={handleCreatePasswordSubmit}
+              style={{ display: "flex", flexDirection: "column", gap: 10 }}
+            >
               {/* New Password Input */}
               <div>
-                <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", marginBottom: 3 }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    color: "#475569",
+                    marginBottom: 3,
+                  }}
+                >
                   Create Account Password
                 </label>
                 <div style={{ position: "relative" }}>
@@ -2523,7 +3211,11 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                       color: "#0f172a",
                       background: "#f8fafc",
                       border: "1.5px solid",
-                      borderColor: password ? (isPasswordFormValid ? "#10b981" : "#cbd5e1") : "#cbd5e1",
+                      borderColor: password
+                        ? isPasswordFormValid
+                          ? "#10b981"
+                          : "#cbd5e1"
+                        : "#cbd5e1",
                       borderRadius: 9,
                       outline: "none",
                       boxSizing: "border-box",
@@ -2555,7 +3247,15 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
               {/* Confirm Password Input */}
               <div>
-                <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", marginBottom: 3 }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    color: "#475569",
+                    marginBottom: 3,
+                  }}
+                >
                   Confirm Password
                 </label>
                 <div style={{ position: "relative" }}>
@@ -2572,7 +3272,11 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                       color: "#0f172a",
                       background: "#f8fafc",
                       border: "1.5px solid",
-                      borderColor: confirmPassword ? (isMatch ? "#10b981" : "#ef4444") : "#cbd5e1",
+                      borderColor: confirmPassword
+                        ? isMatch
+                          ? "#10b981"
+                          : "#ef4444"
+                        : "#cbd5e1",
                       borderRadius: 9,
                       outline: "none",
                       boxSizing: "border-box",
@@ -2597,7 +3301,11 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                       justifyContent: "center",
                     }}
                   >
-                    {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    {showConfirmPassword ? (
+                      <EyeOff size={15} />
+                    ) : (
+                      <Eye size={15} />
+                    )}
                   </button>
                 </div>
               </div>
@@ -2614,17 +3322,45 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   gap: 5,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 800,
+                      color: "#64748b",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
                     Security Strength
                   </span>
-                  <span style={{ fontSize: 10.5, fontWeight: 800, color: strengthMeta.color }}>
+                  <span
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 800,
+                      color: strengthMeta.color,
+                    }}
+                  >
                     {strengthMeta.label}
                   </span>
                 </div>
 
                 {/* Segmented Strength Bar */}
-                <div style={{ width: "100%", height: 4, background: "#e2e8f0", borderRadius: 999, overflow: "hidden" }}>
+                <div
+                  style={{
+                    width: "100%",
+                    height: 4,
+                    background: "#e2e8f0",
+                    borderRadius: 999,
+                    overflow: "hidden",
+                  }}
+                >
                   <div
                     style={{
                       width: strengthMeta.width,
@@ -2637,48 +3373,137 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 </div>
 
                 {/* Validation Checklist Grid */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3px 6px", marginTop: 2, fontSize: "clamp(10px, 2.4vw, 11px)" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, color: hasMinLength ? "#16a34a" : "#94a3b8", fontWeight: hasMinLength ? 700 : 500 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "3px 6px",
+                    marginTop: 2,
+                    fontSize: "clamp(10px, 2.4vw, 11px)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      color: hasMinLength ? "#16a34a" : "#94a3b8",
+                      fontWeight: hasMinLength ? 700 : 500,
+                    }}
+                  >
                     {hasMinLength ? (
                       <CheckCircle2 size={12} color="#16a34a" />
                     ) : (
-                      <div style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
+                      <div
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          border: "1.5px solid #cbd5e1",
+                          flexShrink: 0,
+                        }}
+                      />
                     )}
                     <span>8+ Chars</span>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, color: hasUpper ? "#16a34a" : "#94a3b8", fontWeight: hasUpper ? 700 : 500 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      color: hasUpper ? "#16a34a" : "#94a3b8",
+                      fontWeight: hasUpper ? 700 : 500,
+                    }}
+                  >
                     {hasUpper ? (
                       <CheckCircle2 size={12} color="#16a34a" />
                     ) : (
-                      <div style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
+                      <div
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          border: "1.5px solid #cbd5e1",
+                          flexShrink: 0,
+                        }}
+                      />
                     )}
                     <span>Uppercase</span>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, color: hasLower ? "#16a34a" : "#94a3b8", fontWeight: hasLower ? 700 : 500 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      color: hasLower ? "#16a34a" : "#94a3b8",
+                      fontWeight: hasLower ? 700 : 500,
+                    }}
+                  >
                     {hasLower ? (
                       <CheckCircle2 size={12} color="#16a34a" />
                     ) : (
-                      <div style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
+                      <div
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          border: "1.5px solid #cbd5e1",
+                          flexShrink: 0,
+                        }}
+                      />
                     )}
                     <span>Lowercase</span>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, color: hasNumber ? "#16a34a" : "#94a3b8", fontWeight: hasNumber ? 700 : 500 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      color: hasNumber ? "#16a34a" : "#94a3b8",
+                      fontWeight: hasNumber ? 700 : 500,
+                    }}
+                  >
                     {hasNumber ? (
                       <CheckCircle2 size={12} color="#16a34a" />
                     ) : (
-                      <div style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
+                      <div
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          border: "1.5px solid #cbd5e1",
+                          flexShrink: 0,
+                        }}
+                      />
                     )}
                     <span>Number (0-9)</span>
                   </div>
 
-                  <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 5, color: isMatch ? "#16a34a" : "#94a3b8", fontWeight: isMatch ? 700 : 500 }}>
+                  <div
+                    style={{
+                      gridColumn: "1 / -1",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      color: isMatch ? "#16a34a" : "#94a3b8",
+                      fontWeight: isMatch ? 700 : 500,
+                    }}
+                  >
                     {isMatch ? (
                       <CheckCircle2 size={12} color="#16a34a" />
                     ) : (
-                      <div style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
+                      <div
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          border: "1.5px solid #cbd5e1",
+                          flexShrink: 0,
+                        }}
+                      />
                     )}
                     <span>Passwords Match</span>
                   </div>
@@ -2693,16 +3518,20 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   padding: "10px 14px",
                   borderRadius: 9,
                   border: "none",
-                  background: loading || !isPasswordFormValid ? "#cbd5e1" : "#0f172a",
+                  background:
+                    loading || !isPasswordFormValid ? "#cbd5e1" : "#0f172a",
                   color: "#ffffff",
                   fontSize: 13.5,
                   fontWeight: 800,
-                  cursor: loading || !isPasswordFormValid ? "not-allowed" : "pointer",
+                  cursor:
+                    loading || !isPasswordFormValid ? "not-allowed" : "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 6,
-                  boxShadow: !isPasswordFormValid ? "none" : "0 4px 12px rgba(15, 23, 42, 0.15)",
+                  boxShadow: !isPasswordFormValid
+                    ? "none"
+                    : "0 4px 12px rgba(15, 23, 42, 0.15)",
                   transition: "all 0.2s ease",
                   marginTop: 2,
                 }}
@@ -2727,7 +3556,12 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 16 }}
+              style={{
+                textAlign: "center",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+              }}
             >
               <div
                 style={{
@@ -2746,11 +3580,26 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               </div>
 
               <div>
-                <h3 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: "0 0 6px 0" }}>
+                <h3
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 900,
+                    color: "#0f172a",
+                    margin: "0 0 6px 0",
+                  }}
+                >
                   Password Created Successfully
                 </h3>
-                <p style={{ fontSize: 13.5, color: "#475569", margin: 0, lineHeight: 1.5 }}>
-                  Your password has been created and bound to your university account ({cleanReg}).
+                <p
+                  style={{
+                    fontSize: 13.5,
+                    color: "#475569",
+                    margin: 0,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Your password has been created and bound to your university
+                  account ({cleanReg}).
                 </p>
               </div>
 
@@ -2766,13 +3615,27 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   alignItems: "flex-start",
                 }}
               >
-                <AlertTriangle size={20} color="#b45309" style={{ flexShrink: 0, marginTop: 2 }} />
+                <AlertTriangle
+                  size={20}
+                  color="#b45309"
+                  style={{ flexShrink: 0, marginTop: 2 }}
+                />
                 <div>
-                  <strong style={{ fontSize: 13, color: "#92400e", display: "block", marginBottom: 2 }}>
+                  <strong
+                    style={{
+                      fontSize: 13,
+                      color: "#92400e",
+                      display: "block",
+                      marginBottom: 2,
+                    }}
+                  >
                     SECURITY WARNING
                   </strong>
-                  <span style={{ fontSize: 12, color: "#78350f", lineHeight: 1.4 }}>
-                    Do not share your password with anyone. Your password is private and protects your academic and attendance records.
+                  <span
+                    style={{ fontSize: 12, color: "#78350f", lineHeight: 1.4 }}
+                  >
+                    Do not share your password with anyone. Your password is
+                    private and protects your academic and attendance records.
                   </span>
                 </div>
               </div>
@@ -2810,9 +3673,12 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         onClose={() => setIsBlockedModalOpen(false)}
         activeDevices={blockedDevicesData}
         accountIdentifier={regNo}
-        maxAllowed={isDeveloperOrSpecialStudent(regNo) ? getDeveloperMaxDevices() : 1}
+        maxAllowed={
+          isDeveloperOrSpecialStudent(regNo) ? getDeveloperMaxDevices() : 1
+        }
         onTransferSession={
-          isDeveloperOrSpecialStudent(regNo) || errorCode === "DEVICE_LIMIT_REACHED"
+          isDeveloperOrSpecialStudent(regNo) ||
+          errorCode === "DEVICE_LIMIT_REACHED"
             ? undefined
             : () => {
                 setIsBlockedModalOpen(false);
