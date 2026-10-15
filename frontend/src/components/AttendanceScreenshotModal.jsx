@@ -3292,16 +3292,16 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
                         /lunch|break|recess/i.test(periodOnDay?.subject || "")
                       );
                       const isSlotFree =
-                        !isBreakSlot &&
-                        (!periodOnDay ||
-                          periodOnDay.isFree ||
-                          !periodOnDay.subject ||
-                          periodOnDay.subject === "No Class / Free");
+                        !periodOnDay ||
+                        periodOnDay.isFree ||
+                        !periodOnDay.subject ||
+                        periodOnDay.subject === "No Class / Free" ||
+                        isBreakSlot;
 
                       return (
                         <div
                           key={sIdx}
-                          onClick={isBreakSlot ? undefined : () => setSelectedElectiveSlotIdx(sIdx)}
+                          onClick={() => setSelectedElectiveSlotIdx(sIdx)}
                           style={{
                             display: "flex",
                             alignItems: "center",
@@ -3311,18 +3311,14 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
                             boxSizing: "border-box",
                             padding: isMobile ? "9px 11px" : "10px 14px",
                             borderRadius: 10,
-                            border: isBreakSlot
-                              ? "1px dashed #cbd5e1"
-                              : `1.5px solid ${isSelected ? "#2563eb" : isSlotFree ? "#86efac" : "#e2e8f0"}`,
+                            border: `1.5px solid ${isSelected ? "#2563eb" : isSlotFree ? "#86efac" : "#e2e8f0"}`,
                             background: isSelected
                               ? "#eff6ff"
-                              : isBreakSlot
-                              ? "#f8fafc"
                               : isSlotFree
                               ? "#f0fdf4"
                               : "#ffffff",
-                            cursor: isBreakSlot ? "not-allowed" : "pointer",
-                            opacity: isBreakSlot ? 0.65 : 1,
+                            cursor: "pointer",
+                            opacity: 1,
                             overflow: "hidden",
                             transition: "all 0.15s ease",
                           }}
@@ -3333,8 +3329,8 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
                                 style={{
                                   fontSize: 9.5,
                                   fontWeight: 800,
-                                  color: isBreakSlot ? "#94a3b8" : isSelected ? "#1d4ed8" : "#64748b",
-                                  background: isBreakSlot ? "#e2e8f0" : isSelected ? "#dbeafe" : "#f1f5f9",
+                                  color: isSelected ? "#1d4ed8" : isBreakSlot ? "#0369a1" : "#64748b",
+                                  background: isSelected ? "#dbeafe" : isBreakSlot ? "#e0f2fe" : "#f1f5f9",
                                   padding: "1px 5px",
                                   borderRadius: 4,
                                   whiteSpace: "nowrap",
@@ -3347,7 +3343,7 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
                                 style={{
                                   fontSize: 12,
                                   fontWeight: 700,
-                                  color: isBreakSlot ? "#64748b" : "#0f172a",
+                                  color: "#0f172a",
                                   whiteSpace: "nowrap",
                                   overflow: "hidden",
                                   textOverflow: "ellipsis",
@@ -3361,7 +3357,7 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
                             <div
                               style={{
                                 fontSize: 10.5,
-                                color: isBreakSlot ? "#94a3b8" : isSlotFree ? "#15803d" : "#64748b",
+                                color: isSlotFree ? "#15803d" : "#64748b",
                                 marginTop: 2,
                                 fontWeight: isSlotFree ? 700 : 500,
                                 whiteSpace: "nowrap",
@@ -3371,7 +3367,7 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
                               }}
                               title={
                                 isBreakSlot
-                                  ? "Lunch Break / Recess (Classes cannot be scheduled)"
+                                  ? "Lunch Break / Recess (Available for Elective)"
                                   : isSlotFree
                                   ? "Section Free Slot (Recommended)"
                                   : `Section Class: ${
@@ -3380,7 +3376,7 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
                               }
                             >
                               {isBreakSlot
-                                ? "Lunch Break / Recess"
+                                ? "Lunch Break / Recess (Available)"
                                 : isSlotFree
                                 ? "Section Free Slot (Recommended)"
                                 : `Section Class: ${
