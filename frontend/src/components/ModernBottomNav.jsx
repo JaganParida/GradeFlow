@@ -627,7 +627,7 @@ export default function ModernBottomNav() {
 
                   {/* Primary Grid of Services & Tools */}
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {/* 1. Academic Resources */}
+                    {/* 1. Resources */}
                     <button
                       type="button"
                       onClick={() => {
@@ -665,10 +665,10 @@ export default function ModernBottomNav() {
                         </div>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 750, color: "#0f172a" }}>
-                            Academic Resources
+                            Resources
                           </div>
                           <div style={{ fontSize: 11.5, color: "#64748b", fontWeight: 500 }}>
-                            Syllabi, Question Papers, Baskets &amp; Notes
+                            SGPA &amp; CGPA calculators, percentage to CGPA &amp; tools
                           </div>
                         </div>
                       </div>
@@ -862,7 +862,7 @@ export default function ModernBottomNav() {
                             About &amp; Documentation
                           </div>
                           <div style={{ fontSize: 11.5, color: "#64748b", fontWeight: 500 }}>
-                            Official grading scales, predictions &amp; policy
+                            About website, privacy policy, terms &amp; conditions, cookies
                           </div>
                         </div>
                       </div>
