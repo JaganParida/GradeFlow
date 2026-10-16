@@ -2439,7 +2439,20 @@ export default function Timetable() {
                                         <span />
                                       )}
 
-                                      {period.isElective ? (
+                                      {period.type === "TUT" ? (
+                                        <span
+                                          style={{
+                                            fontSize: 8.5,
+                                            fontWeight: 900,
+                                            background: "#d97706",
+                                            color: "#ffffff",
+                                            padding: "1px 4px",
+                                            borderRadius: 4,
+                                          }}
+                                        >
+                                          TUT
+                                        </span>
+                                      ) : period.isElective ? (
                                         <span
                                           style={{
                                             fontSize: 8.5,
@@ -2549,7 +2562,11 @@ export default function Timetable() {
                         </div>
                       </div>
 
-                      {period.isElective ? (
+                      {period.type === "TUT" ? (
+                        <span style={{ fontSize: 9.5, fontWeight: 900, color: "#b45309", background: "#fffbeb", border: "1px solid #fde68a", padding: "2px 6px", borderRadius: 4, flexShrink: 0 }}>
+                          TUT
+                        </span>
+                      ) : period.isElective ? (
                         <span style={{ fontSize: 9.5, fontWeight: 900, color: "#6d28d9", background: "#ede9fe", border: "1px solid #ddd6fe", padding: "2px 6px", borderRadius: 4, flexShrink: 0 }}>
                           ELECTIVE
                         </span>

@@ -62,7 +62,7 @@ const KNOWN_SUBJECTS = [
   { name: "Theory of Computation and Compiler Design", code: "CUCS1008", type: "PP", defaultRoom: "CSE-F-AR-317" },
   { name: "Prompt Engineering using ChatGPT", code: "CUCS1014", type: "PP", defaultRoom: "CSE-F-AR-317" },
   { name: "Robotic automation with ROS and C++", code: "CUTM1020", type: "PP", defaultRoom: "CSE-F-AR-317" },
-  { name: "Minor Project II", code: "CUTM1577", type: "PR", defaultRoom: "LAB-03" },
+  { name: "Minor Project II", code: "CUTM1577", type: "TUT", defaultRoom: "LAB-03" },
   { name: "Cloud Fundamentals (Azure) Lab", code: "CUCS1015", type: "PR", defaultRoom: "LAB-01" },
   { name: "Data Structure and Algorithms (PR)", code: "CUTM3166", type: "PR", defaultRoom: "CSE-F-AR-317" },
   { name: "Data Structure and Algorithms (TUT)", code: "CUTM3166", type: "TUT", defaultRoom: "CSE-F-AR-317" },
