@@ -1110,16 +1110,17 @@ export default function AttendanceTracker() {
         const cleanName = electiveInfo?.name || cleanSubjectBaseName(s.name) || s.name;
         const subCode = s.code || electiveInfo?.code || "";
 
+        const fallbackCompType = isProject ? "TUT" : (electiveInfo?.defaultType || "PR");
         const comps =
           Array.isArray(s.components) && s.components.length > 0
             ? s.components.map((c) => ({
-                type: (c.type || "PR").toUpperCase(),
+                type: (isProject && (!c.type || c.type.toUpperCase() === "PR") ? "TUT" : (c.type || fallbackCompType)).toUpperCase(),
                 attended: Number(c.attended) || 0,
                 delivered: Number(c.delivered !== undefined ? c.delivered : c.total) || 0,
               }))
             : [
                 {
-                  type: "PR",
+                  type: fallbackCompType,
                   attended: Number(s.attendedClasses) || 0,
                   delivered: Number(s.totalClasses) || 0,
                 },
@@ -1134,10 +1135,14 @@ export default function AttendanceTracker() {
           if (c1 && c2) return c1 === c2;
           return isSameSubject(sv, { subjectName: cleanName, code: subCode, name: s.name });
         });
-        const resolvedOccs =
+        const rawOccs =
           Array.isArray(s.weeklyOccurrences) && s.weeklyOccurrences.length > 0
             ? s.weeklyOccurrences
             : (alreadySaved?.weeklyOccurrences || []);
+        const resolvedOccs = rawOccs.map((o) => ({
+          ...o,
+          type: isProject && (!o.type || o.type.toUpperCase() === "PR") ? "TUT" : (o.type || fallbackCompType),
+        }));
 
         formatted.push({
           subjectName: cleanName,
@@ -1215,11 +1220,13 @@ export default function AttendanceTracker() {
     if (formatted.length === 0 && sectionCatalog.length === 0) {
       extracted.forEach((s) => {
         const cleanName = cleanSubjectBaseName(s.name) || s.name;
-        const isElective = Boolean(s.isElective || isElectiveProjectSubject(s));
+        const isProject = isElectiveProjectSubject(s);
+        const isElective = Boolean(s.isElective || isProject);
+        const defType = isElective ? (isProject ? "TUT" : "PR") : "PP";
         formatted.push({
           subjectName: cleanName,
           code: s.code || "",
-          components: s.components || [{ type: isElective ? "PR" : "PP", attended: Number(s.attendedClasses) || 0, delivered: Number(s.totalClasses) || 0 }],
+          components: s.components || [{ type: defType, attended: Number(s.attendedClasses) || 0, delivered: Number(s.totalClasses) || 0 }],
           section: selectedSection,
           isElective,
           weeklyOccurrences: Array.isArray(s.weeklyOccurrences) ? s.weeklyOccurrences : [],
@@ -1417,12 +1424,13 @@ export default function AttendanceTracker() {
     if (!configuringElectiveSubject) return;
 
     const slotObj = TIME_SLOTS[selectedElectiveSlotIdx] || {};
+    const isProj = isElectiveProjectSubject(configuringElectiveSubject);
     const occ = {
       day: selectedElectiveDay,
       slotIndex: selectedElectiveSlotIdx,
       periodIndex: selectedElectiveSlotIdx + 1,
       timeSlot: slotObj.label || `${slotObj.startTime} - ${slotObj.endTime}`,
-      type: "PR",
+      type: isProj ? "TUT" : "PR",
       room: "Project Lab",
       faculty: "Project Mentor",
     };
@@ -1434,9 +1442,16 @@ export default function AttendanceTracker() {
       const sCode = (s.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
       const isTarget = targetCode && sCode ? targetCode === sCode : isSameSubject(s, targetSub);
       if (isTarget) {
+        const comps = (s.components || []).map((c) => {
+          if (isProj && (!c.type || c.type.toUpperCase() === "PR")) {
+            return { ...c, type: "TUT" };
+          }
+          return c;
+        });
         return {
           ...s,
           isElective: true,
+          components: comps.length > 0 ? comps : [{ type: isProj ? "TUT" : "PR", attended: s.attendedClasses || 0, delivered: s.totalClasses || 0 }],
           weeklyOccurrences: [occ],
           lastUpdated: new Date().toISOString(),
         };
@@ -1644,7 +1659,21 @@ export default function AttendanceTracker() {
       const loadedSubs = rawSubs.map((s) => {
         if (!s) return s;
         if (isElectiveProjectSubject(s)) {
-          return { ...s, isElective: true };
+          let comps = Array.isArray(s.components)
+            ? s.components.map((c) => (!c.type || c.type.toUpperCase() === "PR" ? { ...c, type: "TUT" } : c))
+            : s.components;
+          if (Array.isArray(comps) && comps.length > 1) {
+            const tutComps = comps.filter((c) => c.type === "TUT");
+            if (tutComps.length > 1) {
+              const mergedAtt = tutComps.reduce((acc, c) => acc + (c.attended || 0), 0);
+              const mergedDel = tutComps.reduce((acc, c) => acc + (c.delivered || 0), 0);
+              comps = [{ type: "TUT", attended: mergedAtt, delivered: mergedDel }, ...comps.filter((c) => c.type !== "TUT")];
+            }
+          }
+          const occs = Array.isArray(s.weeklyOccurrences)
+            ? s.weeklyOccurrences.map((o) => (!o.type || o.type.toUpperCase() === "PR" ? { ...o, type: "TUT" } : o))
+            : s.weeklyOccurrences;
+          return { ...s, isElective: true, components: comps, weeklyOccurrences: occs };
         }
         const inCatalog = secCatalog.some((c) => isSameSubject(c, s));
         if (inCatalog) {
@@ -2222,17 +2251,19 @@ export default function AttendanceTracker() {
     const currentSaved = savedSubjectsRef.current || savedSubjects;
     const existingEntry = currentSaved.find((s) => isSameSubject(s, selectedSubjectName));
     const filtered = currentSaved.filter((s) => !isSameSubject(s, selectedSubjectName));
-    const cleanComps = (componentInputs || []).map((c) => ({
-      type: (c.type || "PP").toUpperCase(),
-      attended: Math.max(0, parseInt(c.attended, 10) || 0),
-      delivered: Math.max(0, parseInt(c.delivered, 10) || 0),
-    }));
-
-    const isElective = Boolean(
-      existingEntry?.isElective ||
+    const isProj = Boolean(
       isElectiveProjectSubject(selectedSubjectName) ||
       (existingEntry && isElectiveProjectSubject(existingEntry))
     );
+    const isElective = Boolean(
+      existingEntry?.isElective ||
+      isProj
+    );
+    const cleanComps = (componentInputs || []).map((c) => ({
+      type: (isProj && (!c.type || c.type.toUpperCase() === "PR") ? "TUT" : (c.type || "PP")).toUpperCase(),
+      attended: Math.max(0, parseInt(c.attended, 10) || 0),
+      delivered: Math.max(0, parseInt(c.delivered, 10) || 0),
+    }));
 
     // Strictly disallow saving 0 by 0 subjects to cloud / MongoDB EXCEPT electives
     const totalDelivered = cleanComps.reduce((sum, c) => sum + (Number(c.delivered) || 0), 0);
@@ -2240,10 +2271,14 @@ export default function AttendanceTracker() {
       return;
     }
 
-    const occurrencesToKeep =
+    const rawOccs =
       Array.isArray(existingEntry?.weeklyOccurrences) && existingEntry.weeklyOccurrences.length > 0
         ? existingEntry.weeklyOccurrences
         : (activeCatalogItem?.weeklyOccurrences || []);
+    const occurrencesToKeep = rawOccs.map((o) => ({
+      ...o,
+      type: isProj && (!o.type || o.type.toUpperCase() === "PR") ? "TUT" : (o.type || "PR"),
+    }));
 
     const updatedList = [
       ...filtered,

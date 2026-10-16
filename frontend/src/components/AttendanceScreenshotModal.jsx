@@ -614,14 +614,18 @@ const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = [], existing
       }
     }
 
-    const defaultCompType = isElective ? (electiveInfo?.defaultType || "PR") : "PP";
-    const comps = Array.isArray(item.components) && item.components.length > 0
+    const isProjectSub = isElectiveProjectSubject(rawCode || rawName || item);
+    const defaultCompType = isElective ? (isProjectSub ? "TUT" : (electiveInfo?.defaultType || "PR")) : "PP";
+    const rawComps = Array.isArray(item.components) && item.components.length > 0
       ? item.components
       : [{
           type: defaultCompType,
           attended: item.attendedClasses !== undefined ? item.attendedClasses : (item.attended || 0),
           delivered: item.totalClasses !== undefined ? item.totalClasses : (item.delivered || item.total || 0),
         }];
+    const comps = isProjectSub
+      ? rawComps.map((c) => (!c.type || c.type.toUpperCase() === "PR" ? { ...c, type: "TUT" } : c))
+      : rawComps;
 
     comps.forEach((c) => {
       const cType = String(c.type || "PP").toUpperCase();
@@ -1138,12 +1142,13 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
     if (!configuringElective) return;
 
     const slotObj = TIME_SLOTS[selectedElectiveSlotIdx] || {};
+    const isProjectSub = isElectiveProjectSubject(configuringElective);
     const occ = {
       day: selectedElectiveDay,
       slotIndex: selectedElectiveSlotIdx,
       periodIndex: selectedElectiveSlotIdx + 1,
       timeSlot: slotObj.label || `${slotObj.startTime} - ${slotObj.endTime}`,
-      type: "PR",
+      type: isProjectSub ? "TUT" : "PR",
       room: "Project Lab",
       faculty: "Project Mentor",
     };
@@ -1155,9 +1160,16 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
       const sCode = (s.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
       const isTarget = s.id === targetId || (targetCode && sCode ? targetCode === sCode : false);
       if (isTarget) {
+        const comps = (s.components || []).map((c) => {
+          if (isProjectSub && (!c.type || c.type.toUpperCase() === "PR")) {
+            return { ...c, type: "TUT" };
+          }
+          return c;
+        });
         return {
           ...s,
           isElective: true,
+          components: comps.length > 0 ? comps : [{ type: isProjectSub ? "TUT" : "PR", attended: s.attendedClasses || 0, delivered: s.totalClasses || 0 }],
           weeklyOccurrences: [occ],
         };
       }
@@ -1218,8 +1230,10 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
     }
 
     const formatted = parsedSubjects.map((s, idx) => {
-      const isElective = Boolean(s.isElective || isElectiveProjectSubject(s));
-      const defType = isElective ? "PR" : "PP";
+      const isProjectSub = isElectiveProjectSubject(s);
+      const isElective = Boolean(s.isElective || isProjectSub);
+      const electiveInfo = getElectiveProjectInfo(s);
+      const defType = isElective ? (isProjectSub ? "TUT" : (electiveInfo?.defaultType || "PR")) : "PP";
       return {
         id: `imported_sub_${Date.now()}_${idx}`,
         name: s.name.trim() || `Subject ${idx + 1}`,
@@ -1227,11 +1241,14 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
         attendedClasses: s.attendedClasses || 0,
         totalClasses: s.totalClasses || 0,
         isElective,
-        weeklyOccurrences: Array.isArray(s.weeklyOccurrences) ? s.weeklyOccurrences : [],
+        weeklyOccurrences: (Array.isArray(s.weeklyOccurrences) ? s.weeklyOccurrences : []).map((o) => ({
+          ...o,
+          type: isProjectSub && (!o.type || o.type.toUpperCase() === "PR") ? "TUT" : (o.type || defType),
+        })),
         components:
           Array.isArray(s.components) && s.components.length > 0
             ? s.components.map((c) => ({
-                type: (c.type || defType).toUpperCase(),
+                type: (isProjectSub && (!c.type || c.type.toUpperCase() === "PR") ? "TUT" : (c.type || defType)).toUpperCase(),
                 attended: Number(c.attended) || 0,
                 delivered: Number(c.delivered !== undefined ? c.delivered : c.total) || 0,
               }))

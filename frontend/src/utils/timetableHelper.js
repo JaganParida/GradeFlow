@@ -225,11 +225,11 @@ export const ALL_SECTIONS = [
 // ── Optional Elective / Project Curriculum Requirements ─────────────────────
 // Student-registered courses that are not in the static section routine
 export const ELECTIVE_PROJECT_SUBJECTS = [
-  { code: "CUTM1577", name: "MINOR PROJECT II", credits: 2, defaultType: "PR", category: "Curriculum Requirement" },
-  { code: "CUTM1905", name: "INTERNSHIP", credits: 2, defaultType: "PR", category: "Curriculum Requirement" },
-  { code: "CUTM1906", name: "MINOR PROJECT", credits: 2, defaultType: "PR", category: "Curriculum Requirement" },
-  { code: "CUTM1578", name: "SUMMER INTERNSHIP I", credits: 2, defaultType: "PR", category: "Curriculum Requirement" },
-  { code: "CUTM2598", name: "MINOR PROJECT III", credits: 2, defaultType: "PR", category: "Curriculum Requirement" },
+  { code: "CUTM1577", name: "MINOR PROJECT II", credits: 2, defaultType: "TUT", category: "Curriculum Requirement" },
+  { code: "CUTM1905", name: "INTERNSHIP", credits: 2, defaultType: "TUT", category: "Curriculum Requirement" },
+  { code: "CUTM1906", name: "MINOR PROJECT", credits: 2, defaultType: "TUT", category: "Curriculum Requirement" },
+  { code: "CUTM1578", name: "SUMMER INTERNSHIP I", credits: 2, defaultType: "TUT", category: "Curriculum Requirement" },
+  { code: "CUTM2598", name: "MINOR PROJECT III", credits: 2, defaultType: "TUT", category: "Curriculum Requirement" },
 ];
 
 /**
@@ -321,7 +321,7 @@ export function mergeStudentElectiveOccurrences(daySchedule = [], dayName = "", 
           merged[sIdx] = {
             subject: subName,
             code: subCode || occ.code || "",
-            type: (occ.type || "PR").toUpperCase(),
+            type: (isProject ? "TUT" : (occ.type || "PR")).toUpperCase(),
             room: occ.room || "Project Lab",
             faculty: occ.faculty || "Project Mentor",
             isFree: false,
@@ -1326,8 +1326,14 @@ export function getSectionSubjectCatalog(sectionName = "CSE-A", studentSavedSubj
       const electiveInfo = getElectiveProjectInfo(s);
 
       if (!catalogMap.has(subName)) {
-        const comps = new Set((s.components || []).map((c) => String(c.type || "PR").toUpperCase()));
-        if (comps.size === 0) comps.add(electiveInfo?.defaultType || "PR");
+        const defaultT = isProject ? "TUT" : (electiveInfo?.defaultType || "PR");
+        const comps = new Set(
+          (s.components || []).map((c) => {
+            const t = String(c.type || defaultT).toUpperCase();
+            return isProject && t === "PR" ? "TUT" : t;
+          })
+        );
+        if (comps.size === 0) comps.add(defaultT);
 
         catalogMap.set(subName, {
           subjectName: subName,
@@ -1338,7 +1344,7 @@ export function getSectionSubjectCatalog(sectionName = "CSE-A", studentSavedSubj
             day: o.day,
             periodIndex: (o.slotIndex !== undefined ? o.slotIndex + 1 : o.periodIndex) || 1,
             timeSlot: o.timeSlot || (TIME_SLOTS[o.slotIndex]?.label) || "",
-            type: o.type || "PR",
+            type: isProject ? "TUT" : (o.type || defaultT),
             room: o.room || "Project Lab",
             faculty: o.faculty || "Project Mentor",
           })),
