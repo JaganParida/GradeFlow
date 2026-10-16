@@ -107,14 +107,6 @@
   ],
   "rewrites": [
     {
-      "source": "/telemetry/script.js",
-      "destination": "/_vercel/insights/script.js"
-    },
-    {
-      "source": "/telemetry/:path*",
-      "destination": "/_vercel/insights/:path*"
-    },
-    {
       "source": "/api/send-backlog-email",
       "destination": "/api/emails.js?action=backlog"
     },

@@ -346,14 +346,7 @@ export default function App() {
       <SmoothScroll />
       <NetworkStatusListener />
       <Navbar />
-      <VercelAnalytics
-        {...(import.meta.env.PROD
-          ? {
-              scriptSrc: "/telemetry/script.js",
-              endpoint: "/telemetry",
-            }
-          : {})}
-      />
+      <VercelAnalytics />
       <ModernBottomNav />
 
       {rateLimitError && (
