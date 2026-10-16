@@ -606,7 +606,7 @@ export default function Leaderboard() {
                   fontFamily: "'DM Sans', sans-serif",
                 }}
               >
-                <Star size={13} color={!isSGPA ? "#8b5cf6" : "#64748b"} /> Cumulative CGPA
+                <Star size={13} color={!isSGPA ? "#8b5cf6" : "#64748b"} /> CGPA Ranking
               </button>
             </div>
         </header>
