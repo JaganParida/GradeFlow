@@ -409,12 +409,11 @@ module.exports = async function handler(req, res) {
         { $sort: { [primaryScore]: -1, [secondaryScore]: -1, regNo: 1 } },
       ];
 
-      if (!cleanSection && !cleanSearch && !cleanBranch) {
-        pipeline.push({ $limit: maxRank });
-      } else if (cleanSection) {
-        pipeline.push({ $limit: 800 });
-      } else {
+      if (cleanSearch) {
         pipeline.push({ $limit: Math.max(maxRank, 150) });
+      } else {
+        // Safe candidate buffer (800) so all tied students up to maxRank (50 / 200) are retrieved
+        pipeline.push({ $limit: 800 });
       }
 
       rankings = await globalDbQueue.run(() => Ranking.aggregate(pipeline));
@@ -424,12 +423,11 @@ module.exports = async function handler(req, res) {
         .select(projectionFields)
         .sort({ [primaryScore]: -1, [secondaryScore]: -1, regNo: 1 });
 
-      if (!cleanSection && !cleanSearch && !cleanBranch) {
-        dbQuery = dbQuery.limit(maxRank);
-      } else if (cleanSection) {
-        dbQuery = dbQuery.limit(800);
-      } else {
+      if (cleanSearch) {
         dbQuery = dbQuery.limit(Math.max(maxRank, 150));
+      } else {
+        // Safe candidate buffer (800) so all tied students up to maxRank (50 / 200) are retrieved
+        dbQuery = dbQuery.limit(800);
       }
 
       rankings = await globalDbQueue.run(() => dbQuery.lean());
@@ -487,18 +485,19 @@ module.exports = async function handler(req, res) {
     }
 
     let bounded = [];
-    if (cleanBranch || cleanSearch) {
-      if (cleanBranch && !cleanSearch) {
-        for (const r of rankings) {
-          if (r.dynamicRank > maxRank) break;
-          bounded.push(r);
-        }
-      } else if (cleanSearch) {
-        bounded = rankings.slice(0, maxRank);
+    if (cleanSearch) {
+      bounded = rankings.slice(0, maxRank);
+    } else if (cleanBranch) {
+      for (const r of rankings) {
+        if (r.dynamicRank > maxRank) break;
+        bounded.push(r);
       }
     } else {
-      // Direct slice guarantees exactly maxRank top students even when competition ties occur
-      bounded = rankings.slice(0, maxRank);
+      for (const r of rankings) {
+        const studentRank = Number(r[rankKey] || r.universityRank || r.dynamicRank || 0);
+        if (studentRank > 0 && studentRank > maxRank) break;
+        bounded.push(r);
+      }
     }
 
     return res.json(bounded);

@@ -140,12 +140,11 @@ router.get("/top", publicLimiter, requireStudentOrAdmin, validateAcademicFilters
         { $sort: { [primaryScore]: -1, [secondaryScore]: -1, regNo: 1 } },
       ];
 
-      if (!section && !search && !branch) {
-        pipeline.push({ $limit: maxRank });
-      } else if (section) {
-        pipeline.push({ $limit: 800 });
-      } else {
+      if (search) {
         pipeline.push({ $limit: Math.max(maxRank, 150) });
+      } else {
+        // Safe candidate buffer (800) so all tied students up to maxRank (50 / 200) are retrieved
+        pipeline.push({ $limit: 800 });
       }
 
       rankings = await globalDbQueue.run(() => Ranking.aggregate(pipeline));
@@ -155,12 +154,11 @@ router.get("/top", publicLimiter, requireStudentOrAdmin, validateAcademicFilters
         .select(projectionFields)
         .sort({ [primaryScore]: -1, [secondaryScore]: -1, regNo: 1 });
 
-      if (!section && !search && !branch) {
-        dbQuery = dbQuery.limit(maxRank);
-      } else if (section) {
-        dbQuery = dbQuery.limit(800);
-      } else {
+      if (search) {
         dbQuery = dbQuery.limit(Math.max(maxRank, 150));
+      } else {
+        // Safe candidate buffer (800) so all tied students up to maxRank (50 / 200) are retrieved
+        dbQuery = dbQuery.limit(800);
       }
 
       rankings = await globalDbQueue.run(() => dbQuery.lean());
@@ -225,7 +223,11 @@ router.get("/top", publicLimiter, requireStudentOrAdmin, validateAcademicFilters
         bounded.push(r);
       }
     } else {
-      bounded = rankings.slice(0, maxRank);
+      for (const r of rankings) {
+        const studentRank = Number(r[rankKey] || r.universityRank || r.dynamicRank || 0);
+        if (studentRank > 0 && studentRank > maxRank) break;
+        bounded.push(r);
+      }
     }
 
     res.json(bounded);
