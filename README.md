@@ -15,6 +15,7 @@
 * **Official Grade Sheets (PDF Generation):** Seamless, one-click generation of formatted, print-ready grade sheets featuring embedded university branding, meticulously aligned data grids, and tamper-proof layouts.
 * **Attendance Tracking & OCR Integration:** Smart attendance analytics with camera/screenshot OCR scanner integration, target percentage forecasting, and daily quota monitoring.
 * **Dynamic Timetable & Academic Calendar:** Real-time schedule visualization with instant emergency class suspension alerts and synchronized holiday calendar overrides.
+* **Real-time Notifications & Device Access:** In-app notification bell with instant campus broadcast announcements, 2-button interactive action routing, and multi-device login approval safeguards powered by Ably Realtime.
 
 ### 👨‍💻 For Administrators
 * **Bulk Excel Uploads:** Effortlessly publish thousands of student results instantly using standard CSV/Excel formats.
