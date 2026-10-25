@@ -26,7 +26,8 @@
 
 ### 🎨 UI / UX
 * **Glassmorphism & Neumorphism:** A premium, "crazy but clean" aesthetic featuring responsive grid layouts, blurred translucent panels, and micro-animations.
-* **Fully Responsive:** Perfectly optimized for both desktop widescreen and mobile devices (including dynamically scaling charts and smart-wrapping layout engines).
+* **Fully Responsive:** Perfectly optimized for both desktop widescreen and mobile devices (including dynamically scaling charts, responsive notification popovers, and smart-wrapping layout engines).
+* **High-DPI Branding:** Crisp, pixel-perfect 1:1 multi-resolution application icons and SVG favicons engineered for sharp rendering across all viewport scales.
 * **Native-like Feel:** Mobile pinch-zooming is disabled to mimic a true native app experience.
 
 ---
