@@ -38,6 +38,7 @@
 * **Backend:** Node.js, Express.js
 * **Database:** MongoDB (Mongoose ORM)
 * **Realtime & Cloud:** Ably Realtime Pub/Sub, Vercel Serverless Functions
+* **Performance & Caching:** Multi-tiered client-side caching with instant Ably WebSocket cache invalidation
 * **Security:** JSON Web Tokens (JWT), Express Rate Limit, bcrypt
 
 ---
