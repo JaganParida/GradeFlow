@@ -41,6 +41,19 @@ export default function NotificationBell({ isMobile = false }) {
   const [processingState, setProcessingState] = useState({}); // { [notifId]: 'ALLOW' | 'DENY' | 'ACTION' }
   const dropdownRef = useRef(null);
 
+  // Responsive screen-size tracking for responsive dropdown placement and widths
+  const [windowWidth, setWindowWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1200
+  );
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const isSmallScreen = isMobile || windowWidth <= 768;
+
   // Close dropdown on click outside
   useEffect(() => {
     const handleOutsideClick = (e) => {
@@ -249,13 +262,13 @@ export default function NotificationBell({ isMobile = false }) {
             exit={{ opacity: 0, y: 6, scale: 0.96 }}
             transition={{ duration: 0.16, ease: "easeOut" }}
             style={{
-              position: isMobile ? "fixed" : "absolute",
-              top: isMobile ? 64 : "calc(100% + 10px)",
-              right: isMobile ? 12 : 0,
-              left: isMobile ? 12 : "auto",
-              width: isMobile ? "calc(100vw - 24px)" : "min(360px, calc(100vw - 24px))",
-              maxWidth: "calc(100vw - 24px)",
-              maxHeight: "min(80vh, 520px)",
+              position: isSmallScreen ? "fixed" : "absolute",
+              top: isSmallScreen ? 64 : "calc(100% + 10px)",
+              right: isSmallScreen ? 12 : 0,
+              left: isSmallScreen ? 12 : "auto",
+              width: isSmallScreen ? "calc(100vw - 24px)" : "min(440px, calc(100vw - 32px))",
+              maxWidth: isSmallScreen ? "calc(100vw - 24px)" : "440px",
+              maxHeight: "min(82vh, 540px)",
               overflowY: "auto",
               WebkitOverflowScrolling: "touch",
               background: "#ffffff",
@@ -263,8 +276,9 @@ export default function NotificationBell({ isMobile = false }) {
               border: "1px solid #e2e8f0",
               boxShadow: "0 18px 40px -10px rgba(15, 23, 42, 0.22)",
               zIndex: 99999,
-              padding: "16px 14px",
+              padding: isSmallScreen ? "14px 12px" : "16px 14px",
               boxSizing: "border-box",
+              whiteSpace: "normal",
             }}
           >
             {/* Header */}
@@ -412,7 +426,7 @@ export default function NotificationBell({ isMobile = false }) {
                         background: isUnread ? "#f8faff" : "#f8fafc",
                         border: isUnread ? "1.5px solid #bfdbfe" : "1px solid #e2e8f0",
                         borderRadius: 12,
-                        padding: "12px 14px",
+                        padding: isSmallScreen ? "11px 12px" : "12px 14px",
                         display: "flex",
                         flexDirection: "column",
                         gap: 8,
@@ -421,6 +435,9 @@ export default function NotificationBell({ isMobile = false }) {
                         filter: isUnread ? "none" : "blur(0.28px) grayscale(15%)",
                         boxShadow: isUnread ? "0 2px 8px rgba(37, 99, 235, 0.08)" : "none",
                         position: "relative",
+                        width: "100%",
+                        boxSizing: "border-box",
+                        overflow: "hidden",
                       }}
                       onMouseEnter={(e) => {
                         if (isRead) {
@@ -531,9 +548,14 @@ export default function NotificationBell({ isMobile = false }) {
                           <div
                             style={{
                               fontSize: 12.5,
-                              color: "#475569",
-                              lineHeight: 1.45,
-                              marginTop: 4,
+                              color: "#334155",
+                              lineHeight: 1.5,
+                              marginTop: 5,
+                              whiteSpace: "normal",
+                              wordBreak: "break-word",
+                              overflowWrap: "anywhere",
+                              width: "100%",
+                              boxSizing: "border-box",
                             }}
                           >
                             {notif.message}
@@ -575,9 +597,12 @@ export default function NotificationBell({ isMobile = false }) {
                             alignItems: "center",
                             justifyContent: "flex-end",
                             gap: 8,
-                            marginTop: 4,
+                            marginTop: 8,
                             paddingTop: 8,
                             borderTop: "1px solid #f1f5f9",
+                            flexWrap: "wrap",
+                            width: "100%",
+                            boxSizing: "border-box",
                           }}
                         >
                           {/* Button 2: Understood / Dismiss */}
@@ -586,7 +611,7 @@ export default function NotificationBell({ isMobile = false }) {
                             disabled={isProcessing}
                             onClick={(e) => handleUnderstood(e, notif)}
                             style={{
-                              padding: "6px 12px",
+                              padding: isSmallScreen ? "6px 11px" : "6.5px 13px",
                               borderRadius: 8,
                               background: "#ffffff",
                               border: "1px solid #e2e8f0",
@@ -596,7 +621,12 @@ export default function NotificationBell({ isMobile = false }) {
                               cursor: isProcessing ? "not-allowed" : "pointer",
                               display: "inline-flex",
                               alignItems: "center",
-                              gap: 4,
+                              justifyContent: "center",
+                              gap: 5,
+                              whiteSpace: "nowrap",
+                              flexShrink: 0,
+                              maxWidth: "100%",
+                              boxSizing: "border-box",
                               transition: "all 0.15s ease",
                             }}
                           >
@@ -614,7 +644,7 @@ export default function NotificationBell({ isMobile = false }) {
                             disabled={isProcessing}
                             onClick={(e) => handleCheckNow(e, notif)}
                             style={{
-                              padding: "6px 14px",
+                              padding: isSmallScreen ? "6px 13px" : "6.5px 15px",
                               borderRadius: 8,
                               background: isUnread ? "#2563eb" : "#ffffff",
                               border: isUnread ? "none" : "1px solid #cbd5e1",
@@ -624,8 +654,13 @@ export default function NotificationBell({ isMobile = false }) {
                               cursor: isProcessing ? "not-allowed" : "pointer",
                               display: "inline-flex",
                               alignItems: "center",
+                              justifyContent: "center",
                               gap: 5,
                               boxShadow: isUnread ? "0 2px 6px rgba(37, 99, 235, 0.22)" : "none",
+                              whiteSpace: "nowrap",
+                              flexShrink: 0,
+                              maxWidth: "100%",
+                              boxSizing: "border-box",
                               transition: "all 0.15s ease",
                             }}
                           >
@@ -645,8 +680,13 @@ export default function NotificationBell({ isMobile = false }) {
                           style={{
                             display: "flex",
                             gap: 8,
-                            marginTop: 4,
+                            marginTop: 6,
+                            paddingTop: 8,
+                            borderTop: "1px solid #f1f5f9",
                             justifyContent: "flex-end",
+                            flexWrap: "wrap",
+                            width: "100%",
+                            boxSizing: "border-box",
                           }}
                         >
                           <button
