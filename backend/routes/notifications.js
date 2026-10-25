@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const StudentNotification = require("../models/StudentNotification");
 const DeviceApprovalRequest = require("../models/DeviceApprovalRequest");
 const StudentSession = require("../models/StudentSession");
@@ -308,6 +309,26 @@ router.get("/stream", protectStudent, (req, res) => {
 // 5. Send Broadcast Notification to All Students
 router.post("/broadcast", protectAdmin, async (req, res) => {
   try {
+    if (req.body?.action === "admin-broadcast-delete" || req.query?.action === "admin-broadcast-delete") {
+      const rawId = req.body?.notificationId || req.query?.notificationId || req.query?.id || req.body?.id;
+      if (!rawId) {
+        return res.status(400).json({ success: false, message: "Notification ID is required." });
+      }
+      const cleanId = String(rawId).trim();
+      const deleteFilter = {
+        $or: [
+          { notificationId: cleanId },
+          ...(mongoose.Types.ObjectId.isValid(cleanId) ? [{ _id: cleanId }] : [])
+        ]
+      };
+      await StudentNotification.deleteOne(deleteFilter);
+      try {
+        await broadcastRealtimeEvent("delete-broadcast", { notificationId: cleanId });
+      } catch (e) {
+        console.warn("[Ably] Delete broadcast publish warning:", e?.message || e);
+      }
+      return res.json({ success: true, message: "Broadcast notification removed." });
+    }
     const {
       title,
       message,
@@ -495,14 +516,22 @@ router.get("/broadcasts", protectAdmin, async (req, res) => {
 // 7. Delete Broadcast Notification (Admin)
 router.delete("/broadcast/:notificationId", protectAdmin, async (req, res) => {
   try {
-    const notificationId = req.params.notificationId || req.body?.notificationId;
-    if (!notificationId) {
+    const rawId = req.params.notificationId || req.body?.notificationId || req.query?.notificationId || req.query?.id || req.body?.id;
+    if (!rawId) {
       return res.status(400).json({ success: false, message: "Notification ID is required." });
     }
 
-    await StudentNotification.deleteOne({ notificationId, regNo: "ALL" });
+    const cleanId = String(rawId).trim();
+    const deleteFilter = {
+      $or: [
+        { notificationId: cleanId },
+        ...(mongoose.Types.ObjectId.isValid(cleanId) ? [{ _id: cleanId }] : [])
+      ]
+    };
+
+    await StudentNotification.deleteOne(deleteFilter);
     try {
-      await broadcastRealtimeEvent("delete-broadcast", { notificationId });
+      await broadcastRealtimeEvent("delete-broadcast", { notificationId: cleanId });
     } catch (e) {
       console.warn("[Ably] Delete broadcast publish warning:", e?.message || e);
     }
@@ -515,14 +544,50 @@ router.delete("/broadcast/:notificationId", protectAdmin, async (req, res) => {
 
 router.delete("/broadcast", protectAdmin, async (req, res) => {
   try {
-    const notificationId = req.body?.notificationId || req.query?.notificationId || req.query?.id;
-    if (!notificationId) {
+    const rawId = req.body?.notificationId || req.query?.notificationId || req.query?.id || req.body?.id;
+    if (!rawId) {
       return res.status(400).json({ success: false, message: "Notification ID is required." });
     }
 
-    await StudentNotification.deleteOne({ notificationId, regNo: "ALL" });
+    const cleanId = String(rawId).trim();
+    const deleteFilter = {
+      $or: [
+        { notificationId: cleanId },
+        ...(mongoose.Types.ObjectId.isValid(cleanId) ? [{ _id: cleanId }] : [])
+      ]
+    };
+
+    await StudentNotification.deleteOne(deleteFilter);
     try {
-      await broadcastRealtimeEvent("delete-broadcast", { notificationId });
+      await broadcastRealtimeEvent("delete-broadcast", { notificationId: cleanId });
+    } catch (e) {
+      console.warn("[Ably] Delete broadcast publish warning:", e?.message || e);
+    }
+    return res.json({ success: true, message: "Broadcast notification removed." });
+  } catch (err) {
+    console.error("Delete broadcast error:", err);
+    return res.status(500).json({ success: false, message: "Server error deleting broadcast." });
+  }
+});
+
+router.post("/broadcast/delete", protectAdmin, async (req, res) => {
+  try {
+    const rawId = req.body?.notificationId || req.query?.notificationId || req.query?.id || req.body?.id;
+    if (!rawId) {
+      return res.status(400).json({ success: false, message: "Notification ID is required." });
+    }
+
+    const cleanId = String(rawId).trim();
+    const deleteFilter = {
+      $or: [
+        { notificationId: cleanId },
+        ...(mongoose.Types.ObjectId.isValid(cleanId) ? [{ _id: cleanId }] : [])
+      ]
+    };
+
+    await StudentNotification.deleteOne(deleteFilter);
+    try {
+      await broadcastRealtimeEvent("delete-broadcast", { notificationId: cleanId });
     } catch (e) {
       console.warn("[Ably] Delete broadcast publish warning:", e?.message || e);
     }

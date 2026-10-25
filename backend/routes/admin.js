@@ -2190,7 +2190,7 @@ async function getAdminBootstrapData(adminUser) {
     VercelQuotaMetric.findOne().sort({ recordedAt: -1 }).lean().catch(() => null),
     SystemConfig.findOne({ key: "admin_button_config" }).lean().catch(() => null),
     SystemConfig.findOne({ key: "maintenance" }).lean().catch(() => null),
-    StudentNotification.find({ isBroadcast: true })
+    StudentNotification.find({ $or: [{ regNo: "ALL" }, { isBroadcast: true }] })
       .sort({ createdAt: -1 }).limit(15).lean().catch(() => []),
     Feedback.find({}).sort({ createdAt: -1 }).limit(20).lean().catch(() => []),
   ]);

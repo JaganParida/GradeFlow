@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import axios from "axios";
 import { subscribeAdminChannel } from "../services/ablyClient";
-import { getAdminCache, setAdminCache } from "../utils/adminRealtimeCache";
+import { getAdminCache, setAdminCache, AdminCacheScopes } from "../utils/adminRealtimeCache";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell,
@@ -120,6 +120,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
 
   const [broadcasts, setBroadcasts] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   // Inspector Drawer states
   const [expandedBroadcastId, setExpandedBroadcastId] = useState(null);
@@ -267,39 +268,102 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
     }
   };
 
-  const handleDeleteBroadcast = async (notificationId) => {
+  const handleDeleteBroadcast = async (rawId) => {
+    const notificationId = String(rawId || "").trim();
+    if (!notificationId) {
+      alert("Notification identifier is missing.");
+      return;
+    }
+
     if (!window.confirm("Are you sure you want to delete this broadcast notification? It will be removed immediately from all student notification drawers.")) {
       return;
     }
 
+    setDeletingId(notificationId);
     try {
       const cfg = getRequestConfig();
-      let res;
+      let res = null;
+      let lastErr = null;
+
+      // 1. Primary DELETE with ID in path & query
       try {
-        res = await axios.delete(`${API}/admin/notifications/broadcast/${notificationId}?action=admin-broadcast-delete`, {
-          ...cfg,
-          data: { notificationId },
-        });
-      } catch {
-        res = await axios.post(
-          `${API}/notifications?action=admin-broadcast-delete`,
-          { notificationId },
-          cfg
+        res = await axios.delete(
+          `${API}/admin/notifications/broadcast/${encodeURIComponent(notificationId)}?action=admin-broadcast-delete&id=${encodeURIComponent(notificationId)}`,
+          {
+            ...cfg,
+            data: { notificationId, id: notificationId },
+          }
         );
+      } catch (err1) {
+        lastErr = err1;
       }
 
-      if (res.data?.success) {
+      // 2. Fallback DELETE to standard route if primary failed
+      if (!res?.data?.success) {
+        try {
+          res = await axios.delete(
+            `${API}/notifications/broadcast/${encodeURIComponent(notificationId)}?action=admin-broadcast-delete&id=${encodeURIComponent(notificationId)}`,
+            {
+              ...cfg,
+              data: { notificationId, id: notificationId },
+            }
+          );
+        } catch (err2) {
+          lastErr = err2;
+        }
+      }
+
+      // 3. Fallback POST with action query & payload for proxies that block or strip DELETE bodies
+      if (!res?.data?.success) {
+        try {
+          res = await axios.post(
+            `${API}/admin/notifications/broadcast?action=admin-broadcast-delete`,
+            { notificationId, id: notificationId, action: "admin-broadcast-delete" },
+            cfg
+          );
+        } catch (err3) {
+          lastErr = err3;
+        }
+      }
+
+      // 4. Final fallback POST to base notifications endpoint
+      if (!res?.data?.success) {
+        try {
+          res = await axios.post(
+            `${API}/notifications?action=admin-broadcast-delete`,
+            { notificationId, id: notificationId, action: "admin-broadcast-delete" },
+            cfg
+          );
+        } catch (err4) {
+          lastErr = err4;
+        }
+      }
+
+      if (res?.data?.success) {
         setBroadcasts((prev) => {
-          const next = prev.filter((b) => b.notificationId !== notificationId);
+          const next = prev.filter(
+            (b) =>
+              b.notificationId !== notificationId &&
+              b._id !== notificationId &&
+              b.id !== notificationId
+          );
           setAdminCache("gf_admin_broadcasts_list", next, AdminCacheScopes.BROADCAST);
           return next;
         });
         if (expandedBroadcastId === notificationId) setExpandedBroadcastId(null);
         setFeedbackMsg("Broadcast announcement deleted successfully.");
         setTimeout(() => setFeedbackMsg(""), 5000);
+      } else {
+        const errorMsg =
+          res?.data?.message ||
+          lastErr?.response?.data?.message ||
+          "Failed to delete broadcast notification.";
+        alert(errorMsg);
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete broadcast notification.");
+      alert(err.response?.data?.message || err.message || "Failed to delete broadcast notification.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -1355,23 +1419,29 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
 
                     <button
                       type="button"
-                      onClick={() => handleDeleteBroadcast(b.notificationId)}
+                      disabled={deletingId === (b.notificationId || b._id || b.id)}
+                      onClick={() => handleDeleteBroadcast(b.notificationId || b._id || b.id)}
                       style={{
                         padding: "5px 9px",
                         borderRadius: 7,
-                        background: "#fef2f2",
+                        background: deletingId === (b.notificationId || b._id || b.id) ? "#f1f5f9" : "#fef2f2",
                         border: "1px solid #fecaca",
-                        color: "#dc2626",
+                        color: deletingId === (b.notificationId || b._id || b.id) ? "#94a3b8" : "#dc2626",
                         fontSize: 11.5,
                         fontWeight: 750,
-                        cursor: "pointer",
+                        cursor: deletingId === (b.notificationId || b._id || b.id) ? "not-allowed" : "pointer",
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 4,
                       }}
+                      title="Delete this broadcast announcement"
                     >
-                      <Trash2 size={13} />
-                      <span>Delete</span>
+                      {deletingId === (b.notificationId || b._id || b.id) ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={13} />
+                      )}
+                      <span>{deletingId === (b.notificationId || b._id || b.id) ? "Deleting..." : "Delete"}</span>
                     </button>
                   </div>
 
@@ -1647,24 +1717,29 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
                         <td style={{ padding: "12px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
                           <button
                             type="button"
-                            onClick={() => handleDeleteBroadcast(b.notificationId)}
+                            disabled={deletingId === (b.notificationId || b._id || b.id)}
+                            onClick={() => handleDeleteBroadcast(b.notificationId || b._id || b.id)}
                             style={{
                               padding: "5px 10px",
                               borderRadius: 7,
-                              background: "#fef2f2",
+                              background: deletingId === (b.notificationId || b._id || b.id) ? "#f1f5f9" : "#fef2f2",
                               border: "1px solid #fecaca",
-                              color: "#dc2626",
+                              color: deletingId === (b.notificationId || b._id || b.id) ? "#94a3b8" : "#dc2626",
                               fontSize: 11.5,
                               fontWeight: 700,
-                              cursor: "pointer",
+                              cursor: deletingId === (b.notificationId || b._id || b.id) ? "not-allowed" : "pointer",
                               display: "inline-flex",
                               alignItems: "center",
                               gap: 4,
                             }}
                             title="Delete this broadcast notice"
                           >
-                            <Trash2 size={13} />
-                            <span>Delete</span>
+                            {deletingId === (b.notificationId || b._id || b.id) ? (
+                              <Loader2 size={13} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={13} />
+                            )}
+                            <span>{deletingId === (b.notificationId || b._id || b.id) ? "Deleting..." : "Delete"}</span>
                           </button>
                         </td>
                       </tr>

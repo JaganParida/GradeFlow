@@ -6,6 +6,7 @@ const SubAdminSession = require("./_lib/models/SubAdminSession");
 const Student = require("./_lib/models/Student");
 const SemesterResult = require("./_lib/models/SemesterResult");
 const Ranking = require("./_lib/models/Ranking");
+const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const {
   respondDeviceApproval,
@@ -317,20 +318,37 @@ module.exports = async function handler(req, res) {
     }
 
     // C. Delete Broadcast Notification (Admin)
-    if (action === "admin-broadcast-delete" || action === "broadcast-delete" || (action === "broadcast" && req.method === "DELETE")) {
+    if (
+      action === "admin-broadcast-delete" ||
+      action === "broadcast-delete" ||
+      ((action === "broadcast" || action === "admin-broadcast") && req.method === "DELETE")
+    ) {
       const admin = await authenticateAdmin(req);
       if (!admin) {
         return res.status(401).json({ success: false, message: "Unauthorized: Admin authentication required." });
       }
 
-      const notificationId = req.body?.notificationId || req.query?.notificationId || req.query?.id || req.body?.id;
+      const notificationId =
+        req.body?.notificationId ||
+        req.query?.notificationId ||
+        req.query?.id ||
+        req.body?.id ||
+        req.params?.notificationId;
       if (!notificationId) {
         return res.status(400).json({ success: false, message: "Notification ID is required." });
       }
 
-      await StudentNotification.deleteOne({ notificationId, regNo: "ALL" });
+      const cleanId = String(notificationId).trim();
+      const deleteFilter = {
+        $or: [
+          { notificationId: cleanId },
+          ...(mongoose.Types.ObjectId.isValid(cleanId) ? [{ _id: cleanId }] : [])
+        ]
+      };
+
+      await StudentNotification.deleteOne(deleteFilter);
       try {
-        await broadcastRealtimeEvent("delete-broadcast", { notificationId });
+        await broadcastRealtimeEvent("delete-broadcast", { notificationId: cleanId });
       } catch (e) {
         console.warn("[Ably] Delete broadcast publish warning:", e?.message || e);
       }
