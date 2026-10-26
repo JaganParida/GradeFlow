@@ -47,6 +47,7 @@ import {
   fetchServerScanQuota,
   MAX_DAILY_SCANS,
 } from "../utils/scanLimitHelper";
+import { useApp } from "../context/AppContext";
 
 export default function AttendanceScreenshotModal({
   isOpen,
@@ -59,21 +60,25 @@ export default function AttendanceScreenshotModal({
   API = "/api",
   existingSubjects = [],
 }) {
-  const [scanStatus, setScanStatus] = useState(() => getDailyScanStatus(studentId, userRole, isAdmin));
+  const appContext = useApp ? useApp() : {};
+  const studentSession = appContext?.studentSession;
+  const activeStudentId = isAdmin ? studentId : (studentSession?.regNo || studentId);
+
+  const [scanStatus, setScanStatus] = useState(() => getDailyScanStatus(activeStudentId, userRole, isAdmin));
 
   useEffect(() => {
-    setScanStatus(getDailyScanStatus(studentId, userRole, isAdmin));
-    const handleUpdate = () => setScanStatus(getDailyScanStatus(studentId, userRole, isAdmin));
+    setScanStatus(getDailyScanStatus(activeStudentId, userRole, isAdmin));
+    const handleUpdate = () => setScanStatus(getDailyScanStatus(activeStudentId, userRole, isAdmin));
     window.addEventListener("gradeflow_scan_limit_updated", handleUpdate);
 
-    if (isOpen && studentId) {
-      fetchServerScanQuota(studentId, userRole, isAdmin, API).then((st) => {
+    if (isOpen && activeStudentId) {
+      fetchServerScanQuota(activeStudentId, userRole, isAdmin, API).then((st) => {
         if (st) setScanStatus(st);
       });
     }
 
     return () => window.removeEventListener("gradeflow_scan_limit_updated", handleUpdate);
-  }, [studentId, userRole, isAdmin, isOpen, API]);
+  }, [activeStudentId, userRole, isAdmin, isOpen, API]);
 
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -328,7 +333,7 @@ export default function AttendanceScreenshotModal({
   };
 
   const processFile = (file) => {
-    const currentLimit = getDailyScanStatus(studentId, userRole, isAdmin);
+    const currentLimit = getDailyScanStatus(activeStudentId, userRole, isAdmin);
     if (currentLimit.isLimitReached) {
       setErrorMsg(
         "Daily Screenshot Limit Reached (2/2): You have already used your 2 scans for today. The limit will automatically reset tomorrow at midnight (12:00 AM). Please enter or update your attendance manually."
@@ -874,7 +879,21 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
         console.warn("[OCR] pre-upload compression check warning:", cErr);
       }
     }
-    const ocrPayload = { imageBase64: payloadBase64, mimeType: payloadMime, studentId };
+    const adminTokenStr = typeof window !== "undefined"
+      ? (localStorage.getItem("adminToken") || localStorage.getItem("token") || "")
+      : "";
+
+    const authHeaders = {};
+    if (adminTokenStr) {
+      authHeaders["x-admin-token"] = adminTokenStr;
+      authHeaders["Authorization"] = `Bearer ${adminTokenStr}`;
+    }
+
+    const ocrPayload = {
+      imageBase64: payloadBase64,
+      mimeType: payloadMime,
+      studentId: activeStudentId,
+    };
 
     const endpointsToTry = [
       { url: `${API}/attendance/ocr`, label: "Vercel OCR Route" },
@@ -887,7 +906,11 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
       if (extracted.length > 0) break;
       try {
         setProcessingStatus(`Scanning ERP rows via ${endpoint.label}...`);
-        const res = await axios.post(endpoint.url, ocrPayload, { timeout: 40000, withCredentials: true });
+        const res = await axios.post(endpoint.url, ocrPayload, {
+          timeout: 40000,
+          withCredentials: true,
+          headers: authHeaders,
+        });
 
         if (
           res?.data?.success &&
@@ -907,7 +930,7 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
         const respMsg = err.response?.data?.message || err.response?.data?.error;
         lastApiError = respMsg || `Network error connecting to ${endpoint.label}: ${err.message}`;
         console.warn(`[ERP OCR] ${endpoint.label} failed:`, err.message);
-        if (err.response?.status === 429 || err.response?.status === 401 || err.response?.status === 403) {
+        if (err.response?.status === 429) {
           break;
         }
       }
@@ -975,9 +998,9 @@ const parseCutmOcrText = (text, catalog = [], existingSubjects = []) => {
 
     if (finalCleanList.length > 0) {
       setParsedSubjects(finalCleanList);
-      incrementDailyScanCount(studentId, userRole, isAdmin);
-      if (usedClientFallback && studentId) {
-        axios.post(`${API}/attendance/scan-log`, { studentId, subjectsCount: finalCleanList.length }, { withCredentials: true }).catch(() => {});
+      incrementDailyScanCount(activeStudentId, userRole, isAdmin);
+      if (usedClientFallback && activeStudentId) {
+        axios.post(`${API}/attendance/scan-log`, { studentId: activeStudentId, subjectsCount: finalCleanList.length }, { withCredentials: true, headers: authHeaders }).catch(() => {});
       }
       setErrorMsg(""); // Extraction was successful; clear any transient backend errors
       setStep("review");

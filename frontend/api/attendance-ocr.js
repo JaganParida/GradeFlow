@@ -54,21 +54,7 @@ async function authenticateCaller(req) {
     };
   }
 
-  // 1. Authenticate Student
-  if (studentToken && studentToken !== "none") {
-    try {
-      const decoded = jwt.verify(studentToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
-      if (decoded.role === "student" && decoded.regNo && decoded.sessionId) {
-        await connectToDatabase();
-        const session = await StudentSession.findOne({ sessionId: decoded.sessionId, isActive: true });
-        if (session && isSessionValid(session)) {
-          return { caller: { type: "student", regNo: decoded.regNo } };
-        }
-      }
-    } catch {}
-  }
-
-  // 2. Authenticate Admin or Sub-Admin
+  // 1. Authenticate Admin or Sub-Admin FIRST (Highest privilege)
   if (adminToken && adminToken !== "none") {
     try {
       const decoded = jwt.verify(adminToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
@@ -84,6 +70,20 @@ async function authenticateCaller(req) {
           if (session && isAdminSessionValid(session)) {
             return { caller: { type: "admin" } };
           }
+        }
+      }
+    } catch {}
+  }
+
+  // 2. Authenticate Student
+  if (studentToken && studentToken !== "none") {
+    try {
+      const decoded = jwt.verify(studentToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+      if (decoded.role === "student" && decoded.regNo && decoded.sessionId) {
+        await connectToDatabase();
+        const session = await StudentSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+        if (session && isSessionValid(session)) {
+          return { caller: { type: "student", regNo: decoded.regNo } };
         }
       }
     } catch {}
@@ -276,10 +276,11 @@ module.exports = async function handler(req, res) {
 
     if (GEMINI_API_KEY) {
       const modelsToTry = [
+        "gemini-2.5-flash",
         "gemini-3-flash-preview",
+        "gemini-3.1-flash-lite",
         "gemini-3.8-flash",
         "gemini-3.6-flash",
-        "gemini-3.1-flash-lite",
       ];
 
       let lastError = null;
@@ -288,7 +289,7 @@ module.exports = async function handler(req, res) {
         const controller = new AbortController();
         const timeoutTimer = setTimeout(() => controller.abort(), 18000);
         try {
-          const response = await fetch(
+          let response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
             {
               method: "POST",

@@ -305,10 +305,11 @@ app.post("/api/attendance/ocr", publicLimiter, requireStudentOrAdmin, async (req
 
     if (GEMINI_API_KEY) {
       const modelsToTry = [
+        "gemini-2.5-flash",
         "gemini-3-flash-preview",
+        "gemini-3.1-flash-lite",
         "gemini-3.8-flash",
         "gemini-3.6-flash",
-        "gemini-3.1-flash-lite",
       ];
 
       let lastError = null;
@@ -317,7 +318,7 @@ app.post("/api/attendance/ocr", publicLimiter, requireStudentOrAdmin, async (req
         const controller = new AbortController();
         const timeoutTimer = setTimeout(() => controller.abort(), 18000);
         try {
-          const response = await fetch(
+          let response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
             {
               method: "POST",
